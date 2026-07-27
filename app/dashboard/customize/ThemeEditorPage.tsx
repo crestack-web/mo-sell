@@ -535,7 +535,7 @@ export function ThemeEditorPage() {
       hideStoreNameWithLogo,
     };
     sessionStorage.setItem('mobilePreviewData', JSON.stringify(previewData));
-    window.open('/sell/mobile-preview', '_blank');
+    window.open('/dashboard/mobile-preview', '_blank');
   }, [theme, storeName, tagline, primary, secondary, logoUrl, sections, storeConfig, products, collections, fontFamily, buttonStyle, bodyTextColor, hideStoreNameWithLogo]);
 
   // Device frame dimensions & dynamic scaling

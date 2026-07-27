@@ -58,7 +58,7 @@ export default function SellSubscribePage() {
       if (userData?.businessId && userData?.moSellSubscription?.status === 'active') {
         const endDate = userData.moSellSubscription.endDate?.toDate?.() ?? new Date(userData.moSellSubscription.endDate);
         if (endDate > new Date()) {
-          router.replace('/sell/dashboard');
+          router.replace('/dashboard');
           return;
         }
       }
@@ -67,7 +67,7 @@ export default function SellSubscribePage() {
       if (!userData?.businessId && userData?.moSellSubscription?.status === 'active') {
         const endDate = userData.moSellSubscription.endDate?.toDate?.() ?? new Date(userData.moSellSubscription.endDate);
         if (endDate > new Date()) {
-          router.replace('/sell/dashboard');
+          router.replace('/dashboard');
           return;
         }
       }
@@ -109,7 +109,7 @@ export default function SellSubscribePage() {
           amount: 0,
         });
 
-        router.replace('/sell/dashboard');
+        router.replace('/dashboard');
       } else {
         // Non-Busmo users pay $1 via Paystack
         const response = await fetch('https://us-central1-bizassistant2-62305643-adad7.cloudfunctions.net/initializePayment', {

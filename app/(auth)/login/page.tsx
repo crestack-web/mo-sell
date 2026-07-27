@@ -89,7 +89,7 @@ export default function SellLoginPage() {
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && password.length >= 6;
 
   function goToDashboard() {
-    window.location.href = '/sell/dashboard';
+    window.location.href = '/dashboard';
   }
 
   async function handleEmailLogin() {

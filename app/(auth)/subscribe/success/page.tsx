@@ -64,7 +64,7 @@ function SellSubscribeSuccessContent() {
 
         // Redirect to MO Sell dashboard after 2 seconds
         setTimeout(() => {
-          router.push('/sell/dashboard');
+          router.push('/dashboard');
         }, 2000);
       } catch (err: any) {
         console.error('MO Sell subscription verification error:', err);
@@ -135,7 +135,7 @@ function SellSubscribeSuccessContent() {
                 Try Again
               </button>
               <button
-                onClick={() => router.push('/sell/dashboard')}
+                onClick={() => router.push('/dashboard')}
                 className="w-full py-3 rounded-xl font-semibold transition"
                 style={{ background: C.bg, color: C.text2, border: `1px solid ${C.bg}` }}
               >
