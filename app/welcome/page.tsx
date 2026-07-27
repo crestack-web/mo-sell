@@ -457,19 +457,18 @@ export default function SellWelcomePage() {
             </div>
 
             {/* Right — hero image */}
-            <div className="sw-fade sw-fade-2 sw-hero-img" style={{ display:'flex', justifyContent:'center', alignItems:'center' }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
+                className="sw-fade sw-fade-2 sw-hero-img"
                 src="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1785152790/Untitled_-_July_27_2026_at_08.12.54_womtaf.png"
                 alt="MO Sell — AI-powered store builder"
                 style={{
                   width: '100%',
-                  maxWidth: 480,
+                  maxWidth: 640,
                   borderRadius: 16,
                   boxShadow: '0 12px 40px rgba(14,88,140,0.12)',
                 }}
               />
-            </div>
           </div>
         </section>
 
