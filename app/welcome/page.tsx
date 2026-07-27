@@ -747,10 +747,10 @@ export default function SellWelcomePage() {
                 <div>
                   <div style={{ fontFamily:FONT_DISPLAY, fontWeight:800, fontSize:20, color:C.primary }}>MO Sell</div>
                   <div style={{ display:'flex', alignItems:'baseline', gap:4, marginTop:6 }}>
-                    <span style={{ fontFamily:FONT_DISPLAY, fontWeight:800, fontSize:32, color:C.text1, letterSpacing:'-0.03em' }}>$0</span>
+                    <span style={{ fontFamily:FONT_DISPLAY, fontWeight:800, fontSize:32, color:C.text1, letterSpacing:'-0.03em' }}>$10</span>
                     <span style={{ fontSize:14, color:C.text3 }}>/month</span>
                   </div>
-                  <div style={{ fontSize:12, color:C.green, fontWeight:700, marginTop:4 }}>Free forever</div>
+                  <div style={{ fontSize:12, color:C.green, fontWeight:700, marginTop:4 }}>$1 for first 3 months</div>
                 </div>
                 <div style={{ height:1, background:C.border }} />
                 {[
@@ -914,7 +914,7 @@ export default function SellWelcomePage() {
               background:C.bg, border:`1px solid ${C.border}`,
             }}>
               <p style={{ fontSize:13, color:C.text2, lineHeight:1.6 }}>
-                <strong>MO Sell:</strong> Free — 0% transaction fees on our end (Paystack charges their standard rate). 
+                <strong>MO Sell:</strong> $1 for 3 months, then $10/month — 0% transaction fees on our end (Paystack charges their standard rate). 
                 <strong> Shopify:</strong> $39/month + 2.9% + 30¢ per transaction. 
                 <strong> Stan Store:</strong> $29/month. 
                 <strong> Linktree:</strong> $24/month for link-in-bio only — no store.
