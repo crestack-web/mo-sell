@@ -248,7 +248,7 @@ export default function SellWelcomePage() {
             grid-template-columns: 1fr;
             gap: 20px;
           }
-          .sw-hero-img { display: none; }
+          .sw-hero-img { max-width: 320px !important; margin: 0 auto; }
           .sw-hero-section { padding: 24px 4% 20px !important; }
           .sw-hero-title { font-size: clamp(1.5rem, 7vw, 2rem) !important; }
           .sw-hero-subtitle { font-size: 13px !important; line-height: 1.5 !important; max-width: 100% !important; }
@@ -391,6 +391,11 @@ export default function SellWelcomePage() {
         @media (max-width: 480px) {
           .sw-section-title { font-size: 1.3rem !important; }
           .sw-section-sub { font-size: 13px !important; }
+        }
+
+        /* ── Seller showcase images ── */
+        @media (max-width: 600px) {
+          .sw-seller-images { grid-template-columns: 1fr !important; gap: 16px !important; }
         }
       `}</style>
 
@@ -953,54 +958,56 @@ export default function SellWelcomePage() {
                 From fashion brands to freelance consultants — see how MO Sell works for different businesses.
               </p>
             </div>
-            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(250px,1fr))', gap:20 }}>
-              {/* Fashion brand */}
+            <div className="sw-seller-images" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:24, maxWidth:900, margin:'0 auto' }}>
+              {/* Left image */}
               <div style={{
-                background:C.surface, borderRadius:16, overflow:'hidden',
-                border:`1px solid ${C.border}`, boxShadow:'0 2px 12px rgba(14,88,140,0.06)',
-              }}>
-                <div style={{ height:140, background:'linear-gradient(135deg, #FDF2F8, #FCE7F3)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'3rem' }}>👗</div>
-                <div style={{ padding:'20px 18px' }}>
-                  <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:C.rose, marginBottom:6 }}>Fashion Brand</div>
-                  <div style={{ fontFamily:FONT_DISPLAY, fontWeight:700, fontSize:15, color:C.text1, marginBottom:6 }}>Lagos Lace Studio</div>
-                  <div style={{ fontSize:13, color:C.text2, lineHeight:1.5 }}>42 products, 3 collections. AI descriptions, Paystack checkout, Instagram integration.</div>
-                </div>
+                borderRadius:20, overflow:'hidden',
+                border:`1px solid ${C.border}`,
+                boxShadow:'0 8px 32px rgba(14,88,140,0.10)',
+                background:`linear-gradient(135deg, ${C.bg}, ${C.surface})`,
+                padding:12,
+                transition:'transform 0.25s ease, box-shadow 0.25s ease',
+              }}
+                onMouseEnter={e => {
+                  (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-4px)';
+                  (e.currentTarget as HTMLDivElement).style.boxShadow = '0 14px 44px rgba(14,165,233,0.14)';
+                }}
+                onMouseLeave={e => {
+                  (e.currentTarget as HTMLDivElement).style.transform = 'none';
+                  (e.currentTarget as HTMLDivElement).style.boxShadow = '0 8px 32px rgba(14,88,140,0.10)';
+                }}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1785152790/Untitled_-_July_27_2026_at_08.12.54-2_vdjaxz.png"
+                  alt="MO Sell — store showcase"
+                  style={{ width:'100%', height:'auto', borderRadius:14, display:'block' }}
+                />
               </div>
-              {/* Course creator */}
+              {/* Right image */}
               <div style={{
-                background:C.surface, borderRadius:16, overflow:'hidden',
-                border:`1px solid ${C.border}`, boxShadow:'0 2px 12px rgba(14,88,140,0.06)',
-              }}>
-                <div style={{ height:140, background:'linear-gradient(135deg, #EDE9FE, #DDD6FE)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'3rem' }}>🎓</div>
-                <div style={{ padding:'20px 18px' }}>
-                  <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:C.purple, marginBottom:6 }}>Course Creator</div>
-                  <div style={{ fontFamily:FONT_DISPLAY, fontWeight:700, fontSize:15, color:C.text1, marginBottom:6 }}>CodeWithNgozi</div>
-                  <div style={{ fontSize:13, color:C.text2, lineHeight:1.5 }}>3 courses, 1 ebook. Video hosting, instant file delivery, ₦2.4M in first month.</div>
-                </div>
-              </div>
-              {/* Consultant */}
-              <div style={{
-                background:C.surface, borderRadius:16, overflow:'hidden',
-                border:`1px solid ${C.border}`, boxShadow:'0 2px 12px rgba(14,88,140,0.06)',
-              }}>
-                <div style={{ height:140, background:'linear-gradient(135deg, #FEF3C7, #FDE68A)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'3rem' }}>💼</div>
-                <div style={{ padding:'20px 18px' }}>
-                  <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:C.amber, marginBottom:6 }}>Consultant</div>
-                  <div style={{ fontFamily:FONT_DISPLAY, fontWeight:700, fontSize:15, color:C.text1, marginBottom:6 }}>Adaeze Strategy Co.</div>
-                  <div style={{ fontSize:13, color:C.text2, lineHeight:1.5 }}>3 service tiers, booking page, client intake forms. Fully automated scheduling.</div>
-                </div>
-              </div>
-              {/* Digital creator */}
-              <div style={{
-                background:C.surface, borderRadius:16, overflow:'hidden',
-                border:`1px solid ${C.border}`, boxShadow:'0 2px 12px rgba(14,88,140,0.06)',
-              }}>
-                <div style={{ height:140, background:'linear-gradient(135deg, #FFF1F2, #FECDD3)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'3rem' }}>✨</div>
-                <div style={{ padding:'20px 18px' }}>
-                  <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:C.rose, marginBottom:6 }}>Digital Creator</div>
-                  <div style={{ fontFamily:FONT_DISPLAY, fontWeight:700, fontSize:15, color:C.text1, marginBottom:6 }}>The Planner Studio</div>
-                  <div style={{ fontSize:13, color:C.text2, lineHeight:1.5 }}>28 digital planners, templates, and presets. Instant downloads, global reach.</div>
-                </div>
+                borderRadius:20, overflow:'hidden',
+                border:`1px solid ${C.border}`,
+                boxShadow:'0 8px 32px rgba(14,88,140,0.10)',
+                background:`linear-gradient(135deg, ${C.surface}, ${C.bg})`,
+                padding:12,
+                transition:'transform 0.25s ease, box-shadow 0.25s ease',
+              }}
+                onMouseEnter={e => {
+                  (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-4px)';
+                  (e.currentTarget as HTMLDivElement).style.boxShadow = '0 14px 44px rgba(99,102,241,0.14)';
+                }}
+                onMouseLeave={e => {
+                  (e.currentTarget as HTMLDivElement).style.transform = 'none';
+                  (e.currentTarget as HTMLDivElement).style.boxShadow = '0 8px 32px rgba(14,88,140,0.10)';
+                }}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1785152790/Untitled_-_July_27_2026_at_08.12.54-2_vdjaxz.png"
+                  alt="MO Sell — store in action"
+                  style={{ width:'100%', height:'auto', borderRadius:14, display:'block' }}
+                />
               </div>
             </div>
           </div>
