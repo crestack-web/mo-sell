@@ -131,7 +131,7 @@ export function CheckoutForm({
         <div style={{ fontSize: '3rem', marginBottom: 12 }}>🛒</div>
         <p style={{ fontWeight: 600 }}>Your cart is empty</p>
         <button
-          onClick={() => router.push(`/store/${storeSlug}`)}
+          onClick={() => router.push(`/${storeSlug}`)}
           style={{ marginTop: 16, padding: '10px 20px', background: 'var(--sf-primary)', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}
         >
           Continue shopping

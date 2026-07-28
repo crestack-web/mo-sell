@@ -159,7 +159,7 @@ export default async function OrderConfirmationPage({
       {/* CTA */}
       <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
         <Link
-          href={`/store/${storeSlug}`}
+          href={`/${storeSlug}`}
           style={{
             padding: '11px 24px',
             background: 'var(--sf-primary)', color: '#fff',

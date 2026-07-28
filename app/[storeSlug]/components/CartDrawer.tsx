@@ -197,7 +197,7 @@ export function CartDrawer({ storeSlug, currency }: Props) {
               Shipping and taxes calculated at checkout
             </p>
             <Link
-              href={`/store/${storeSlug}/checkout`}
+              href={`/${storeSlug}/checkout`}
               onClick={closeCart}
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center',

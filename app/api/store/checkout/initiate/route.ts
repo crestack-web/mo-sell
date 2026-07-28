@@ -120,7 +120,7 @@ export async function POST(req: NextRequest) {
         currency:     'NGN',
         reference,
         metadata:     { sessionId, businessId, storeSlug },
-        callback_url: `${baseUrl}/store/${storeSlug}/order/pending`,
+        callback_url: `${baseUrl}/${storeSlug}/order/pending`,
       }),
     });
 

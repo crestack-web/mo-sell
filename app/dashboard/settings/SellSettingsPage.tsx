@@ -276,7 +276,7 @@ export function SellSettingsPage() {
           </p>
           <p className={styles.statusCardSub}>
             {status === 'active' && liveUrl
-              ? <>Accessible at <a href={verifiedCustomDomain ? `https://${verifiedCustomDomain}` : `/store/${storeConfig?.storeSlug}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--sell-primary)' }}>{liveUrl}</a></>
+              ? <>Accessible at <a href={verifiedCustomDomain ? `https://${verifiedCustomDomain}` : `/${storeConfig?.storeSlug}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--sell-primary)' }}>{liveUrl}</a></>
               : status === 'paused' ? 'Customers see a temporarily unavailable page' : 'Not visible to customers yet'}
           </p>
         </div>
@@ -285,7 +285,7 @@ export function SellSettingsPage() {
           {status === 'active'  && <button className={`${styles.btn} ${styles.btnDanger}`} onClick={() => handlePublish('paused')}>Pause store</button>}
           {status === 'paused'  && <button className={`${styles.btn} ${styles.btnSecondary}`} onClick={() => handlePublish('draft')}>Set to draft</button>}
           {status !== 'active' && liveUrl && (
-            <a href={`/store/${storeConfig?.storeSlug}`} target="_blank" rel="noopener noreferrer" className={`${styles.btn} ${styles.btnGhost}`}>Preview</a>
+            <a href={`/${storeConfig?.storeSlug}`} target="_blank" rel="noopener noreferrer" className={`${styles.btn} ${styles.btnGhost}`}>Preview</a>
           )}
         </div>
       </div>
