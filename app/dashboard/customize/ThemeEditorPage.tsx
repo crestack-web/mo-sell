@@ -299,23 +299,55 @@ function FooterSettings({ s, upd }: { s: FooterSectionSettings; upd: (p: Partial
   </>);
 }
 
-function ThemeCard({ themeId, isActive, storeName, tagline, primary, secondary, logoUrl, onSelect }: {
+function ThemeCard({ themeId, isActive, storeName, tagline, primary, secondary, onSelect }: {
   themeId: StorefrontTheme; isActive: boolean; storeName: string; tagline: string;
-  primary: string; secondary: string; logoUrl?: string | null; onSelect: () => void;
+  primary: string; secondary: string; onSelect: () => void;
 }) {
   const t = THEMES.find(x => x.id === themeId)!;
-  const isDark = themeId === 'luxe' || themeId === 'creator' || themeId === 'link' || themeId === 'vault';
   const creator = isCreatorTheme(themeId);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [loaded, setLoaded] = useState(false);
+  const [scale, setScale] = useState(0.5);
+
+  useEffect(() => {
+    const el = cardRef.current;
+    if (!el) return;
+    const update = () => {
+      const cardW = el.clientWidth;
+      setScale(cardW / 375);
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const previewUrl = `/dashboard/theme-preview/${themeId}?primary=${encodeURIComponent(primary)}&secondary=${encodeURIComponent(secondary)}&storeName=${encodeURIComponent(storeName || 'Your Store')}&tagline=${encodeURIComponent(tagline || 'Shop our latest collection')}`;
+
   return (
-    <div className={[styles.mCard, isActive ? styles.mCardActive : ''].join(' ')} onClick={onSelect}
-      style={{ background: t.previewBg }}>
+    <div className={[styles.themeCard, isActive ? styles.themeCardActive : ''].join(' ')} onClick={onSelect}>
       {isActive && <span className={styles.mActive}><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>}
-      {creator && <span style={{
-        position: 'absolute', top: 6, left: 6,
-        fontSize: '0.5rem', fontWeight: 700, padding: '2px 6px', borderRadius: 100,
-        background: 'rgba(99,102,241,0.9)', color: '#fff', letterSpacing: '0.04em',
-      }}>CREATOR</span>}
-      <p className={styles.mName} style={{ color: isDark ? '#fff' : '#1a1a1a' }}>{t.name}</p>
+      {creator && <span className={styles.themeCardBadge}>CREATOR</span>}
+      <div className={styles.themeCardPreview} ref={cardRef}>
+        {!loaded && <div className={styles.themeCardSkeleton} />}
+        <iframe
+          ref={iframeRef}
+          src={previewUrl}
+          className={styles.themeCardIframe}
+          style={{
+            width: 375,
+            height: 700,
+            transform: `scale(${scale})`,
+            transformOrigin: 'top left',
+            pointerEvents: 'none',
+          }}
+          loading="lazy"
+          onLoad={() => setLoaded(true)}
+          title={`${t.name} theme preview`}
+        />
+      </div>
+      <p className={styles.mName}>{t.name}</p>
     </div>
   );
 }
@@ -642,7 +674,7 @@ export function ThemeEditorPage() {
           <div className={styles.themeGrid}>
             {THEMES.map(t => (
               <ThemeCard key={t.id} themeId={t.id} isActive={theme === t.id}
-                storeName={storeName} tagline={tagline} primary={primary} secondary={secondary} logoUrl={logoUrl}
+                storeName={storeName} tagline={tagline} primary={primary} secondary={secondary}
                 onSelect={() => { setTheme(t.id); pushUndo(); mark(); setView('editor'); }} />
             ))}
           </div>
