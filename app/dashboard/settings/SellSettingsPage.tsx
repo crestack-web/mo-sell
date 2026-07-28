@@ -173,7 +173,7 @@ export function SellSettingsPage() {
         { merge: true }
       );
 
-      // Keep storeIndex in sync for O(1) slug â†’ businessId lookup
+      // Keep storeIndex in sync for O(1) slug  businessId lookup
       await setDoc(
         doc(firestore, 'storeIndex', finalSlug),
         { businessId: user.businessId, storeName: storeName.trim(), updatedAt: serverTimestamp() }
@@ -526,7 +526,7 @@ export function SellSettingsPage() {
                 <div className={styles.formGroup}>
                   <label className={styles.formLabel}>Paystack Secret Key</label>
                   <input className={styles.formInput} type="password" value={paystackSecretKey} onChange={e => { setPaystackSecretKey(e.target.value); mark(); }} placeholder="sk_live_â€¦" />
-                  <p className={styles.formHint}>Found in your Paystack dashboard under Settings â†’ API Keys. This is stored securely and only used for your transactions.</p>
+                  <p className={styles.formHint}>Found in your Paystack dashboard under Settings  API Keys. This is stored securely and only used for your transactions.</p>
                 </div>
                 <div className={styles.formGroup}>
                   <label className={styles.formLabel}>Paystack Public Key</label>

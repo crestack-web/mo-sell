@@ -78,6 +78,7 @@ export interface SellUser {
   avatarStyle: { background: string; color: string };
   photoURL?: string;
   moSellAccess: boolean; // beta gate flag
+  fromBusmo?: boolean; // user came from busmo studio
 }
 
 export interface StoreConfig {
@@ -235,6 +236,7 @@ export function SellProvider({ children }: { children: ReactNode }) {
           },
           photoURL: data.photoURL,
           moSellAccess: true, // open to all authenticated users
+          fromBusmo: !!data.fromBusmo,
         });
       } catch (err) {
         console.error('[SellContext] Failed to load user:', err);

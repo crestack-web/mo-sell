@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { collection, getDocs, query, orderBy, where, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
@@ -37,12 +37,12 @@ interface PayoutRequest {
   createdAt: Date;
 }
 
-// â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const COMMISSION_RATE = 0.05;
 
 function fmt(n: number, currency = 'NGN') {
-  const sym = currency === 'NGN' ? 'â‚¦' : currency === 'USD' ? '$' : currency + ' ';
+  const sym = currency === 'NGN' ? '₦' : currency === 'USD' ? '$' : currency + ' ';
   return `${sym}${n.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
@@ -85,7 +85,7 @@ function payoutStatusBadge(status: PayoutRequest['status']) {
   );
 }
 
-// â”€â”€â”€ Main Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â”€â”€â”€ Main Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export function SellEarningsPage() {
   const { user, storeConfig, navigateTo, showToast } = useSell();
@@ -100,7 +100,7 @@ export function SellEarningsPage() {
   const managedPayments = (storeConfig as any)?.managedPayments === true;
   const currency = storeConfig?.currency ?? 'NGN';
 
-  // Promote pending â†’ available after 24 h (client-side convenience update)
+  // Promote pending -> available after 24 h (client-side convenience update)
   const promoteEarnings = useCallback(async (biz: string, items: Earning[]) => {
     const { firestore } = initializeFirebase();
     const now = Date.now();
@@ -188,7 +188,7 @@ export function SellEarningsPage() {
         showToast(data.error ?? 'Payout request failed', 'error');
         return;
       }
-      showToast(`Payout of ${fmt(data.amount ?? 0, currency)} requested! We'll process it within 1â€“3 business days.`, 'success');
+      showToast(`Payout of ${fmt(data.amount ?? 0, currency)} requested! We'll process it within 1–3 business days.`, 'success');
       await load();
       setTab('payouts');
     } catch {
@@ -198,7 +198,7 @@ export function SellEarningsPage() {
     }
   }, [user?.businessId, storeConfig, currency, load, showToast, navigateTo]);
 
-  // â”€â”€ Not opted in â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // â”€â”€ Not opted in â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (!managedPayments) {
     return (
       <div className={styles.page}>
@@ -216,7 +216,7 @@ export function SellEarningsPage() {
           <p className={styles.emptyTitle}>Enable Managed Payments first</p>
           <p className={styles.emptySub}>
             Turn on Managed Payments in Settings to let Busmo collect payments on your behalf.
-            A 5% commission is charged per sale â€” your net earnings appear here and you can request a payout anytime.
+            A 5% commission is charged per sale — your net earnings appear here and you can request a payout anytime.
           </p>
           <button
             className={styles.btnPrimary}
@@ -234,7 +234,7 @@ export function SellEarningsPage() {
       <div className={styles.page}>
         <div className={styles.loading}>
           <div className={styles.spinner} />
-          <p>Loading earningsâ€¦</p>
+          <p>Loading earnings…</p>
         </div>
       </div>
     );
@@ -254,7 +254,7 @@ export function SellEarningsPage() {
           disabled={!hasAvailable || requesting}
         >
           {requesting ? (
-            <><span className={styles.spinner} />Processingâ€¦</>
+            <><span className={styles.spinner} />Processing…</>
           ) : (
             <>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -276,7 +276,7 @@ export function SellEarningsPage() {
         </div>
         <div className={styles.statCard}>
           <p className={styles.statLabel}>Commission ({pct(COMMISSION_RATE)})</p>
-          <p className={[styles.statValue, styles.statValueRed].join(' ')}>âˆ’{fmt(totalCommission, currency)}</p>
+          <p className={[styles.statValue, styles.statValueRed].join(' ')}>-{fmt(totalCommission, currency)}</p>
           <p className={styles.statSub}>Platform fee deducted</p>
         </div>
         <div className={styles.statCard}>
@@ -295,13 +295,13 @@ export function SellEarningsPage() {
         </div>
       </div>
 
-      {/* Info note about pending â†’ available */}
+      {/* Info note about pending -> available */}
       {pendingCount > 0 && (
         <div className={styles.infoBanner}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
           </svg>
-          <span>{pendingCount} earning{pendingCount !== 1 ? 's are' : ' is'} pending â€” funds become available 24 hours after the sale to allow for refunds.</span>
+          <span>{pendingCount} earning{pendingCount !== 1 ? 's are' : ' is'} pending — funds become available 24 hours after the sale to allow for refunds.</span>
         </div>
       )}
 
@@ -344,7 +344,7 @@ export function SellEarningsPage() {
                     <td>{e.customerName}</td>
                     <td className={styles.dateCell}>{e.createdAt.toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
                     <td className={styles.tdRight}>{fmt(e.grossAmount, currency)}</td>
-                    <td className={[styles.tdRight, styles.commission].join(' ')}>âˆ’{fmt(e.commissionAmount, currency)}</td>
+                    <td className={[styles.tdRight, styles.commission].join(' ')}>-{fmt(e.commissionAmount, currency)}</td>
                     <td className={[styles.tdRight, styles.netAmount].join(' ')}>{fmt(e.netAmount, currency)}</td>
                     <td>{statusBadge(e.status)}</td>
                   </tr>
@@ -379,7 +379,7 @@ export function SellEarningsPage() {
                   <tr key={p.id}>
                     <td className={styles.dateCell}>{p.createdAt.toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
                     <td>{p.bankName}</td>
-                    <td><span className={styles.acctNum}>{p.accountNumber}</span> Â· {p.accountName}</td>
+                    <td><span className={styles.acctNum}>{p.accountNumber}</span> · {p.accountName}</td>
                     <td className={[styles.tdRight, styles.netAmount].join(' ')}>{fmt(p.amount, currency)}</td>
                     <td>{p.earningIds.length}</td>
                     <td>
@@ -405,12 +405,12 @@ export function SellEarningsPage() {
               You&apos;re requesting a payout of <strong>{fmt(available, currency)}</strong> from {availableCount} earning{availableCount !== 1 ? 's' : ''}.
             </p>
             <p className={styles.modalBody} style={{ marginTop: 8 }}>
-              Funds will be sent to <strong>{(storeConfig as any)?.payoutAccountName}</strong> at <strong>{(storeConfig as any)?.payoutBankName}</strong> ({(storeConfig as any)?.payoutAccountNumber}) within 1â€“3 business days.
+              Funds will be sent to <strong>{(storeConfig as any)?.payoutAccountName}</strong> at <strong>{(storeConfig as any)?.payoutBankName}</strong> ({(storeConfig as any)?.payoutAccountNumber}) within 1–3 business days.
             </p>
             <div className={styles.modalActions}>
               <button className={styles.btnSecondary} onClick={() => setConfirmOpen(false)}>Cancel</button>
               <button className={styles.btnPrimary} onClick={handleRequestPayout} disabled={requesting}>
-                {requesting ? 'Processingâ€¦' : 'Confirm payout'}
+                {requesting ? 'Processing…' : 'Confirm payout'}
               </button>
             </div>
           </div>

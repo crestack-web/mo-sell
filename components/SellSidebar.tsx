@@ -247,15 +247,17 @@ export function SellSidebar() {
 
         <div className={styles.divider} />
 
-        {/* ── Back to Busmo ── */}
-        <button className={styles.backBtn} onClick={() => router.push('/owner/dashboard')}>
-          <div className={styles.backIcon}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="15 18 9 12 15 6"/>
-            </svg>
-          </div>
-          <span className={styles.backLabel}>Back to Busmo</span>
-        </button>
+        {/* ── Back to Busmo (busmo users only) ── */}
+        {user?.fromBusmo && (
+          <button className={styles.backBtn} onClick={() => window.location.href = 'https://busmo.io/welcome'}>
+            <div className={styles.backIcon}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="15 18 9 12 15 6"/>
+              </svg>
+            </div>
+            <span className={styles.backLabel}>Back to Busmo</span>
+          </button>
+        )}
 
         {/* ── User footer ── */}
         {user && (
