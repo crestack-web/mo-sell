@@ -68,34 +68,6 @@ export default async function StorefrontLayout({
   const { storeSlug } = await params;
   const config = await getStoreConfig(storeSlug);
 
-  // Paused store — show holding page
-  if (config?.status === 'paused') {
-    return (
-      <html lang="en">
-        <body>
-          <div style={{
-            minHeight: '100vh', display: 'flex', alignItems: 'center',
-            justifyContent: 'center', flexDirection: 'column', gap: 16,
-            fontFamily: 'system-ui, sans-serif', textAlign: 'center', padding: 24,
-            background: '#F8FAFC',
-          }}>
-            {config.logoUrl && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={config.logoUrl} alt={config.storeName}
-                style={{ width: 64, height: 64, borderRadius: 12, objectFit: 'cover' }} />
-            )}
-            <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0F172A' }}>
-              {config.storeName}
-            </h1>
-            <p style={{ color: '#64748B', maxWidth: 360 }}>
-              This store is temporarily unavailable. Please check back soon.
-            </p>
-          </div>
-        </body>
-      </html>
-    );
-  }
-
   if (!config) {
     notFound();
   }

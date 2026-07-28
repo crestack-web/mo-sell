@@ -66,6 +66,12 @@ export async function GET(
       return NextResponse.json({ error: 'Store not found' }, { status: 404 });
     }
 
+    // Only serve stores that are published/live (active status)
+    const storeStatus = data.status ?? 'draft';
+    if (storeStatus !== 'active') {
+      return NextResponse.json({ error: 'Store not found' }, { status: 404 });
+    }
+
     const publicConfig = {
       businessId,
       storeSlug:           data.storeSlug,
@@ -77,7 +83,7 @@ export async function GET(
       currency:            data.currency ?? 'NGN',
       contactEmail:        data.contactEmail ?? '',
       contactPhone:        data.contactPhone ?? '',
-      status:              data.status ?? 'draft',
+      status:              storeStatus,
       theme:               data.theme ?? 'classic',
       tagline:             data.tagline ?? null,
       storePolicy:         data.storePolicy ?? null,
