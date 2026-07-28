@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import type { ThemeComponents, ThemeProductPageProps } from '@/themes/types';
+import { BookingPicker } from './BookingPicker';
 
 interface Product {
   id: string;
@@ -23,6 +24,7 @@ interface Props {
   storeSlug: string;
   currency: string;
   theme: string;
+  businessId?: string;
 }
 
 // Loading skeleton while theme loads
@@ -69,7 +71,7 @@ function GenericProductPage({ product, storeSlug, currency }: ThemeProductPagePr
   );
 }
 
-export function ProductDetailClient({ product, storeSlug, currency, theme }: Props) {
+export function ProductDetailClient({ product, storeSlug, currency, theme, businessId }: Props) {
   const [ThemeComponents, setThemeComponents] = useState<ThemeComponents | null>(null);
   const [error, setError] = useState(false);
 
@@ -97,8 +99,22 @@ export function ProductDetailClient({ product, storeSlug, currency, theme }: Pro
   const ProductPage = ThemeComponents.ProductPage;
 
   return (
-    <div className={ThemeComponents.cssClass || ''}>
-      <ProductPage product={product} storeSlug={storeSlug} currency={currency} />
-    </div>
+    <>
+      <div className={ThemeComponents.cssClass || ''}>
+        <ProductPage product={product} storeSlug={storeSlug} currency={currency} />
+      </div>
+      {product.productType === 'service' && businessId && (
+        <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 5% 80px' }}>
+          <BookingPicker
+            businessId={businessId}
+            storeSlug={storeSlug}
+            productId={product.id}
+            productName={product.displayName}
+            price={product.price}
+            currency={currency}
+          />
+        </div>
+      )}
+    </>
   );
 }

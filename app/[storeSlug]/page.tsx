@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { getThemeComponentsServer, isCreatorTheme, type ThemeId } from '@/themes/registry';
 import type { ProductCardData } from '@/themes/types';
 import { CreatorProductTabs } from './creator-product-tabs';
+import { EmailSignup } from './components/EmailSignup';
 import type {
   StorefrontTheme, StoreSection,
   HeroSectionSettings, CollectionsSectionSettings,
@@ -240,16 +241,15 @@ export default async function StorefrontHomePage({
           case 'newsletter': {
             const ns = s as NewsletterSectionSettings;
             return (
-              <div key={section.id} className="sf-page">
-                <div className="sf-newsletter">
-                  <h2>{ns.heading || 'Join our community'}</h2>
-                  <p>{ns.subheading || 'Get the latest updates, offers and more.'}</p>
-                  <div className="sf-newsletter-form">
-                    <input type="email" className="sf-newsletter-input" placeholder={ns.placeholder || 'Enter your email'} />
-                    <button className="sf-newsletter-btn">{ns.buttonLabel || 'Subscribe'}</button>
-                  </div>
-                </div>
-              </div>
+              <EmailSignup
+                key={section.id}
+                businessId={config.businessId}
+                storeSlug={storeSlug}
+                heading={ns.heading}
+                subheading={ns.subheading}
+                placeholder={ns.placeholder}
+                buttonLabel={ns.buttonLabel}
+              />
             );
           }
 

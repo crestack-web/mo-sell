@@ -82,6 +82,7 @@ export default async function ProductDetailPage({
       storeSlug={storeSlug}
       currency={config.currency}
       theme={config.theme ?? 'luxe'}
+      businessId={config.businessId}
     />
   );
 }

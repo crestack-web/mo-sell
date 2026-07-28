@@ -411,3 +411,63 @@ export interface PayoutRequest {
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
+
+// ─── Bookings ────────────────────────────────────────────────────────────────
+
+export type DayOfWeek = 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun';
+
+export interface AvailabilitySlot {
+  day: DayOfWeek;
+  enabled: boolean;
+  startTime: string;   // "09:00"
+  endTime: string;     // "17:00"
+}
+
+export interface BookingAvailability {
+  businessId: string;
+  slots: AvailabilitySlot[];
+  slotDurationMinutes: number;   // e.g. 30, 60
+  bufferMinutes: number;         // gap between slots
+  blockedDates: string[];        // ISO date strings e.g. ["2026-08-15"]
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+export type BookingStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled';
+
+export interface Booking {
+  businessId: string;
+  storeSlug: string;
+  productId: string;
+  productName: string;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  date: string;                // ISO date "2026-08-15"
+  startTime: string;           // "10:00"
+  endTime: string;             // "10:30"
+  notes: string | null;
+  status: BookingStatus;
+  orderId: string | null;      // linked order if paid
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+// ─── Customers ───────────────────────────────────────────────────────────────
+
+export type CustomerTag = 'buyer' | 'subscriber' | 'booking' | 'repeat';
+
+export interface StoreCustomer {
+  businessId: string;
+  storeSlug: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  tags: CustomerTag[];
+  totalOrders: number;
+  totalSpent: number;
+  lastOrderAt: Timestamp | null;
+  subscribedAt: Timestamp | null;  // newsletter/email signup
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}

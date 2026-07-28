@@ -14,6 +14,7 @@ export interface CartItem {
   quantity: number;
   maxStock: number;
   productType: 'physical' | 'digital' | 'service';
+  metadata?: Record<string, string>;
 }
 
 interface CartContextValue {
@@ -25,6 +26,7 @@ interface CartContextValue {
   closeCart: () => void;
   toggleCart: () => void;
   addItem: (item: Omit<CartItem, 'quantity'>) => void;
+  getMetadata: (productId: string) => Record<string, string> | undefined;
   removeItem: (productId: string) => void;
   updateQty: (productId: string, qty: number) => void;
   clearCart: () => void;
@@ -97,6 +99,10 @@ export function CartProvider({
 
   const clearCart = useCallback(() => setItems([]), []);
 
+  const getMetadata = useCallback((productId: string) => {
+    return items.find(i => i.productId === productId)?.metadata;
+  }, [items]);
+
   const totalItems = useMemo(() => items.reduce((s, i) => s + i.quantity, 0), [items]);
   const subtotal   = useMemo(() => items.reduce((s, i) => s + i.price * i.quantity, 0), [items]);
 
@@ -105,8 +111,8 @@ export function CartProvider({
     openCart:   () => setIsOpen(true),
     closeCart:  () => setIsOpen(false),
     toggleCart: () => setIsOpen(v => !v),
-    addItem, removeItem, updateQty, clearCart,
-  }), [items, totalItems, subtotal, isOpen, addItem, removeItem, updateQty, clearCart]);
+    addItem, removeItem, updateQty, clearCart, getMetadata,
+  }), [items, totalItems, subtotal, isOpen, addItem, removeItem, updateQty, clearCart, getMetadata]);
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }

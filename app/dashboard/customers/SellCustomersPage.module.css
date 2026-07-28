@@ -1,0 +1,115 @@
+/* ═══════════════════════════════════════
+   MO Sell — Customers Page
+═══════════════════════════════════════ */
+
+.page { display: flex; flex-direction: column; gap: 22px; width: 100%; max-width: 1200px; }
+
+/* ── Header ── */
+.header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.heading { font-family: var(--sell-font-display); font-size: 1.35rem; font-weight: 700; color: var(--sell-text-1); margin-bottom: 4px; }
+.sub { font-size: 0.875rem; color: var(--sell-text-2); }
+
+/* ── Summary grid ── */
+.summaryGrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.summaryCard {
+  background: var(--sell-surface); border: 1px solid var(--sell-border);
+  border-radius: var(--sell-radius); padding: 16px 18px;
+  box-shadow: var(--sell-shadow-sm); cursor: default;
+}
+.summaryLabel { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--sell-text-3); margin-bottom: 6px; }
+.summaryValue { font-family: var(--sell-font-display); font-size: 1.4rem; font-weight: 700; color: var(--sell-text-1); line-height: 1; }
+
+/* ── Toolbar ── */
+.toolbar { display: flex; flex-direction: column; gap: 10px; }
+
+/* ── Search ── */
+.searchWrap { position: relative; max-width: 360px; width: 100%; }
+.searchIcon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--sell-text-3); width: 15px; height: 15px; pointer-events: none; }
+.searchInput { width: 100%; padding: 9px 12px 9px 32px; border-radius: var(--sell-radius-sm); border: 1px solid var(--sell-border); background: var(--sell-surface); font-size: 0.875rem; font-family: var(--sell-font-body); color: var(--sell-text-1); outline: none; transition: border-color var(--sell-transition); }
+.searchInput:focus { border-color: var(--sell-primary); }
+.searchInput::placeholder { color: var(--sell-text-3); }
+
+/* ── Filter chips ── */
+.filterRow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 14px; border-radius: 100px;
+  font-size: 0.8rem; font-weight: 600;
+  background: var(--sell-surface); color: var(--sell-text-2);
+  border: 1px solid var(--sell-border);
+  cursor: pointer; transition: all var(--sell-transition);
+  white-space: nowrap;
+}
+.chip:hover { background: var(--sell-bg); color: var(--sell-text-1); }
+.chipActive {
+  background: var(--sell-primary-lt); color: var(--sell-primary);
+  border-color: var(--sell-primary);
+}
+.chipActive:hover { background: var(--sell-primary-lt); }
+.chipCount {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 20px; height: 18px; padding: 0 5px;
+  border-radius: 100px; font-size: 0.68rem; font-weight: 700;
+  background: var(--sell-bg); color: var(--sell-text-3);
+}
+.chipActive .chipCount {
+  background: rgba(14, 165, 233, 0.15); color: var(--sell-primary);
+}
+
+/* ── Table ── */
+.tableWrap { background: var(--sell-surface); border: 1px solid var(--sell-border); border-radius: var(--sell-radius-lg); overflow: hidden; box-shadow: var(--sell-shadow-sm); }
+.table { width: 100%; border-collapse: collapse; }
+.table th {
+  padding: 11px 14px; text-align: left;
+  font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--sell-text-3); background: var(--sell-surface-2);
+  border-bottom: 1px solid var(--sell-border); white-space: nowrap;
+}
+.table th:first-child { padding-left: 18px; }
+.table th:last-child  { padding-right: 18px; }
+.table td {
+  padding: 13px 14px; border-bottom: 1px solid var(--sell-border-subtle);
+  font-size: 0.875rem; color: var(--sell-text-1); vertical-align: middle;
+}
+.table td:first-child { padding-left: 18px; }
+.table td:last-child  { padding-right: 18px; }
+.table tr:last-child td { border-bottom: none; }
+.table tbody tr { transition: background var(--sell-transition); }
+.table tbody tr:hover { background: var(--sell-surface-2); }
+
+/* ── Customer name ── */
+.customerName { font-weight: 600; }
+.customerEmail { font-size: 0.75rem; color: var(--sell-text-3); margin-top: 2px; }
+
+/* ── Numeric cells ── */
+.numCell { font-family: var(--sell-font-display); font-weight: 700; font-size: 0.875rem; }
+
+/* ── Tags ── */
+.tagsCell { display: flex; flex-wrap: wrap; gap: 4px; }
+.tag {
+  display: inline-flex; align-items: center;
+  padding: 2px 8px; border-radius: 100px;
+  font-size: 0.68rem; font-weight: 700; white-space: nowrap;
+}
+.tagBuyer      { background: var(--sell-primary-lt); color: var(--sell-primary); }
+.tagSubscriber { background: var(--sell-green-bg);   color: var(--sell-green); }
+.tagBooking    { background: var(--sell-purple-bg);  color: var(--sell-purple); }
+.tagRepeat     { background: var(--sell-orange-bg);  color: var(--sell-orange); }
+
+/* ── Empty state ── */
+.emptyState {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 64px 24px; text-align: center; gap: 12px;
+}
+.emptyIcon { width: 64px; height: 64px; border-radius: 18px; background: var(--sell-primary-lt); display: flex; align-items: center; justify-content: center; font-size: 1.8rem; }
+.emptyTitle { font-family: var(--sell-font-display); font-size: 1.1rem; font-weight: 700; color: var(--sell-text-1); }
+.emptySub { font-size: 0.85rem; color: var(--sell-text-3); max-width: 340px; line-height: 1.6; }
+
+/* ── Last active ── */
+.lastActive { font-size: 0.82rem; color: var(--sell-text-2); }
+
+@media (max-width: 768px) {
+  .summaryGrid { grid-template-columns: 1fr 1fr; }
+  .table th:nth-child(5), .table td:nth-child(5),
+  .table th:nth-child(6), .table td:nth-child(6) { display: none; }
+}
