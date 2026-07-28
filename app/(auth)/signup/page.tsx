@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { initializeFirebase } from '@/lib/firebase';
 import { getAuth, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { getFirestore, doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { THEMES } from '@/themes/registry';
 import posthog from 'posthog-js';
 
 // ── Tokens ────────────────────────────────────────────────────────────────────
@@ -20,7 +21,7 @@ const FONT_BODY = "'Plus Jakarta Sans',system-ui,sans-serif";
 // ── Types ─────────────────────────────────────────────────────────────────────
 type Q1Answer = 'products' | 'courses' | 'services' | 'digital';
 type Q2Answer = 'genz' | 'smallbiz' | 'creative' | 'everyone' | 'custom';
-type Q3Answer = 'glow' | 'pulse' | 'spark';
+type Q3Answer = string;
 
 interface OnboardingAnswers {
   q1: Q1Answer | null;
@@ -51,11 +52,14 @@ const Q2_TAGLINES: Record<string, string> = {
   everyone: 'Your store, your way',
 };
 
-const Q3_OPTIONS: { id: Q3Answer; label: string; vibe: string; bg: string; accent: string; preview: string }[] = [
-  { id: 'glow', label: 'Glow', vibe: 'Dark & Moody', bg: '#FDF6F0', accent: '#E8927C', preview: '/dashboard/theme-preview/glow' },
-  { id: 'pulse', label: 'Pulse', vibe: 'Bold & Vibrant', bg: '#FFF7ED', accent: '#FF6B35', preview: '/dashboard/theme-preview/pulse' },
-  { id: 'spark', label: 'Spark', vibe: 'Clean & Minimal', bg: '#FFF8EE', accent: '#D97706', preview: '/dashboard/theme-preview/spark' },
-];
+const Q3_OPTIONS = THEMES.filter(t => t.type === 'link-style').map(t => ({
+  id: t.id,
+  label: t.name,
+  vibe: t.description,
+  bg: t.previewBg,
+  accent: t.previewAccent,
+  badge: t.badge,
+}));
 
 const PLACEHOLDER_PRODUCTS: Record<Q1Answer, { title: string; price: number; desc: string }[]> = {
   products: [
@@ -186,13 +190,12 @@ export default function SellSignupPage() {
       const storeSlug = slugify(businessName);
       const tagline = answers.q2 === 'custom' ? answers.q2Custom : (Q2_TAGLINES[answers.q2!] ?? '');
 
-      // Theme color presets
-      const themeColors: Record<Q3Answer, { primary: string; secondary: string }> = {
-        glow: { primary: '#E8927C', secondary: '#D4A574' },
-        pulse: { primary: '#FF6B35', secondary: '#F7C948' },
-        spark: { primary: '#D97706', secondary: '#F59E0B' },
+      // Theme colors from registry
+      const themeMeta = THEMES.find(t => t.id === q3);
+      const colors = {
+        primary: themeMeta?.previewAccent ?? '#0EA5E9',
+        secondary: themeMeta?.previewBg ?? '#FFFFFF',
       };
-      const colors = themeColors[q3];
 
       // Store config
       const configData = {
@@ -525,7 +528,11 @@ export default function SellSignupPage() {
                   <p style={{ fontSize: 14, color: C.text2 }}>Choose a theme style for your store</p>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }}>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
+                  gap: 14,
+                }}>
                   {Q3_OPTIONS.map(opt => {
                     const selected = answers.q3 === opt.id;
                     return (
@@ -541,24 +548,30 @@ export default function SellSignupPage() {
                         }}
                       >
                         <div style={{
-                          height: 180, background: opt.bg,
+                          height: 140, background: opt.bg,
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
                           position: 'relative',
                         }}>
-                          {/* Mini store preview */}
+                          {opt.badge && (
+                            <span style={{
+                              position: 'absolute', top: 8, right: 8,
+                              fontSize: 9, fontWeight: 700, padding: '2px 8px',
+                              borderRadius: 100, color: opt.badge.color, background: opt.badge.bg,
+                            }}>{opt.badge.label}</span>
+                          )}
                           <div style={{ textAlign: 'center' }}>
                             <div style={{
-                              width: 40, height: 40, borderRadius: '50%',
+                              width: 36, height: 36, borderRadius: '50%',
                               background: opt.accent, margin: '0 auto 8px',
                             }} />
-                            <div style={{ width: 60, height: 6, borderRadius: 3, background: opt.accent, margin: '0 auto 6px', opacity: 0.5 }} />
-                            <div style={{ width: 80, height: 6, borderRadius: 3, background: opt.accent, margin: '0 auto 6px', opacity: 0.3 }} />
-                            <div style={{ width: 48, height: 6, borderRadius: 3, background: opt.accent, margin: '0 auto', opacity: 0.2 }} />
+                            <div style={{ width: 50, height: 5, borderRadius: 3, background: opt.accent, margin: '0 auto 5px', opacity: 0.5 }} />
+                            <div style={{ width: 70, height: 5, borderRadius: 3, background: opt.accent, margin: '0 auto 5px', opacity: 0.3 }} />
+                            <div style={{ width: 40, height: 5, borderRadius: 3, background: opt.accent, margin: '0 auto', opacity: 0.2 }} />
                           </div>
                         </div>
-                        <div style={{ padding: '12px 10px', textAlign: 'center' }}>
-                          <div style={{ fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 14, color: C.text1 }}>{opt.label}</div>
-                          <div style={{ fontSize: 11, color: C.text3, marginTop: 2 }}>{opt.vibe}</div>
+                        <div style={{ padding: '10px 10px', textAlign: 'center' }}>
+                          <div style={{ fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 13, color: C.text1 }}>{opt.label}</div>
+                          <div style={{ fontSize: 10, color: C.text3, marginTop: 2, lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{opt.vibe}</div>
                         </div>
                       </button>
                     );
