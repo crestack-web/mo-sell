@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminDb, getAdminStorage } from '@/lib/firebase-admin';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 
-const MODELS = ['gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-1.5-flash'];
+const MODELS = ['gemini-2.5-flash', 'gemini-flash-latest', 'gemini-2.5-pro'];
 
 const SELL_MO_SYSTEM_PROMPT = `
 You are MO — the AI commerce assistant inside Busmo, Africa's business operating system.
