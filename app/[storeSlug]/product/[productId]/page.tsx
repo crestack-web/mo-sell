@@ -17,7 +17,7 @@ async function getStoreConfig(storeSlug: string) {
         if (configSnap.exists) {
           const data = configSnap.data()!;
           if ((data.status ?? 'draft') !== 'active') return null;
-          return { ...data, businessId: bId };
+          return { ...data, businessId: bId } as Record<string, any>;
         }
       }
     }
@@ -31,7 +31,7 @@ async function getProduct(businessId: string, productId: string) {
     const snap = await db.collection('businesses').doc(businessId).collection('storeProducts').doc(productId).get();
     if (!snap.exists) return null;
     const data = snap.data()!;
-    return { id: snap.id, ...data };
+    return { id: snap.id, ...data } as any;
   } catch { return null; }
 }
 

@@ -14,7 +14,7 @@ async function getStoreConfig(storeSlug: string) {
         if (configSnap.exists) {
           const data = configSnap.data()!;
           if ((data.status ?? 'draft') !== 'active') return null;
-          return { ...data, businessId: bId };
+          return { ...data, businessId: bId } as Record<string, any>;
         }
       }
     }

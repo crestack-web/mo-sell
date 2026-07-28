@@ -16,7 +16,7 @@ async function getStoreConfig(storeSlug: string) {
         if (configSnap.exists) {
           const data = configSnap.data()!;
           if ((data.status ?? 'draft') !== 'active') return null;
-          return { ...data, businessId: bId };
+          return { ...data, businessId: bId } as Record<string, any>;
         }
       }
     }
@@ -30,7 +30,7 @@ async function getCollection(businessId: string, collectionId: string) {
     const snap = await db.collection('businesses').doc(businessId).collection('storeCollections').doc(collectionId).get();
     if (!snap.exists) return null;
     const data = snap.data()!;
-    return { id: snap.id, ...data };
+    return { id: snap.id, ...data } as any;
   } catch { return null; }
 }
 
@@ -102,16 +102,15 @@ export default async function CollectionPage({
 
   if (!collection) notFound();
 
-  // Fire analytics event
-  fetch(`${BASE()}/api/store/analytics/event`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
+  // Fire analytics event (fire-and-forget)
+  try {
+    const dbAnalytics = getAdminDb();
+    dbAnalytics.collection('businesses').doc(config.businessId).collection('storeAnalytics').add({
       eventType: 'page_view', storeSlug,
       businessId: config.businessId, pageType: 'collection',
-      collectionId,
-    }),
-  }).catch(() => {});
+      collectionId, createdAt: new Date().toISOString(),
+    }).catch(() => {});
+  } catch {}
 
   return (
     <div className="sf-page">
