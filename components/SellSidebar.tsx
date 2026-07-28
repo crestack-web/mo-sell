@@ -131,20 +131,6 @@ const NAV_SECTIONS: { section: string; items: NavItem[] }[] = [
   },
 ];
 
-const ICON_CLASS: Record<SellPageId, string> = {
-  overview:       styles.iconOverview,
-  products:       styles.iconProducts,
-  collections:    styles.iconCollect,
-  orders:         styles.iconOrders,
-  shipping:       styles.iconShipping,
-  analytics:      styles.iconAnalytics,
-  earnings:       styles.iconEarnings,
-  settings:       styles.iconSettings,
-  'theme-editor': styles.iconTheme,
-  'setup-wizard': styles.iconOverview,
-  'ask-mo':       styles.iconOverview,
-};
-
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function SellSidebar() {
@@ -220,7 +206,7 @@ export function SellSidebar() {
                         onClick={() => navigateTo(item.id)}
                         aria-current={isActive ? 'page' : undefined}
                       >
-                        <span className={[styles.navIcon, ICON_CLASS[item.id] || ''].join(' ')}>
+                        <span className={styles.navIcon}>
                           {item.icon}
                         </span>
                         <span className={styles.navLabel}>{item.label}</span>

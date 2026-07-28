@@ -200,21 +200,12 @@
   justify-content: center;
   flex-shrink: 0;
   transition: transform var(--sell-transition);
+  color: var(--sell-text-2);
 }
 
 .navLink:hover .navIcon { transform: scale(1.06); }
+.active .navIcon { color: var(--sell-primary); }
 .navIcon svg { width: 16px; height: 16px; }
-
-/* Icon color variants */
-.iconOverview  { background: var(--sell-primary-lt); color: var(--sell-primary); }
-.iconProducts  { background: var(--sell-teal-bg);    color: var(--sell-teal); }
-.iconCollect   { background: var(--sell-purple-bg);  color: var(--sell-purple); }
-.iconOrders    { background: var(--sell-amber-bg);   color: var(--sell-amber); }
-.iconShipping  { background: var(--sell-orange-bg);  color: var(--sell-orange); }
-.iconAnalytics { background: var(--sell-accent-lt);  color: var(--sell-accent); }
-.iconSettings  { background: var(--sell-surface-2);  color: var(--sell-text-3); }
-.iconTheme     { background: var(--sell-pink-bg);    color: var(--sell-pink); }
-.iconEarnings  { background: var(--sell-green-bg);   color: var(--sell-green); }
 
 /* ── Nav label ── */
 .navLabel {
