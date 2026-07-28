@@ -1,10 +1,10 @@
-'use client';
+﻿'use client';
 
 import React, { useMemo } from 'react';
 import { useSell } from '@/context/SellContext';
 import styles from './SellOverview.module.css';
 
-// â”€â”€â”€ Stat Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Stat Card ─────────────────────────────────────────────────────────────
 
 interface StatCardProps {
   label: string;
@@ -29,7 +29,7 @@ function StatCard({ label, value, sub, accent, bg, icon, onClick }: StatCardProp
   );
 }
 
-// â”€â”€â”€ MO Prompt Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── MO Prompt Card ────────────────────────────────────────────────────────
 
 interface PromptCardProps {
   title: string;
@@ -54,7 +54,7 @@ function MOPromptCard({ title, body, cta, onCta }: PromptCardProps) {
   );
 }
 
-// â”€â”€â”€ Quick Action â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Quick Action ──────────────────────────────────────────────────────────
 
 interface ActionProps {
   label: string;
@@ -75,7 +75,7 @@ function QuickAction({ label, icon, onClick, variant = 'secondary' }: ActionProp
   );
 }
 
-// â”€â”€â”€ Setup Step â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Setup Step ────────────────────────────────────────────────────────────
 
 interface SetupStepProps {
   number: number;
@@ -104,13 +104,13 @@ function SetupStep({ number, label, done, onClick }: SetupStepProps) {
   );
 }
 
-// â”€â”€â”€ Main Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Main Component ────────────────────────────────────────────────────────
 
 export function SellOverview() {
   const { storeConfig, quickStats, navigateTo, user } = useSell();
 
   const currency = storeConfig?.currency ?? 'NGN';
-  const symbol   = currency === 'NGN' ? 'â‚¦' : currency === 'USD' ? '$' : currency + ' ';
+  const symbol   = currency === 'NGN' ? '₦' : currency === 'USD' ? '$' : currency + ' ';
 
   const revenueFormatted = useMemo(() => {
     const n = quickStats.monthlyRevenue;
@@ -130,16 +130,16 @@ export function SellOverview() {
   return (
     <div className={styles.overview}>
 
-      {/* â”€â”€ Welcome header â”€â”€ */}
+      {/* ── Welcome header ── */}
       <div className={styles.header}>
         <div>
           <h2 className={styles.heading}>
-            {storeConfig ? `Welcome back, ${user?.shortName} ðŸ‘‹` : `Let's set up your store, ${user?.shortName} ðŸ‘‹`}
+            {storeConfig ? `Welcome back, ${user?.shortName} 👋` : `Let's set up your store, ${user?.shortName} 👋`}
           </h2>
           <p className={styles.subheading}>
             {storeConfig
               ? 'Here\'s how your store is performing this month.'
-              : 'MO Sell gives you a beautiful online store in minutes â€” fully connected to Busmo.'}
+              : 'MO Sell gives you a beautiful online store in minutes — fully connected to Busmo.'}
           </p>
         </div>
 
@@ -160,7 +160,7 @@ export function SellOverview() {
         )}
       </div>
 
-      {/* â”€â”€ Setup checklist (no store yet) â”€â”€ */}
+      {/* ── Setup checklist (no store yet) ── */}
       {!setupDone && (
         <div className={styles.setupCard}>
           <div className={styles.setupCardHeader}>
@@ -169,7 +169,7 @@ export function SellOverview() {
                 {storeConfig ? 'Finish setting up your store' : 'Set up your store with MO'}
               </p>
               <p className={styles.setupCardSub}>
-                {storeConfig ? `${setupProgress} of 4 steps complete` : 'Chat with MO to configure your store â€” name, theme, products, and more.'}
+                {storeConfig ? `${setupProgress} of 4 steps complete` : 'Chat with MO to configure your store — name, theme, products, and more.'}
               </p>
             </div>
             {storeConfig && (
@@ -194,14 +194,14 @@ export function SellOverview() {
                 className={[styles.quickAction, styles.quickPrimary].join(' ')}
                 onClick={() => navigateTo('setup-wizard')}
               >
-                Chat with MO â†’
+                Chat with MO →
               </button>
             </div>
           )}
         </div>
       )}
 
-      {/* â”€â”€ KPI stat cards â”€â”€ */}
+      {/* ── KPI stat cards ── */}
       {storeConfig && (
         <div className={styles.statsGrid}>
           <StatCard
@@ -262,17 +262,17 @@ export function SellOverview() {
         </div>
       )}
 
-      {/* â”€â”€ Quick actions strip â”€â”€ */}
+      {/* ── Quick actions strip ── */}
       {storeConfig && (
         <div className={styles.actionsRow}>
           <p className={styles.actionsLabel}>Quick actions</p>
           <div className={styles.actionsGrid}>
             {[
-              { label: 'Add product',     icon: 'âž•', page: 'products'    as const },
-              { label: 'View orders',     icon: 'ðŸ“‹', page: 'orders'      as const },
-              { label: 'Manage shipping', icon: 'ðŸšš', page: 'shipping'    as const },
-              { label: 'See analytics',   icon: 'ðŸ“Š', page: 'analytics'   as const },
-              { label: 'Store settings',  icon: 'âš™ï¸', page: 'settings'   as const },
+              { label: 'Add product',     icon: '➕', page: 'products'    as const },
+              { label: 'View orders',     icon: '📋', page: 'orders'      as const },
+              { label: 'Manage shipping', icon: '🚚', page: 'shipping'    as const },
+              { label: 'See analytics',   icon: '📊', page: 'analytics'   as const },
+              { label: 'Store settings',  icon: '⚙️', page: 'settings'   as const },
             ].map(a => (
               <button key={a.page} className={styles.actionTile} onClick={() => navigateTo(a.page)}>
                 <span className={styles.actionEmoji}>{a.icon}</span>
@@ -283,13 +283,13 @@ export function SellOverview() {
         </div>
       )}
 
-      {/* â”€â”€ MO prompt cards â”€â”€ */}
+      {/* ── MO prompt cards ── */}
       <div className={styles.prompts}>
         {!storeConfig && (
           <MOPromptCard
             title="MO is ready to set up your store"
             body="Tell MO what you sell and it will generate your store name, colors, collections, and product descriptions automatically."
-            cta="Start with MO â†’"
+            cta="Start with MO →"
             onCta={() => navigateTo('setup-wizard')}
           />
         )}
@@ -297,7 +297,7 @@ export function SellOverview() {
           <MOPromptCard
             title="Your store has no products yet"
             body="Want MO to generate product descriptions from your Busmo inventory? It takes about 30 seconds."
-            cta="Add products â†’"
+            cta="Add products →"
             onCta={() => navigateTo('products')}
           />
         )}
@@ -305,7 +305,7 @@ export function SellOverview() {
           <MOPromptCard
             title="Your store isn't live yet"
             body="Everything looks ready. Publish your store so customers can find and buy from you."
-            cta="Publish store â†’"
+            cta="Publish store →"
             onCta={() => navigateTo('settings')}
           />
         )}
@@ -313,7 +313,7 @@ export function SellOverview() {
           <MOPromptCard
             title={`${quickStats.pendingOrders} order${quickStats.pendingOrders > 1 ? 's' : ''} waiting`}
             body="You have orders that need to be processed. Keep customers happy by fulfilling quickly."
-            cta="View orders â†’"
+            cta="View orders →"
             onCta={() => navigateTo('orders')}
           />
         )}
@@ -321,4 +321,3 @@ export function SellOverview() {
     </div>
   );
 }
-

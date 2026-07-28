@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { collection, getDocs, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
@@ -6,7 +6,7 @@ import { initializeFirebase } from '@/lib/firebase';
 import { useSell } from '@/context/SellContext';
 import styles from './SellOrdersPage.module.css';
 
-// â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 type OrderStatus = 'pending_payment' | 'paid' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded';
 type PaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded';
@@ -48,7 +48,7 @@ interface StoreOrder {
   updatedAt: Date;
 }
 
-// â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const PIPELINE: OrderStatus[] = ['paid', 'processing', 'shipped', 'delivered'];
 
@@ -71,7 +71,7 @@ function payBadgeClass(s: PaymentStatus): string {
 }
 
 function fmt(n: number, currency = 'NGN') {
-  const s = currency === 'NGN' ? 'â‚¦' : '$';
+  const s = currency === 'NGN' ? '₦' : '$';
   return `${s}${n.toLocaleString()}`;
 }
 
@@ -83,7 +83,7 @@ function fmtDateTime(d: Date) {
   return d.toLocaleString('en-NG', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 }
 
-// â”€â”€â”€ Order detail slide-over â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Order detail slide-over ──────────────────────────────────────────────────
 
 interface SlideOverProps {
   order: StoreOrder;
@@ -175,7 +175,7 @@ function OrderSlideOver({ order, currency, businessId, userId, onClose, onUpdate
         <div className={styles.slideoverHeader}>
           <div>
             <p className={styles.slideoverTitle}>{order.orderNumber}</p>
-            <p className={styles.slideoverSub}>{fmtDateTime(order.createdAt)} Â· {order.customerName}</p>
+            <p className={styles.slideoverSub}>{fmtDateTime(order.createdAt)} · {order.customerName}</p>
           </div>
           <button className={styles.closeBtn} onClick={onClose}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -261,9 +261,9 @@ function OrderSlideOver({ order, currency, businessId, userId, onClose, onUpdate
             <p className={styles.sectionLabel}>Items</p>
             {order.lineItems?.map((item, i) => (
               <div key={i} className={styles.lineItem}>
-                <span style={{ fontSize: '1.1rem' }}>{item.productType === 'digital' ? 'ðŸ’¾' : item.productType === 'service' ? 'âš™ï¸' : 'ðŸ“¦'}</span>
+                <span style={{ fontSize: '1.1rem' }}>{item.productType === 'digital' ? '💾' : item.productType === 'service' ? '⚙️' : '📦'}</span>
                 <span className={styles.lineItemName}>{item.displayName}</span>
-                <span className={styles.lineItemQty}>Ã— {item.quantity}</span>
+                <span className={styles.lineItemQty}>× {item.quantity}</span>
                 <span className={styles.lineItemPrice}>{fmt(item.lineTotal, currency)}</span>
               </div>
             ))}
@@ -280,7 +280,7 @@ function OrderSlideOver({ order, currency, businessId, userId, onClose, onUpdate
             <div className={styles.infoGrid}>
               <div className={styles.infoItem}><p className={styles.infoKey}>Name</p><p className={styles.infoVal}>{order.customerName}</p></div>
               <div className={styles.infoItem}><p className={styles.infoKey}>Email</p><p className={styles.infoVal}>{order.customerEmail}</p></div>
-              <div className={styles.infoItem}><p className={styles.infoKey}>Phone</p><p className={styles.infoVal}>{order.customerPhone || 'â€”'}</p></div>
+              <div className={styles.infoItem}><p className={styles.infoKey}>Phone</p><p className={styles.infoVal}>{order.customerPhone || '—'}</p></div>
               <div className={styles.infoItem}><p className={styles.infoKey}>Delivery</p><p className={styles.infoVal}>{order.deliveryOption}</p></div>
               {order.shippingAddress && <div className={styles.infoItem} style={{ gridColumn: '1/-1' }}><p className={styles.infoKey}>Address</p><p className={styles.infoVal}>{order.shippingAddress}</p></div>}
               {order.trackingNumber && <div className={styles.infoItem}><p className={styles.infoKey}>Tracking</p><p className={styles.infoVal}>{order.trackingNumber} {order.carrier ? `(${order.carrier})` : ''}</p></div>}
@@ -292,7 +292,7 @@ function OrderSlideOver({ order, currency, businessId, userId, onClose, onUpdate
             <p className={styles.sectionLabel}>Payment</p>
             <div className={styles.infoGrid}>
               <div className={styles.infoItem}><p className={styles.infoKey}>Status</p><span className={`${styles.badge} ${payBadgeClass(order.paymentStatus)}`}>{order.paymentStatus}</span></div>
-              <div className={styles.infoItem}><p className={styles.infoKey}>Reference</p><p className={styles.infoVal} style={{ fontFamily: 'monospace', fontSize: '0.78rem' }}>{order.paystackReference || 'â€”'}</p></div>
+              <div className={styles.infoItem}><p className={styles.infoKey}>Reference</p><p className={styles.infoVal} style={{ fontFamily: 'monospace', fontSize: '0.78rem' }}>{order.paystackReference || '—'}</p></div>
             </div>
           </div>
 
@@ -310,7 +310,7 @@ function OrderSlideOver({ order, currency, businessId, userId, onClose, onUpdate
                       </div>
                       <div className={styles.timelineBody}>
                         <p className={styles.timelineStatus}>{STATUS_LABELS[entry.status as OrderStatus] ?? entry.status}</p>
-                        <p className={styles.timelineTime}>{ts ? fmtDateTime(ts) : 'â€”'}</p>
+                        <p className={styles.timelineTime}>{ts ? fmtDateTime(ts) : '—'}</p>
                       </div>
                     </div>
                   );
@@ -328,7 +328,7 @@ function OrderSlideOver({ order, currency, businessId, userId, onClose, onUpdate
   );
 }
 
-// â”€â”€â”€ Main Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Main Page ────────────────────────────────────────────────────────────────
 
 export function SellOrdersPage() {
   const { user, storeConfig, showToast, refreshQuickStats } = useSell();
@@ -403,7 +403,7 @@ export function SellOrdersPage() {
         <div className={styles.toolbar}>
           <div className={styles.searchWrap}>
             <svg className={styles.searchIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input className={styles.searchInput} placeholder="Search orders, customersâ€¦" value={search} onChange={e => setSearch(e.target.value)} />
+            <input className={styles.searchInput} placeholder="Search orders, customers…" value={search} onChange={e => setSearch(e.target.value)} />
           </div>
           <select className={styles.filterSelect} value={statusFilter} onChange={e => setStatus(e.target.value as typeof statusFilter)}>
             <option value="all">All statuses</option>
@@ -427,12 +427,12 @@ export function SellOrdersPage() {
             <div className={styles.empty}>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', color: 'var(--sell-text-3)', fontSize: '0.875rem' }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ animation: 'spin 0.7s linear infinite' }}><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>
-                Loading ordersâ€¦
+                Loading orders…
               </div>
             </div>
           ) : filtered.length === 0 ? (
             <div className={styles.empty}>
-              <div className={styles.emptyIcon}>ðŸ“‹</div>
+              <div className={styles.emptyIcon}>📋</div>
               <p className={styles.emptyTitle}>{orders.length === 0 ? 'No orders yet' : 'No results'}</p>
               <p className={styles.emptySub}>{orders.length === 0 ? 'Orders will appear here when customers complete a purchase.' : 'Try clearing your filters.'}</p>
             </div>
@@ -479,4 +479,3 @@ export function SellOrdersPage() {
     </>
   );
 }
-

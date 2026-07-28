@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { collection, getDocs, doc, addDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
@@ -6,7 +6,7 @@ import { initializeFirebase } from '@/lib/firebase';
 import { useSell } from '@/context/SellContext';
 import styles from './SellShippingPage.module.css';
 
-// â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface ShippingZone {
   id: string;
@@ -35,11 +35,11 @@ const EMPTY_ZONE_FORM: ZoneForm = {
 };
 
 function fmt(n: number, currency = 'NGN') {
-  const s = currency === 'NGN' ? 'â‚¦' : '$';
+  const s = currency === 'NGN' ? '₦' : '$';
   return `${s}${n.toLocaleString()}`;
 }
 
-// â”€â”€â”€ Zone Slide-Over â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Zone Slide-Over ──────────────────────────────────────────────────────────
 
 interface ZoneSlideOverProps {
   zone: ShippingZone | null;
@@ -114,7 +114,7 @@ function ZoneSlideOver({ zone, onClose, onSaved, businessId, currency }: ZoneSli
             <div className={styles.formGroup}>
               <label className={styles.formLabel}>Flat delivery rate *</label>
               <div className={styles.priceWrap}>
-                <span className={styles.pricePrefix}>{currency === 'NGN' ? 'â‚¦' : '$'}</span>
+                <span className={styles.pricePrefix}>{currency === 'NGN' ? '₦' : '$'}</span>
                 <input className={`${styles.formInput} ${styles.priceInput}`} type="number" min="0" step="1" placeholder="0" value={form.flatRate} onChange={e => set('flatRate', e.target.value)} />
               </div>
               <p className={styles.formHint}>Enter 0 for free delivery</p>
@@ -129,7 +129,7 @@ function ZoneSlideOver({ zone, onClose, onSaved, businessId, currency }: ZoneSli
           <button className={`${styles.btn} ${styles.btnGhost}`} onClick={onClose} disabled={saving}>Cancel</button>
           <button className={`${styles.btn} ${styles.btnPrimary}`} onClick={handleSave} disabled={saving || !form.zoneName.trim()}>
             {saving
-              ? <><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ animation: 'spin 0.7s linear infinite' }}><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>Savingâ€¦</>
+              ? <><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ animation: 'spin 0.7s linear infinite' }}><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>Saving…</>
               : <><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>{zone ? 'Save changes' : 'Add zone'}</>}
           </button>
         </div>
@@ -138,7 +138,7 @@ function ZoneSlideOver({ zone, onClose, onSaved, businessId, currency }: ZoneSli
   );
 }
 
-// â”€â”€â”€ Pickup Location Slide-Over â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Pickup Location Slide-Over ───────────────────────────────────────────────
 
 interface PickupSlideOverProps {
   locations: PickupLocation[];
@@ -218,7 +218,7 @@ function PickupSlideOver({ locations, onSave, onClose }: PickupSlideOverProps) {
   );
 }
 
-// â”€â”€â”€ Main Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Main Page ────────────────────────────────────────────────────────────────
 
 export function SellShippingPage() {
   const { user, storeConfig, showToast, refreshStoreConfig } = useSell();
@@ -308,7 +308,7 @@ export function SellShippingPage() {
         {/* Pickup locations card */}
         <div className={styles.pickupCard}>
           <div className={styles.pickupCardHeader}>
-            <div className={styles.pickupCardIcon}>ðŸª</div>
+            <div className={styles.pickupCardIcon}>🏪</div>
             <div style={{ flex: 1 }}>
               <p className={styles.pickupCardTitle}>Pickup Locations</p>
               <p className={styles.pickupCardSub}>
@@ -343,12 +343,12 @@ export function SellShippingPage() {
             <div className={styles.empty}>
               <div style={{ display: 'flex', gap: 6, alignItems: 'center', color: 'var(--sell-text-3)', fontSize: '0.875rem' }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ animation: 'spin 0.7s linear infinite' }}><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>
-                Loading zonesâ€¦
+                Loading zones…
               </div>
             </div>
           ) : zones.length === 0 ? (
             <div className={styles.empty}>
-              <div className={styles.emptyIcon}>ðŸšš</div>
+              <div className={styles.emptyIcon}>🚚</div>
               <p className={styles.emptyTitle}>No shipping zones</p>
               <p className={styles.emptySub}>Add your first delivery zone to start accepting orders from customers across different regions.</p>
               <button className={`${styles.btn} ${styles.btnPrimary}`} onClick={() => setSlideOver('add')}>
@@ -360,11 +360,11 @@ export function SellShippingPage() {
             <div className={styles.zoneList}>
               {zones.map(zone => (
                 <div key={zone.id} className={styles.zoneCard} onClick={() => setSlideOver(zone)}>
-                  <div className={styles.zoneIcon}>ðŸŒ</div>
+                  <div className={styles.zoneIcon}>🌍</div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p className={styles.zoneName}>{zone.zoneName}</p>
                     {zone.regions.length > 0 && (
-                      <p className={styles.zoneRegions}>{zone.regions.join(' Â· ')}</p>
+                      <p className={styles.zoneRegions}>{zone.regions.join(' · ')}</p>
                     )}
                   </div>
                   <div className={styles.zoneRate}>
@@ -406,4 +406,3 @@ export function SellShippingPage() {
     </>
   );
 }
-

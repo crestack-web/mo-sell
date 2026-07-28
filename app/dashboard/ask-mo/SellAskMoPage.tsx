@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useSell } from '@/context/SellContext';
@@ -7,7 +7,7 @@ import { initializeFirebase } from '@/lib/firebase';
 import { EbookPreviewModal } from '@/app/store-components/EbookPreviewModal';
 import styles from './SellAskMoPage.module.css';
 
-// â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Types ───────────────────────────────────────────────────────────────────
 
 interface ChatMessage {
   id: string;
@@ -35,20 +35,20 @@ interface Suggestion {
   message: string;
 }
 
-// â”€â”€â”€ Constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Constants ───────────────────────────────────────────────────────────────
 
 const SUGGESTIONS: Suggestion[] = [
-  { icon: 'âœï¸', label: 'Change store name', message: 'Change my store name to ' },
-  { icon: 'ðŸŽ¨', label: 'Update colors', message: 'Change my store colors to something more vibrant' },
-  { icon: 'ðŸ“¦', label: 'Create a product', message: 'Create a digital product for my store' },
-  { icon: 'ðŸ“š', label: 'Create an ebook', message: 'Create an ebook product for my store' },
-  { icon: 'ðŸ’¡', label: 'Collection ideas', message: 'Suggest some collection names for my store' },
-  { icon: 'ðŸ·ï¸', label: 'Update tagline', message: 'Change my store tagline to something catchy' },
+  { icon: '✏️', label: 'Change store name', message: 'Change my store name to ' },
+  { icon: '🎨', label: 'Update colors', message: 'Change my store colors to something more vibrant' },
+  { icon: '📦', label: 'Create a product', message: 'Create a digital product for my store' },
+  { icon: '📚', label: 'Create an ebook', message: 'Create an ebook product for my store' },
+  { icon: '💡', label: 'Collection ideas', message: 'Suggest some collection names for my store' },
+  { icon: '🏷️', label: 'Update tagline', message: 'Change my store tagline to something catchy' },
 ];
 
 const MO_AVATAR = 'https://res.cloudinary.com/dzjoqbg2u/image/upload/v1784793259/mo_sell_chat_ucbw3x.png';
 
-// â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 let msgIdCounter = 0;
 function nextMsgId(): string {
@@ -71,7 +71,7 @@ function getConvCollection(userId: string) {
   return collection(firestore, 'businesses', userId, 'aiConversations');
 }
 
-// â”€â”€â”€ Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Component ───────────────────────────────────────────────────────────────
 
 export function SellAskMoPage() {
   const { storeConfig, user, showToast } = useSell();
@@ -104,7 +104,7 @@ export function SellAskMoPage() {
     scrollToBottom();
   }, [messages, loading, scrollToBottom]);
 
-  // â”€â”€ Load active conversation from Firestore â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Load active conversation from Firestore ────────────────────────────
 
   useEffect(() => {
     if (!user?.businessId || loadedRef.current) return;
@@ -128,7 +128,7 @@ export function SellAskMoPage() {
     })();
   }, [user?.businessId]);
 
-  // â”€â”€ Save active conversation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Save active conversation ───────────────────────────────────────────
 
   const saveActive = useCallback(
     async (msgs: ChatMessage[], hist: { role: 'user' | 'model'; parts: { text: string }[] }[]) => {
@@ -161,7 +161,7 @@ export function SellAskMoPage() {
     };
   }, [saveActive]);
 
-  // â”€â”€ Load conversation history list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Load conversation history list ─────────────────────────────────────
 
   const loadHistory = useCallback(async () => {
     if (!user?.businessId) return;
@@ -194,7 +194,7 @@ export function SellAskMoPage() {
     if (historyOpen) loadHistory();
   }, [historyOpen, loadHistory]);
 
-  // â”€â”€ Load a past conversation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Load a past conversation ───────────────────────────────────────────
 
   const loadConversation = useCallback(
     async (convId: string) => {
@@ -227,7 +227,7 @@ export function SellAskMoPage() {
     [user?.businessId, showToast]
   );
 
-  // â”€â”€ New chat â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── New chat ───────────────────────────────────────────────────────────
 
   const handleNewChat = useCallback(async () => {
     // Archive current conversation if it has messages
@@ -252,7 +252,7 @@ export function SellAskMoPage() {
     setInput('');
   }, [user?.businessId]);
 
-  // â”€â”€ Delete a past conversation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Delete a past conversation ─────────────────────────────────────────
 
   const deleteConversation = useCallback(
     async (convId: string) => {
@@ -266,7 +266,7 @@ export function SellAskMoPage() {
     [user?.businessId, showToast]
   );
 
-  // â”€â”€ Send message â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Send message ───────────────────────────────────────────────────────
 
   const sendMessage = useCallback(
     async (text: string) => {
@@ -344,7 +344,7 @@ export function SellAskMoPage() {
     [loading, user, storeConfig, conversationHistory, showToast]
   );
 
-  // â”€â”€ Apply store update â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Apply store update ─────────────────────────────────────────────────
 
   const applyStoreUpdate = useCallback(
     async (update: Record<string, unknown>, messageId: string) => {
@@ -367,14 +367,14 @@ export function SellAskMoPage() {
     [user, showToast]
   );
 
-  // â”€â”€ Mark product created â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Mark product created ───────────────────────────────────────────────
 
   const markProductCreated = useCallback((messageId: string) => {
     setMessages(prev => prev.map(msg => msg.id === messageId ? { ...msg, productCreated: true } : msg));
     showToast('Product created and ready to sell!', 'success');
   }, [showToast]);
 
-  // â”€â”€ Handlers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Handlers ───────────────────────────────────────────────────────────
 
   const handleSuggestion = useCallback((s: Suggestion) => sendMessage(s.message), [sendMessage]);
 
@@ -394,13 +394,13 @@ export function SellAskMoPage() {
 
   const showWelcome = messages.length === 0 && !loading;
 
-  // â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Render ────────────────────────────────────────────────────────────
 
   return (
     <div className={styles.page}>
-      {/* â”€â”€ Main Chat â”€â”€ */}
+      {/* ── Main Chat ── */}
       <div className={styles.chatContainer}>
-        {/* â”€â”€ Chat Header â”€â”€ */}
+        {/* ── Chat Header ── */}
         <div className={styles.chatHeader}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={MO_AVATAR} alt="MO" className={styles.headerAvatar} />
@@ -431,7 +431,7 @@ export function SellAskMoPage() {
           </div>
         </div>
 
-        {/* â”€â”€ Messages Area â”€â”€ */}
+        {/* ── Messages Area ── */}
         <div className={styles.messagesArea}>
           {showWelcome ? (
             <div className={styles.welcomeState}>
@@ -462,11 +462,11 @@ export function SellAskMoPage() {
                   <div className={styles.messageContent}>
                     <div className={styles.messageBubble}>{msg.text}</div>
 
-                    {/* â”€â”€ Store Update Card â”€â”€ */}
+                    {/* ── Store Update Card ── */}
                     {msg.storeUpdate && !isAllNull(msg.storeUpdate) && (
                       <div className={styles.actionCard}>
                         <div className={styles.actionCardHeader}>
-                          <span className={styles.actionCardIcon}>âœï¸</span>
+                          <span className={styles.actionCardIcon}>✏️</span>
                           Store Update
                         </div>
                         <div className={styles.actionCardBody}>
@@ -481,7 +481,7 @@ export function SellAskMoPage() {
                         </div>
                         <div className={styles.actionCardFooter}>
                           {msg.applied ? (
-                            <span className={styles.appliedLabel}>âœ“ Applied</span>
+                            <span className={styles.appliedLabel}>✓ Applied</span>
                           ) : (
                             <>
                               <button className={`${styles.confirmBtn} ${styles.confirmBtnPrimary}`} onClick={() => applyStoreUpdate(msg.storeUpdate!, msg.id)}>Apply Changes</button>
@@ -492,17 +492,17 @@ export function SellAskMoPage() {
                       </div>
                     )}
 
-                    {/* â”€â”€ New Product Card â”€â”€ */}
+                    {/* ── New Product Card ── */}
                     {msg.newProduct && (
                       <div className={styles.actionCard}>
                         <div className={styles.actionCardHeader}>
-                          <span className={styles.actionCardIcon}>ðŸ“¦</span>
+                          <span className={styles.actionCardIcon}>📦</span>
                           {msg.editProduct ? 'Updated Product' : 'New Product'}
                         </div>
                         <div className={styles.actionCardBody}>
                           <div className={styles.actionCardRow}><span className={styles.actionCardLabel}>Name</span><span className={styles.actionCardValue}>{String(msg.newProduct.displayName)}</span></div>
                           <div className={styles.actionCardRow}><span className={styles.actionCardLabel}>Type</span><span className={styles.actionCardValue}>{String(msg.newProduct.digitalSubtype || msg.newProduct.productType)}</span></div>
-                          <div className={styles.actionCardRow}><span className={styles.actionCardLabel}>Price</span><span className={styles.actionCardValue}>â‚¦{Number(msg.newProduct.price).toLocaleString()}</span></div>
+                          <div className={styles.actionCardRow}><span className={styles.actionCardLabel}>Price</span><span className={styles.actionCardValue}>₦{Number(msg.newProduct.price).toLocaleString()}</span></div>
                           {msg.newProduct.category ? <div className={styles.actionCardRow}><span className={styles.actionCardLabel}>Category</span><span className={styles.actionCardValue}>{String(msg.newProduct.category)}</span></div> : null}
                           {msg.newProduct.description ? (
                             <div style={{ padding: '8px 0', fontSize: '12px', color: 'var(--sell-text-muted, #6b7280)', lineHeight: 1.5 }}>
@@ -514,7 +514,7 @@ export function SellAskMoPage() {
                           {(msg.newProduct as any).pdfContent?.chapters && (
                             <div style={{ marginTop: 8 }}>
                               <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--sell-text, #1a1a1a)', marginBottom: 6 }}>
-                                ðŸ“„ {((msg.newProduct as any).pdfContent.chapters as any[]).length} Chapters
+                                📄 {((msg.newProduct as any).pdfContent.chapters as any[]).length} Chapters
                               </p>
                               {((msg.newProduct as any).pdfContent.chapters as any[]).map((ch: any, i: number) => (
                                 <div key={i} style={{ padding: '4px 0', fontSize: 11, color: 'var(--sell-text-muted, #6b7280)', display: 'flex', gap: 6 }}>
@@ -552,30 +552,30 @@ export function SellAskMoPage() {
                           {/* Word count estimate */}
                           {(msg.newProduct as any).pdfContent?.chapters && (
                             <div style={{ marginTop: 8, fontSize: 11, color: 'var(--sell-accent, #6366f1)', fontWeight: 500 }}>
-                              âœï¸ ~{((msg.newProduct as any).pdfContent.chapters as any[]).reduce((sum: number, ch: any) => sum + (ch.body?.split(/\s+/).length || 0), 0).toLocaleString()} words of content
+                              ✍️ ~{((msg.newProduct as any).pdfContent.chapters as any[]).reduce((sum: number, ch: any) => sum + (ch.body?.split(/\s+/).length || 0), 0).toLocaleString()} words of content
                             </div>
                           )}
                         </div>
                         <div className={styles.actionCardFooter}>
                           {msg.productCreated ? (
-                            <span className={styles.appliedLabel}>âœ“ Product live in your store</span>
+                            <span className={styles.appliedLabel}>✓ Product live in your store</span>
                           ) : (
                             <>
                               <button
                                 className={`${styles.confirmBtn} ${styles.confirmBtnPrimary}`}
                                 onClick={() => markProductCreated(msg.id)}
                               >
-                                âœ“ Looks Good
+                                ✓ Looks Good
                               </button>
                               <button
                                 className={`${styles.confirmBtn} ${styles.confirmBtnSecondary}`}
                                 onClick={() => {
                                   const name = String(msg.newProduct?.displayName || 'the product');
-                                  setInput(`I want to tweak ${name} â€” `);
+                                  setInput(`I want to tweak ${name} — `);
                                   inputRef.current?.focus();
                                 }}
                               >
-                                âœï¸ Tweak
+                                ✏️ Tweak
                               </button>
                               <button
                                 className={`${styles.confirmBtn} ${styles.confirmBtnSecondary}`}
@@ -608,7 +608,7 @@ export function SellAskMoPage() {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* â”€â”€ Input Area â”€â”€ */}
+        {/* ── Input Area ── */}
         <div className={styles.inputArea}>
           <div className={styles.inputWrapper}>
             <textarea
@@ -637,7 +637,7 @@ export function SellAskMoPage() {
         </div>
       </div>
 
-      {/* â”€â”€ History Panel (after chat so z-index wins) â”€â”€ */}
+      {/* ── History Panel (after chat so z-index wins) ── */}
       {historyOpen && (
         <>
           <div className={styles.historyBackdrop} onClick={() => setHistoryOpen(false)} />
@@ -657,7 +657,7 @@ export function SellAskMoPage() {
                 <div key={c.id} className={styles.historyItem} onClick={() => loadConversation(c.id)}>
                   <div className={styles.historyItemContent}>
                     <p className={styles.historyItemPreview}>{c.preview}</p>
-                    <p className={styles.historyItemMeta}>{c.messageCount} messages Â· {timeAgo(c.updatedAt)}</p>
+                    <p className={styles.historyItemMeta}>{c.messageCount} messages · {timeAgo(c.updatedAt)}</p>
                   </div>
                   <button
                     className={styles.historyItemDelete}
@@ -685,7 +685,7 @@ export function SellAskMoPage() {
   );
 }
 
-// â”€â”€â”€ Utility functions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Utility functions ───────────────────────────────────────────────────────
 
 function isAllNull(obj: Record<string, unknown>): boolean {
   return Object.values(obj).every(v => v === null || v === undefined);
@@ -711,4 +711,3 @@ function formatValue(key: string, value: unknown): React.ReactNode {
   }
   return String(value ?? '');
 }
-

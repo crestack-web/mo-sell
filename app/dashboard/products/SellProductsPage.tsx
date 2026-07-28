@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect, useCallback, useRef, useMemo, ChangeEvent } from 'react';
 import { collection, getDocs, doc, addDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
@@ -8,7 +8,7 @@ import { useSell } from '@/context/SellContext';
 import { EbookPreviewModal } from '@/app/store-components/EbookPreviewModal';
 import styles from './SellProductsPage.module.css';
 
-// â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 type ProductType = 'physical' | 'digital' | 'service';
 
@@ -127,20 +127,20 @@ const CATEGORIES = [
 
 function emoji(cat: string) {
   const m: Record<string, string> = {
-    fashion:'ðŸ‘—', beauty:'ðŸ’„', food:'ðŸ”', electronics:'ðŸ“±',
-    home:'ðŸ ', health:'ðŸ’Š', services:'âš™ï¸',
+    fashion:'👗', beauty:'💄', food:'🍔', electronics:'📱',
+    home:'🏠', health:'💊', services:'⚙️',
   };
-  return m[cat?.toLowerCase().split(' ')[0]] ?? 'ðŸ“¦';
+  return m[cat?.toLowerCase().split(' ')[0]] ?? '📦';
 }
 
 function fmt(n: number, currency = 'NGN') {
-  const s = currency === 'NGN' ? 'â‚¦' : currency === 'USD' ? '$' : currency + ' ';
+  const s = currency === 'NGN' ? '₦' : currency === 'USD' ? '$' : currency + ' ';
   if (n >= 1_000_000) return `${s}${(n / 1_000_000).toFixed(1)}M`;
   if (n >= 1_000) return `${s}${(n / 1_000).toFixed(1)}K`;
   return `${s}${n.toLocaleString()}`;
 }
 
-// â”€â”€â”€ Inventory Import Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Inventory Import Modal ───────────────────────────────────────────────────
 
 interface ImportModalProps {
   products: InventoryProduct[];
@@ -171,7 +171,7 @@ function InventoryImportModal({ products, onSelect, onClose, currency }: ImportM
             <input
               className={styles.searchInput}
               style={{ width: '100%' }}
-              placeholder="Search inventoryâ€¦"
+              placeholder="Search inventory…"
               value={search}
               onChange={e => setSearch(e.target.value)}
               autoFocus
@@ -187,7 +187,7 @@ function InventoryImportModal({ products, onSelect, onClose, currency }: ImportM
                 <div style={{ fontSize: '1.3rem' }}>{emoji(p.category)}</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p className={styles.inventoryRowName}>{p.name}</p>
-                  <p className={styles.inventoryRowMeta}>{p.category} Â· Stock: {p.stock}</p>
+                  <p className={styles.inventoryRowMeta}>{p.category} · Stock: {p.stock}</p>
                 </div>
                 <p className={styles.inventoryRowMeta} style={{ fontWeight: 600, color: 'var(--sell-text-1)' }}>
                   {fmt(p.price, currency)}
@@ -204,7 +204,7 @@ function InventoryImportModal({ products, onSelect, onClose, currency }: ImportM
   );
 }
 
-// â”€â”€â”€ Product Slide-Over Form â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Product Slide-Over Form ──────────────────────────────────────────────────
 
 interface SlideOverProps {
   product: StoreProduct | null; // null = add mode
@@ -279,7 +279,7 @@ function ProductSlideOver({ product, onClose, onSaved, businessId, currency, sto
   }, []);
 
   const price = parseFloat(form.price) || 0;
-  const cost = 0; // cost not stored on storeProducts â€” just show sell price margin
+  const cost = 0; // cost not stored on storeProducts — just show sell price margin
   const compareAt = parseFloat(form.compareAtPrice) || 0;
   const discount = compareAt > price && compareAt > 0
     ? Math.round((1 - price / compareAt) * 100)
@@ -351,7 +351,7 @@ function ProductSlideOver({ product, onClose, onSaved, businessId, currency, sto
       const contextParts: string[] = [];
       if (form.displayName) contextParts.push(`Current product name: "${form.displayName}"`);
       if (form.category) contextParts.push(`Current category: "${form.category}"`);
-      if (form.price) contextParts.push(`Current price: â‚¦${form.price}`);
+      if (form.price) contextParts.push(`Current price: ₦${form.price}`);
       if (form.productType) contextParts.push(`Product type: ${form.productType}`);
       if (form.digitalSubtype) contextParts.push(`Digital subtype: ${form.digitalSubtype}`);
 
@@ -576,7 +576,7 @@ function ProductSlideOver({ product, onClose, onSaved, businessId, currency, sto
                   className={`${styles.btn} ${form.productType === type ? styles.btnPrimary : styles.btnGhost}`}
                   style={{ flex: 1, justifyContent: 'center', padding: '7px 8px', fontSize: '0.8rem' }}
                 >
-                  {type === 'physical' ? 'ðŸ“¦' : type === 'digital' ? 'ðŸ’¾' : 'âš™ï¸'}&nbsp;
+                  {type === 'physical' ? '📦' : type === 'digital' ? '💾' : '⚙️'}&nbsp;
                   {type.charAt(0).toUpperCase() + type.slice(1)}
                 </button>
               ))}
@@ -632,13 +632,13 @@ function ProductSlideOver({ product, onClose, onSaved, businessId, currency, sto
                         <path d="M12 2l2.09 6.26L20.18 10l-6.09 1.74L12 18l-2.09-6.26L3.82 10l6.09-1.74z" strokeLinejoin="round"/>
                       </svg>
                     )}
-                    {generatingDesc ? 'Writingâ€¦' : 'Create with MO'}
+                    {generatingDesc ? 'Writing…' : 'Create with MO'}
                   </button>
                   {showMoPopover && !generatingDesc && (
                     <div className={styles.moPopover}>
                       <p className={styles.moPopoverTitle}>What should MO help with?</p>
                       <div className={styles.moPopoverChips}>
-                        <button className={styles.moChip} onClick={() => handleMoAssist('Fill in all product details â€” name, description, price, category, and tags based on what this product is about.')}>Fill in everything</button>
+                        <button className={styles.moChip} onClick={() => handleMoAssist('Fill in all product details — name, description, price, category, and tags based on what this product is about.')}>Fill in everything</button>
                         <button className={styles.moChip} onClick={() => handleMoAssist('Write a short, compelling product description (2-3 sentences). Speak directly to the customer. No bullet points.')}>Write description</button>
                         <button className={styles.moChip} onClick={() => handleMoAssist('Suggest a competitive price for this product. Return the price as a number.')}>Suggest price</button>
                         <button className={styles.moChip} onClick={() => handleMoAssist('Suggest the best category and 3-5 relevant tags for this product.')}>Category & tags</button>
@@ -667,7 +667,7 @@ function ProductSlideOver({ product, onClose, onSaved, businessId, currency, sto
               </div>
               <textarea
                 className={styles.formTextarea}
-                placeholder="Describe the product â€” materials, key features, who it's forâ€¦"
+                placeholder="Describe the product — materials, key features, who it's for…"
                 value={form.description}
                 onChange={e => set('description', e.target.value)}
                 rows={4}
@@ -688,7 +688,7 @@ function ProductSlideOver({ product, onClose, onSaved, businessId, currency, sto
               <div className={styles.formGroup}>
                 <label className={styles.formLabel}>Price *</label>
                 <div className={styles.priceWrap}>
-                  <span className={styles.pricePrefix}>{currency === 'NGN' ? 'â‚¦' : '$'}</span>
+                  <span className={styles.pricePrefix}>{currency === 'NGN' ? '₦' : '$'}</span>
                   <input
                     className={`${styles.formInput} ${styles.priceInput}`}
                     type="number" min="0" step="0.01"
@@ -701,7 +701,7 @@ function ProductSlideOver({ product, onClose, onSaved, businessId, currency, sto
               <div className={styles.formGroup}>
                 <label className={styles.formLabel}>Compare-at price</label>
                 <div className={styles.priceWrap}>
-                  <span className={styles.pricePrefix}>{currency === 'NGN' ? 'â‚¦' : '$'}</span>
+                  <span className={styles.pricePrefix}>{currency === 'NGN' ? '₦' : '$'}</span>
                   <input
                     className={`${styles.formInput} ${styles.priceInput}`}
                     type="number" min="0" step="0.01"
@@ -744,10 +744,10 @@ function ProductSlideOver({ product, onClose, onSaved, businessId, currency, sto
               <div className={styles.formGroup}>
                 <label className={styles.formLabel}>Digital product type</label>
                 <select className={styles.formSelect} value={form.digitalSubtype} onChange={e => set('digitalSubtype', e.target.value as DigitalSubtype)}>
-                  <option value="ebook">ðŸ“š E-book / PDF</option>
-                  <option value="course">ðŸŽ“ Online Course</option>
-                  <option value="template">ðŸ“„ Template</option>
-                  <option value="ticket">ðŸŽ« Event Ticket</option>
+                  <option value="ebook">📚 E-book / PDF</option>
+                  <option value="course">🎓 Online Course</option>
+                  <option value="template">📄 Template</option>
+                  <option value="ticket">🎫 Event Ticket</option>
                 </select>
               </div>
 
@@ -776,7 +776,7 @@ function ProductSlideOver({ product, onClose, onSaved, businessId, currency, sto
                       <label className={styles.imageUploadLabel}>
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                         <span>Upload file</span>
-                        <span style={{ fontSize: '0.72rem', color: 'var(--sell-text-3)' }}>PDF, ZIP, MP4, etc. Â· max 50MB</span>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--sell-text-3)' }}>PDF, ZIP, MP4, etc. · max 50MB</span>
                       </label>
                     </div>
                     <input ref={digitalFileInputRef} type="file" accept=".pdf,.zip,.mp4,.doc,.docx,.ppt,.pptx" style={{ display: 'none' }} onChange={handleDigitalFileChange} />
@@ -939,7 +939,7 @@ function ProductSlideOver({ product, onClose, onSaved, businessId, currency, sto
                   <button
                     className={styles.imageRemoveBtn}
                     onClick={() => { setImagePreview(''); setImageFile(null); set('imageUrl', ''); }}
-                  >âœ•</button>
+                  >✕</button>
                 </div>
                 <button className={`${styles.btn} ${styles.btnGhost}`} style={{ fontSize: '0.78rem' }} onClick={() => fileInputRef.current?.click()}>
                   Replace image
@@ -950,7 +950,7 @@ function ProductSlideOver({ product, onClose, onSaved, businessId, currency, sto
                 <label className={styles.imageUploadLabel}>
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                   <span>Click to upload</span>
-                  <span style={{ fontSize: '0.72rem', color: 'var(--sell-text-3)' }}>PNG, JPG, WebP Â· max 5MB</span>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--sell-text-3)' }}>PNG, JPG, WebP · max 5MB</span>
                 </label>
               </div>
             )}
@@ -999,7 +999,7 @@ function ProductSlideOver({ product, onClose, onSaved, businessId, currency, sto
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ animation: 'spin 0.7s linear infinite' }}>
                   <path d="M21 12a9 9 0 11-6.219-8.56"/>
                 </svg>
-                Savingâ€¦
+                Saving…
               </>
             ) : (
               <>
@@ -1028,7 +1028,7 @@ function ProductSlideOver({ product, onClose, onSaved, businessId, currency, sto
   );
 }
 
-// â”€â”€â”€ Main Page Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Main Page Component ──────────────────────────────────────────────────────
 
 export function SellProductsPage() {
   const { user, storeConfig, showToast, refreshQuickStats } = useSell();
@@ -1044,7 +1044,7 @@ export function SellProductsPage() {
   const [deleting, setDeleting]         = useState<string | null>(null);
   const [bulkBusy, setBulkBusy]         = useState(false);
 
-  // â”€â”€ Load products â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Load products ─────────────────────────────────────────────────────────
   const loadProducts = useCallback(async () => {
     if (!user?.businessId) return;
     try {
@@ -1069,7 +1069,7 @@ export function SellProductsPage() {
 
   useEffect(() => { loadProducts(); }, [loadProducts]);
 
-  // â”€â”€ Filtered products â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Filtered products ─────────────────────────────────────────────────────
   const filtered = useMemo(() => {
     return products.filter(p => {
       const matchSearch = !search ||
@@ -1085,7 +1085,7 @@ export function SellProductsPage() {
     });
   }, [products, search, typeFilter, statusFilter]);
 
-  // â”€â”€ Selection â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Selection ─────────────────────────────────────────────────────────────
   const toggleSelect = (id: string) => {
     setSelected(prev => {
       const next = new Set(prev);
@@ -1102,7 +1102,7 @@ export function SellProductsPage() {
     }
   };
 
-  // â”€â”€ Toggle availability â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Toggle availability ───────────────────────────────────────────────────
   const handleToggle = useCallback(async (product: StoreProduct, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!user?.businessId) return;
@@ -1119,7 +1119,7 @@ export function SellProductsPage() {
     }
   }, [user?.businessId, showToast]);
 
-  // â”€â”€ Delete â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Delete ────────────────────────────────────────────────────────────────
   const handleDelete = useCallback(async (product: StoreProduct, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!confirm(`Remove "${product.displayName}" from your store?`)) return;
@@ -1137,7 +1137,7 @@ export function SellProductsPage() {
     }
   }, [user, showToast, refreshQuickStats]);
 
-  // â”€â”€ Bulk toggle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Bulk toggle ───────────────────────────────────────────────────────────
   const handleBulkToggle = useCallback(async (available: boolean) => {
     if (!user?.businessId || selected.size === 0) return;
     setBulkBusy(true);
@@ -1159,7 +1159,7 @@ export function SellProductsPage() {
     }
   }, [user?.businessId, selected, showToast]);
 
-  // â”€â”€ Bulk delete â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Bulk delete ───────────────────────────────────────────────────────────
   const handleBulkDelete = useCallback(async () => {
     if (!user?.businessId || selected.size === 0) return;
     if (!confirm(`Remove ${selected.size} products from your store?`)) return;
@@ -1186,7 +1186,7 @@ export function SellProductsPage() {
     refreshQuickStats();
   }, [loadProducts, refreshQuickStats]);
 
-  // â”€â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
     <>
@@ -1212,7 +1212,7 @@ export function SellProductsPage() {
             <svg className={styles.searchIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             <input
               className={styles.searchInput}
-              placeholder="Search products, SKU, tagsâ€¦"
+              placeholder="Search products, SKU, tags…"
               value={search}
               onChange={e => setSearch(e.target.value)}
             />
@@ -1265,12 +1265,12 @@ export function SellProductsPage() {
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ animation: 'spin 0.7s linear infinite' }}>
                   <path d="M21 12a9 9 0 11-6.219-8.56"/>
                 </svg>
-                Loading productsâ€¦
+                Loading products…
               </div>
             </div>
           ) : filtered.length === 0 ? (
             <div className={styles.empty}>
-              <div className={styles.emptyIcon}>ðŸ›ï¸</div>
+              <div className={styles.emptyIcon}>🛍️</div>
               <p className={styles.emptyTitle}>{products.length === 0 ? 'No products yet' : 'No results'}</p>
               <p className={styles.emptySub}>
                 {products.length === 0
@@ -1332,10 +1332,10 @@ export function SellProductsPage() {
                           )}
                           <div>
                             <p className={styles.productName}>
-                              {p.featured && <span className={styles.featuredStar}>â˜… </span>}
+                              {p.featured && <span className={styles.featuredStar}>★ </span>}
                               {p.displayName}
                             </p>
-                            <p className={styles.productCategory}>{p.category || 'â€”'}</p>
+                            <p className={styles.productCategory}>{p.category || '—'}</p>
                           </div>
                         </div>
                       </td>
@@ -1344,7 +1344,7 @@ export function SellProductsPage() {
                           p.productType === 'physical' ? styles.typePhysical :
                           p.productType === 'digital'  ? styles.typeDigital  : styles.typeService
                         }`}>
-                          {p.productType === 'physical' ? 'ðŸ“¦' : p.productType === 'digital' ? 'ðŸ’¾' : 'âš™ï¸'}
+                          {p.productType === 'physical' ? '📦' : p.productType === 'digital' ? '💾' : '⚙️'}
                           &nbsp;{p.productType}
                         </span>
                       </td>
@@ -1358,10 +1358,10 @@ export function SellProductsPage() {
                       <td>
                         {p.productType === 'physical' ? (
                           <span className={`${styles.stockBadge} ${stockClass}`}>
-                            {p.stock === 0 ? 'Out of stock' : p.stock <= p.lowStockThreshold ? `âš  ${p.stock} left` : p.stock}
+                            {p.stock === 0 ? 'Out of stock' : p.stock <= p.lowStockThreshold ? `⚠ ${p.stock} left` : p.stock}
                           </span>
                         ) : (
-                          <span style={{ color: 'var(--sell-text-3)', fontSize: '0.8rem' }}>â€”</span>
+                          <span style={{ color: 'var(--sell-text-3)', fontSize: '0.8rem' }}>—</span>
                         )}
                       </td>
                       <td onClick={e => e.stopPropagation()}>
@@ -1415,4 +1415,3 @@ export function SellProductsPage() {
     </>
   );
 }
-

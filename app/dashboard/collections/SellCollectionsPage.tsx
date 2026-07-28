@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { collection, getDocs, doc, addDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
@@ -6,7 +6,7 @@ import { initializeFirebase } from '@/lib/firebase';
 import { useSell } from '@/context/SellContext';
 import styles from './SellCollectionsPage.module.css';
 
-// â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface StoreProduct {
   id: string;
@@ -36,11 +36,11 @@ type FormData = {
 const EMPTY_FORM: FormData = { title: '', description: '', coverImageUrl: '' };
 
 function fmt(n: number, currency = 'NGN') {
-  const s = currency === 'NGN' ? 'â‚¦' : '$';
+  const s = currency === 'NGN' ? '₦' : '$';
   return `${s}${n.toLocaleString()}`;
 }
 
-// â”€â”€â”€ Product Picker Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Product Picker Modal ─────────────────────────────────────────────────────
 
 interface ProductPickerProps {
   all: StoreProduct[];
@@ -80,7 +80,7 @@ function ProductPickerModal({ all, selected, currency, onSave, onClose }: Produc
           <input
             className={styles.searchInput}
             style={{ width: '100%' }}
-            placeholder="Search productsâ€¦"
+            placeholder="Search products…"
             value={search}
             onChange={e => setSearch(e.target.value)}
             autoFocus
@@ -100,10 +100,10 @@ function ProductPickerModal({ all, selected, currency, onSave, onClose }: Produc
                 {p.images[0]
                   // eslint-disable-next-line @next/next/no-img-element
                   ? <img src={p.images[0]} alt={p.displayName} className={styles.pickImg} />
-                  : <div className={styles.pickImgPlaceholder}>ðŸ“¦</div>}
+                  : <div className={styles.pickImgPlaceholder}>📦</div>}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p className={styles.pickName}>{p.displayName}</p>
-                  <p className={styles.pickMeta}>{p.category} Â· {fmt(p.price, currency)}</p>
+                  <p className={styles.pickMeta}>{p.category} · {fmt(p.price, currency)}</p>
                 </div>
                 {!p.available && <span className={styles.hiddenPill}>Hidden</span>}
               </label>
@@ -121,7 +121,7 @@ function ProductPickerModal({ all, selected, currency, onSave, onClose }: Produc
   );
 }
 
-// â”€â”€â”€ Collection Slide-Over Form â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Collection Slide-Over Form ───────────────────────────────────────────────
 
 interface SlideOverProps {
   col: StoreCollection | null;
@@ -148,7 +148,7 @@ function CollectionSlideOver({ col, allProducts, onClose, onSaved, businessId, c
     setForm(prev => ({ ...prev, [k]: v }));
   }, []);
 
-  // â”€â”€ Drag-to-reorder â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Drag-to-reorder ─────────────────────────────────────────────────────────
   const handleDragStart = (id: string) => setDragId(id);
   const handleDragOver  = (e: React.DragEvent, id: string) => { e.preventDefault(); setDragOverId(id); };
   const handleDrop      = (targetId: string) => {
@@ -230,7 +230,7 @@ function CollectionSlideOver({ col, allProducts, onClose, onSaved, businessId, c
               <label className={styles.formLabel}>Collection name *</label>
               <input
                 className={styles.formInput}
-                placeholder="e.g. New Arrivals, Best Sellers, Men's Fashionâ€¦"
+                placeholder="e.g. New Arrivals, Best Sellers, Men's Fashion…"
                 value={form.title}
                 onChange={e => set('title', e.target.value)}
               />
@@ -239,7 +239,7 @@ function CollectionSlideOver({ col, allProducts, onClose, onSaved, businessId, c
               <label className={styles.formLabel}>Description</label>
               <textarea
                 className={styles.formTextarea}
-                placeholder="Brief description shown on the storefrontâ€¦"
+                placeholder="Brief description shown on the storefront…"
                 value={form.description}
                 onChange={e => set('description', e.target.value)}
                 rows={3}
@@ -249,7 +249,7 @@ function CollectionSlideOver({ col, allProducts, onClose, onSaved, businessId, c
               <label className={styles.formLabel}>Cover image URL</label>
               <input
                 className={styles.formInput}
-                placeholder="https://â€¦"
+                placeholder="https://…"
                 value={form.coverImageUrl}
                 onChange={e => set('coverImageUrl', e.target.value)}
               />
@@ -273,8 +273,8 @@ function CollectionSlideOver({ col, allProducts, onClose, onSaved, businessId, c
 
             {collectionProducts.length === 0 ? (
               <div className={styles.productsEmpty}>
-                <span>ðŸ“‚</span>
-                <p>No products yet â€” click &quot;Add products&quot; to start</p>
+                <span>📂</span>
+                <p>No products yet — click &quot;Add products&quot; to start</p>
               </div>
             ) : (
               <div className={styles.productsList}>
@@ -295,7 +295,7 @@ function CollectionSlideOver({ col, allProducts, onClose, onSaved, businessId, c
                     {p.images[0]
                       // eslint-disable-next-line @next/next/no-img-element
                       ? <img src={p.images[0]} alt={p.displayName} className={styles.pickImg} />
-                      : <div className={styles.pickImgPlaceholder}>ðŸ“¦</div>}
+                      : <div className={styles.pickImgPlaceholder}>📦</div>}
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p className={styles.pickName}>{p.displayName}</p>
                       <p className={styles.pickMeta}>{fmt(p.price, currency)}</p>
@@ -324,7 +324,7 @@ function CollectionSlideOver({ col, allProducts, onClose, onSaved, businessId, c
             {saving ? (
               <>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ animation: 'spin 0.7s linear infinite' }}><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>
-                Savingâ€¦
+                Saving…
               </>
             ) : (
               <>
@@ -340,7 +340,7 @@ function CollectionSlideOver({ col, allProducts, onClose, onSaved, businessId, c
   );
 }
 
-// â”€â”€â”€ Main Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Main Page ────────────────────────────────────────────────────────────────
 
 export function SellCollectionsPage() {
   const { user, storeConfig, showToast } = useSell();
@@ -422,12 +422,12 @@ export function SellCollectionsPage() {
           <div className={styles.empty}>
             <div style={{ display: 'flex', gap: 6, alignItems: 'center', color: 'var(--sell-text-3)', fontSize: '0.875rem' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ animation: 'spin 0.7s linear infinite' }}><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>
-              Loading collectionsâ€¦
+              Loading collections…
             </div>
           </div>
         ) : collections.length === 0 ? (
           <div className={styles.empty}>
-            <div className={styles.emptyIcon}>ðŸ“‚</div>
+            <div className={styles.emptyIcon}>📂</div>
             <p className={styles.emptyTitle}>No collections yet</p>
             <p className={styles.emptySub}>Create collections like &quot;Summer Styles&quot; or &quot;Best Sellers&quot; to help customers discover your products.</p>
             <button className={`${styles.btn} ${styles.btnPrimary}`} onClick={() => setSlideOver('add')}>
@@ -446,7 +446,7 @@ export function SellCollectionsPage() {
                     {cover
                       // eslint-disable-next-line @next/next/no-img-element
                       ? <img src={cover} alt={col.title} className={styles.cardCoverImg} />
-                      : <span className={styles.cardCoverPlaceholder}>ðŸ“‚</span>}
+                      : <span className={styles.cardCoverPlaceholder}>📂</span>}
                     <div className={styles.cardProductCount}>{col.productIds.length} product{col.productIds.length !== 1 ? 's' : ''}</div>
                   </div>
                   <div className={styles.cardBody}>
@@ -459,7 +459,7 @@ export function SellCollectionsPage() {
                           p.images[0]
                             // eslint-disable-next-line @next/next/no-img-element
                             ? <img key={p.id} src={p.images[0]} alt={p.displayName} className={styles.stripImg} />
-                            : <div key={p.id} className={styles.stripImgPlaceholder}>ðŸ“¦</div>
+                            : <div key={p.id} className={styles.stripImgPlaceholder}>📦</div>
                         ))}
                         {prods.length > 5 && <span className={styles.moreChip}>+{prods.length - 5}</span>}
                       </div>
@@ -499,4 +499,3 @@ export function SellCollectionsPage() {
     </>
   );
 }
-
