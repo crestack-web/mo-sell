@@ -1,29 +1,37 @@
 import React from 'react';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
+import { getAdminDb } from '@/lib/firebase-admin';
 import { ProductDetailClient } from './ProductDetailClient';
 
 // ─── Data fetching ─────────────────────────────────────────────────────────────
 
 async function getStoreConfig(storeSlug: string) {
   try {
-    const base = process.env.PUBLIC_APP_URL ?? 'http://localhost:3000';
-    const res = await fetch(`${base}/api/store/config/${storeSlug}`, { cache: 'no-store' });
-    if (!res.ok) return null;
-    return res.json();
+    const db = getAdminDb();
+    const idxDoc = await db.collection('storeIndex').doc(storeSlug).get();
+    if (idxDoc.exists) {
+      const bId = idxDoc.data()?.businessId as string | undefined;
+      if (bId) {
+        const configSnap = await db.collection('businesses').doc(bId).collection('store').doc('config').get();
+        if (configSnap.exists) {
+          const data = configSnap.data()!;
+          if ((data.status ?? 'draft') !== 'active') return null;
+          return { ...data, businessId: bId };
+        }
+      }
+    }
+    return null;
   } catch { return null; }
 }
 
 async function getProduct(businessId: string, productId: string) {
   try {
-    const base = process.env.PUBLIC_APP_URL ?? 'http://localhost:3000';
-    const res = await fetch(
-      `${base}/api/store/products?businessId=${businessId}`,
-      { cache: 'no-store' }
-    );
-    if (!res.ok) return null;
-    const data = await res.json();
-    return (data.products ?? []).find((p: any) => p.id === productId) ?? null;
+    const db = getAdminDb();
+    const snap = await db.collection('businesses').doc(businessId).collection('storeProducts').doc(productId).get();
+    if (!snap.exists) return null;
+    const data = snap.data()!;
+    return { id: snap.id, ...data };
   } catch { return null; }
 }
 
@@ -66,15 +74,15 @@ export default async function ProductDetailPage({
   if (!product || !product.available) notFound();
 
   // Fire page_view analytics (fire-and-forget)
-  fetch(`${process.env.PUBLIC_APP_URL ?? 'http://localhost:3000'}/api/store/analytics/event`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
+  try {
+    const dbAnalytics = getAdminDb();
+    dbAnalytics.collection('businesses').doc(config.businessId).collection('storeAnalytics').add({
       eventType: 'page_view', storeSlug,
       businessId: config.businessId,
       pageType: 'product', productId,
-    }),
-  }).catch(() => {});
+      createdAt: new Date().toISOString(),
+    }).catch(() => {});
+  } catch {}
 
   return (
     <ProductDetailClient

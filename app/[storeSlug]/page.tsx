@@ -14,34 +14,106 @@ import type {
   FooterSectionSettings,
 } from '@/types/mo-sell.types';
 import { DEFAULT_SECTIONS } from '@/types/mo-sell.types';
-
-const BASE = () => process.env.PUBLIC_APP_URL ?? 'http://localhost:3000';
+import { getAdminDb } from '@/lib/firebase-admin';
 
 async function getStoreConfig(storeSlug: string) {
   try {
-    const res = await fetch(`${BASE()}/api/store/config/${storeSlug}`, { cache: 'no-store' });
-    if (!res.ok) return null;
-    return res.json();
+    const db = getAdminDb();
+    let data: FirebaseFirestore.DocumentData | null = null;
+    let businessId = '';
+
+    const idxDoc = await db.collection('storeIndex').doc(storeSlug).get();
+    if (idxDoc.exists) {
+      const bId = idxDoc.data()?.businessId as string | undefined;
+      if (bId) {
+        const configSnap = await db.collection('businesses').doc(bId).collection('store').doc('config').get();
+        if (configSnap.exists) {
+          data = configSnap.data()!;
+          businessId = bId;
+        }
+      }
+    }
+
+    if (!data) {
+      const snap = await db.collectionGroup('store').where('storeSlug', '==', storeSlug).limit(1).get();
+      if (!snap.empty) {
+        const doc = snap.docs[0];
+        data = doc.data();
+        businessId = doc.ref.path.split('/')[1];
+      }
+    }
+
+    if (!data) return null;
+    if ((data.status ?? 'draft') !== 'active') return null;
+
+    return {
+      businessId,
+      storeSlug:           data.storeSlug,
+      storeName:           data.storeName,
+      logoUrl:             data.logoUrl ?? null,
+      primaryColor:        data.primaryColor ?? '#0EA5E9',
+      secondaryColor:      data.secondaryColor ?? '#6366F1',
+      businessCategory:    data.businessCategory ?? '',
+      currency:            data.currency ?? 'NGN',
+      contactEmail:        data.contactEmail ?? '',
+      contactPhone:        data.contactPhone ?? '',
+      status:              data.status,
+      theme:               data.theme ?? 'classic',
+      tagline:             data.tagline ?? null,
+      storePolicy:         data.storePolicy ?? null,
+      sections:            data.sections ?? null,
+      enabledProductTypes: data.enabledProductTypes ?? ['physical'],
+      pickupLocations:     data.pickupLocations ?? [],
+      customDomain:        data.customDomain ?? null,
+      customDomainStatus:  data.customDomainStatus ?? 'pending',
+      paystackPublicKey:   data.paystackPublicKey ?? '',
+      fontFamily:          data.fontFamily ?? null,
+      bodyTextColor:       data.bodyTextColor ?? null,
+      headerStyle:         data.headerStyle ?? 'left',
+      buttonStyle:         data.buttonStyle ?? 'pill',
+    };
   } catch { return null; }
 }
 
 async function getProducts(businessId: string, filter?: { featured?: boolean }) {
   try {
-    const params = new URLSearchParams({ businessId, available: 'true' });
-    if (filter?.featured) params.set('featured', 'true');
-    const res = await fetch(`${BASE()}/api/store/products?${params}`, { cache: 'no-store' });
-    if (!res.ok) return [];
-    const data = await res.json();
-    return (data.products ?? []) as ProductCardData[];
+    const db = getAdminDb();
+    let query = db.collection('businesses').doc(businessId).collection('storeProducts') as FirebaseFirestore.Query;
+    query = query.where('available', '==', true);
+    if (filter?.featured) query = query.where('featured', '==', true);
+    const snap = await query.limit(100).get();
+    return snap.docs.map(d => {
+      const data = d.data();
+      return {
+        id: d.id,
+        displayName: data.displayName ?? '',
+        price: data.price ?? 0,
+        compareAtPrice: data.compareAtPrice ?? null,
+        images: data.images ?? [],
+        category: data.category ?? '',
+        available: data.available ?? true,
+        stock: data.stock ?? 0,
+        productType: data.productType ?? 'physical',
+        description: data.description ?? '',
+      } as ProductCardData;
+    });
   } catch { return []; }
 }
 
 async function getCollections(businessId: string) {
   try {
-    const res = await fetch(`${BASE()}/api/store/collections?businessId=${businessId}`, { cache: 'no-store' });
-    if (!res.ok) return [];
-    const data = await res.json();
-    return (data.collections ?? []) as { id: string; title: string; coverImageUrl: string | null; description: string; productCount?: number }[];
+    const db = getAdminDb();
+    const snap = await db.collection('businesses').doc(businessId).collection('storeCollections').limit(20).get();
+    return snap.docs.map(d => {
+      const data = d.data();
+      return {
+        id: d.id,
+        title: data.title ?? '',
+        coverImageUrl: data.coverImageUrl ?? null,
+        description: data.description ?? '',
+        productCount: data.productCount ?? undefined,
+      };
+    });
   } catch { return []; }
 }
 
@@ -112,10 +184,13 @@ export default async function StorefrontHomePage({
   ]);
 
   // Fire analytics
-  fetch(`${BASE()}/api/store/analytics/event`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ eventType: 'page_view', storeSlug, businessId: config.businessId, pageType: 'home' }),
-  }).catch(() => {});
+  try {
+    const dbAnalytics = getAdminDb();
+    dbAnalytics.collection('businesses').doc(config.businessId).collection('storeAnalytics').add({
+      eventType: 'page_view', storeSlug, businessId: config.businessId, pageType: 'home',
+      createdAt: new Date().toISOString(),
+    }).catch(() => {});
+  } catch {}
 
   const Hero = components.Hero;
   const ProductCard = components.ProductCard;

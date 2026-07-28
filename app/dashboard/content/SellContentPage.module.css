@@ -1,0 +1,500 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  width: 100%;
+  max-width: 1200px;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.heading {
+  font-family: var(--sell-font-display);
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--sell-text-1);
+  margin-bottom: 4px;
+}
+
+.sub {
+  font-size: 0.875rem;
+  color: var(--sell-text-2);
+}
+
+/* Product Gallery */
+.gallerySection {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.galleryLabel {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--sell-text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.productGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 14px;
+}
+
+@media (max-width: 640px) {
+  .productGrid {
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: 75%;
+    gap: 12px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    padding-bottom: 6px;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Product Card */
+.card {
+  background: var(--sell-surface);
+  border: 1px solid var(--sell-border);
+  border-radius: var(--sell-radius);
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+}
+
+.cardSelected {
+  border-color: #8b5cf6;
+  box-shadow: 0 0 0 2px rgba(139,92,246,0.25);
+}
+
+.cardImageWrap {
+  width: 100%;
+  aspect-ratio: 4/3;
+  background: var(--sell-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.cardImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cardImagePlaceholder {
+  font-size: 2.5rem;
+  opacity: 0.4;
+}
+
+.cardBody {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cardName {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--sell-text-1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cardMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.cardPrice {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--sell-primary);
+}
+
+.cardType {
+  font-size: 0.68rem;
+  padding: 2px 8px;
+  border-radius: 99px;
+  background: var(--sell-bg);
+  color: var(--sell-text-3);
+  text-transform: capitalize;
+}
+
+.cardAction {
+  margin-top: 4px;
+}
+
+.generateBtn {
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  border-radius: var(--sell-radius-sm);
+  background: var(--sell-primary);
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: opacity 0.15s;
+}
+
+.generateBtn:hover {
+  opacity: 0.9;
+}
+
+/* Empty state */
+.emptyState {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 48px 20px;
+  color: var(--sell-text-3);
+  text-align: center;
+}
+
+.emptyIcon {
+  opacity: 0.3;
+  margin-bottom: 4px;
+}
+
+.emptyTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--sell-text-2);
+}
+
+.emptyText {
+  font-size: 0.85rem;
+  max-width: 320px;
+}
+
+/* Content Generator Panel */
+.panel {
+  background: var(--sell-surface);
+  border: 1px solid var(--sell-border);
+  border-radius: var(--sell-radius);
+  overflow: hidden;
+}
+
+.panelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--sell-border);
+  gap: 12px;
+}
+
+.panelProductInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.panelProductName {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--sell-text-1);
+}
+
+.panelProductType {
+  font-size: 0.75rem;
+  color: var(--sell-text-3);
+  text-transform: capitalize;
+}
+
+.panelClose {
+  background: none;
+  border: none;
+  color: var(--sell-text-3);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+
+.panelClose:hover {
+  background: var(--sell-bg);
+  color: var(--sell-text-1);
+}
+
+/* Tabs */
+.tabs {
+  display: flex;
+  border-bottom: 1px solid var(--sell-border);
+  background: var(--sell-bg);
+}
+
+.tab {
+  flex: 1;
+  padding: 12px 16px;
+  border: none;
+  background: none;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--sell-text-3);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: color 0.15s, border-color 0.15s;
+  border-bottom: 2px solid transparent;
+}
+
+.tab:hover {
+  color: var(--sell-text-1);
+}
+
+.tabActive {
+  color: var(--sell-primary);
+  border-bottom-color: var(--sell-primary);
+}
+
+.tabContent {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Idea cards */
+.ideaCard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+  border: 1px solid var(--sell-border);
+  border-radius: var(--sell-radius-sm);
+  background: var(--sell-bg);
+  transition: border-color 0.15s;
+}
+
+.ideaCard:hover {
+  border-color: var(--sell-primary);
+}
+
+.ideaNumber {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--sell-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.ideaHook {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--sell-text-1);
+  line-height: 1.4;
+}
+
+.ideaMeta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ideaFormat {
+  font-size: 0.75rem;
+  color: var(--sell-text-2);
+  background: var(--sell-surface);
+  padding: 2px 8px;
+  border-radius: 99px;
+  border: 1px solid var(--sell-border);
+}
+
+.ideaCta {
+  font-size: 0.75rem;
+  color: var(--sell-primary);
+  font-weight: 600;
+}
+
+.ideaRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.ideaActions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.doneBtn {
+  background: none;
+  border: 1px solid var(--sell-border);
+  border-radius: var(--sell-radius-sm);
+  padding: 4px 10px;
+  font-size: 0.72rem;
+  color: var(--sell-text-3);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s;
+}
+
+.doneBtn:hover {
+  border-color: var(--sell-primary);
+  color: var(--sell-primary);
+}
+
+.doneBtnDone {
+  background: #10b981;
+  border-color: #10b981;
+  color: #fff;
+}
+
+/* Script block */
+.scriptBlock {
+  background: var(--sell-bg);
+  border: 1px solid var(--sell-border);
+  border-radius: var(--sell-radius-sm);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.scriptLabel {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--sell-text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.scriptContent {
+  font-size: 0.88rem;
+  line-height: 1.6;
+  color: var(--sell-text-1);
+  white-space: pre-wrap;
+}
+
+.copyBtn {
+  align-self: flex-end;
+  padding: 6px 14px;
+  border: none;
+  border-radius: var(--sell-radius-sm);
+  background: var(--sell-primary);
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: opacity 0.15s;
+}
+
+.copyBtn:hover {
+  opacity: 0.9;
+}
+
+.copyBtnCopied {
+  background: #10b981;
+}
+
+/* Tips */
+.tipCard {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--sell-border);
+  border-radius: var(--sell-radius-sm);
+  background: var(--sell-bg);
+}
+
+.tipIcon {
+  color: #f59e0b;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.tipText {
+  font-size: 0.85rem;
+  color: var(--sell-text-1);
+  line-height: 1.5;
+}
+
+/* Loading / Generating state */
+.generating {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 32px;
+  color: var(--sell-text-3);
+  font-size: 0.85rem;
+}
+
+.spin {
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Slide-in animation */
+.panel {
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Platform icons row */
+.platformIcons {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.68rem;
+  color: var(--sell-text-3);
+}
+
+.platformIcon {
+  opacity: 0.5;
+}

@@ -14,6 +14,7 @@ const PAGE_LABELS: Record<string, string> = {
   settings:    'Store Settings',
   'setup-wizard': 'Store Setup',
   'ask-mo':    'Ask Mo',
+  'content':   'Content Hub',
 };
 
 export function SellTopbar() {

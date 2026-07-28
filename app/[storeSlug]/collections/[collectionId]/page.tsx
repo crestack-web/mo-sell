@@ -1,37 +1,64 @@
 import React from 'react';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
+import { getAdminDb } from '@/lib/firebase-admin';
 import { ProductGrid } from '../../components/ProductGrid';
 import type { ProductCardData } from '../../components/ProductCard';
 
-const BASE = () => process.env.PUBLIC_APP_URL ?? 'http://localhost:3000';
-
 async function getStoreConfig(storeSlug: string) {
   try {
-    const res = await fetch(`${BASE()}/api/store/config/${storeSlug}`, { cache: 'no-store' });
-    if (!res.ok) return null;
-    return res.json();
+    const db = getAdminDb();
+    const idxDoc = await db.collection('storeIndex').doc(storeSlug).get();
+    if (idxDoc.exists) {
+      const bId = idxDoc.data()?.businessId as string | undefined;
+      if (bId) {
+        const configSnap = await db.collection('businesses').doc(bId).collection('store').doc('config').get();
+        if (configSnap.exists) {
+          const data = configSnap.data()!;
+          if ((data.status ?? 'draft') !== 'active') return null;
+          return { ...data, businessId: bId };
+        }
+      }
+    }
+    return null;
   } catch { return null; }
 }
 
 async function getCollection(businessId: string, collectionId: string) {
   try {
-    const res = await fetch(
-      `${BASE()}/api/store/collections/${collectionId}?businessId=${businessId}`,
-      { cache: 'no-store' }
-    );
-    if (!res.ok) return null;
-    return res.json();
+    const db = getAdminDb();
+    const snap = await db.collection('businesses').doc(businessId).collection('storeCollections').doc(collectionId).get();
+    if (!snap.exists) return null;
+    const data = snap.data()!;
+    return { id: snap.id, ...data };
   } catch { return null; }
 }
 
 async function getProducts(businessId: string, collectionId: string) {
   try {
-    const params = new URLSearchParams({ businessId, available: 'true', collectionId });
-    const res = await fetch(`${BASE()}/api/store/products?${params}`, { cache: 'no-store' });
-    if (!res.ok) return [];
-    const data = await res.json();
-    return (data.products ?? []) as ProductCardData[];
+    const db = getAdminDb();
+    const snap = await db
+      .collection('businesses').doc(businessId)
+      .collection('storeProducts')
+      .where('available', '==', true)
+      .where('collectionIds', 'array-contains', collectionId)
+      .limit(100)
+      .get();
+    return snap.docs.map(d => {
+      const data = d.data();
+      return {
+        id: d.id,
+        displayName: data.displayName ?? '',
+        price: data.price ?? 0,
+        compareAtPrice: data.compareAtPrice ?? null,
+        images: data.images ?? [],
+        category: data.category ?? '',
+        available: data.available ?? true,
+        stock: data.stock ?? 0,
+        productType: data.productType ?? 'physical',
+        description: data.description ?? '',
+      } as ProductCardData;
+    });
   } catch { return []; }
 }
 

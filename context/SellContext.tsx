@@ -30,6 +30,7 @@ const PATH_TO_PAGE: Record<string, SellPageId> = {
   '/dashboard/ask-mo':     'ask-mo',
   '/dashboard/bookings':   'bookings',
   '/dashboard/customers':  'customers',
+  '/dashboard/content':    'content',
 };
 
 const PAGE_TO_PATH: Record<SellPageId, string> = {
@@ -46,6 +47,7 @@ const PAGE_TO_PATH: Record<SellPageId, string> = {
   'ask-mo':        '/dashboard/ask-mo',
   'bookings':      '/dashboard/bookings',
   'customers':     '/dashboard/customers',
+  'content':       '/dashboard/content',
 };
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -63,7 +65,8 @@ export type SellPageId =
   | 'setup-wizard'
   | 'ask-mo'
   | 'bookings'
-  | 'customers';
+  | 'customers'
+  | 'content';
 
 export type SellTheme = 'light' | 'dark';
 

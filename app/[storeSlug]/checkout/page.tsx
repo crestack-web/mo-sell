@@ -1,19 +1,29 @@
 import React from 'react';
 import { notFound } from 'next/navigation';
+import { getAdminDb } from '@/lib/firebase-admin';
 import { CheckoutForm } from './CheckoutForm';
 
 async function getStoreConfig(storeSlug: string) {
   try {
-    const base = process.env.PUBLIC_APP_URL ?? 'http://localhost:3000';
-    const res = await fetch(`${base}/api/store/config/${storeSlug}`, { cache: 'no-store' });
-    if (!res.ok) return null;
-    return res.json();
+    const db = getAdminDb();
+    const idxDoc = await db.collection('storeIndex').doc(storeSlug).get();
+    if (idxDoc.exists) {
+      const bId = idxDoc.data()?.businessId as string | undefined;
+      if (bId) {
+        const configSnap = await db.collection('businesses').doc(bId).collection('store').doc('config').get();
+        if (configSnap.exists) {
+          const data = configSnap.data()!;
+          if ((data.status ?? 'draft') !== 'active') return null;
+          return { ...data, businessId: bId };
+        }
+      }
+    }
+    return null;
   } catch { return null; }
 }
 
 async function getShippingZones(businessId: string) {
   try {
-    const { getAdminDb } = await import('@/lib/firebase-admin');
     const db = getAdminDb();
     const snap = await db
       .collection('businesses').doc(businessId)
