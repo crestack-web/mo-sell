@@ -229,21 +229,27 @@ const MOCK: Record<StorefrontTheme, {
 
 // ─── Section components ────────────────────────────────────────────────────────
 
-function SfNav({ theme, storeName, logoUrl, primary, storeSlug, hideStoreNameWithLogo }: {
+function SfNav({ theme, storeName, logoUrl, primary, storeSlug, hideStoreNameWithLogo, width }: {
   theme: StorefrontTheme; storeName: string; logoUrl?: string | null; primary: string; storeSlug?: string;
-  hideStoreNameWithLogo?: boolean;
+  hideStoreNameWithLogo?: boolean; width?: number;
 }) {
   const isLuxe = theme === 'luxe';
   const isMarket = theme === 'market';
   const isBazaar = theme === 'bazaar';
+  const isCompact = (width ?? 600) < 480;
   return (
     <nav style={{
       background: isMarket ? 'var(--sf-primary)' : isBazaar ? 'var(--sf-primary)' : 'var(--sf-surface)',
       borderBottom: '1px solid var(--sf-border)',
       display: 'flex', alignItems: 'center',
-      padding: '0 28px', gap: 24, height: 'var(--sf-nav-h)',
+      padding: isCompact ? '0 14px' : '0 28px', gap: isCompact ? 10 : 24, height: 'var(--sf-nav-h)',
       position: 'sticky', top: 0, zIndex: 20, flexShrink: 0,
     }}>
+      {isCompact && (
+        <button style={{ background: 'none', border: 'none', padding: 6, cursor: 'pointer', color: isMarket || isBazaar ? '#fff' : 'var(--sf-text-1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} aria-label="Menu">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+      )}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         {logoUrl
           ? <img src={logoUrl} alt={storeName} style={{ height: 32, width: 'auto', maxWidth: 120, objectFit: 'contain', borderRadius: 'var(--sf-radius-sm)' }} />
@@ -261,22 +267,25 @@ function SfNav({ theme, storeName, logoUrl, primary, storeSlug, hideStoreNameWit
           color: isMarket || isBazaar ? '#fff' : 'var(--sf-text-1)',
         }}>{storeName}</span>}
       </div>
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 24 }}>
-        {['Shop', 'Collections', 'About', 'Contact'].map(l => (
-          <span key={l} style={{ fontSize: '0.8rem', fontWeight: 500, color: isMarket || isBazaar ? 'rgba(255,255,255,0.85)' : 'var(--sf-text-2)', cursor: 'pointer' }}>{l}</span>
-        ))}
-      </div>
+      {!isCompact && (
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 24 }}>
+          {['Shop', 'Collections', 'About', 'Contact'].map(l => (
+            <span key={l} style={{ fontSize: '0.8rem', fontWeight: 500, color: isMarket || isBazaar ? 'rgba(255,255,255,0.85)' : 'var(--sf-text-2)', cursor: 'pointer' }}>{l}</span>
+          ))}
+        </div>
+      )}
+      {!isCompact && <div style={{ flex: 1 }} />}
       <div style={{
-        padding: '8px 16px', borderRadius: 'var(--sf-radius-sm)',
+        padding: isCompact ? '6px 12px' : '8px 16px', borderRadius: 'var(--sf-radius-sm)',
         background: isLuxe ? 'transparent' : isMarket || isBazaar ? '#fff' : 'var(--sf-primary)',
         border: isLuxe ? '1px solid #C9A84C' : 'none',
         color: isLuxe ? '#C9A84C' : isMarket || isBazaar ? primary : '#fff',
         fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer',
         display: 'flex', alignItems: 'center', gap: 6,
-        position: 'relative',
+        position: 'relative', flexShrink: 0,
       }}>
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg>
-        Cart
+        {!isCompact && 'Cart'}
         <span style={{
           position: 'absolute', top: '-4px', right: '-4px',
           background: 'var(--sf-secondary)', color: '#fff',
@@ -373,7 +382,7 @@ function SfFeatured({ theme, settings, primary, products, storeSlug }: {
 
   const handleProductClick = (productId: string) => {
     if (storeSlug) {
-      window.open(`/store/${storeSlug}/product/${productId}`, '_blank');
+      window.open(`/${storeSlug}/product/${productId}`, '_blank');
     } else {
       console.log('Product clicked - preview mode');
     }
@@ -781,7 +790,7 @@ export function StorefrontCanvas({
 
         switch (section.type) {
           case 'header':
-            return <SfNav key={section.id} theme={theme} storeName={storeName} logoUrl={logoUrl} primary={primary} storeSlug={storeSlug} hideStoreNameWithLogo={hideStoreNameWithLogo} />;
+            return <SfNav key={section.id} theme={theme} storeName={storeName} logoUrl={logoUrl} primary={primary} storeSlug={storeSlug} hideStoreNameWithLogo={hideStoreNameWithLogo} width={width} />;
 
           case 'announcement':
             return <SfAnnouncement key={section.id} settings={s as unknown as AnnouncementSectionSettings} />;

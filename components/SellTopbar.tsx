@@ -78,7 +78,7 @@ export function SellTopbar() {
         {/* View live store */}
         {storeStatus === 'active' && storeSlug && (
           <a
-            href={`/store/${storeSlug}`}
+            href={`/${storeSlug}`}
             target="_blank"
             rel="noopener noreferrer"
             className={styles.viewStoreBtn}

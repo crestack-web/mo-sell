@@ -425,6 +425,26 @@
   }
   .mobilePreviewIcon:hover { background: var(--sell-primary); color: #fff; transform: scale(1.05); }
   .settingsFab { display: flex; }
+  /* Mobile section list inside right drawer */
+  .mobileSectionList {
+    display: flex; flex-direction: column;
+  }
+  .mobileSectionItem {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 14px; border: none; background: none;
+    cursor: pointer; width: 100%; text-align: left;
+    font-family: var(--sell-font-body);
+    border-bottom: 1px solid var(--sell-border-subtle);
+    transition: background var(--sell-transition);
+  }
+  .mobileSectionItem:hover { background: var(--sell-bg); }
+  .mobileSectionItemActive { background: var(--sell-primary-lt); }
+  .mobileSectionItem .secIcon { width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; color: var(--sell-text-3); flex-shrink: 0; }
+  .mobileSectionItem .secIcon svg { width: 14px; height: 14px; }
+  .mobileSectionItemActive .secIcon { color: var(--sell-primary); }
+  .mobileSectionLabel { flex: 1; font-size: 0.85rem; font-weight: 500; color: var(--sell-text-1); }
+  .mobileSectionItemActive .mobileSectionLabel { color: var(--sell-primary); font-weight: 600; }
+  .mobileSectionChevron { color: var(--sell-text-3); flex-shrink: 0; }
 }
 
 /* Small mobile: <480px */

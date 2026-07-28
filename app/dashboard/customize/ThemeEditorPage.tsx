@@ -766,6 +766,28 @@ export function ThemeEditorPage() {
               </>
             ) : (
               <div className={styles.rEmpty}>
+                {/* Mobile: Section navigator (visible when no section selected) */}
+                {isMobile && (
+                  <div className={styles.mobileSectionList}>
+                    <p className={styles.rEmptyTitle} style={{ padding: '0 0 6px' }}>SECTIONS</p>
+                    {sections.map(sec => {
+                      const meta = SECTION_META[sec.type];
+                      if (isCreator && HIDDEN_FOR_CREATOR.has(sec.type)) return null;
+                      return (
+                        <button
+                          key={sec.id}
+                          className={[styles.mobileSectionItem, activeId === sec.id ? styles.mobileSectionItemActive : ''].join(' ')}
+                          onClick={() => setActiveId(sec.id)}
+                        >
+                          <span className={styles.secIcon}>{SectionIcons[sec.type]}</span>
+                          <span className={styles.mobileSectionLabel}>{meta.label}</span>
+                          {!sec.enabled && <span style={{ fontSize: '0.65rem', color: 'var(--sell-text-3)', fontWeight: 600 }}>OFF</span>}
+                          <ChevronRight size={14} className={styles.mobileSectionChevron} />
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
                 <div className={styles.rEmptyColors}>
                   <p className={styles.rEmptyTitle}>Brand Colors</p>
                   <label className={styles.cLabel}><input type="color" value={primary} onChange={e => { pushUndo(); setPrimary(e.target.value); mark(); }} className={styles.cPicker} aria-label="Primary color" />Primary</label>
@@ -823,9 +845,9 @@ export function ThemeEditorPage() {
                   </div>
                 )}
                 {isCreator ? (
-                  <p className={styles.rEmptyHint}>This theme uses a centered profile layout with your social links, bio, and products. Your store logo becomes the profile picture. Click any section to customize it.</p>
+                  <p className={styles.rEmptyHint}>This theme uses a centered profile layout with your social links, bio, and products. Your store logo becomes the profile picture. Tap any section above to customize it.</p>
                 ) : (
-                  <p className={styles.rEmptyHint}>Click any section on the left to edit its settings.</p>
+                  <p className={styles.rEmptyHint}>{isMobile ? 'Tap any section above to edit its settings.' : 'Click any section on the left to edit its settings.'}</p>
                 )}
               </div>
             )}
