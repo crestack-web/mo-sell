@@ -1004,7 +1004,7 @@ export default function SellWelcomePage() {
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1785152790/Untitled_-_July_27_2026_at_08.12.54-2_vdjaxz.png"
+                  src="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1785151499/wlcm_1_ybgv8m.png"
                   alt="MO Sell — store in action"
                   style={{ width:'100%', height:'auto', borderRadius:14, display:'block' }}
                 />
