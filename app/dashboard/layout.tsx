@@ -5,6 +5,7 @@ import { FirebaseProvider } from '@/lib/firebase/provider';
 import { initializeFirebase } from '@/lib/firebase';
 import { SellProvider } from '@/context/SellContext';
 import { SellAuthGuard } from '@/components/SellAuthGuard';
+import { SellShell } from '@/components/SellShell';
 import '@/app/sell-tokens.css';
 
 export default function SellLayout({ children }: { children: React.ReactNode }) {
@@ -14,7 +15,7 @@ export default function SellLayout({ children }: { children: React.ReactNode }) 
     <FirebaseProvider {...firebase}>
       <SellProvider>
         <SellAuthGuard>
-          {children}
+          <SellShell>{children}</SellShell>
         </SellAuthGuard>
       </SellProvider>
     </FirebaseProvider>

@@ -2,6 +2,7 @@
 
 import React from 'react';
 import type { ThemeHeroProps } from '../types';
+import { CreatorSocialLinks } from '../creator-social-links';
 
 const C = {
   navy: '#0B1D3A',
@@ -10,18 +11,11 @@ const C = {
   lightBlue: '#60A5FA',
   white: '#F1F5F9',
   muted: '#94A3B8',
-  darkBlue: '#1E3A5F',
 };
 
 export function VaultHero({
-  storeName,
-  tagline,
-  logoUrl,
-  ctaLabel = 'Browse Products',
-  ctaUrl = '#products',
-  backgroundImage,
-  textAlign = 'left',
-  buttonStyle,
+  storeName, tagline, logoUrl, ctaLabel = 'Browse Products', ctaUrl = '#products',
+  backgroundImage, socialLinks,
 }: ThemeHeroProps) {
   const bgStyle = backgroundImage
     ? { backgroundImage: `url(${backgroundImage})`, backgroundSize: 'cover' as const, backgroundPosition: 'center' as const }
@@ -29,10 +23,9 @@ export function VaultHero({
 
   return (
     <section style={{
-      position: 'relative', padding: '100px 5%', overflow: 'hidden',
+      position: 'relative', padding: '60px 5% 70px', overflow: 'hidden',
       background: backgroundImage ? undefined : `linear-gradient(170deg, ${C.navy} 0%, #0A1628 50%, #091422 100%)`,
-      color: C.white,
-      ...bgStyle,
+      color: C.white, textAlign: 'center', ...bgStyle,
     }}>
       {backgroundImage && (
         <div style={{
@@ -50,51 +43,23 @@ export function VaultHero({
         pointerEvents: 'none',
       }} />
 
-      {/* Decorative glow orbs */}
+      {/* Glow orbs */}
       <div style={{
         position: 'absolute', top: '-20%', right: '-8%',
         width: 500, height: 500, borderRadius: '50%',
         background: 'radial-gradient(circle, rgba(59,130,246,0.08) 0%, transparent 70%)',
         pointerEvents: 'none',
       }} />
-      <div style={{
-        position: 'absolute', bottom: '-30%', left: '-5%',
-        width: 400, height: 400, borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(59,130,246,0.05) 0%, transparent 70%)',
-        pointerEvents: 'none',
-      }} />
-
-      {/* Floating mockup shapes */}
-      <div style={{
-        position: 'absolute', top: 60, right: '12%',
-        width: 180, height: 240, borderRadius: 16,
-        border: '1px solid rgba(59,130,246,0.12)',
-        background: 'rgba(17,34,64,0.6)',
-        transform: 'rotate(6deg)',
-        pointerEvents: 'none',
-        opacity: 0.5,
-      }} />
-      <div style={{
-        position: 'absolute', bottom: 50, right: '18%',
-        width: 140, height: 190, borderRadius: 14,
-        border: '1px solid rgba(59,130,246,0.08)',
-        background: 'rgba(17,34,64,0.4)',
-        transform: 'rotate(-4deg)',
-        pointerEvents: 'none',
-        opacity: 0.35,
-      }} />
 
       <div style={{
-        position: 'relative', zIndex: 1,
-        maxWidth: 640,
-        display: 'flex', flexDirection: 'column',
-        alignItems: textAlign === 'center' ? 'center' : textAlign === 'right' ? 'flex-end' : 'flex-start',
-        textAlign,
+        position: 'relative', zIndex: 1, maxWidth: 520,
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
+        margin: '0 auto',
       }}>
         {/* Badge */}
         <span style={{
-          display: 'inline-block', marginBottom: 24,
-          padding: '7px 18px', borderRadius: 8,
+          display: 'inline-block', marginBottom: 20,
+          padding: '6px 16px', borderRadius: 8,
           background: 'rgba(59,130,246,0.12)',
           border: '1px solid rgba(59,130,246,0.2)',
           fontSize: '0.65rem', fontWeight: 600, letterSpacing: '0.12em',
@@ -103,21 +68,37 @@ export function VaultHero({
           ⚡ Instant Digital Delivery
         </span>
 
-        {logoUrl && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={logoUrl} alt={storeName}
-            style={{
-              width: 56, height: 56, borderRadius: 12,
-              objectFit: 'cover', marginBottom: 24,
-              border: '1px solid rgba(59,130,246,0.2)',
-              boxShadow: '0 4px 20px rgba(59,130,246,0.15)',
-            }} />
+        {/* Profile picture */}
+        {logoUrl ? (
+          <div style={{
+            width: 96, height: 96, borderRadius: '50%',
+            background: `linear-gradient(135deg, ${C.blue}, ${C.lightBlue})`,
+            padding: 3, marginBottom: 24,
+            boxShadow: '0 4px 20px rgba(59,130,246,0.2)',
+          }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={logoUrl} alt={storeName}
+              style={{
+                width: 90, height: 90, borderRadius: '50%',
+                objectFit: 'cover', border: `3px solid ${C.navy}`,
+              }} />
+          </div>
+        ) : (
+          <div style={{
+            width: 96, height: 96, borderRadius: '50%',
+            background: `linear-gradient(135deg, ${C.blue}, ${C.lightBlue})`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: '2.2rem', fontWeight: 700, color: '#fff',
+            marginBottom: 24,
+          }}>
+            {storeName.charAt(0).toUpperCase()}
+          </div>
         )}
 
         <h1 style={{
           fontFamily: "'Space Grotesk', sans-serif",
           fontWeight: 700,
-          fontSize: 'clamp(2.2rem, 5.5vw, 3.8rem)',
+          fontSize: 'clamp(2rem, 5vw, 3.5rem)',
           letterSpacing: '-0.03em', lineHeight: 1.12,
           color: C.white, margin: 0,
         }}>{storeName}</h1>
@@ -125,16 +106,21 @@ export function VaultHero({
         {tagline && (
           <p style={{
             fontFamily: "'Space Grotesk', sans-serif",
-            fontWeight: 400, fontSize: '1.05rem', color: C.muted,
-            letterSpacing: '0.01em', marginTop: 20, lineHeight: 1.65,
-            maxWidth: 480,
+            fontWeight: 400, fontSize: '1rem', color: C.muted,
+            letterSpacing: '0.01em', marginTop: 16, lineHeight: 1.65,
+            maxWidth: 420,
           }}>{tagline}</p>
         )}
 
+        {/* Social links */}
+        <div style={{ marginTop: 20 }}>
+          <CreatorSocialLinks socials={socialLinks} style="pills" accentColor={C.blue} />
+        </div>
+
         <a href={ctaUrl} style={{
-          display: 'inline-block', marginTop: 40, padding: '15px 44px',
+          display: 'inline-block', marginTop: 24, padding: '14px 40px',
           background: C.blue,
-          borderRadius: buttonStyle === 'pill' ? 50 : buttonStyle === 'square' ? 0 : 10,
+          borderRadius: 100,
           color: '#FFFFFF',
           fontFamily: "'Space Grotesk', sans-serif",
           fontSize: '0.85rem', fontWeight: 600, letterSpacing: '0.04em',

@@ -7,11 +7,42 @@ import React, {
   useCallback,
   useEffect,
   useRef,
+  useMemo,
   ReactNode,
 } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import { initializeFirebase } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc, collection, getDocs, query, where, orderBy, limit } from 'firebase/firestore';
+
+// ─── URL ↔ Page mapping ──────────────────────────────────────────────────────
+
+const PATH_TO_PAGE: Record<string, SellPageId> = {
+  '/dashboard/overview':   'overview',
+  '/dashboard/products':   'products',
+  '/dashboard/collections':'collections',
+  '/dashboard/orders':     'orders',
+  '/dashboard/shipping':   'shipping',
+  '/dashboard/analytics':  'analytics',
+  '/dashboard/earnings':   'earnings',
+  '/dashboard/settings':   'settings',
+  '/dashboard/customize':  'theme-editor',
+  '/dashboard/ask-mo':     'ask-mo',
+};
+
+const PAGE_TO_PATH: Record<SellPageId, string> = {
+  'overview':      '/dashboard/overview',
+  'products':      '/dashboard/products',
+  'collections':   '/dashboard/collections',
+  'orders':        '/dashboard/orders',
+  'shipping':      '/dashboard/shipping',
+  'analytics':     '/dashboard/analytics',
+  'earnings':      '/dashboard/earnings',
+  'settings':      '/dashboard/settings',
+  'theme-editor':  '/dashboard/customize',
+  'setup-wizard':  '/dashboard/overview',
+  'ask-mo':        '/dashboard/ask-mo',
+};
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -120,6 +151,9 @@ interface SellContextValue {
 const SellContext = createContext<SellContextValue | undefined>(undefined);
 
 export function SellProvider({ children }: { children: ReactNode }) {
+  const router = useRouter();
+  const pathname = usePathname();
+
   // Theme
   const [theme, setTheme] = useState<SellTheme>(() => {
     try { return (localStorage.getItem('sell-theme') as SellTheme) || 'light'; }
@@ -135,12 +169,16 @@ export function SellProvider({ children }: { children: ReactNode }) {
     setTheme(prev => prev === 'light' ? 'dark' : 'light');
   }, []);
 
-  // Navigation
-  const [activePage, setActivePage] = useState<SellPageId>('overview');
+  // Navigation — derive activePage from URL
+  const activePage: SellPageId = useMemo(() => {
+    return PATH_TO_PAGE[pathname] ?? 'overview';
+  }, [pathname]);
+
   const navigateTo = useCallback((page: SellPageId) => {
-    setActivePage(page);
+    const path = PAGE_TO_PATH[page];
+    if (path) router.push(path);
     setSidebarOpen(false);
-  }, []);
+  }, [router]);
 
   // Sidebar
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);

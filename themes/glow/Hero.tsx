@@ -2,6 +2,7 @@
 
 import React from 'react';
 import type { ThemeHeroProps } from '../types';
+import { CreatorSocialLinks } from '../creator-social-links';
 
 const COLORS = {
   roseGold: '#B76E79',
@@ -14,18 +15,18 @@ const COLORS = {
   dustyRose: '#C9929B',
 };
 
-export function GlowHero({ storeName, tagline, logoUrl, ctaLabel = 'Explore Collection', ctaUrl = '#products', backgroundImage, textAlign = 'left', buttonStyle }: ThemeHeroProps) {
+export function GlowHero({ storeName, tagline, logoUrl, ctaLabel = 'Explore Collection', ctaUrl = '#products', backgroundImage, socialLinks }: ThemeHeroProps) {
   const bgStyle = backgroundImage
     ? { backgroundImage: `url(${backgroundImage})`, backgroundSize: 'cover' as const, backgroundPosition: 'center' as const }
     : {};
 
   return (
     <section style={{
-      position: 'relative', padding: '100px 5%', overflow: 'hidden',
+      position: 'relative', padding: '60px 5% 70px', overflow: 'hidden',
       background: backgroundImage
         ? undefined
         : `linear-gradient(160deg, ${COLORS.cream} 0%, ${COLORS.softPink} 35%, ${COLORS.blush} 60%, rgba(183,110,121,0.3) 100%)`,
-      color: '#4A3238', ...bgStyle,
+      color: '#4A3238', textAlign: 'center', ...bgStyle,
     }}>
       {/* Warm overlay for image backgrounds */}
       {backgroundImage && (
@@ -44,51 +45,68 @@ export function GlowHero({ storeName, tagline, logoUrl, ctaLabel = 'Explore Coll
         pointerEvents: 'none',
       }} />
 
-      {/* Soft decorative circles */}
       <div style={{
-        position: 'absolute', bottom: -40, left: '10%',
-        width: 200, height: 200, borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(212,165,116,0.08) 0%, transparent 70%)',
-        pointerEvents: 'none',
-      }} />
-
-      <div style={{ position: 'relative', zIndex: 1, maxWidth: 640, display: 'flex', flexDirection: 'column', alignItems: textAlign === 'center' ? 'center' : textAlign === 'right' ? 'flex-end' : 'flex-start', textAlign }}>
-        {logoUrl && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={logoUrl} alt={storeName}
-            style={{
-              width: 60, height: 60, borderRadius: '50%',
-              objectFit: 'cover', marginBottom: 28,
-              border: `2px solid rgba(183,110,121,0.2)`,
-              boxShadow: '0 4px 16px rgba(183,110,121,0.1)',
-            }} />
+        position: 'relative', zIndex: 1, maxWidth: 520,
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
+        margin: '0 auto',
+      }}>
+        {/* Profile picture with soft ring */}
+        {logoUrl ? (
+          <div style={{
+            width: 96, height: 96, borderRadius: '50%',
+            background: `linear-gradient(135deg, ${COLORS.roseGold}, ${COLORS.gold})`,
+            padding: 3, marginBottom: 24,
+            boxShadow: '0 4px 20px rgba(183,110,121,0.2)',
+          }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={logoUrl} alt={storeName}
+              style={{
+                width: 90, height: 90, borderRadius: '50%',
+                objectFit: 'cover', border: `3px solid ${COLORS.warmWhite}`,
+              }} />
+          </div>
+        ) : (
+          <div style={{
+            width: 96, height: 96, borderRadius: '50%',
+            background: `linear-gradient(135deg, ${COLORS.roseGold}, ${COLORS.gold})`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: '2.2rem', fontWeight: 700, color: COLORS.warmWhite,
+            marginBottom: 24, boxShadow: '0 4px 20px rgba(183,110,121,0.2)',
+          }}>
+            {storeName.charAt(0).toUpperCase()}
+          </div>
         )}
 
         <p style={{
           fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase',
-          color: COLORS.roseGold, fontWeight: 600, marginBottom: 18,
+          color: COLORS.roseGold, fontWeight: 600, marginBottom: 14,
         }}>Your Beauty Destination</p>
 
         <h1 style={{
           fontFamily: "'Playfair Display', Georgia, serif",
           fontWeight: 300,
-          fontSize: 'clamp(2.2rem, 5.5vw, 4rem)',
+          fontSize: 'clamp(2rem, 5vw, 3.5rem)',
           letterSpacing: '-0.005em', lineHeight: 1.15,
           color: '#3D2228', margin: 0,
         }}>{storeName}</h1>
 
         {tagline && (
           <p style={{
-            fontWeight: 300, fontSize: '1.05rem', color: COLORS.dustyRose,
-            letterSpacing: '0.03em', marginTop: 22, lineHeight: 1.65,
-            maxWidth: 440,
+            fontWeight: 300, fontSize: '1rem', color: COLORS.dustyRose,
+            letterSpacing: '0.03em', marginTop: 16, lineHeight: 1.65,
+            maxWidth: 400,
           }}>{tagline}</p>
         )}
 
+        {/* Social links */}
+        <div style={{ marginTop: 20 }}>
+          <CreatorSocialLinks socials={socialLinks} style="pills" accentColor={COLORS.roseGold} light />
+        </div>
+
         <a href={ctaUrl} style={{
-          display: 'inline-block', marginTop: 40, padding: '15px 44px',
+          display: 'inline-block', marginTop: 24, padding: '14px 40px',
           background: `linear-gradient(135deg, ${COLORS.roseGold}, ${COLORS.dustyRose})`,
-          borderRadius: buttonStyle === 'pill' ? 50 : buttonStyle === 'square' ? 0 : 12,
+          borderRadius: 100,
           color: COLORS.warmWhite,
           fontSize: '0.68rem', letterSpacing: '0.14em', textTransform: 'uppercase',
           textDecoration: 'none', fontWeight: 600, width: 'fit-content',

@@ -37,6 +37,15 @@ export interface ThemeCollectionCardProps {
   index: number;
 }
 
+export interface ThemeHeroSocialLinks {
+  instagram?: string;
+  twitter?: string;
+  facebook?: string;
+  tiktok?: string;
+  youtube?: string;
+  whatsapp?: string;
+}
+
 export interface ThemeHeroProps {
   storeName: string;
   tagline?: string | null;
@@ -49,6 +58,7 @@ export interface ThemeHeroProps {
   businessCategory?: string;
   textAlign?: 'left' | 'center' | 'right';
   buttonStyle?: 'pill' | 'square' | 'rounded';
+  socialLinks?: ThemeHeroSocialLinks;
 }
 
 export interface ThemeProductPageProps {

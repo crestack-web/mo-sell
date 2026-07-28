@@ -173,6 +173,8 @@ export interface StoreConfig {
   buttonStyle?: 'pill' | 'square' | 'rounded';
   /** Custom body text color override */
   bodyTextColor?: string | null;
+  /** Header style: 'left' (logo left), 'center' (logo centered), 'minimal' (no header) */
+  headerStyle?: 'left' | 'center' | 'minimal';
   /** Busmo collects payments on behalf of merchant, charges 5% commission */
   managedPayments?: boolean;
   /** Merchant bank account for payouts (only stored when managedPayments = true) */
@@ -209,6 +211,8 @@ export interface StorefrontProduct {
   featured: boolean;
   digitalFileUrl: string | null;
   deliveryNote: string | null;
+  /** How digital products display on storefront: 'button' (buy button) or 'callout' (highlighted card) */
+  displayType?: 'button' | 'callout';
   lowStockThreshold: number;
   createdAt: Timestamp;
   updatedAt: Timestamp;

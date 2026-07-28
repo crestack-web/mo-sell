@@ -7,43 +7,14 @@ import { SellTopbar } from './SellTopbar';
 import { SellBottomNav } from './SellBottomNav';
 import styles from './SellShell.module.css';
 
-import { StoreSetupWizard }       from './StoreSetupWizard';
-import { SellOverview }           from '@/app/dashboard/overview/SellOverview';
-import { SellProductsPage }       from '@/app/dashboard/products/SellProductsPage';
-import { SellCollectionsPage }    from '@/app/dashboard/collections/SellCollectionsPage';
-import { SellOrdersPage }         from '@/app/dashboard/orders/SellOrdersPage';
-import { SellShippingPage }       from '@/app/dashboard/shipping/SellShippingPage';
-import { SellSettingsPage }       from '@/app/dashboard/settings/SellSettingsPage';
-import { SellAnalyticsPage }      from '@/app/dashboard/analytics/SellAnalyticsPage';
-import { ThemeEditorPage }        from '@/app/dashboard/customize/ThemeEditorPage';
-import { SellEarningsPage }       from '@/app/dashboard/earnings/SellEarningsPage';
-import { SellAskMoPage }          from '@/app/dashboard/ask-mo/SellAskMoPage';
-
-function renderPage(page: string): React.ReactNode {
-  switch (page) {
-    case 'overview':       return <SellOverview />;
-    case 'products':       return <SellProductsPage />;
-    case 'collections':    return <SellCollectionsPage />;
-    case 'orders':         return <SellOrdersPage />;
-    case 'shipping':       return <SellShippingPage />;
-    case 'analytics':      return <SellAnalyticsPage />;
-    case 'earnings':       return <SellEarningsPage />;
-    case 'settings':       return <SellSettingsPage />;
-    case 'theme-editor':   return <ThemeEditorPage />;
-    case 'ask-mo':         return <SellAskMoPage />;
-    default: return (
-      <div className={styles.placeholder}>
-        <h2>Coming Soon</h2>
-        <p>This section is under construction.</p>
-      </div>
-    );
-  }
+interface SellShellProps {
+  children?: React.ReactNode;
 }
 
 const FULL_BLEED_PAGES = new Set(['theme-editor', 'ask-mo']);
 
-export function SellShell() {
-  const { activePage, toast, storeConfig, navigateTo } = useSell();
+export function SellShell({ children }: SellShellProps) {
+  const { activePage, toast } = useSell();
 
   const isFullBleed = FULL_BLEED_PAGES.has(activePage);
 
@@ -56,9 +27,7 @@ export function SellShell() {
 
         <div className={isFullBleed ? styles.pageAreaFullBleed : styles.pageArea}>
           <div className={isFullBleed ? styles.pageFullBleed : styles.page}>
-          {activePage === 'setup-wizard'
-            ? <StoreSetupWizard onClose={() => navigateTo('overview')} />
-            : renderPage(activePage)}
+            {children}
           </div>
         </div>
       </div>

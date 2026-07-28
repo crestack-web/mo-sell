@@ -32,6 +32,9 @@ export function LinkProductCard({ product, storeSlug, currency }: ThemeProductCa
     router.push(`/store/${storeSlug}/checkout`);
   };
 
+  // Callout mode: horizontal card with no image, used for link-in-bio digital products
+  const isCallout = (product as any).displayType === 'callout';
+
   return (
     <Link
       href={`/store/${storeSlug}/product/${product.id}`}
@@ -39,6 +42,46 @@ export function LinkProductCard({ product, storeSlug, currency }: ThemeProductCa
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
+      {isCallout ? (
+        /* ── Callout card: compact, horizontal, text-forward ── */
+        <div className="sf-card" style={{
+          display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 14,
+          padding: '16px 18px',
+          background: 'var(--sf-surface)',
+          border: '1px solid var(--sf-border)',
+          borderRadius: 'var(--sf-radius)',
+          transform: hovered ? 'translateY(-2px)' : 'translateY(0)',
+          boxShadow: hovered ? '0 8px 24px rgba(0,0,0,0.18)' : '0 1px 4px rgba(0,0,0,0.1)',
+          transition: 'all 0.2s ease',
+        }}>
+          {/* Thumbnail or icon */}
+          <div style={{
+            width: 56, height: 56, borderRadius: 'var(--sf-radius-sm)', overflow: 'hidden', flexShrink: 0,
+            background: 'var(--sf-primary-muted)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            {product.images[0] ? (
+              <img src={product.images[0]} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : (
+              <span style={{ fontSize: '1.4rem' }}>📥</span>
+            )}
+          </div>
+          {/* Text */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--sf-text-1)', margin: 0, lineHeight: 1.3 }}>
+              {product.displayName}
+            </p>
+            <span style={{ fontWeight: 800, color: 'var(--sf-primary)', fontSize: '0.95rem' }}>
+              {fmt(product.price, currency)}
+            </span>
+          </div>
+          {/* Arrow */}
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--sf-text-3)" strokeWidth="2.5" style={{ flexShrink: 0 }}>
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </div>
+      ) : (
+      /* ── Default button card (original layout) ── */
       <div className="sf-card" style={{
         transform: hovered ? 'translateY(-4px)' : 'translateY(0)',
         boxShadow: hovered
@@ -143,6 +186,7 @@ export function LinkProductCard({ product, storeSlug, currency }: ThemeProductCa
           </button>
         </div>
       </div>
+      )}
     </Link>
   );
 }

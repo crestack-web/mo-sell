@@ -241,3 +241,9 @@ export async function getThemeComponentsServer(themeId: string): Promise<ThemeCo
 export function isLinkTheme(themeId: string): boolean {
   return themeId === 'link';
 }
+
+const CREATOR_THEMES: string[] = ['link', 'pulse', 'creator', 'glow', 'spark', 'vault'];
+
+export function isCreatorTheme(themeId: string): boolean {
+  return CREATOR_THEMES.includes(themeId);
+}

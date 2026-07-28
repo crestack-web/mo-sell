@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { initializeFirebase } from '@/lib/firebase';
 import { useSell } from '@/context/SellContext';
-import { THEMES } from '@/themes/registry';
+import { THEMES, isCreatorTheme } from '@/themes/registry';
 import { StorefrontCanvas } from '@/components/StorefrontCanvas';
 import { CartProvider } from '@/app/[storeSlug]/context/CartContext';
 import type {
@@ -109,7 +109,7 @@ function ColorField({ label, value, onChange }: { label: string; value: string; 
 
 // â”€â”€â”€ Section settings panels â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-function HeroSettings({ s, upd }: { s: HeroSectionSettings; upd: (p: Partial<HeroSectionSettings>) => void }) {
+function HeroSettings({ s, upd, isCreator }: { s: HeroSectionSettings; upd: (p: Partial<HeroSectionSettings>) => void; isCreator?: boolean }) {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const handleHeroImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -146,6 +146,13 @@ function HeroSettings({ s, upd }: { s: HeroSectionSettings; upd: (p: Partial<Her
       <input className={styles.fInput} type="range" min={0} max={1} step={0.05} value={s.overlayOpacity ?? 0.4} onChange={e => upd({ overlayOpacity: Number(e.target.value) })} />
       <p className={styles.fHint}>Darkness of the overlay on background images (0 = none, 1 = black)</p>
     </div>
+    {isCreator && (
+      <div style={{ padding: '10px 12px', background: 'var(--sell-primary-lt)', borderRadius: 8, marginTop: 4 }}>
+        <p style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--sell-primary)', margin: 0, lineHeight: 1.5 }}>
+          Creator theme: Your hero uses a centered profile layout. The store logo becomes your profile picture, and social links (edit in the right panel) appear below your bio.
+        </p>
+      </div>
+    )}
   </>);
 }
 
@@ -305,10 +312,16 @@ function ThemeCard({ themeId, isActive, storeName, tagline, primary, secondary, 
 }) {
   const t = THEMES.find(x => x.id === themeId)!;
   const isDark = themeId === 'luxe' || themeId === 'creator' || themeId === 'link' || themeId === 'vault';
+  const creator = isCreatorTheme(themeId);
   return (
     <div className={[styles.mCard, isActive ? styles.mCardActive : ''].join(' ')} onClick={onSelect}
       style={{ background: t.previewBg }}>
       {isActive && <span className={styles.mActive}><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>}
+      {creator && <span style={{
+        position: 'absolute', top: 6, left: 6,
+        fontSize: '0.5rem', fontWeight: 700, padding: '2px 6px', borderRadius: 100,
+        background: 'rgba(99,102,241,0.9)', color: '#fff', letterSpacing: '0.04em',
+      }}>CREATOR</span>}
       <p className={styles.mName} style={{ color: isDark ? '#fff' : '#1a1a1a' }}>{t.name}</p>
     </div>
   );
@@ -334,6 +347,12 @@ export function ThemeEditorPage() {
   const [fontFamily, setFontFamily] = useState<string>('');
   const [buttonStyle, setButtonStyle] = useState<'pill' | 'square' | 'rounded'>('pill');
   const [bodyTextColor, setBodyTextColor] = useState<string>('');
+  const [socials, setSocials] = useState<Record<string, string>>({});
+
+  const isCreator = isCreatorTheme(theme);
+
+  // Sections hidden for creator themes (less relevant for creator/link-in-bio stores)
+  const HIDDEN_FOR_CREATOR: Set<StoreSectionType> = new Set(['instagram', 'newsletter']);
 
   // Detect mobile device
   useEffect(() => {
@@ -354,10 +373,10 @@ export function ThemeEditorPage() {
   }, []);
 
   // Undo/redo stacks
-  const undoStack = useRef<{ sections: StoreSection[]; theme: StorefrontTheme; primary: string; secondary: string; fontFamily: string; buttonStyle: 'pill' | 'square' | 'rounded'; bodyTextColor: string }[]>([]);
-  const redoStack = useRef<{ sections: StoreSection[]; theme: StorefrontTheme; primary: string; secondary: string; fontFamily: string; buttonStyle: 'pill' | 'square' | 'rounded'; bodyTextColor: string }[]>([]);
+  const undoStack = useRef<{ sections: StoreSection[]; theme: StorefrontTheme; primary: string; secondary: string; fontFamily: string; buttonStyle: 'pill' | 'square' | 'rounded'; bodyTextColor: string; socials: Record<string, string> }[]>([]);
+  const redoStack = useRef<{ sections: StoreSection[]; theme: StorefrontTheme; primary: string; secondary: string; fontFamily: string; buttonStyle: 'pill' | 'square' | 'rounded'; bodyTextColor: string; socials: Record<string, string> }[]>([]);
 
-  const snapshot = useCallback(() => ({ sections: sections.map(s => ({ ...s, settings: { ...s.settings } })), theme, primary, secondary, fontFamily, buttonStyle, bodyTextColor }), [sections, theme, primary, secondary, fontFamily, buttonStyle, bodyTextColor]);
+  const snapshot = useCallback(() => ({ sections: sections.map(s => ({ ...s, settings: { ...s.settings } })), theme, primary, secondary, fontFamily, buttonStyle, bodyTextColor, socials }), [sections, theme, primary, secondary, fontFamily, buttonStyle, bodyTextColor, socials]);
 
   const pushUndo = useCallback(() => {
     undoStack.current = [...undoStack.current.slice(-20), snapshot()];
@@ -370,6 +389,7 @@ export function ThemeEditorPage() {
     redoStack.current.push(snapshot());
     setSections(prev.sections); setTheme(prev.theme); setPrimary(prev.primary); setSecondary(prev.secondary);
     setFontFamily(prev.fontFamily); setButtonStyle(prev.buttonStyle); setBodyTextColor(prev.bodyTextColor);
+    setSocials(prev.socials);
     setDirty(true);
   }, [snapshot]);
 
@@ -379,6 +399,7 @@ export function ThemeEditorPage() {
     undoStack.current.push(snapshot());
     setSections(next.sections); setTheme(next.theme); setPrimary(next.primary); setSecondary(next.secondary);
     setFontFamily(next.fontFamily); setButtonStyle(next.buttonStyle); setBodyTextColor(next.bodyTextColor);
+    setSocials(next.socials);
     setDirty(true);
   }, [snapshot]);
 
@@ -398,6 +419,8 @@ export function ThemeEditorPage() {
     setFontFamily((storeConfig as any).fontFamily ?? '');
     setButtonStyle((storeConfig as any).buttonStyle ?? 'pill');
     setBodyTextColor((storeConfig as any).bodyTextColor ?? '');
+    const footerSec = merged.find(s => s.type === 'footer');
+    setSocials((footerSec?.settings as FooterSectionSettings)?.socials ?? {});
     setDirty(false);
     undoStack.current = []; redoStack.current = [];
   }, [storeConfig]);
@@ -450,6 +473,21 @@ export function ThemeEditorPage() {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => { pushUndo(); }, 500);
   }, [pushUndo]);
+
+  const updateSocials = useCallback((key: string, val: string) => {
+    pushUndoDebounced();
+    setSocials(prev => {
+      const next = { ...prev };
+      if (val) next[key] = val;
+      else delete next[key];
+      setSections(prev => prev.map(s => {
+        if (s.type !== 'footer') return s;
+        return { ...s, settings: { ...s.settings, socials: next } };
+      }));
+      return next;
+    });
+    mark();
+  }, [pushUndoDebounced, mark]);
 
   const moveSection = useCallback((id: string, dir: -1 | 1) => {
     pushUndo();
@@ -663,6 +701,8 @@ export function ThemeEditorPage() {
             <div className={styles.sectionsList}>
               {sections.map((sec, idx) => {
                 const meta = SECTION_META[sec.type];
+                // Hide sections irrelevant to creator themes
+                if (isCreator && HIDDEN_FOR_CREATOR.has(sec.type)) return null;
                 return (
                   <div key={sec.id} className={[styles.secRow, !sec.enabled ? styles.secRowOff : '', activeId === sec.id ? styles.secRowActive : ''].join(' ')}>
                     {meta.movable ? (
@@ -844,7 +884,7 @@ export function ThemeEditorPage() {
                   )}
                 </div>
                 <div className={styles.rBody}>
-                  {activeSection.type === 'hero'         && <HeroSettings         s={activeSection.settings as HeroSectionSettings}         upd={p => updateSettings(activeSection.id, p as Record<string,unknown>)} />}
+                  {activeSection.type === 'hero'         && <HeroSettings         s={activeSection.settings as HeroSectionSettings}         upd={p => updateSettings(activeSection.id, p as Record<string,unknown>)} isCreator={isCreator} />}
                   {activeSection.type === 'announcement' && <AnnouncementSettings s={activeSection.settings as AnnouncementSectionSettings} upd={p => updateSettings(activeSection.id, p as Record<string,unknown>)} />}
                   {activeSection.type === 'featured'     && <FeaturedSettings     s={activeSection.settings as FeaturedSectionSettings}     upd={p => updateSettings(activeSection.id, p as Record<string,unknown>)} />}
                   {activeSection.type === 'collections'  && <CollectionsSettings  s={activeSection.settings as CollectionsSectionSettings}  upd={p => updateSettings(activeSection.id, p as Record<string,unknown>)} />}
@@ -902,7 +942,31 @@ export function ThemeEditorPage() {
                     <p className={styles.fHint}>Overrides the main text color across the store</p>
                   </div>
                 </div>
-                <p className={styles.rEmptyHint}>Click any section on the left to edit its settings.</p>
+
+                {/* Creator themes: Social links section */}
+                {isCreator && (
+                  <div style={{ marginTop: 16 }}>
+                    <p className={styles.rEmptyTitle}>Social Links</p>
+                    <p className={styles.fHint} style={{ marginBottom: 10 }}>
+                      These appear in your hero banner and help visitors find you on social media.
+                    </p>
+                    {(['instagram','twitter','tiktok','facebook','whatsapp','youtube'] as const).map(k => (
+                      <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 7 }}>
+                        <span className={styles.socialKey}>{k.slice(0,2).toUpperCase()}</span>
+                        <input className={styles.fInput} value={socials[k] ?? ''} onChange={e => updateSocials(k, e.target.value)} placeholder={`https://${k}.com/...`} style={{ fontSize: '0.78rem' }} />
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {isCreator ? (
+                  <p className={styles.rEmptyHint}>
+                    This theme uses a centered profile layout with your social links, bio, and products.
+                    Your store logo becomes the profile picture. Click any section to customize it.
+                  </p>
+                ) : (
+                  <p className={styles.rEmptyHint}>Click any section on the left to edit its settings.</p>
+                )}
               </div>
             )}
           </div>
