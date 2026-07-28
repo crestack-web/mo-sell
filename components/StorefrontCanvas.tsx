@@ -118,114 +118,7 @@ function getThemeCssVars(theme: StorefrontTheme, primary: string, secondary: str
   return { ...base, ...themeVars } as React.CSSProperties;
 }
 
-// ─── Mock data for editor preview (real products would come from Firestore) ───
 
-const MOCK: Record<StorefrontTheme, {
-  products: { name: string; price: string; tag?: string }[];
-  collections: { name: string; emoji: string }[];
-  testimonials: { name: string; text: string }[];
-}> = {
-  luxe: {
-    products: [
-      { name: 'Leather Handbag', price: '₦129,000', tag: 'New' },
-      { name: 'Minimal Watch', price: '₦98,000' },
-      { name: 'Sunglasses', price: '₦19,000' },
-      { name: 'Leather Wallet', price: '₦48,000' },
-    ],
-    collections: [{ name: 'Women', emoji: '👒' }, { name: 'Men', emoji: '🕶' }, { name: 'Sale', emoji: '🏷' }],
-    testimonials: [{ name: 'Amara K.', text: 'The quality is unmatched. Worth every naira.' }],
-  },
-  glow: {
-    products: [
-      { name: 'Glow Serum', price: '₦8,500', tag: 'Bestseller' },
-      { name: 'Face Mist', price: '₦4,200' },
-      { name: 'Rose Toner', price: '₦6,800' },
-      { name: 'Eye Cream', price: '₦11,000', tag: 'New' },
-    ],
-    collections: [{ name: 'Skincare', emoji: '🧴' }, { name: 'Makeup', emoji: '💄' }, { name: 'Wellness', emoji: '🌿' }],
-    testimonials: [{ name: 'Temi O.', text: 'My skin has never looked better. Absolutely love this brand.' }],
-  },
-  market: {
-    products: [
-      { name: 'Smart Blender', price: '₦24,000', tag: 'Sale' },
-      { name: 'Throw Pillow', price: '₦3,500' },
-      { name: 'Table Lamp', price: '₦12,000' },
-      { name: 'Wall Art', price: '₦7,800', tag: 'New' },
-    ],
-    collections: [{ name: 'Kitchen', emoji: '🍳' }, { name: 'Living', emoji: '🛋' }, { name: 'Garden', emoji: '🌱' }],
-    testimonials: [{ name: 'Chidi M.', text: 'Fast delivery and products are exactly as described.' }],
-  },
-  creator: {
-    products: [
-      { name: 'UI Design Kit', price: '₦15,000', tag: 'New' },
-      { name: 'Brand Template', price: '₦8,000' },
-      { name: 'Social Pack', price: '₦5,500' },
-      { name: 'Logo Bundle', price: '₦12,000', tag: 'Sale' },
-    ],
-    collections: [{ name: 'Templates', emoji: '📐' }, { name: 'Courses', emoji: '🎓' }, { name: 'Bundles', emoji: '📦' }],
-    testimonials: [{ name: 'Simi A.', text: 'These templates saved me weeks of work. Incredible value.' }],
-  },
-  link: {
-    products: [
-      { name: '1-on-1 Coaching', price: '₦25,000', tag: 'Popular' },
-      { name: 'Content Strategy', price: '₦18,000' },
-      { name: 'Brand Audit', price: '₦12,000' },
-      { name: 'Growth Blueprint', price: '₦8,500', tag: 'New' },
-    ],
-    collections: [{ name: 'Coaching', emoji: '🎯' }, { name: 'Templates', emoji: '📄' }, { name: 'Courses', emoji: '🎓' }],
-    testimonials: [{ name: 'Kemi L.', text: 'Changed my business completely. Best investment I have made.' }],
-  },
-  pulse: {
-    products: [
-      { name: 'Creator Course', price: '₦35,000', tag: 'Popular' },
-      { name: 'Presets Pack', price: '₦8,500' },
-      { name: 'Merch Drop', price: '₦12,000', tag: 'New' },
-      { name: 'E-Book Guide', price: '₦5,000' },
-    ],
-    collections: [{ name: 'Courses', emoji: '🎓' }, { name: 'Digital', emoji: '📥' }, { name: 'Merch', emoji: '👕' }],
-    testimonials: [{ name: 'Adaobi N.', text: 'This creator platform changed my life. So easy to sell to my audience!' }],
-  },
-  vault: {
-    products: [
-      { name: 'Notion Template', price: '₦12,000', tag: 'Bestseller' },
-      { name: 'UI Kit Pro', price: '₦25,000', tag: 'New' },
-      { name: 'E-Book Bundle', price: '₦8,500' },
-      { name: 'Course Access', price: '₦45,000', tag: 'Premium' },
-    ],
-    collections: [{ name: 'Templates', emoji: '📐' }, { name: 'E-Books', emoji: '📚' }, { name: 'Courses', emoji: '🎓' }],
-    testimonials: [{ name: 'Femi A.', text: 'Instant delivery and incredible quality. Best digital products I have purchased.' }],
-  },
-  atlas: {
-    products: [
-      { name: 'Brand Design', price: '₦150,000', tag: 'Popular' },
-      { name: 'Web Development', price: '₦250,000' },
-      { name: 'Photo Session', price: '₦45,000', tag: 'New' },
-      { name: 'Strategy Call', price: '₦25,000' },
-    ],
-    collections: [{ name: 'Design', emoji: '🎨' }, { name: 'Development', emoji: '💻' }, { name: 'Photography', emoji: '📸' }],
-    testimonials: [{ name: 'Oluwaseun M.', text: 'Professional, timely, and exceeded expectations. Highly recommend their services.' }],
-  },
-  spark: {
-    products: [
-      { name: '12-Week Program', price: '₦180,000', tag: 'Bestseller' },
-      { name: 'Group Coaching', price: '₦45,000' },
-      { name: 'Mentorship Call', price: '₦15,000', tag: 'New' },
-      { name: 'Fitness Plan', price: '₦8,000' },
-    ],
-    collections: [{ name: 'Programs', emoji: '🎯' }, { name: 'Coaching', emoji: '🏆' }, { name: 'Resources', emoji: '📖' }],
-    testimonials: [{ name: 'Chidinma E.', text: 'Transformed my business and mindset. The coaching is world-class.' }],
-  },
-  bazaar: {
-    products: [
-      { name: 'Ankara Dress', price: '₦28,000', tag: 'Bestseller' },
-      { name: 'Handmade Bag', price: '₦15,000' },
-      { name: 'Body Butter Set', price: '₦6,500', tag: 'New' },
-      { name: 'Artisan Soap', price: '₦3,200' },
-    ],
-    collections: [{ name: 'Fashion', emoji: '👗' }, { name: 'Beauty', emoji: '💄' }, { name: 'Handmade', emoji: '🎨' }],
-    testimonials: [{ name: 'Blessing I.', text: 'Love the quality! Fast delivery and the WhatsApp ordering is so convenient.' }],
-  },
-};
 
 // ─── Section components ────────────────────────────────────────────────────────
 
@@ -331,15 +224,6 @@ function SfHero({ theme, storeName, tagline, settings, primary, secondary, butto
 
   return (
     <section style={{ background: heroBg, padding: isLuxe ? '72px 48px' : '60px 32px', display: 'flex', flexDirection: 'column', gap: 16, minHeight: 340, justifyContent: 'center', alignItems: align, textAlign }}>
-      {isLuxe    && <p style={{ fontSize: '0.6rem', letterSpacing: '0.24em', textTransform: 'uppercase', color: '#C9A84C', fontWeight: 500, margin: 0 }}>New Collection</p>}
-      {isMarket  && <p style={{ fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.8)', margin: 0 }}>🛍️ Fresh arrivals daily</p>}
-      {isCreator && <p style={{ fontSize: '0.6rem', letterSpacing: '0.18em', textTransform: 'uppercase', color: primary, fontWeight: 700, margin: 0 }}>Build once. Sell forever.</p>}
-      {theme === 'glow' && <p style={{ fontSize: '0.6rem', letterSpacing: '0.18em', textTransform: 'uppercase', color: primary, fontWeight: 700, margin: 0, opacity: 0.7 }}>Beauty · Wellness</p>}
-      {isPulse  && <p style={{ fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.9)', margin: 0 }}>✨ Your favorite creator</p>}
-      {isVault  && <p style={{ fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#60A5FA', margin: 0 }}>⚡ Instant Digital Delivery</p>}
-      {isAtlas  && <p style={{ fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: primary, margin: 0 }}>⭐ Trusted by 200+ clients</p>}
-      {isSpark  && <p style={{ fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#D97706', margin: 0 }}>🏆 Transform Your Life</p>}
-      {isBazaar && <p style={{ fontSize: '0.68rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.9)', margin: 0 }}>📦 Shop Local · Deliver Fast</p>}
 
       <h1 style={{
         fontFamily: isLuxe ? '"Playfair Display",Georgia,serif' : isCreator ? '"Sora","Inter",sans-serif' : 'var(--sf-font)',
@@ -372,19 +256,29 @@ function SfHero({ theme, storeName, tagline, settings, primary, secondary, butto
 function SfFeatured({ theme, settings, primary, products, storeSlug }: {
   theme: StorefrontTheme; settings: FeaturedSectionSettings; primary: string; products: StorefrontProduct[]; storeSlug?: string;
 }) {
-  const mock = MOCK[theme];
-  const heading = settings.heading || (theme === 'luxe' ? 'New Arrivals' : theme === 'glow' ? 'Bestsellers' : theme === 'creator' ? 'Digital Products' : theme === 'vault' ? 'Digital Products' : theme === 'pulse' ? 'Featured Products' : theme === 'atlas' ? 'Our Services' : theme === 'spark' ? 'Programs' : theme === 'bazaar' ? 'Best Sellers' : 'Top Deals');
+  const heading = settings.heading || 'Featured Products';
   const cols = settings.columns ?? 4;
   const isLuxe = theme === 'luxe';
-  const isDark = theme === 'luxe' || theme === 'creator' || theme === 'vault';
-  const hasReal = products.length > 0;
   const maxItems = settings.maxItems ?? 4;
+  const visible = products.slice(0, maxItems);
+
+  if (visible.length === 0) {
+    return (
+      <section style={{ padding: '40px 32px', background: 'var(--sf-bg)' }}>
+        <h2 style={{ fontSize: '1.1rem', fontWeight: isLuxe ? 400 : 700, fontStyle: isLuxe ? 'italic' : 'normal', fontFamily: isLuxe ? '"Playfair Display",Georgia,serif' : 'inherit', letterSpacing: isLuxe ? '0.08em' : 0, color: 'var(--sf-text-1)', marginBottom: 20 }}>
+          {heading}
+        </h2>
+        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--sf-text-3)' }}>
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ marginBottom: 12, opacity: 0.4 }}><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          <p style={{ fontSize: '0.85rem', margin: 0 }}>Add your first product to feature it here</p>
+        </div>
+      </section>
+    );
+  }
 
   const handleProductClick = (productId: string) => {
     if (storeSlug) {
       window.open(`/${storeSlug}/product/${productId}`, '_blank');
-    } else {
-      console.log('Product clicked - preview mode');
     }
   };
 
@@ -394,44 +288,31 @@ function SfFeatured({ theme, settings, primary, products, storeSlug }: {
         {heading}
       </h2>
       <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols},1fr)`, gap: 12 }}>
-        {hasReal
-          ? products.slice(0, maxItems).map((p, i) => (
-            <div key={i} style={{ background: 'var(--sf-surface)', border: '1px solid var(--sf-border)', borderRadius: 'var(--sf-radius)', overflow: 'hidden', cursor: 'pointer', transition: 'transform 0.18s' }} onClick={() => handleProductClick(p.productId)}>
-              <div style={{ aspectRatio: isLuxe ? '3/4' : '1/1', background: p.images?.[0] ? `url(${p.images[0]}) center/cover` : `${primary}${['20','16','12','0e'][i] || '10'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-                {p.compareAtPrice && p.compareAtPrice > p.price && <span style={{ position: 'absolute', top: 8, left: 8, fontSize: '0.65rem', fontWeight: 700, padding: '2px 8px', borderRadius: 'var(--sf-radius-sm)', background: theme === 'glow' ? '#FEF3C7' : theme === 'market' || theme === 'bazaar' ? '#FEE2E2' : theme === 'vault' ? '#3B82F6' : primary, color: theme === 'glow' ? '#92400E' : theme === 'market' || theme === 'bazaar' ? '#991B1B' : '#fff' }}>Sale</span>}
-                {!p.images?.[0] && <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={primary} strokeWidth="1.5" opacity="0.35"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>}
-              </div>
-              <div style={{ padding: '10px 12px' }}>
-                <p style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--sf-text-1)', margin: '0 0 4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.displayName}</p>
-                <p style={{ fontSize: '0.82rem', fontWeight: 700, color: primary, margin: 0 }}>₦{p.price.toLocaleString()}</p>
-              </div>
+        {visible.map((p, i) => (
+          <div key={i} style={{ background: 'var(--sf-surface)', border: '1px solid var(--sf-border)', borderRadius: 'var(--sf-radius)', overflow: 'hidden', cursor: 'pointer', transition: 'transform 0.18s' }} onClick={() => handleProductClick(p.productId)}>
+            <div style={{ aspectRatio: isLuxe ? '3/4' : '1/1', background: p.images?.[0] ? `url(${p.images[0]}) center/cover` : `${primary}${['20','16','12','0e'][i] || '10'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+              {p.compareAtPrice && p.compareAtPrice > p.price && <span style={{ position: 'absolute', top: 8, left: 8, fontSize: '0.65rem', fontWeight: 700, padding: '2px 8px', borderRadius: 'var(--sf-radius-sm)', background: theme === 'glow' ? '#FEF3C7' : theme === 'market' || theme === 'bazaar' ? '#FEE2E2' : theme === 'vault' ? '#3B82F6' : primary, color: theme === 'glow' ? '#92400E' : theme === 'market' || theme === 'bazaar' ? '#991B1B' : '#fff' }}>Sale</span>}
+              {!p.images?.[0] && <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={primary} strokeWidth="1.5" opacity="0.35"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>}
             </div>
-          ))
-          : mock.products.slice(0, maxItems).map((p, i) => (
-            <div key={i} style={{ background: 'var(--sf-surface)', border: '1px solid var(--sf-border)', borderRadius: 'var(--sf-radius)', overflow: 'hidden', cursor: 'pointer', transition: 'transform 0.18s' }}>
-              <div style={{ aspectRatio: isLuxe ? '3/4' : '1/1', background: `${primary}${['20','16','12','0e'][i] || '10'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-                {p.tag && <span style={{ position: 'absolute', top: 8, left: 8, fontSize: '0.65rem', fontWeight: 700, padding: '2px 8px', borderRadius: 'var(--sf-radius-sm)', background: theme === 'glow' ? '#FEF3C7' : theme === 'market' ? '#FEE2E2' : primary, color: theme === 'glow' ? '#92400E' : theme === 'market' ? '#991B1B' : '#fff' }}>{p.tag}</span>}
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={primary} strokeWidth="1.5" opacity="0.35"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-              </div>
-              <div style={{ padding: '10px 12px' }}>
-                <p style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--sf-text-1)', margin: '0 0 4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</p>
-                <p style={{ fontSize: '0.82rem', fontWeight: 700, color: primary, margin: 0 }}>{p.price}</p>
-              </div>
+            <div style={{ padding: '10px 12px' }}>
+              <p style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--sf-text-1)', margin: '0 0 4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.displayName}</p>
+              <p style={{ fontSize: '0.82rem', fontWeight: 700, color: primary, margin: 0 }}>₦{p.price.toLocaleString()}</p>
             </div>
-          ))
-        }
+          </div>
+        ))}
       </div>
     </section>
   );
 }
 
-function SfCollections({ theme, settings, primary, secondary }: {
-  theme: StorefrontTheme; settings: CollectionsSectionSettings; primary: string; secondary: string;
+function SfCollections({ collections, settings, primary, secondary }: {
+  collections: StoreCollection[]; settings: CollectionsSectionSettings; primary: string; secondary: string;
 }) {
-  const mock = MOCK[theme];
   const heading = settings.heading || 'Collections';
   const isGrid = settings.layout === 'grid';
-  const visible = mock.collections.slice(0, settings.maxItems ?? 6);
+  const visible = collections.slice(0, settings.maxItems ?? 6);
+
+  if (visible.length === 0) return null;
 
   return (
     <section style={{ padding: '40px 32px', background: 'var(--sf-surface)', borderTop: '1px solid var(--sf-border)' }}>
@@ -439,11 +320,11 @@ function SfCollections({ theme, settings, primary, secondary }: {
       <div style={{ display: isGrid ? 'grid' : 'flex', gridTemplateColumns: isGrid ? 'repeat(3,1fr)' : undefined, gap: 10, overflowX: isGrid ? undefined : 'auto', paddingBottom: isGrid ? 0 : 8 }}>
         {visible.map((col, i) => (
           <div key={i} style={{ flexShrink: 0, minWidth: 130, borderRadius: 'var(--sf-radius)', overflow: 'hidden', border: '1px solid var(--sf-border)', cursor: 'pointer', background: 'var(--sf-bg)' }}>
-            <div style={{ height: 72, background: `linear-gradient(135deg,${primary}${['28','1e','14'][i]||'10'},${secondary}${['18','10','0a'][i]||'08'})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.8rem' }}>
-              {col.emoji}
+            <div style={{ height: 72, background: `linear-gradient(135deg,${primary}${['28','1e','14'][i]||'10'},${secondary}${['18','10','0a'][i]||'08'})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.72rem', fontWeight: 700, color: 'var(--sf-text-2)' }}>
+              {col.title.slice(0, 2).toUpperCase()}
             </div>
             <div style={{ padding: '8px 12px' }}>
-              <p style={{ margin: 0, fontWeight: 700, fontSize: '0.82rem', color: 'var(--sf-text-1)' }}>{col.name}</p>
+              <p style={{ margin: 0, fontWeight: 700, fontSize: '0.82rem', color: 'var(--sf-text-1)' }}>{col.title}</p>
             </div>
           </div>
         ))}
@@ -490,9 +371,9 @@ function SfAbout({ settings, theme }: { settings: AboutSectionSettings; theme: S
   );
 }
 
-function SfTestimonials({ settings, theme, primary }: { settings: TestimonialsSectionSettings; theme: StorefrontTheme; primary: string }) {
-  const mock = MOCK[theme].testimonials;
-  const items = (settings.testimonials && settings.testimonials.length > 0) ? settings.testimonials : mock;
+function SfTestimonials({ settings, primary }: { settings: TestimonialsSectionSettings; primary: string }) {
+  const items = settings.testimonials ?? [];
+  if (items.length === 0) return null;
   return (
     <section style={{ padding: '48px 32px', background: 'var(--sf-surface)', borderTop: '1px solid var(--sf-border)' }}>
       <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--sf-text-1)', marginBottom: 24, textAlign: 'center' }}>
@@ -752,10 +633,8 @@ export function StorefrontCanvas({
 
   // Link theme uses a completely different layout (centered profile page)
   if (isLink) {
-    const linkMock = MOCK.link;
-    const linkProducts = products.length > 0
-      ? products.slice(0, 6).map(p => ({ name: p.displayName, price: `₦${p.price.toLocaleString()}`, tag: p.compareAtPrice && p.compareAtPrice > p.price ? 'Sale' : undefined }))
-      : linkMock.products;
+    const linkProducts = products.slice(0, 6).map(p => ({ name: p.displayName, price: `₦${p.price.toLocaleString()}`, tag: p.compareAtPrice && p.compareAtPrice > p.price ? 'Sale' : undefined }));
+    const linkTestimonials = (sections?.find(s => s.type === 'testimonials')?.settings as TestimonialsSectionSettings | undefined)?.testimonials ?? [];
     return (
       <div style={{
         width, background: 'var(--sf-bg)', fontFamily: 'var(--sf-font)',
@@ -763,8 +642,8 @@ export function StorefrontCanvas({
         overflow: 'hidden', userSelect: 'none', WebkitUserSelect: 'none', ...themeVars, ...customVars,
       }}>
         <SfLinkProfile storeName={storeName} tagline={tagline} logoUrl={logoUrl} primary={primary} secondary={secondary} />
-        <SfLinkProducts products={linkProducts} primary={primary} secondary={secondary} />
-        <SfLinkTestimonials testimonials={linkMock.testimonials} primary={primary} />
+        {linkProducts.length > 0 && <SfLinkProducts products={linkProducts} primary={primary} secondary={secondary} />}
+        {linkTestimonials.length > 0 && <SfLinkTestimonials testimonials={linkTestimonials} primary={primary} />}
         <SfLinkFooter storeName={storeName} primary={primary} />
       </div>
     );
@@ -802,13 +681,13 @@ export function StorefrontCanvas({
             return <SfFeatured key={section.id} theme={theme} settings={s as FeaturedSectionSettings} primary={primary} products={products} storeSlug={storeSlug} />;
 
           case 'collections':
-            return <SfCollections key={section.id} theme={theme} settings={s as CollectionsSectionSettings} primary={primary} secondary={secondary} />;
+            return <SfCollections key={section.id} collections={collections} settings={s as CollectionsSectionSettings} primary={primary} secondary={secondary} />;
 
           case 'about':
             return <SfAbout key={section.id} settings={s as AboutSectionSettings} theme={theme} />;
 
           case 'testimonials':
-            return <SfTestimonials key={section.id} settings={s as TestimonialsSectionSettings} theme={theme} primary={primary} />;
+            return <SfTestimonials key={section.id} settings={s as TestimonialsSectionSettings} primary={primary} />;
 
           case 'instagram':
             return <SfInstagram key={section.id} settings={s as InstagramSectionSettings} />;

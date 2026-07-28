@@ -1,15 +1,34 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { StorefrontCanvas } from '@/components/StorefrontCanvas';
-import type { StorefrontTheme } from '@/types/mo-sell.types';
+import type { StorefrontTheme, StorefrontProduct, StoreCollection, StoreSection } from '@/types/mo-sell.types';
 
 const VALID_THEMES: StorefrontTheme[] = ['luxe','glow','market','creator','link','pulse','vault','atlas','spark','bazaar'];
 
 export default function ThemePreviewPage() {
   const params = useParams<{ theme: string }>();
   const searchParams = useSearchParams();
+  const [data, setData] = useState<{
+    products: StorefrontProduct[];
+    collections: StoreCollection[];
+    sections?: StoreSection[];
+  } | null>(null);
+
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem('mobilePreviewData');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        setData({
+          products: parsed.products ?? [],
+          collections: parsed.collections ?? [],
+          sections: parsed.sections ?? undefined,
+        });
+      }
+    } catch {}
+  }, []);
 
   const theme = (params.theme as StorefrontTheme);
   if (!VALID_THEMES.includes(theme)) {
@@ -30,6 +49,9 @@ export default function ThemePreviewPage() {
         primaryColor={primary}
         secondaryColor={secondary}
         width={375}
+        products={data?.products}
+        collections={data?.collections}
+        sections={data?.sections}
       />
     </div>
   );

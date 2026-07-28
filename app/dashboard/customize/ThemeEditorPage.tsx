@@ -567,7 +567,7 @@ export function ThemeEditorPage() {
       const slug = storeConfig.storeSlug;
       await setDoc(
         doc(firestore, 'businesses', user.businessId, 'store', 'config'),
-        { ...storeConfig, theme, primaryColor: primary, secondaryColor: secondary, fontFamily: fontFamily || null, buttonStyle, bodyTextColor: bodyTextColor || null, sections: sections.map(s => ({ ...s })), storeSlug: slug, updatedAt: serverTimestamp() },
+        { ...storeConfig, theme, primaryColor: primary, secondaryColor: secondary, fontFamily: fontFamily || null, buttonStyle, bodyTextColor: bodyTextColor || null, sections: sections.map(s => ({ ...s })), storeSlug: slug, status: 'active', updatedAt: serverTimestamp() },
         { merge: true }
       );
       if (slug) await setDoc(doc(firestore, 'storeIndex', slug), { businessId: user.businessId, storeName: storeConfig.storeName, updatedAt: serverTimestamp() });
@@ -595,6 +595,15 @@ export function ThemeEditorPage() {
     };
     sessionStorage.setItem('mobilePreviewData', JSON.stringify(previewData));
     window.open('/dashboard/mobile-preview', '_blank');
+  }, [theme, storeName, tagline, primary, secondary, logoUrl, sections, storeConfig, products, collections, fontFamily, buttonStyle, bodyTextColor, hideStoreNameWithLogo]);
+
+  // Sync to sessionStorage so theme-preview iframes get real products/collections
+  useEffect(() => {
+    sessionStorage.setItem('mobilePreviewData', JSON.stringify({
+      theme, storeName, tagline, primaryColor: primary, secondaryColor: secondary, logoUrl, sections,
+      storeSlug: storeConfig?.storeSlug, products, collections, fontFamily: fontFamily || null,
+      buttonStyle, bodyTextColor: bodyTextColor || null, hideStoreNameWithLogo,
+    }));
   }, [theme, storeName, tagline, primary, secondary, logoUrl, sections, storeConfig, products, collections, fontFamily, buttonStyle, bodyTextColor, hideStoreNameWithLogo]);
 
   const canvasProps = {
