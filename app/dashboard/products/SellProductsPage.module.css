@@ -193,6 +193,15 @@
   box-shadow: var(--sell-shadow-sm);
 }
 
+@media (max-width: 768px) {
+  .tableWrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .table { min-width: 720px; }
+  .table th, .table td { white-space: nowrap; }
+}
+
 .table {
   width: 100%;
   border-collapse: collapse;

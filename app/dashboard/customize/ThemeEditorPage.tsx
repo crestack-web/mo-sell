@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Monitor, Tablet, Smartphone, Undo2, Redo2, Settings, ChevronRight, ChevronLeft } from 'lucide-react';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { initializeFirebase } from '@/lib/firebase';
 import { useSell } from '@/context/SellContext';
@@ -18,8 +19,6 @@ import type {
 } from '@/types/mo-sell.types';
 import { DEFAULT_SECTIONS } from '@/types/mo-sell.types';
 import styles from './ThemeEditorPage.module.css';
-
-// â”€â”€â”€ Section icons & meta â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const SectionIcons: Record<StoreSectionType, React.ReactNode> = {
   header:       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="5" rx="1"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="16" x2="21" y2="16"/></svg>,
@@ -46,8 +45,6 @@ const SECTION_META: Record<StoreSectionType, { label: string; movable: boolean }
   newsletter:   { label: 'Newsletter',      movable: true  },
   footer:       { label: 'Footer',          movable: false },
 };
-
-// â”€â”€â”€ Field helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function SGroup({ label }: { label: string }) {
   return <p className={styles.sGroup}>{label}</p>;
@@ -107,8 +104,6 @@ function ColorField({ label, value, onChange }: { label: string; value: string; 
   );
 }
 
-// â”€â”€â”€ Section settings panels â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
 function HeroSettings({ s, upd, isCreator }: { s: HeroSectionSettings; upd: (p: Partial<HeroSectionSettings>) => void; isCreator?: boolean }) {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const handleHeroImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -132,7 +127,7 @@ function HeroSettings({ s, upd, isCreator }: { s: HeroSectionSettings; upd: (p: 
     <div className={styles.field}>
       <label className={styles.fLabel}>Background image</label>
       <div style={{ display: 'flex', gap: 6 }}>
-        <input className={styles.fInput} value={s.backgroundImage ?? ''} onChange={v => upd({ backgroundImage: (v.target as HTMLInputElement).value || null })} placeholder="https://â€¦" style={{ flex: 1 }} />
+        <input className={styles.fInput} value={s.backgroundImage ?? ''} onChange={v => upd({ backgroundImage: (v.target as HTMLInputElement).value || null })} placeholder="https://..." style={{ flex: 1 }} />
         <button className={styles.iconBtn} onClick={() => fileInputRef.current?.click()} style={{ flexShrink: 0, padding: '6px 10px', fontSize: '0.78rem', fontWeight: 600, color: 'var(--sell-primary)', width: 'auto', gap: 5 }} type="button">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
           Upload
@@ -159,7 +154,7 @@ function HeroSettings({ s, upd, isCreator }: { s: HeroSectionSettings; upd: (p: 
 function AnnouncementSettings({ s, upd }: { s: AnnouncementSectionSettings; upd: (p: Partial<AnnouncementSectionSettings>) => void }) {
   return (<>
     <SGroup label="CONTENT" />
-    <TF label="Text" value={s.text ?? ''} onChange={v => upd({ text: v })} placeholder="Free delivery on orders over â‚¦20,000" />
+    <TF label="Text" value={s.text ?? ''} onChange={v => upd({ text: v })} placeholder="Free delivery on orders over &#8358;20,000" />
     <TF label="Link label" value={s.linkLabel ?? ''} onChange={v => upd({ linkLabel: v })} placeholder="Shop now" />
     <TF label="Link URL" value={s.linkUrl ?? ''} onChange={v => upd({ linkUrl: v })} placeholder="/collections/all" />
     <SGroup label="STYLE" />
@@ -206,7 +201,7 @@ function AboutSettings({ s, upd }: { s: AboutSectionSettings; upd: (p: Partial<A
       <label className={styles.fLabel}>Body text</label>
       <textarea className={styles.fInput} value={s.body ?? ''} onChange={e => upd({ body: e.target.value })} rows={4} placeholder="Tell customers about your brand..." style={{ resize: 'vertical' }} />
     </div>
-    <TF label="Image URL" value={s.imageUrl ?? ''} onChange={v => upd({ imageUrl: v || null })} placeholder="https://â€¦" />
+    <TF label="Image URL" value={s.imageUrl ?? ''} onChange={v => upd({ imageUrl: v || null })} placeholder="https://..." />
     <SF label="Image position" value={s.imagePosition ?? 'right'} onChange={v => upd({ imagePosition: v as 'left'|'right' })}
       options={[{ value: 'left', label: 'Left' }, { value: 'right', label: 'Right' }]} />
   </>);
@@ -254,7 +249,7 @@ function HeaderSettings({ s, upd }: { s: HeaderSectionSettings; upd: (p: Partial
         }} placeholder="Label" style={{ flex: 1, fontSize: '0.78rem' }} />
         <input className={styles.fInput} value={link.url} onChange={e => {
           const updated = [...navLinks]; updated[i] = { ...updated[i], url: e.target.value }; upd({ navLinks: updated });
-        }} placeholder="/â€¦" style={{ flex: 1, fontSize: '0.78rem' }} />
+        }} placeholder="/..." style={{ flex: 1, fontSize: '0.78rem' }} />
         <button className={styles.iconBtn} onClick={() => upd({ navLinks: navLinks.filter((_, j) => j !== i) })} aria-label="Remove nav link" style={{ flexShrink: 0 }}>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
@@ -275,7 +270,7 @@ function FooterSettings({ s, upd }: { s: FooterSectionSettings; upd: (p: Partial
     <SGroup label="CONTENT" />
     <Toggle label="Show store logo" value={s.showLogo !== false} onChange={v => upd({ showLogo: v })} />
     <Toggle label="Powered by Busmo" value={s.showPoweredBy !== false} onChange={v => upd({ showPoweredBy: v })} />
-    <TF label="Custom copyright text" value={s.customText ?? ''} onChange={v => upd({ customText: v })} placeholder="Â© 2025 Your Brand." />
+    <TF label="Custom copyright text" value={s.customText ?? ''} onChange={v => upd({ customText: v })} placeholder="&#169; 2025 Your Brand." />
     <SGroup label="FOOTER LINKS" />
     {links.map((link, i) => (
       <div key={i} style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
@@ -284,7 +279,7 @@ function FooterSettings({ s, upd }: { s: FooterSectionSettings; upd: (p: Partial
         }} placeholder="Label" style={{ flex: 1, fontSize: '0.78rem' }} />
         <input className={styles.fInput} value={link.url} onChange={e => {
           const updated = [...links]; updated[i] = { ...updated[i], url: e.target.value }; upd({ links: updated });
-        }} placeholder="/â€¦" style={{ flex: 1, fontSize: '0.78rem' }} />
+        }} placeholder="/..." style={{ flex: 1, fontSize: '0.78rem' }} />
         <button className={styles.iconBtn} onClick={() => upd({ links: links.filter((_, j) => j !== i) })} aria-label="Remove footer link" style={{ flexShrink: 0 }}>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
@@ -298,13 +293,11 @@ function FooterSettings({ s, upd }: { s: FooterSectionSettings; upd: (p: Partial
     {(['instagram','twitter','tiktok','facebook','whatsapp','youtube'] as const).map(k => (
       <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 7 }}>
         <span className={styles.socialKey}>{k.slice(0,2).toUpperCase()}</span>
-        <input className={styles.fInput} value={(socials as Record<string,string>)[k] ?? ''} onChange={e => setSocial(k, e.target.value)} placeholder={`https://${k}.com/â€¦`} style={{ fontSize: '0.78rem' }} />
+        <input className={styles.fInput} value={(socials as Record<string,string>)[k] ?? ''} onChange={e => setSocial(k, e.target.value)} placeholder={`https://${k}.com/...`} style={{ fontSize: '0.78rem' }} />
       </div>
     ))}
   </>);
 }
-
-// â”€â”€â”€ Marketplace card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function ThemeCard({ themeId, isActive, storeName, tagline, primary, secondary, logoUrl, onSelect }: {
   themeId: StorefrontTheme; isActive: boolean; storeName: string; tagline: string;
@@ -327,8 +320,6 @@ function ThemeCard({ themeId, isActive, storeName, tagline, primary, secondary, 
   );
 }
 
-// â”€â”€â”€ Main component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
 export function ThemeEditorPage() {
   const { user, storeConfig, refreshStoreConfig, showToast } = useSell();
 
@@ -350,20 +341,19 @@ export function ThemeEditorPage() {
   const [socials, setSocials] = useState<Record<string, string>>({});
 
   const isCreator = isCreatorTheme(theme);
-
-  // Sections hidden for creator themes (less relevant for creator/link-in-bio stores)
   const HIDDEN_FOR_CREATOR: Set<StoreSectionType> = new Set(['instagram', 'newsletter']);
 
-  // Detect mobile device
+  const [rightDrawerOpen, setRightDrawerOpen] = useState(false);
+  const previewWrapRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+
   useEffect(() => {
     const checkMobile = () => {
       const userAgent = typeof window !== 'undefined' ? navigator.userAgent : '';
       const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent) ||
                            (typeof window !== 'undefined' && window.innerWidth < 768);
       setIsMobile(isMobileDevice);
-      if (isMobileDevice) {
-        setDevice('mobile');
-      }
+      if (isMobileDevice) setDevice('mobile');
     };
     checkMobile();
     if (typeof window !== 'undefined') {
@@ -372,7 +362,22 @@ export function ThemeEditorPage() {
     }
   }, []);
 
-  // Undo/redo stacks
+  useEffect(() => {
+    const el = previewWrapRef.current;
+    if (!el) return;
+    const update = () => setContainerWidth(el.clientWidth);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [view]);
+
+  const DEVICE_WIDTHS = { desktop: 1200, tablet: 768, mobile: 375 } as const;
+  const deviceWidth = DEVICE_WIDTHS[device];
+  const horizontalPadding = 48;
+  const availW = Math.max(0, containerWidth - horizontalPadding);
+  const scale = availW > 0 ? Math.min(1, availW / deviceWidth) : 1;
+
   const undoStack = useRef<{ sections: StoreSection[]; theme: StorefrontTheme; primary: string; secondary: string; fontFamily: string; buttonStyle: 'pill' | 'square' | 'rounded'; bodyTextColor: string; socials: Record<string, string> }[]>([]);
   const redoStack = useRef<{ sections: StoreSection[]; theme: StorefrontTheme; primary: string; secondary: string; fontFamily: string; buttonStyle: 'pill' | 'square' | 'rounded'; bodyTextColor: string; socials: Record<string, string> }[]>([]);
 
@@ -403,7 +408,6 @@ export function ThemeEditorPage() {
     setDirty(true);
   }, [snapshot]);
 
-  // Seed from storeConfig
   useEffect(() => {
     if (!storeConfig) return;
     const saved = storeConfig.sections as StoreSection[] | undefined;
@@ -425,7 +429,6 @@ export function ThemeEditorPage() {
     undoStack.current = []; redoStack.current = [];
   }, [storeConfig]);
 
-  // Fetch real products for preview
   useEffect(() => {
     if (!user?.businessId) return;
     const baseUrl = process.env.PUBLIC_APP_URL ?? 'http://localhost:3000';
@@ -435,7 +438,6 @@ export function ThemeEditorPage() {
       .catch(() => setProducts([]));
   }, [user?.businessId]);
 
-  // Fetch real collections for preview
   useEffect(() => {
     if (!user?.businessId) return;
     const baseUrl = process.env.PUBLIC_APP_URL ?? 'http://localhost:3000';
@@ -447,7 +449,6 @@ export function ThemeEditorPage() {
 
   const mark = useCallback(() => setDirty(true), []);
 
-  // Warn before leaving with unsaved changes
   useEffect(() => {
     if (!dirty) return;
     const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ''; };
@@ -455,7 +456,6 @@ export function ThemeEditorPage() {
     return () => window.removeEventListener('beforeunload', handler);
   }, [dirty]);
 
-  // Keyboard shortcuts for undo/redo
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const mod = e.metaKey || e.ctrlKey;
@@ -467,7 +467,6 @@ export function ThemeEditorPage() {
     return () => window.removeEventListener('keydown', handler);
   }, [undo, redo]);
 
-  // Debounced undo snapshot for text inputs
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pushUndoDebounced = useCallback(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -520,24 +519,11 @@ export function ThemeEditorPage() {
     try {
       const { firestore } = initializeFirebase();
       const slug = storeConfig.storeSlug;
-      
       await setDoc(
         doc(firestore, 'businesses', user.businessId, 'store', 'config'),
-        { 
-          ...storeConfig, 
-          theme, 
-          primaryColor: primary, 
-          secondaryColor: secondary, 
-          fontFamily: fontFamily || null,
-          buttonStyle,
-          bodyTextColor: bodyTextColor || null,
-          sections: sections.map(s => ({ ...s })), 
-          storeSlug: slug,
-          updatedAt: serverTimestamp() 
-        },
+        { ...storeConfig, theme, primaryColor: primary, secondaryColor: secondary, fontFamily: fontFamily || null, buttonStyle, bodyTextColor: bodyTextColor || null, sections: sections.map(s => ({ ...s })), storeSlug: slug, updatedAt: serverTimestamp() },
         { merge: true }
       );
-      
       if (slug) await setDoc(doc(firestore, 'storeIndex', slug), { businessId: user.businessId, storeName: storeConfig.storeName, updatedAt: serverTimestamp() });
       await refreshStoreConfig();
       setDirty(false);
@@ -557,54 +543,24 @@ export function ThemeEditorPage() {
 
   const handlePreview = useCallback(() => {
     const previewData = {
-      theme,
-      storeName,
-      tagline,
-      primaryColor: primary,
-      secondaryColor: secondary,
-      logoUrl,
-      sections,
-      storeSlug: storeConfig?.storeSlug,
-      products,
-      collections,
-      fontFamily: fontFamily || null,
-      buttonStyle,
-      bodyTextColor: bodyTextColor || null,
-      hideStoreNameWithLogo,
+      theme, storeName, tagline, primaryColor: primary, secondaryColor: secondary, logoUrl, sections,
+      storeSlug: storeConfig?.storeSlug, products, collections, fontFamily: fontFamily || null,
+      buttonStyle, bodyTextColor: bodyTextColor || null, hideStoreNameWithLogo,
     };
     sessionStorage.setItem('mobilePreviewData', JSON.stringify(previewData));
     window.open('/dashboard/mobile-preview', '_blank');
   }, [theme, storeName, tagline, primary, secondary, logoUrl, sections, storeConfig, products, collections, fontFamily, buttonStyle, bodyTextColor, hideStoreNameWithLogo]);
 
-  // Device frame dimensions & dynamic scaling
-  const previewOuterRef = useRef<HTMLDivElement>(null);
-  const [panelSize, setPanelSize] = useState({ w: 900, h: 700 });
-
-  useEffect(() => {
-    const el = previewOuterRef.current;
-    if (!el) return;
-    const update = () => setPanelSize({ w: el.clientWidth, h: el.clientHeight });
-    update();
-    const ro = new ResizeObserver(update);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-
-  const DEVICE_FRAMES = {
-    desktop: { outerW: 1240, outerH: 800, screenW: 1200, screenH: 700 },
-    tablet:  { outerW: 800,  outerH: 600, screenW: 768,  screenH: 540 },
-    mobile:  { outerW: 400,  outerH: 750, screenW: 375,  screenH: 660 },
-  } as const;
-
-  const frame = DEVICE_FRAMES[device];
-  const availW = panelSize.w - 48;
-  const availH = panelSize.h - 80;
-  const deviceScale = Math.min(1, availW / frame.outerW, availH / frame.outerH);
+  const canvasProps = {
+    theme, storeName, tagline, primaryColor: primary, secondaryColor: secondary, logoUrl,
+    sections, storeSlug: storeConfig?.storeSlug ?? '', products, collections,
+    fontFamily: fontFamily || null, buttonStyle, bodyTextColor: bodyTextColor || null, hideStoreNameWithLogo,
+  };
 
   return (
     <div className={styles.root}>
 
-      {/* â”€â”€ Topbar â”€â”€ */}
+      {/* ── Topbar ── */}
       <div className={styles.topbar}>
         <div className={styles.topbarLeft}>
           {view === 'editor' && (
@@ -618,7 +574,7 @@ export function ThemeEditorPage() {
             <span className={styles.themePill}>{THEMES.find(t => t.id === theme)?.name ?? theme}</span>
           )}
           {view === 'editor' && storeConfig?.storeSlug && (
-            <a href={`/store/${storeConfig.storeSlug}`} target="_blank" rel="noopener noreferrer" className={styles.liveBadge}>
+            <a href={`/${storeConfig.storeSlug}`} target="_blank" rel="noopener noreferrer" className={styles.liveBadge}>
               <span className={styles.liveDot} />Live
             </a>
           )}
@@ -626,38 +582,39 @@ export function ThemeEditorPage() {
         <div className={styles.topbarCenter}>
           {view === 'editor' && (
             <>
-              {/* Undo/Redo */}
               <button className={styles.iconBtn} onClick={undo} title="Undo (Ctrl+Z)" disabled={undoStack.current.length === 0} aria-label="Undo">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 00-4-4H4"/></svg>
+                <Undo2 size={14} />
               </button>
               <button className={styles.iconBtn} onClick={redo} title="Redo (Ctrl+Shift+Z)" disabled={redoStack.current.length === 0} aria-label="Redo">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 14 20 9 15 4"/><path d="M4 20v-7a4 4 0 014-4h12"/></svg>
+                <Redo2 size={14} />
               </button>
               <div className={styles.dividerV} />
-              {/* Device switcher - hide on mobile since only mobile preview is available */}
               {!isMobile && (['desktop','tablet','mobile'] as const).map(d => (
-                <button 
-                  key={d} 
-                  className={[styles.iconBtn, device === d ? styles.iconBtnActive : ''].join(' ')} 
-                  onClick={() => setDevice(d)} 
+                <button
+                  key={d}
+                  className={[styles.iconBtn, device === d ? styles.iconBtnActive : ''].join(' ')}
+                  onClick={() => setDevice(d)}
                   title={d.charAt(0).toUpperCase() + d.slice(1)}
                   aria-label={`Preview in ${d} mode`}
                   aria-pressed={device === d}
                 >
-                  {d === 'desktop' && <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>}
-                  {d === 'tablet'  && <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>}
-                  {d === 'mobile'  && <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>}
+                  {d === 'desktop' && <Monitor size={15} />}
+                  {d === 'tablet'  && <Tablet size={15} />}
+                  {d === 'mobile'  && <Smartphone size={15} />}
                 </button>
               ))}
             </>
           )}
         </div>
         <div className={styles.topbarRight}>
+          {view === 'editor' && (
+            <span className={styles.zoomBadge}>
+              {deviceWidth}px &middot; {Math.round(scale * 100)}%
+            </span>
+          )}
           {view === 'editor' && isMobile && (
             <button className={styles.mobilePreviewIcon} onClick={handlePreview} title="Preview on mobile">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/>
-              </svg>
+              <Smartphone size={18} />
             </button>
           )}
           {view === 'editor' && (
@@ -668,13 +625,13 @@ export function ThemeEditorPage() {
           {view === 'editor' && dirty && <span className={styles.unsavedDot} />}
           {view === 'editor' && (
             <button className={styles.publishBtn} onClick={handleApply} disabled={applying || !dirty}>
-              {applying ? <><span className={styles.spinner} />Publishingâ€¦</> : 'Publish'}
+              {applying ? <><span className={styles.spinner} />Publishing...</> : 'Publish'}
             </button>
           )}
         </div>
       </div>
 
-      {/* â”€â”€ MARKETPLACE â”€â”€ */}
+      {/* ── MARKETPLACE ── */}
       {view === 'marketplace' && (
         <div className={styles.marketplace}>
           <div className={styles.marketColors}>
@@ -692,16 +649,15 @@ export function ThemeEditorPage() {
         </div>
       )}
 
-      {/* â”€â”€ 3-PANEL EDITOR â”€â”€ */}
+      {/* ── RESPONSIVE EDITOR ── */}
       {view === 'editor' && (
-        <div className={styles.editorBody}>
+        <div className={styles.editorGrid}>
 
-          {/* LEFT: sections */}
+          {/* LEFT: Section list */}
           <div className={styles.leftPanel}>
             <div className={styles.sectionsList}>
               {sections.map((sec, idx) => {
                 const meta = SECTION_META[sec.type];
-                // Hide sections irrelevant to creator themes
                 if (isCreator && HIDDEN_FOR_CREATOR.has(sec.type)) return null;
                 return (
                   <div key={sec.id} className={[styles.secRow, !sec.enabled ? styles.secRowOff : '', activeId === sec.id ? styles.secRowActive : ''].join(' ')}>
@@ -728,160 +684,40 @@ export function ThemeEditorPage() {
             </div>
           </div>
 
-          {/* CENTER: live preview - device frames */}
-          <div className={`${styles.centerPanel} ${styles.hideOnMobile}`}>
-            <div className={styles.previewOuter} ref={previewOuterRef}>
-              <div className={styles.deviceScaleWrap} style={{
-                width: frame.outerW * deviceScale,
-                height: frame.outerH * deviceScale,
-              }}>
-                <div className={styles.deviceFrameInner} style={{
-                  width: frame.outerW,
-                  transform: `scale(${deviceScale})`,
-                }}>
-
-                  {/* â”€â”€ Desktop: Laptop mockup â”€â”€ */}
-                  {device === 'desktop' && (
-                    <div className={styles.laptopFrame}>
-                      <div className={styles.laptopChrome}>
-                        <div className={styles.laptopDots}>
-                          <span /><span /><span />
-                        </div>
-                        <div className={styles.laptopAddress}>
-                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
-                          {storeConfig?.storeSlug || 'your-store'}.busmo.app
-                        </div>
-                        <div className={styles.laptopActions}>
-                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                        </div>
-                      </div>
-                      <div className={styles.laptopScreen}>
-                        <div className={styles.screenScroll}>
-                          <CartProvider storeSlug={storeConfig?.storeSlug ?? ''}>
-                            <StorefrontCanvas
-                              theme={theme}
-                              storeName={storeName}
-                              tagline={tagline}
-                              primaryColor={primary}
-                              secondaryColor={secondary}
-                              logoUrl={logoUrl}
-                              sections={sections}
-                              width={frame.screenW}
-                              storeSlug={storeConfig?.storeSlug ?? ''}
-                              products={products}
-                              collections={collections}
-                              fontFamily={fontFamily || null}
-                              buttonStyle={buttonStyle}
-                              bodyTextColor={bodyTextColor || null}
-                              hideStoreNameWithLogo={hideStoreNameWithLogo}
-                            />
-                          </CartProvider>
-                        </div>
-                      </div>
-                      <div className={styles.laptopBase}>
-                        <div className={styles.laptopNotch} />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* â”€â”€ Tablet: iPad mockup â”€â”€ */}
-                  {device === 'tablet' && (
-                    <div className={styles.tabletFrame}>
-                      <div className={styles.tabletCamera} />
-                      <div className={styles.tabletScreen}>
-                        <div className={styles.screenScroll}>
-                          <CartProvider storeSlug={storeConfig?.storeSlug ?? ''}>
-                            <StorefrontCanvas
-                              theme={theme}
-                              storeName={storeName}
-                              tagline={tagline}
-                              primaryColor={primary}
-                              secondaryColor={secondary}
-                              logoUrl={logoUrl}
-                              sections={sections}
-                              width={frame.screenW}
-                              storeSlug={storeConfig?.storeSlug ?? ''}
-                              products={products}
-                              collections={collections}
-                              fontFamily={fontFamily || null}
-                              buttonStyle={buttonStyle}
-                              bodyTextColor={bodyTextColor || null}
-                              hideStoreNameWithLogo={hideStoreNameWithLogo}
-                            />
-                          </CartProvider>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* â”€â”€ Mobile: iPhone mockup â”€â”€ */}
-                  {device === 'mobile' && (
-                    <div className={styles.phoneFrame}>
-                      <div className={styles.phoneStatusBar}>
-                        <span className={styles.phoneTime}>9:41</span>
-                        <div className={styles.phoneNotch} />
-                        <div className={styles.phoneIcons}>
-                          <svg width="14" height="10" viewBox="0 0 16 10" fill="currentColor"><rect x="0" y="5" width="3" height="5" rx="0.5" opacity="0.4"/><rect x="4.5" y="3" width="3" height="7" rx="0.5" opacity="0.6"/><rect x="9" y="1" width="3" height="9" rx="0.5" opacity="0.8"/><rect x="13" y="0" width="3" height="10" rx="0.5"/></svg>
-                          <svg width="14" height="10" viewBox="0 0 16 12" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M1 8.5a8 8 0 0114 0" strokeLinecap="round"/><path d="M4 6a5 5 0 018 0" strokeLinecap="round"/><path d="M7 3.5a2 2 0 013 0" strokeLinecap="round"/><circle cx="8.5" cy="9" r="1" fill="currentColor" stroke="none"/></svg>
-                          <svg width="20" height="10" viewBox="0 0 26 12" fill="currentColor"><rect x="0" y="1" width="22" height="10" rx="2.5" fill="none" stroke="currentColor" strokeWidth="1.2"/><rect x="2" y="3" width="16" height="6" rx="1" opacity="0.8"/><path d="M23 4.5v3a1.5 1.5 0 000-3z" opacity="0.4"/></svg>
-                        </div>
-                      </div>
-                      <div className={styles.phoneScreen}>
-                        <div className={styles.screenScroll}>
-                          <CartProvider storeSlug={storeConfig?.storeSlug ?? ''}>
-                            <StorefrontCanvas
-                              theme={theme}
-                              storeName={storeName}
-                              tagline={tagline}
-                              primaryColor={primary}
-                              secondaryColor={secondary}
-                              logoUrl={logoUrl}
-                              sections={sections}
-                              width={frame.screenW}
-                              storeSlug={storeConfig?.storeSlug ?? ''}
-                              products={products}
-                              collections={collections}
-                              fontFamily={fontFamily || null}
-                              buttonStyle={buttonStyle}
-                              bodyTextColor={bodyTextColor || null}
-                              hideStoreNameWithLogo={hideStoreNameWithLogo}
-                            />
-                          </CartProvider>
-                        </div>
-                      </div>
-                      <div className={styles.phoneHomeBar} />
-                    </div>
-                  )}
-
+          {/* CENTER: Preview */}
+          <div className={styles.centerPanel} ref={previewWrapRef}>
+            <div className={styles.previewContainer}>
+              <div
+                className={styles.previewScaler}
+                style={{
+                  width: deviceWidth,
+                  height: device === 'desktop' ? 800 : device === 'tablet' ? 600 : 750,
+                  transform: `scale(${scale})`,
+                  transformOrigin: 'top center',
+                }}
+              >
+                <div className={styles.previewInner}>
+                  <CartProvider storeSlug={storeConfig?.storeSlug ?? ''}>
+                    <StorefrontCanvas {...canvasProps} width={deviceWidth} />
+                  </CartProvider>
                 </div>
               </div>
             </div>
-            {/* Device label */}
-            <div className={styles.deviceLabel}>
-              {device === 'desktop' ? 'Desktop â€” 1200px' : device === 'tablet' ? 'Tablet â€” 768px' : 'Mobile â€” 375px'}
-              <span className={styles.deviceScaleBadge}>{Math.round(deviceScale * 100)}%</span>
-            </div>
           </div>
 
-          {/* RIGHT: settings */}
-          <div className={[styles.rightPanel, isMobile && activeId ? styles.mobileOpen : ''].join(' ')}>
+          {/* RIGHT: Section settings panel (desktop: always visible; tablet: drawer) */}
+          <div className={[styles.rightPanel, rightDrawerOpen ? styles.rightPanelOpen : ''].join(' ')}>
             {activeSection ? (
               <>
                 <div className={styles.rHeader}>
-                  {isMobile && (
-                    <button className={styles.mobileBackBtn} onClick={() => setActiveId(null)} aria-label="Back to sections">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-                      Sections
-                    </button>
-                  )}
+                  <button className={styles.rBackBtn} onClick={() => setActiveId(null)} aria-label="Back to sections">
+                    <ChevronLeft size={14} />
+                  </button>
                   <span className={styles.rIcon}>{SectionIcons[activeSection.type]}</span>
                   <span className={styles.rTitle}>{SECTION_META[activeSection.type].label}</span>
-                  {!isMobile && (
-                    <button className={styles.iconBtn} style={{ marginLeft: 'auto' }} onClick={() => setActiveId(null)} aria-label="Close settings panel">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                    </button>
-                  )}
+                  <button className={styles.iconBtn} style={{ marginLeft: 'auto' }} onClick={() => { setActiveId(null); setRightDrawerOpen(false); }} aria-label="Close">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  </button>
                 </div>
                 <div className={styles.rBody}>
                   {activeSection.type === 'hero'         && <HeroSettings         s={activeSection.settings as HeroSectionSettings}         upd={p => updateSettings(activeSection.id, p as Record<string,unknown>)} isCreator={isCreator} />}
@@ -942,14 +778,10 @@ export function ThemeEditorPage() {
                     <p className={styles.fHint}>Overrides the main text color across the store</p>
                   </div>
                 </div>
-
-                {/* Creator themes: Social links section */}
                 {isCreator && (
                   <div style={{ marginTop: 16 }}>
                     <p className={styles.rEmptyTitle}>Social Links</p>
-                    <p className={styles.fHint} style={{ marginBottom: 10 }}>
-                      These appear in your hero banner and help visitors find you on social media.
-                    </p>
+                    <p className={styles.fHint} style={{ marginBottom: 10 }}>These appear in your hero banner and help visitors find you on social media.</p>
                     {(['instagram','twitter','tiktok','facebook','whatsapp','youtube'] as const).map(k => (
                       <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 7 }}>
                         <span className={styles.socialKey}>{k.slice(0,2).toUpperCase()}</span>
@@ -958,12 +790,8 @@ export function ThemeEditorPage() {
                     ))}
                   </div>
                 )}
-
                 {isCreator ? (
-                  <p className={styles.rEmptyHint}>
-                    This theme uses a centered profile layout with your social links, bio, and products.
-                    Your store logo becomes the profile picture. Click any section to customize it.
-                  </p>
+                  <p className={styles.rEmptyHint}>This theme uses a centered profile layout with your social links, bio, and products. Your store logo becomes the profile picture. Click any section to customize it.</p>
                 ) : (
                   <p className={styles.rEmptyHint}>Click any section on the left to edit its settings.</p>
                 )}
@@ -971,10 +799,14 @@ export function ThemeEditorPage() {
             )}
           </div>
 
+          {/* Settings toggle button (visible when right panel is hidden) */}
+          <button className={styles.settingsFab} onClick={() => setRightDrawerOpen(!rightDrawerOpen)} title="Settings" aria-label="Toggle settings panel">
+            <Settings size={18} />
+          </button>
+
         </div>
       )}
 
     </div>
   );
 }
-

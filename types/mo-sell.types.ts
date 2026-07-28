@@ -214,8 +214,22 @@ export interface StorefrontProduct {
   /** How digital products display on storefront: 'button' (buy button) or 'callout' (highlighted card) */
   displayType?: 'button' | 'callout';
   lowStockThreshold: number;
+  /** Physical product variant options (e.g. Size, Color) */
+  variants?: ProductVariant[];
   createdAt: Timestamp;
   updatedAt: Timestamp;
+}
+
+export interface ProductVariant {
+  name: string;
+  options: ProductVariantOption[];
+}
+
+export interface ProductVariantOption {
+  label: string;
+  price: number | null;
+  stock: number | null;
+  sku: string | null;
 }
 
 // ─── Collections ──────────────────────────────────────────────────────────────

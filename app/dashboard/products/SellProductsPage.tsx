@@ -14,6 +14,11 @@ type ProductType = 'physical' | 'digital' | 'service';
 
 type DigitalSubtype = 'ebook' | 'course' | 'template' | 'ticket';
 
+interface ProductVariant {
+  name: string;
+  options: Array<{ label: string; price: number | null; stock: number | null; sku: string | null }>;
+}
+
 interface StoreProduct {
   id: string;
   productId: string;
@@ -35,22 +40,19 @@ interface StoreProduct {
   digitalFileName: string | null;
   deliveryNote: string | null;
   lowStockThreshold: number;
+  variants?: ProductVariant[];
   createdAt: Date;
   updatedAt: Date;
-  // Ebook specific
   pageCount: number | null;
   author: string | null;
   isbn: string | null;
-  // Course specific
   courseDuration: string | null;
   lessonCount: number | null;
   accessDuration: string | null;
   difficultyLevel: string | null;
-  // Template specific
   fileFormat: string | null;
   compatibleSoftware: string | null;
   licenseType: string | null;
-  // Ticket specific
   eventDate: string | null;
   eventTime: string | null;
   venue: string | null;
@@ -237,20 +239,16 @@ function ProductSlideOver({ product, onClose, onSaved, businessId, currency, sto
       digitalFileName: product.digitalFileName ?? '',
       deliveryNote: product.deliveryNote ?? '',
       imageUrl: product.images[0] ?? '',
-      // Ebook specific
       pageCount: product.pageCount ? String(product.pageCount) : '',
       author: product.author ?? '',
       isbn: product.isbn ?? '',
-      // Course specific
       courseDuration: product.courseDuration ?? '',
       lessonCount: product.lessonCount ? String(product.lessonCount) : '',
       accessDuration: product.accessDuration ?? 'lifetime',
       difficultyLevel: product.difficultyLevel ?? '',
-      // Template specific
       fileFormat: product.fileFormat ?? '',
       compatibleSoftware: product.compatibleSoftware ?? '',
       licenseType: product.licenseType ?? '',
-      // Ticket specific
       eventDate: product.eventDate ?? '',
       eventTime: product.eventTime ?? '',
       venue: product.venue ?? '',
@@ -265,12 +263,16 @@ function ProductSlideOver({ product, onClose, onSaved, businessId, currency, sto
   const [moPrompt, setMoPrompt] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState(form.imageUrl);
+  const [additionalImages, setAdditionalImages] = useState<string[]>(product?.images?.slice(1) ?? []);
+  const [additionalImageFiles, setAdditionalImageFiles] = useState<File[]>([]);
+  const [variants, setVariants] = useState<ProductVariant[]>(product?.variants ?? []);
   const [showImport, setShowImport] = useState(false);
   const [inventoryProducts, setInventoryProducts] = useState<InventoryProduct[]>([]);
   const [digitalFile, setDigitalFile] = useState<File | null>(null);
   const [uploadingDigital, setUploadingDigital] = useState(false);
   const [showEbookPreview, setShowEbookPreview] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const additionalFileInputRef = useRef<HTMLInputElement>(null);
   const digitalFileInputRef = useRef<HTMLInputElement>(null);
   const moPopoverRef = useRef<HTMLDivElement>(null);
 
@@ -428,14 +430,23 @@ function ProductSlideOver({ product, onClose, onSaved, businessId, currency, sto
       let finalDigitalFileUrl = form.digitalFileUrl;
       let finalDigitalFileName = form.digitalFileName;
 
-      // Upload product image
       if (imageFile) {
         const imgRef = storageRef(storage, `storeProducts/${businessId}/${Date.now()}_${imageFile.name}`);
         await uploadBytes(imgRef, imageFile);
         finalImageUrl = await getDownloadURL(imgRef);
       }
 
-      // Upload digital file if provided
+      const allImages: string[] = finalImageUrl ? [finalImageUrl] : [];
+      for (let i = 0; i < additionalImageFiles.length; i++) {
+        const file = additionalImageFiles[i];
+        const ref = storageRef(storage, `storeProducts/${businessId}/${Date.now()}_${i}_${file.name}`);
+        await uploadBytes(ref, file);
+        allImages.push(await getDownloadURL(ref));
+      }
+      for (const url of additionalImages) {
+        if (!allImages.includes(url)) allImages.push(url);
+      }
+
       if (digitalFile) {
         setUploadingDigital(true);
         const digitalRef = storageRef(storage, `digitalProducts/${businessId}/${Date.now()}_${digitalFile.name}`);
@@ -451,7 +462,7 @@ function ProductSlideOver({ product, onClose, onSaved, businessId, currency, sto
         description: form.description.trim(),
         price: parseFloat(form.price),
         compareAtPrice: form.compareAtPrice ? parseFloat(form.compareAtPrice) : null,
-        images: finalImageUrl ? [finalImageUrl] : [],
+        images: allImages,
         category: form.category,
         collectionIds: product?.collectionIds ?? [],
         tags: form.tags.split(',').map(t => t.trim()).filter(Boolean),
@@ -463,6 +474,7 @@ function ProductSlideOver({ product, onClose, onSaved, businessId, currency, sto
         digitalFileName: form.productType === 'digital' ? finalDigitalFileName || null : null,
         deliveryNote: form.productType === 'service' ? form.deliveryNote.trim() || null : null,
         lowStockThreshold: parseInt(form.lowStockThreshold) || 5,
+        variants: form.productType === 'physical' && variants.length > 0 ? variants : null,
         updatedAt: serverTimestamp(),
       };
 
@@ -928,34 +940,107 @@ function ProductSlideOver({ product, onClose, onSaved, businessId, currency, sto
             </div>
           )}
 
-          {/* Section: Image */}
+          {/* Section: Images */}
           <div className={styles.formSection}>
-            <p className={styles.formSectionLabel}>Product image</p>
-            {imagePreview ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div className={styles.imagePreviewWrap}>
+            <p className={styles.formSectionLabel}>Product images</p>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+              {imagePreview && (
+                <div className={styles.imagePreviewWrap} style={{ position: 'relative' }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={imagePreview} alt="Preview" className={styles.imagePreview} />
-                  <button
-                    className={styles.imageRemoveBtn}
-                    onClick={() => { setImagePreview(''); setImageFile(null); set('imageUrl', ''); }}
-                  >✕</button>
+                  <img src={imagePreview} alt="Main" className={styles.imagePreview} />
+                  <span style={{ position: 'absolute', top: -6, left: -6, fontSize: '0.55rem', fontWeight: 700, background: 'var(--sell-primary)', color: '#fff', padding: '1px 5px', borderRadius: 4 }}>Main</span>
+                  <button className={styles.imageRemoveBtn} onClick={() => { setImagePreview(''); setImageFile(null); set('imageUrl', ''); }}>✕</button>
                 </div>
-                <button className={`${styles.btn} ${styles.btnGhost}`} style={{ fontSize: '0.78rem' }} onClick={() => fileInputRef.current?.click()}>
-                  Replace image
-                </button>
+              )}
+              {additionalImages.map((url, i) => (
+                <div key={i} className={styles.imagePreviewWrap} style={{ position: 'relative' }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={url} alt={`Image ${i + 2}`} className={styles.imagePreview} />
+                  <button className={styles.imageRemoveBtn} onClick={() => setAdditionalImages(prev => prev.filter((_, j) => j !== i))}>✕</button>
+                </div>
+              ))}
+              <div
+                className={styles.imageUploadArea}
+                onClick={() => additionalFileInputRef.current?.click()}
+                style={{ width: 80, height: 80, minWidth: 80, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--sell-text-3)" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               </div>
-            ) : (
+            </div>
+            <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/webp" style={{ display: 'none' }} onChange={handleImageChange} />
+            <input ref={additionalFileInputRef} type="file" accept="image/png,image/jpeg,image/webp" multiple style={{ display: 'none' }} onChange={e => {
+              const files = Array.from(e.target.files ?? []);
+              const valid = files.filter(f => f.size <= 5 * 1024 * 1024);
+              for (const file of valid) {
+                const reader = new FileReader();
+                reader.onloadend = () => setAdditionalImages(prev => [...prev, reader.result as string]);
+                reader.readAsDataURL(file);
+              }
+              setAdditionalImageFiles(prev => [...prev, ...valid]);
+              e.target.value = '';
+            }} />
+            {!imagePreview && additionalImages.length === 0 && (
               <div className={styles.imageUploadArea} onClick={() => fileInputRef.current?.click()}>
                 <label className={styles.imageUploadLabel}>
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                   <span>Click to upload</span>
-                  <span style={{ fontSize: '0.72rem', color: 'var(--sell-text-3)' }}>PNG, JPG, WebP · max 5MB</span>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--sell-text-3)' }}>PNG, JPG, WebP · max 5MB each</span>
                 </label>
               </div>
             )}
-            <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/webp" style={{ display: 'none' }} onChange={handleImageChange} />
           </div>
+
+          {/* Section: Variants (physical only) */}
+          {form.productType === 'physical' && (
+            <div className={styles.formSection}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                <p className={styles.formSectionLabel} style={{ margin: 0, borderTop: 'none', paddingTop: 0 }}>Variants (optional)</p>
+                <button className={`${styles.btn} ${styles.btnGhost}`} style={{ fontSize: '0.75rem', padding: '4px 10px' }} onClick={() => setVariants(prev => [...prev, { name: '', options: [{ label: '', price: null, stock: null, sku: null }] }])}>
+                  + Add variant
+                </button>
+              </div>
+              {variants.length === 0 && (
+                <p className={styles.formHint}>Add variants like Size or Color with different prices and stock levels.</p>
+              )}
+              {variants.map((v, vi) => (
+                <div key={vi} style={{ border: '1px solid var(--sell-border)', borderRadius: 8, padding: 10, marginBottom: 8 }}>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+                    <input className={styles.formInput} placeholder="Variant name (e.g. Size, Color)" value={v.name} onChange={e => {
+                      const next = [...variants]; next[vi] = { ...next[vi], name: e.target.value }; setVariants(next);
+                    }} style={{ flex: 1 }} />
+                    <button className={`${styles.btn} ${styles.btnDanger}`} style={{ fontSize: '0.7rem', padding: '4px 8px' }} onClick={() => setVariants(prev => prev.filter((_, j) => j !== vi))}>
+                      Remove
+                    </button>
+                  </div>
+                  {v.options.map((opt, oi) => (
+                    <div key={oi} style={{ display: 'flex', gap: 6, marginBottom: 6, alignItems: 'center' }}>
+                      <input className={styles.formInput} placeholder="Option (e.g. S, M, L)" value={opt.label} onChange={e => {
+                        const next = [...variants]; const opts = [...next[vi].options]; opts[oi] = { ...opts[oi], label: e.target.value }; next[vi] = { ...next[vi], options: opts }; setVariants(next);
+                      }} style={{ flex: 1, fontSize: '0.8rem' }} />
+                      <input className={styles.formInput} type="number" placeholder="Price" value={opt.price ?? ''} onChange={e => {
+                        const next = [...variants]; const opts = [...next[vi].options]; opts[oi] = { ...opts[oi], price: e.target.value ? Number(e.target.value) : null }; next[vi] = { ...next[vi], options: opts }; setVariants(next);
+                      }} style={{ width: 80, fontSize: '0.8rem' }} />
+                      <input className={styles.formInput} type="number" placeholder="Stock" value={opt.stock ?? ''} onChange={e => {
+                        const next = [...variants]; const opts = [...next[vi].options]; opts[oi] = { ...opts[oi], stock: e.target.value ? Number(e.target.value) : null }; next[vi] = { ...next[vi], options: opts }; setVariants(next);
+                      }} style={{ width: 70, fontSize: '0.8rem' }} />
+                      {v.options.length > 1 && (
+                        <button className={styles.iconBtn} style={{ width: 24, height: 24, flexShrink: 0 }} onClick={() => {
+                          const next = [...variants]; next[vi] = { ...next[vi], options: next[vi].options.filter((_, j) => j !== oi) }; setVariants(next);
+                        }}>
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  <button className={`${styles.btn} ${styles.btnGhost}`} style={{ fontSize: '0.72rem', padding: '3px 8px', marginTop: 4 }} onClick={() => {
+                    const next = [...variants]; next[vi] = { ...next[vi], options: [...next[vi].options, { label: '', price: null, stock: null, sku: null }] }; setVariants(next);
+                  }}>
+                    + Add option
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Section: Visibility */}
           <div className={styles.formSection}>
