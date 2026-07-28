@@ -424,7 +424,7 @@
     transition: background var(--sell-transition), transform 0.15s;
   }
   .mobilePreviewIcon:hover { background: var(--sell-primary); color: #fff; transform: scale(1.05); }
-  .settingsFab { display: flex; }
+  .settingsFab { display: flex; bottom: 80px; }
   /* Mobile section list inside right drawer */
   .mobileSectionList {
     display: flex; flex-direction: column;
