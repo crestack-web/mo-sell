@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!PAYSTACK_SECRET || PAYSTACK_SECRET === 'your-paystack-secret-key') {
-      return NextResponse.json({ error: 'Paystack not configured' }, { status: 503 });
+      return NextResponse.json({ error: 'Paystack not configured. Add PAYSTACK_SECRET_KEY to .env.local' }, { status: 503 });
     }
 
     const res = await fetch(
@@ -59,8 +59,12 @@ export async function POST(request: NextRequest) {
 
     const data = await res.json();
 
+    if (!res.ok) {
+      return NextResponse.json({ error: data.message ?? `Paystack error (${res.status})` }, { status: 400 });
+    }
+
     if (!data.status || !data.data?.account_name) {
-      return NextResponse.json({ error: 'Could not verify account. Check the account number and bank.' }, { status: 400 });
+      return NextResponse.json({ error: data.message ?? 'Could not verify account. Check the account number and bank.' }, { status: 400 });
     }
 
     return NextResponse.json({
@@ -68,7 +72,8 @@ export async function POST(request: NextRequest) {
       accountNumber: data.data.account_number,
       bankCode: data.data.bank_code,
     });
-  } catch {
-    return NextResponse.json({ error: 'Failed to verify account' }, { status: 500 });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Failed to verify account';
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

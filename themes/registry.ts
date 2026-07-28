@@ -3,6 +3,8 @@ import type { ThemeComponents, ThemeProductCardProps, ThemeCollectionCardProps, 
 
 // ─── Theme metadata (for sell dashboard UI) ─────────────────────────────────
 
+export type ThemeLayoutType = 'link-style' | 'e-commerce';
+
 export interface ThemeMeta {
   id: StorefrontTheme;
   name: string;
@@ -13,118 +15,89 @@ export interface ThemeMeta {
   bestFor: string[];
   badge: { label: string; color: string; bg: string } | null;
   dataAttr: string;
+  type: ThemeLayoutType;
 }
 
 export const THEMES: ThemeMeta[] = [
   {
-    id: 'luxe',
-    name: 'Luxe',
+    id: 'luxe', name: 'Luxe',
     description: 'Editorial, high-end fashion with large imagery and luxury whitespace.',
-    previewBg: '#0A0A0A',
-    previewAccent: '#C9A84C',
-    previewFont: 'Playfair Display',
+    previewBg: '#0A0A0A', previewAccent: '#C9A84C', previewFont: 'Playfair Display',
     bestFor: ['Fashion', 'Accessories'],
     badge: { label: 'Premium', color: '#92400E', bg: '#FEF3C7' },
-    dataAttr: 'luxe',
+    dataAttr: 'luxe', type: 'e-commerce',
   },
   {
-    id: 'glow',
-    name: 'Glow',
-    description: 'Soft, feminine, and beauty-forward. Perfect for skincare and cosmetics.',
-    previewBg: '#FDF6F0',
-    previewAccent: '#E8927C',
-    previewFont: 'DM Sans',
-    bestFor: ['Beauty', 'Cosmetics'],
-    badge: { label: 'New', color: '#065F46', bg: '#D1FAE5' },
-    dataAttr: 'glow',
+    id: 'glow', name: 'Glow',
+    description: 'One-page bio store for creators. Profile, social links, and products in one scroll.',
+    previewBg: '#FDF6F0', previewAccent: '#E8927C', previewFont: 'DM Sans',
+    bestFor: ['Creators', 'Influencers', 'Coaches'],
+    badge: null,
+    dataAttr: 'glow', type: 'link-style',
   },
   {
-    id: 'market',
-    name: 'Market',
+    id: 'market', name: 'Market',
     description: 'Bright, dense, and price-forward. Built for high-volume everyday selling.',
-    previewBg: '#FFF7ED',
-    previewAccent: '#EA580C',
-    previewFont: 'Plus Jakarta Sans',
+    previewBg: '#FFF7ED', previewAccent: '#EA580C', previewFont: 'Plus Jakarta Sans',
     bestFor: ['General', 'Home', 'Lifestyle'],
     badge: { label: 'Best Seller', color: '#065F46', bg: '#D1FAE5' },
-    dataAttr: 'market',
+    dataAttr: 'market', type: 'e-commerce',
   },
   {
-    id: 'creator',
-    name: 'Creator',
+    id: 'creator', name: 'Creator',
     description: 'Clean and conversion-focused for digital products and online services.',
-    previewBg: '#0F172A',
-    previewAccent: '#6366F1',
-    previewFont: 'Sora',
+    previewBg: '#0F172A', previewAccent: '#6366F1', previewFont: 'Sora',
     bestFor: ['Digital Products'],
     badge: { label: 'Best for Creators', color: '#5B21B6', bg: '#EDE9FE' },
-    dataAttr: 'creator',
+    dataAttr: 'creator', type: 'e-commerce',
   },
   {
-    id: 'link',
-    name: 'Link',
-    description: 'Centered creator page. Profile, bio, social links, and products in one scroll.',
-    previewBg: '#0D0D0D',
-    previewAccent: '#A78BFA',
-    previewFont: 'Plus Jakarta Sans',
+    id: 'link', name: 'Link',
+    description: 'Centered bio page. Profile, social links, and products in one scroll.',
+    previewBg: '#0D0D0D', previewAccent: '#A78BFA', previewFont: 'Plus Jakarta Sans',
     bestFor: ['Coaches', 'Creators', 'Freelancers'],
-    badge: { label: 'Stan Store style', color: '#1D4ED8', bg: '#DBEAFE' },
-    dataAttr: 'link',
+    badge: { label: 'E-COMMERCE', color: '#166534', bg: '#DCFCE7' },
+    dataAttr: 'link', type: 'link-style',
   },
   {
-    id: 'pulse',
-    name: 'Pulse',
-    description: 'Social-first creator storefront. Profile, socials, digital products, and courses in one vibrant page.',
-    previewBg: '#FFF7ED',
-    previewAccent: '#FF6B35',
-    previewFont: 'Outfit',
-    bestFor: ['Influencers', 'Content Creators', 'Coaches'],
-    badge: { label: 'Creator Favorite', color: '#9A3412', bg: '#FFEDD5' },
-    dataAttr: 'pulse',
+    id: 'pulse', name: 'Pulse',
+    description: 'Vibrant one-page store with social links and product showcase.',
+    previewBg: '#FFF7ED', previewAccent: '#FF6B35', previewFont: 'Outfit',
+    bestFor: ['Influencers', 'Content Creators'],
+    badge: null,
+    dataAttr: 'pulse', type: 'link-style',
   },
   {
-    id: 'vault',
-    name: 'Vault',
-    description: 'Premium digital product showcase. Ebooks, templates, courses with preview and instant checkout.',
-    previewBg: '#0B1D3A',
-    previewAccent: '#3B82F6',
-    previewFont: 'Space Grotesk',
+    id: 'vault', name: 'Vault',
+    description: 'Premium one-page product page. Bio, socials, and digital products.',
+    previewBg: '#0B1D3A', previewAccent: '#3B82F6', previewFont: 'Space Grotesk',
     bestFor: ['Digital Products', 'Ebooks', 'Courses'],
-    badge: { label: 'Digital First', color: '#1E40AF', bg: '#DBEAFE' },
-    dataAttr: 'vault',
+    badge: null,
+    dataAttr: 'vault', type: 'link-style',
   },
   {
-    id: 'atlas',
-    name: 'Atlas',
+    id: 'atlas', name: 'Atlas',
     description: 'Professional service showcase. Portfolio, packages, booking, and testimonials for high-end service providers.',
-    previewBg: '#F8FAFC',
-    previewAccent: '#0D9488',
-    previewFont: 'Manrope',
+    previewBg: '#F8FAFC', previewAccent: '#0D9488', previewFont: 'Manrope',
     bestFor: ['Consultants', 'Designers', 'Freelancers'],
     badge: { label: 'Pro Services', color: '#134E4A', bg: '#CCFBF1' },
-    dataAttr: 'atlas',
+    dataAttr: 'atlas', type: 'e-commerce',
   },
   {
-    id: 'spark',
-    name: 'Spark',
-    description: 'Coach & expert authority page. Personal brand, programs, transformations, and lead capture.',
-    previewBg: '#FFF8EE',
-    previewAccent: '#D97706',
-    previewFont: 'Raleway',
+    id: 'spark', name: 'Spark',
+    description: 'Coach bio page with social links and product offerings.',
+    previewBg: '#FFF8EE', previewAccent: '#D97706', previewFont: 'Raleway',
     bestFor: ['Coaches', 'Trainers', 'Mentors'],
-    badge: { label: 'Coach Pick', color: '#78350F', bg: '#FEF3C7' },
-    dataAttr: 'spark',
+    badge: null,
+    dataAttr: 'spark', type: 'link-style',
   },
   {
-    id: 'bazaar',
-    name: 'Bazaar',
+    id: 'bazaar', name: 'Bazaar',
     description: 'Ecommerce-focused small business store. Product catalog, categories, reviews, and WhatsApp ordering.',
-    previewBg: '#ECFDF5',
-    previewAccent: '#059669',
-    previewFont: 'Poppins',
+    previewBg: '#ECFDF5', previewAccent: '#059669', previewFont: 'Poppins',
     bestFor: ['Fashion', 'Food', 'Beauty', 'Handmade'],
     badge: { label: 'Small Biz', color: '#065F46', bg: '#D1FAE5' },
-    dataAttr: 'bazaar',
+    dataAttr: 'bazaar', type: 'e-commerce',
   },
 ];
 
@@ -239,11 +212,15 @@ export async function getThemeComponentsServer(themeId: string): Promise<ThemeCo
 }
 
 export function isLinkTheme(themeId: string): boolean {
-  return themeId === 'link';
+  const meta = THEMES.find(t => t.id === themeId);
+  return meta?.type === 'link-style';
 }
 
-const CREATOR_THEMES: string[] = ['link', 'pulse', 'creator', 'glow', 'spark', 'vault'];
-
 export function isCreatorTheme(themeId: string): boolean {
-  return CREATOR_THEMES.includes(themeId);
+  return false;
+}
+
+export function getThemeType(themeId: string): ThemeLayoutType {
+  const meta = THEMES.find(t => t.id === themeId);
+  return meta?.type ?? 'e-commerce';
 }

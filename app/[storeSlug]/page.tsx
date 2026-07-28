@@ -1,9 +1,10 @@
 import React from 'react';
 import { notFound } from 'next/navigation';
-import { getThemeComponentsServer, isCreatorTheme, type ThemeId } from '@/themes/registry';
+import { getThemeComponentsServer, isCreatorTheme, getThemeType, type ThemeId } from '@/themes/registry';
 import type { ProductCardData } from '@/themes/types';
 import { CreatorProductTabs } from './creator-product-tabs';
 import { EmailSignup } from './components/EmailSignup';
+import { LinkProductStack } from './LinkProductStack';
 import type {
   StorefrontTheme, StoreSection,
   HeroSectionSettings, CollectionsSectionSettings,
@@ -87,6 +88,8 @@ export default async function StorefrontHomePage({
 
   const theme: StorefrontTheme = config.theme ?? 'luxe';
   const components = await getThemeComponentsServer(theme as ThemeId);
+  const themeType = getThemeType(theme);
+  const isLinkStyle = themeType === 'link-style';
 
   // Merge saved sections with defaults
   const savedSections: StoreSection[] = config.sections ?? [];
@@ -94,6 +97,9 @@ export default async function StorefrontHomePage({
     const saved = savedSections.find(s => s.id === def.id);
     return saved ? { ...def, ...saved, settings: { ...def.settings, ...saved.settings } } : def;
   }).sort((a, b) => a.order - b.order);
+
+  // Link-style: only hero + optional announcement, skip everything else
+  const LINK_SKIP_TYPES = new Set<StoreSection['type']>(['header', 'collections', 'about', 'testimonials', 'instagram', 'newsletter']);
 
   // Fetch data for enabled sections
   const needFeatured    = sections.some(s => s.type === 'featured'    && s.enabled);
@@ -119,6 +125,7 @@ export default async function StorefrontHomePage({
     <div id="products">
       {sections.map(section => {
         if (!section.enabled) return null;
+        if (isLinkStyle && LINK_SKIP_TYPES.has(section.type)) return null;
         const s = section.settings as Record<string, unknown>;
 
         switch (section.type) {
@@ -261,7 +268,21 @@ export default async function StorefrontHomePage({
       {/* Always show all products at the bottom */}
       {allProducts.length > 0 && (
         <div className="sf-page sf-section" id="products">
-          {isCreatorTheme(theme) ? (
+          {isLinkStyle ? (
+            <div>
+              <p className="sf-section-title" style={{ maxWidth: 480, margin: '0 auto 12px', padding: '0 20px' }}>
+                Products
+                <span style={{ marginLeft: 10, fontSize: '0.78rem', fontWeight: 500, color: 'var(--sf-text-3)' }}>
+                  {allProducts.length} item{allProducts.length !== 1 ? 's' : ''}
+                </span>
+              </p>
+              <LinkProductStack
+                products={allProducts}
+                storeSlug={storeSlug}
+                currency={config.currency}
+              />
+            </div>
+          ) : isCreatorTheme(theme) ? (
             <CreatorProductTabs
               products={allProducts}
               storeSlug={storeSlug}

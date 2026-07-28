@@ -605,10 +605,11 @@
 @media (max-width: 640px) {
   .messagesArea {
     padding: 16px;
+    padding-bottom: 16px;
   }
 
   .inputArea {
-    padding: 10px 16px 12px;
+    padding: 10px 16px 28px;
   }
 
   .chatHeader {
@@ -632,15 +633,32 @@
   }
 
   .suggestions {
-    flex-direction: column;
-    align-items: stretch;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    max-width: 100%;
   }
 
   .suggestionChip {
     justify-content: center;
+    padding: 8px 8px;
+    font-size: 11px;
+    gap: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .suggestionIcon {
+    font-size: 12px;
   }
 
   .historyPanel {
     width: 280px;
+  }
+
+  .welcomeSubtitle {
+    font-size: 12px;
+    margin-bottom: 16px;
   }
 }

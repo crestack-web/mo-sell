@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminDb } from '@/lib/firebase-admin';
 
-const WIZARD_MODELS = ['gemini-2.5-flash', 'gemini-flash-latest', 'gemini-2.5-pro'];
+const WIZARD_MODELS = ['gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-1.5-flash'];
 
 const WIZARD_SYSTEM_PROMPT = `
 You are MO — the AI commerce architect inside Busmo, Africa's business operating system.
@@ -131,18 +131,17 @@ async function callWithFallback(
   history: { role: 'user' | 'model'; parts: [{ text: string }] }[],
   message: string,
 ): Promise<string> {
-  let lastError: unknown = null;
-
+  const errors: string[] = [];
   for (const modelName of WIZARD_MODELS) {
     try {
       return await callGemini(apiKey, modelName, systemPrompt, history, message);
     } catch (err) {
-      lastError = err;
+      const msg = err instanceof Error ? err.message : String(err);
+      errors.push(`${modelName}: ${msg}`);
       continue;
     }
   }
-
-  throw lastError;
+  throw new Error(`All models failed — ${errors.join(' | ')}`);
 }
 
 export async function POST(request: NextRequest) {

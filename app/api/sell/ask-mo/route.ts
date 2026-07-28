@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminDb, getAdminStorage } from '@/lib/firebase-admin';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 
-const MODELS = ['gemini-2.5-flash', 'gemini-flash-latest', 'gemini-2.5-pro'];
+const MODELS = ['gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-1.5-flash'];
 
 const SELL_MO_SYSTEM_PROMPT = `
 You are MO — the AI commerce assistant inside Busmo, Africa's business operating system.
@@ -194,16 +194,17 @@ async function callWithFallback(
   history: { role: 'user' | 'model'; parts: { text: string }[] }[],
   message: string,
 ): Promise<string> {
-  let lastError: unknown = null;
+  const errors: string[] = [];
   for (const modelName of MODELS) {
     try {
       return await callGemini(apiKey, modelName, systemPrompt, history, message);
     } catch (err) {
-      lastError = err;
+      const msg = err instanceof Error ? err.message : String(err);
+      errors.push(`${modelName}: ${msg}`);
       continue;
     }
   }
-  throw lastError;
+  throw new Error(`All models failed — ${errors.join(' | ')}`);
 }
 
 // ── Enhanced PDF Generation ─────────────────────────────────────────────────
@@ -818,7 +819,8 @@ CURRENT STORE CONFIG:
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    const isKeyError = msg.includes('API_KEY') || msg.includes('quota') || msg.includes('permission');
+    const isKeyError = msg.includes('API_KEY') || msg.includes('quota') || msg.includes('permission') || msg.includes('403') || msg.includes('400');
+    console.error('[AskMo] Error:', msg);
     return NextResponse.json(
       {
         error: isKeyError ? 'AI service configuration error' : 'Failed to generate response',

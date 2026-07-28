@@ -5,7 +5,7 @@ import { Monitor, Tablet, Smartphone, Undo2, Redo2, Settings, ChevronRight, Chev
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { initializeFirebase } from '@/lib/firebase';
 import { useSell } from '@/context/SellContext';
-import { THEMES, isCreatorTheme } from '@/themes/registry';
+import { THEMES, isCreatorTheme, getThemeType } from '@/themes/registry';
 import { StorefrontCanvas } from '@/components/StorefrontCanvas';
 import { CartProvider } from '@/app/[storeSlug]/context/CartContext';
 import type {
@@ -104,7 +104,7 @@ function ColorField({ label, value, onChange }: { label: string; value: string; 
   );
 }
 
-function HeroSettings({ s, upd, isCreator }: { s: HeroSectionSettings; upd: (p: Partial<HeroSectionSettings>) => void; isCreator?: boolean }) {
+function HeroSettings({ s, upd, isLinkStyle, isCreator }: { s: HeroSectionSettings; upd: (p: Partial<HeroSectionSettings>) => void; isLinkStyle?: boolean; isCreator?: boolean }) {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const handleHeroImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -116,31 +116,45 @@ function HeroSettings({ s, upd, isCreator }: { s: HeroSectionSettings; upd: (p: 
   };
   return (<>
     <SGroup label="CONTENT" />
-    <TF label="Heading" value={s.heading ?? ''} onChange={v => upd({ heading: v })} placeholder="Defaults to store name" />
-    <TF label="Subheading" value={s.subheading ?? ''} onChange={v => upd({ subheading: v })} placeholder="Defaults to tagline" />
-    <Toggle label="Show subheading" value={s.showTagline !== false} onChange={v => upd({ showTagline: v })} />
-    <TF label="Button text" value={s.ctaLabel ?? 'Shop Now'} onChange={v => upd({ ctaLabel: v })} />
-    <TF label="Button link" value={s.ctaUrl ?? '#products'} onChange={v => upd({ ctaUrl: v })} />
-    <SGroup label="STYLE" />
-    <SF label="Text alignment" value={s.textAlign ?? 'left'} onChange={v => upd({ textAlign: v as 'left'|'center'|'right' })}
-      options={[{ value: 'left', label: 'Left' }, { value: 'center', label: 'Center' }, { value: 'right', label: 'Right' }]} />
-    <div className={styles.field}>
-      <label className={styles.fLabel}>Background image</label>
-      <div style={{ display: 'flex', gap: 6 }}>
-        <input className={styles.fInput} value={s.backgroundImage ?? ''} onChange={v => upd({ backgroundImage: (v.target as HTMLInputElement).value || null })} placeholder="https://..." style={{ flex: 1 }} />
-        <button className={styles.iconBtn} onClick={() => fileInputRef.current?.click()} style={{ flexShrink: 0, padding: '6px 10px', fontSize: '0.78rem', fontWeight: 600, color: 'var(--sell-primary)', width: 'auto', gap: 5 }} type="button">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-          Upload
-        </button>
-      </div>
-      <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleHeroImageUpload} />
-      <p className={styles.fHint}>Paste a URL or upload an image (max 5MB)</p>
-    </div>
-    <div className={styles.field}>
-      <label className={styles.fLabel}>Overlay opacity</label>
-      <input className={styles.fInput} type="range" min={0} max={1} step={0.05} value={s.overlayOpacity ?? 0.4} onChange={e => upd({ overlayOpacity: Number(e.target.value) })} />
-      <p className={styles.fHint}>Darkness of the overlay on background images (0 = none, 1 = black)</p>
-    </div>
+    {isLinkStyle ? (
+      <>
+        <div className={styles.field}>
+          <label className={styles.fLabel}>Bio</label>
+          <textarea className={styles.fInput} value={s.subheading ?? ''} onChange={e => upd({ subheading: e.target.value })} rows={3} placeholder="Tell visitors about yourself..." style={{ resize: 'vertical', fontSize: '0.82rem' }} />
+          <p className={styles.fHint}>Max 160 characters. Shows below your name.</p>
+        </div>
+        <TF label="Button text" value={s.ctaLabel ?? 'Shop Now'} onChange={v => upd({ ctaLabel: v })} />
+        <TF label="Button link" value={s.ctaUrl ?? '#products'} onChange={v => upd({ ctaUrl: v })} />
+      </>
+    ) : (
+      <>
+        <TF label="Heading" value={s.heading ?? ''} onChange={v => upd({ heading: v })} placeholder="Defaults to store name" />
+        <TF label="Subheading" value={s.subheading ?? ''} onChange={v => upd({ subheading: v })} placeholder="Defaults to tagline" />
+        <Toggle label="Show subheading" value={s.showTagline !== false} onChange={v => upd({ showTagline: v })} />
+        <TF label="Button text" value={s.ctaLabel ?? 'Shop Now'} onChange={v => upd({ ctaLabel: v })} />
+        <TF label="Button link" value={s.ctaUrl ?? '#products'} onChange={v => upd({ ctaUrl: v })} />
+        <SGroup label="STYLE" />
+        <SF label="Text alignment" value={s.textAlign ?? 'left'} onChange={v => upd({ textAlign: v as 'left'|'center'|'right' })}
+          options={[{ value: 'left', label: 'Left' }, { value: 'center', label: 'Center' }, { value: 'right', label: 'Right' }]} />
+        <div className={styles.field}>
+          <label className={styles.fLabel}>Background image</label>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <input className={styles.fInput} value={s.backgroundImage ?? ''} onChange={v => upd({ backgroundImage: (v.target as HTMLInputElement).value || null })} placeholder="https://..." style={{ flex: 1 }} />
+            <button className={styles.iconBtn} onClick={() => fileInputRef.current?.click()} style={{ flexShrink: 0, padding: '6px 10px', fontSize: '0.78rem', fontWeight: 600, color: 'var(--sell-primary)', width: 'auto', gap: 5 }} type="button">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Upload
+            </button>
+          </div>
+          <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleHeroImageUpload} />
+          <p className={styles.fHint}>Paste a URL or upload an image (max 5MB)</p>
+        </div>
+        <div className={styles.field}>
+          <label className={styles.fLabel}>Overlay opacity</label>
+          <input className={styles.fInput} type="range" min={0} max={1} step={0.05} value={s.overlayOpacity ?? 0.4} onChange={e => upd({ overlayOpacity: Number(e.target.value) })} />
+          <p className={styles.fHint}>Darkness of the overlay on background images (0 = none, 1 = black)</p>
+        </div>
+      </>
+    )}
     {isCreator && (
       <div style={{ padding: '10px 12px', background: 'var(--sell-primary-lt)', borderRadius: 8, marginTop: 4 }}>
         <p style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--sell-primary)', margin: 0, lineHeight: 1.5 }}>
@@ -304,7 +318,6 @@ function ThemeCard({ themeId, isActive, storeName, tagline, primary, secondary, 
   primary: string; secondary: string; onSelect: () => void;
 }) {
   const t = THEMES.find(x => x.id === themeId)!;
-  const creator = isCreatorTheme(themeId);
   const cardRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [loaded, setLoaded] = useState(false);
@@ -328,7 +341,7 @@ function ThemeCard({ themeId, isActive, storeName, tagline, primary, secondary, 
   return (
     <div className={[styles.themeCard, isActive ? styles.themeCardActive : ''].join(' ')} onClick={onSelect}>
       {isActive && <span className={styles.mActive}><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>}
-      {creator && <span className={styles.themeCardBadge}>CREATOR</span>}
+      {t.badge && <span className={styles.themeCardBadge} style={{ background: t.badge.bg, color: t.badge.color }}>{t.badge.label}</span>}
       <div className={styles.themeCardPreview} ref={cardRef}>
         {!loaded && <div className={styles.themeCardSkeleton} />}
         <iframe
@@ -372,8 +385,9 @@ export function ThemeEditorPage() {
   const [bodyTextColor, setBodyTextColor] = useState<string>('');
   const [socials, setSocials] = useState<Record<string, string>>({});
 
+  const isLinkStyle = getThemeType(theme) === 'link-style';
   const isCreator = isCreatorTheme(theme);
-  const HIDDEN_FOR_CREATOR: Set<StoreSectionType> = new Set(['instagram', 'newsletter']);
+  const HIDDEN_FOR_LINK_STYLE: Set<StoreSectionType> = new Set(['header', 'collections', 'about', 'testimonials', 'instagram', 'newsletter', 'footer']);
 
   const [rightDrawerOpen, setRightDrawerOpen] = useState(false);
   const previewWrapRef = useRef<HTMLDivElement>(null);
@@ -690,7 +704,7 @@ export function ThemeEditorPage() {
             <div className={styles.sectionsList}>
               {sections.map((sec, idx) => {
                 const meta = SECTION_META[sec.type];
-                if (isCreator && HIDDEN_FOR_CREATOR.has(sec.type)) return null;
+                if (isLinkStyle && HIDDEN_FOR_LINK_STYLE.has(sec.type)) return null;
                 return (
                   <div key={sec.id} className={[styles.secRow, !sec.enabled ? styles.secRowOff : '', activeId === sec.id ? styles.secRowActive : ''].join(' ')}>
                     {meta.movable ? (
@@ -752,7 +766,7 @@ export function ThemeEditorPage() {
                   </button>
                 </div>
                 <div className={styles.rBody}>
-                  {activeSection.type === 'hero'         && <HeroSettings         s={activeSection.settings as HeroSectionSettings}         upd={p => updateSettings(activeSection.id, p as Record<string,unknown>)} isCreator={isCreator} />}
+                  {activeSection.type === 'hero'         && <HeroSettings         s={activeSection.settings as HeroSectionSettings}         upd={p => updateSettings(activeSection.id, p as Record<string,unknown>)} isLinkStyle={isLinkStyle} isCreator={isCreator} />}
                   {activeSection.type === 'announcement' && <AnnouncementSettings s={activeSection.settings as AnnouncementSectionSettings} upd={p => updateSettings(activeSection.id, p as Record<string,unknown>)} />}
                   {activeSection.type === 'featured'     && <FeaturedSettings     s={activeSection.settings as FeaturedSectionSettings}     upd={p => updateSettings(activeSection.id, p as Record<string,unknown>)} />}
                   {activeSection.type === 'collections'  && <CollectionsSettings  s={activeSection.settings as CollectionsSectionSettings}  upd={p => updateSettings(activeSection.id, p as Record<string,unknown>)} />}
@@ -772,7 +786,7 @@ export function ThemeEditorPage() {
                     <p className={styles.rEmptyTitle} style={{ padding: '0 0 6px' }}>SECTIONS</p>
                     {sections.map(sec => {
                       const meta = SECTION_META[sec.type];
-                      if (isCreator && HIDDEN_FOR_CREATOR.has(sec.type)) return null;
+                      if (isLinkStyle && HIDDEN_FOR_LINK_STYLE.has(sec.type)) return null;
                       return (
                         <button
                           key={sec.id}
@@ -832,10 +846,10 @@ export function ThemeEditorPage() {
                     <p className={styles.fHint}>Overrides the main text color across the store</p>
                   </div>
                 </div>
-                {isCreator && (
+                {(isCreator || isLinkStyle) && (
                   <div style={{ marginTop: 16 }}>
                     <p className={styles.rEmptyTitle}>Social Links</p>
-                    <p className={styles.fHint} style={{ marginBottom: 10 }}>These appear in your hero banner and help visitors find you on social media.</p>
+                    <p className={styles.fHint} style={{ marginBottom: 10 }}>These appear on your storefront and help visitors find you on social media.</p>
                     {(['instagram','twitter','tiktok','facebook','whatsapp','youtube'] as const).map(k => (
                       <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 7 }}>
                         <span className={styles.socialKey}>{k.slice(0,2).toUpperCase()}</span>
@@ -844,7 +858,7 @@ export function ThemeEditorPage() {
                     ))}
                   </div>
                 )}
-                {isCreator ? (
+                {(isCreator || isLinkStyle) ? (
                   <p className={styles.rEmptyHint}>This theme uses a centered profile layout with your social links, bio, and products. Your store logo becomes the profile picture. Tap any section above to customize it.</p>
                 ) : (
                   <p className={styles.rEmptyHint}>{isMobile ? 'Tap any section above to edit its settings.' : 'Click any section on the left to edit its settings.'}</p>

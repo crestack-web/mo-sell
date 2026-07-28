@@ -21,8 +21,7 @@ import { StorefrontNav } from './components/StorefrontNav';
 import { CartDrawer } from './components/CartDrawer';
 import type { StorefrontTheme, StoreSection, FooterSectionSettings, HeaderSectionSettings } from '@/types/mo-sell.types';
 import { DEFAULT_SECTIONS } from '@/types/mo-sell.types';
-
-const LINK_THEMES: StorefrontTheme[] = ['link', 'creator', 'glow'];
+import { getThemeType } from '@/themes/registry';
 
 // ─── Fetch store config ───────────────────────────────────────────────────────
 
@@ -128,8 +127,8 @@ export default async function StorefrontLayout({
     },
   };
 
-  const isLinkTheme = LINK_THEMES.includes(theme);
-  const effectiveHeaderStyle = isLinkTheme ? 'minimal' : headerStyle;
+  const isLinkStyle = getThemeType(theme) === 'link-style';
+  const effectiveHeaderStyle = isLinkStyle ? 'minimal' : headerStyle;
 
   return (
     <html lang="en" data-theme={theme}>

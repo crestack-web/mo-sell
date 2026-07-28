@@ -328,7 +328,7 @@ export function SellSettingsPage() {
           {storeSlug && (
             <div className={styles.urlRow}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" color="var(--sell-text-3)"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/></svg>
-              <span className={styles.urlBase}>busmo.io/store/</span>
+              <span className={styles.urlBase}>mo-sell.store/</span>
               <span className={styles.urlSlug}>{storeSlug}</span>
             </div>
           )}
