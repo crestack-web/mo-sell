@@ -248,6 +248,7 @@
 
 .previewInner {
   width: 100%; height: 100%; overflow-y: auto; overflow-x: hidden;
+  container-type: inline-size;
 }
 .previewInner::-webkit-scrollbar { width: 3px; }
 .previewInner::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 3px; }
@@ -509,6 +510,7 @@
 .phoneScreen {
   width: 100%; height: 100%; background: #fff;
   border-radius: 28px; overflow-y: auto; overflow-x: hidden; position: relative;
+  container-type: inline-size;
 }
 .phoneScreen::-webkit-scrollbar { width: 4px; }
 .phoneScreen::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.2); border-radius: 4px; }

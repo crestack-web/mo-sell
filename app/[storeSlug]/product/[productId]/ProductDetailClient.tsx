@@ -48,7 +48,7 @@ function ProductPageSkeleton() {
 function GenericProductPage({ product, storeSlug, currency }: ThemeProductPageProps) {
   return (
     <div style={{ maxWidth: 1280, margin: '0 auto', padding: '48px 5% 80px' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 48, alignItems: 'start' }}>
+      <div className="sf-product-page-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 48, alignItems: 'start' }}>
         <div>
           {product.images[0] ? (
             // eslint-disable-next-line @next/next/no-img-element

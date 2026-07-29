@@ -428,6 +428,20 @@ img { max-width: 100%; height: auto; display: block; }
 .sf-instagram-cell img { width: 100%; height: 100%; object-fit: cover; }
 @media (max-width: 640px) { .sf-instagram-grid { grid-template-columns: repeat(3, 1fr); } }
 
+/* ── Product page responsive (all themes) ── */
+@media (max-width: 768px) {
+  .sf-product-page-grid {
+    grid-template-columns: 1fr !important;
+    gap: 24px !important;
+  }
+  .sf-product-page-gallery {
+    order: 0 !important;
+  }
+  .sf-product-page-info {
+    order: 1 !important;
+  }
+}
+
 /* ═══════════════════════════════════════════
    CONTAINER QUERIES — for sell dashboard mobile preview
    The phone mockup renders the canvas at 375px inside a scroll container
@@ -442,6 +456,12 @@ img { max-width: 100%; height: auto; display: block; }
   .sf-nav-cart-text { display: none; }
   .sf-nav-cart { padding: 8px !important; }
   .sf-about { grid-template-columns: 1fr !important; }
+  .sf-product-page-grid {
+    grid-template-columns: 1fr !important;
+    gap: 24px !important;
+  }
+  .sf-product-page-gallery { order: 0 !important; }
+  .sf-product-page-info { order: 1 !important; }
 }
 
 @container (max-width: 640px) {

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { initializeFirebase } from '@/lib/firebase';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { convertFromUsd } from '@/lib/currency';
 import posthog from 'posthog-js';
 
 // ── Tokens ────────────────────────────────────────────────────────────────────
@@ -119,10 +120,10 @@ export default function SellSubscribePage() {
             plan: 'sell-starter',
             userId: currentUser.uid,
             email: currentUser.email,
-            amount: 150, // ₦150 (~$1)
+            amount: convertFromUsd(1, 'NG'), // $1 → NGN at live rate
             currency: 'NGN',
             billing: 'trial',
-            callback_url: `${window.location.origin}/sell-subscribe/success`,
+            callback_url: `${window.location.origin}/subscribe/success`,
             metadata: {
               plan: 'sell-starter',
               billing: 'trial',

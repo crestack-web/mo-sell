@@ -72,8 +72,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Checkout session expired' }, { status: 410 });
     }
 
-    // 2. Verify with Paystack
-    const paystackSecretKey = process.env.PAYSTACK_SECRET_KEY;
+    // 2. Verify with Paystack — use seller's key if configured
+    let paystackSecretKey = process.env.PAYSTACK_SECRET_KEY;
+    try {
+      const cfgSnap = await db.collection('businesses').doc(businessId).collection('store').doc('config').get();
+      if (cfgSnap.exists) {
+        const cfg = cfgSnap.data();
+        if (cfg?.useOwnPaystack && cfg?.paystackSecretKey) {
+          paystackSecretKey = cfg.paystackSecretKey;
+        }
+      }
+    } catch { /* fall back to Busmo key */ }
+
     if (!paystackSecretKey) {
       return NextResponse.json({ error: 'Payment service not configured' }, { status: 500 });
     }

@@ -81,7 +81,7 @@ export function CreatorProductPage({ product, storeSlug, currency }: ThemeProduc
       </div>
 
       {/* 2-column grid */}
-      <div style={{
+      <div className="sf-product-page-grid" style={{
         display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 48, alignItems: 'start',
       }}>
         {/* Image gallery — left */}

@@ -59,7 +59,7 @@ export function GlowProductPage({ product, storeSlug, currency }: ThemeProductPa
         <span style={{ color: COLORS.roseGold }}>{product.displayName}</span>
       </nav>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 1fr', gap: 56, alignItems: 'start' }}>
+      <div className="sf-product-page-grid" style={{ display: 'grid', gridTemplateColumns: '1.1fr 1fr', gap: 56, alignItems: 'start' }}>
         {/* Image gallery */}
         <div>
           <div style={{

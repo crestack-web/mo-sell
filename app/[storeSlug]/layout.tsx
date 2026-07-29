@@ -179,6 +179,9 @@ export default async function StorefrontLayout({
               businessId={config.businessId}
               hideStoreNameWithLogo={headerSettings.hideStoreNameWithLogo}
               headerStyle={effectiveHeaderStyle}
+              showSearch={headerSettings.showSearch}
+              primaryColor={primary}
+              secondaryColor={secondary}
             />
           )}
           <main>

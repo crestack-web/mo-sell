@@ -17,18 +17,38 @@ export default function ThemePreviewPage() {
   } | null>(null);
 
   useEffect(() => {
+    const businessId = searchParams.get('businessId');
+
+    // Try sessionStorage first (set by ThemeEditorPage)
     try {
       const raw = sessionStorage.getItem('mobilePreviewData');
       if (raw) {
         const parsed = JSON.parse(raw);
-        setData({
-          products: parsed.products ?? [],
-          collections: parsed.collections ?? [],
-          sections: parsed.sections ?? undefined,
-        });
+        if (parsed.products?.length || parsed.collections?.length) {
+          setData({
+            products: parsed.products ?? [],
+            collections: parsed.collections ?? [],
+            sections: parsed.sections ?? undefined,
+          });
+          return;
+        }
       }
     } catch {}
-  }, []);
+
+    // Fallback: fetch from API
+    if (businessId) {
+      const baseUrl = '';
+      Promise.all([
+        fetch(`${baseUrl}/api/store/products?businessId=${businessId}&available=true`).then(r => r.ok ? r.json() : { products: [] }),
+        fetch(`${baseUrl}/api/store/collections?businessId=${businessId}`).then(r => r.ok ? r.json() : { collections: [] }),
+      ]).then(([pData, cData]) => {
+        setData({
+          products: pData.products ?? [],
+          collections: cData.collections ?? [],
+        });
+      }).catch(() => {});
+    }
+  }, [searchParams]);
 
   const theme = (params.theme as StorefrontTheme);
   if (!VALID_THEMES.includes(theme)) {

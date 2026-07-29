@@ -128,7 +128,7 @@ function SellSubscribeSuccessContent() {
             <p className="mb-6" style={{ color: C.text2 }}>{errorMessage}</p>
             <div className="flex flex-col gap-3">
               <button
-                onClick={() => router.push('/sell-subscribe')}
+                onClick={() => router.push('/subscribe')}
                 className="w-full py-3 rounded-xl text-white font-semibold transition"
                 style={{ background: C.primary }}
               >

@@ -46,12 +46,12 @@ const NAV_ITEMS: NavItem[] = [
     ),
   },
   {
-    id: 'theme-editor',
-    label: 'Design',
+    id: 'content-hub' as SellPageId,
+    label: 'Content',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L3 14.67V21h6.33l10.06-10.06a5.5 5.5 0 000-6.33z"/>
-        <line x1="16" y1="5" x2="19" y2="8"/>
+        <polygon points="12 2 15.09 8.26 22 9.27 17 14.18 18.18 21.14 12 17.77 5.82 21.14 7 14.18 2 9.27 8.91 8.26 12 2"/>
+        <line x1="12" y1="2" x2="12" y2="17.77"/>
       </svg>
     ),
   },

@@ -2,36 +2,48 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY;
 
-// Nigerian banks with common codes
-const NIGERIAN_BANKS = [
-  { code: '044', name: 'Access Bank' },
-  { code: '063', name: 'Diamond Bank' },
-  { code: '050', name: 'Ecobank Nigeria' },
-  { code: '011', name: 'First Bank of Nigeria' },
-  { code: '214', name: 'First City Monument Bank' },
-  { code: '070', name: 'Fidelity Bank' },
-  { code: '001', name: 'Globus Bank' },
-  { code: '058', name: 'Guaranty Trust Bank' },
-  { code: '030', name: 'Heritage Bank' },
-  { code: '301', name: 'Jaiz Bank' },
-  { code: '082', name: 'Keystone Bank' },
-  { code: '526', name: 'Opay' },
-  { code: '999', name: 'Palmpay' },
-  { code: '076', name: 'Polaris Bank' },
-  { code: '101', name: 'Providus Bank' },
-  { code: '221', name: 'Stanbic IBTC Bank' },
-  { code: '068', name: 'Standard Chartered Bank' },
-  { code: '232', name: 'Sterling Bank' },
-  { code: '100', name: 'SunTrust Bank' },
-  { code: '032', name: 'Union Bank' },
-  { code: '033', name: 'United Bank for Africa' },
-  { code: '035', name: 'Wema Bank' },
-  { code: '057', name: 'Zenith Bank' },
-];
-
-// GET: List banks
+// GET: List banks from Paystack API
 export async function GET() {
-  return NextResponse.json({ banks: NIGERIAN_BANKS });
+  if (!PAYSTACK_SECRET || PAYSTACK_SECRET === 'your-paystack-secret-key') {
+    return NextResponse.json({ banks: [] });
+  }
+
+  try {
+    const allBanks: { code: string; name: string }[] = [];
+    let page = 1;
+    let hasMore = true;
+
+    while (hasMore) {
+      const res = await fetch(
+        `https://api.paystack.co/bank?page=${page}&perPage=100`,
+        { headers: { Authorization: `Bearer ${PAYSTACK_SECRET}` } }
+      );
+      const data = await res.json() as {
+        status: boolean;
+        data?: { code?: string; name?: string }[];
+        meta?: { page: number; perPage: number; total: number; pageCount: number };
+      };
+
+      if (!data.status || !data.data) break;
+
+      for (const bank of data.data) {
+        if (bank.code && bank.name) {
+          allBanks.push({ code: bank.code, name: bank.name });
+        }
+      }
+
+      const meta = data.meta;
+      if (meta && meta.page < meta.pageCount) {
+        page++;
+      } else {
+        hasMore = false;
+      }
+    }
+
+    return NextResponse.json({ banks: allBanks });
+  } catch {
+    return NextResponse.json({ banks: [] });
+  }
 }
 
 // POST: Verify account number

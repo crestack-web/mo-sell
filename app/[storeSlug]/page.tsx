@@ -5,6 +5,7 @@ import type { ProductCardData } from '@/themes/types';
 import { CreatorProductTabs } from './creator-product-tabs';
 import { EmailSignup } from './components/EmailSignup';
 import { LinkProductStack } from './LinkProductStack';
+import { LinkBioPage } from './components/LinkBioPage';
 import type {
   StorefrontTheme, StoreSection,
   HeroSectionSettings, CollectionsSectionSettings,
@@ -71,6 +72,7 @@ async function getStoreConfig(storeSlug: string) {
       bodyTextColor:       data.bodyTextColor ?? null,
       headerStyle:         data.headerStyle ?? 'left',
       buttonStyle:         data.buttonStyle ?? 'pill',
+      linkBio:             data.linkBio ?? null,
     };
   } catch { return null; }
 }
@@ -170,8 +172,8 @@ export default async function StorefrontHomePage({
     return saved ? { ...def, ...saved, settings: { ...def.settings, ...saved.settings } } : def;
   }).sort((a, b) => a.order - b.order);
 
-  // Link-style: only hero + optional announcement, skip everything else
-  const LINK_SKIP_TYPES = new Set<StoreSection['type']>(['header', 'collections', 'about', 'testimonials', 'instagram', 'newsletter']);
+  // Link-style: pure 1-page scroll — skip all storefront sections
+  const LINK_SKIP_TYPES = new Set<StoreSection['type']>(['header', 'collections', 'about', 'testimonials', 'instagram', 'newsletter', 'announcement', 'hero', 'featured']);
 
   // Fetch data for enabled sections
   const needFeatured    = sections.some(s => s.type === 'featured'    && s.enabled);
@@ -344,19 +346,22 @@ export default async function StorefrontHomePage({
       {allProducts.length > 0 && (
         <div className="sf-page sf-section" id="products">
           {isLinkStyle ? (
-            <div>
-              <p className="sf-section-title" style={{ maxWidth: 480, margin: '0 auto 12px', padding: '0 20px' }}>
-                Products
-                <span style={{ marginLeft: 10, fontSize: '0.78rem', fontWeight: 500, color: 'var(--sf-text-3)' }}>
-                  {allProducts.length} item{allProducts.length !== 1 ? 's' : ''}
-                </span>
-              </p>
-              <LinkProductStack
-                products={allProducts}
-                storeSlug={storeSlug}
-                currency={config.currency}
-              />
-            </div>
+            <LinkBioPage
+              config={{
+                storeSlug,
+                storeName: config.storeName,
+                logoUrl: config.logoUrl,
+                primaryColor: config.primaryColor,
+                secondaryColor: config.secondaryColor,
+                currency: config.currency,
+                tagline: config.tagline,
+                contactEmail: config.contactEmail,
+                contactPhone: config.contactPhone,
+                paystackPublicKey: config.paystackPublicKey ?? '',
+              }}
+              products={allProducts as any}
+              linkBio={(config as any).linkBio}
+            />
           ) : isCreatorTheme(theme) ? (
             <CreatorProductTabs
               products={allProducts}

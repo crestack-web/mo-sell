@@ -90,8 +90,7 @@ export async function POST(req: NextRequest) {
     // Use seller's own key if configured, otherwise fall back to Busmo's
     let paystackSecretKey = process.env.PAYSTACK_SECRET_KEY;
     try {
-      const db2 = getAdminDb();
-      const cfgSnap = await db2.collection('businesses').doc(businessId).collection('store').doc('config').get();
+      const cfgSnap = await db.collection('businesses').doc(businessId).collection('store').doc('config').get();
       if (cfgSnap.exists) {
         const cfg = cfgSnap.data();
         if (cfg?.useOwnPaystack && cfg?.paystackSecretKey) {

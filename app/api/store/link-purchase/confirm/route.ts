@@ -1,0 +1,147 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerFirestore as getAdminDb, FieldValue } from '@/lib/server-firestore';
+import { processConfirmedOrder } from '@/lib/services/mo-sell-integration-bridge';
+
+export async function POST(req: NextRequest) {
+  let body: { storeSlug: string; productId: string; paystackReference: string; customerEmail: string };
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+  }
+
+  const { storeSlug, productId, paystackReference, customerEmail } = body;
+  if (!storeSlug || !productId || !paystackReference || !customerEmail) {
+    return NextResponse.json({ error: 'storeSlug, productId, paystackReference, customerEmail required' }, { status: 400 });
+  }
+
+  try {
+    const db = getAdminDb();
+
+    // 1. Resolve businessId from storeSlug
+    let businessId = '';
+    let storeData: Record<string, any> | null = null;
+
+    const idxDoc = await db.collection('storeIndex').doc(storeSlug).get();
+    if (idxDoc.exists) {
+      businessId = idxDoc.data()?.businessId ?? '';
+      if (businessId) {
+        const cfgSnap = await db.collection('businesses').doc(businessId).collection('store').doc('config').get();
+        if (cfgSnap.exists) storeData = cfgSnap.data() ?? null;
+      }
+    }
+
+    if (!storeData) {
+      const snap = await db.collectionGroup('store').where('storeSlug', '==', storeSlug).limit(1).get();
+      if (!snap.empty) {
+        const doc = snap.docs[0];
+        storeData = doc.data() ?? null;
+        businessId = doc.ref.path.split('/')[1];
+      }
+    }
+
+    if (!businessId || !storeData) {
+      return NextResponse.json({ error: 'Store not found' }, { status: 404 });
+    }
+
+    // 2. Load product
+    const productSnap = await db
+      .collection('businesses').doc(businessId)
+      .collection('storeProducts').doc(productId)
+      .get();
+    if (!productSnap.exists) {
+      return NextResponse.json({ error: 'Product not found' }, { status: 404 });
+    }
+    const product = { id: productSnap.id, ...productSnap.data() } as Record<string, any>;
+    if (!product.available) {
+      return NextResponse.json({ error: 'Product is not available' }, { status: 400 });
+    }
+
+    // 3. Resolve Paystack key
+    let paystackSecretKey = process.env.PAYSTACK_SECRET_KEY;
+    if (storeData?.useOwnPaystack && storeData?.paystackSecretKey) {
+      paystackSecretKey = storeData.paystackSecretKey;
+    }
+    if (!paystackSecretKey) {
+      return NextResponse.json({ error: 'Payment service not configured' }, { status: 500 });
+    }
+
+    // 4. Verify the Paystack transaction
+    const verifyRes = await fetch(
+      `https://api.paystack.co/transaction/verify/${encodeURIComponent(paystackReference)}`,
+      { headers: { Authorization: `Bearer ${paystackSecretKey}` } }
+    );
+    const verifyData = await verifyRes.json() as {
+      status: boolean;
+      data?: { status: string; amount: number; currency: string; reference: string };
+    };
+
+    if (!verifyData.status || !verifyData.data) {
+      return NextResponse.json({ error: 'Paystack verification failed' }, { status: 502 });
+    }
+
+    const txn = verifyData.data;
+    if (txn.status !== 'success') {
+      return NextResponse.json({ error: `Payment not successful: ${txn.status}` }, { status: 402 });
+    }
+
+    // Validate amount matches product price
+    const priceKobo = Math.round(product.price * 100);
+    if (txn.amount < priceKobo) {
+      return NextResponse.json({ error: 'Payment amount does not match product price' }, { status: 400 });
+    }
+
+    // 5. Create a checkout session for the single product
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+    const sessionRef = db
+      .collection('businesses').doc(businessId)
+      .collection('checkoutSessions').doc();
+    const sessionId = sessionRef.id;
+
+    const lineItem = {
+      productId: product.id,
+      productType: product.productType ?? 'physical',
+      displayName: product.displayName ?? '',
+      quantity: 1,
+      unitPrice: product.price ?? 0,
+      lineTotal: product.price ?? 0,
+    };
+
+    await sessionRef.set({
+      storeSlug,
+      businessId,
+      lineItems: [lineItem],
+      customerName: customerEmail.split('@')[0],
+      customerEmail,
+      customerPhone: '',
+      deliveryOption: product.productType === 'digital' ? 'delivery' : 'delivery',
+      shippingAddress: null,
+      shippingZoneId: null,
+      shippingCost: 0,
+      subtotal: product.price ?? 0,
+      total: product.price ?? 0,
+      paystackReference,
+      status: 'payment_confirmed',
+      expiresAt,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+
+    // 6. Run Integration Bridge
+    const bridgeResult = await processConfirmedOrder({
+      businessId,
+      sessionId,
+      paystackData: {
+        reference: txn.reference,
+        status: txn.status,
+        amount: txn.amount,
+        currency: txn.currency,
+        metadata: { productId: product.id, storeSlug, source: 'link-in-bio' },
+      },
+    });
+
+    return NextResponse.json({ orderId: bridgeResult.orderId });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Internal server error';
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
+}

@@ -90,7 +90,7 @@ export function SellAuthGuard({ children }: Props) {
     if (!user) {
       router.replace('/sell-login');
     } else if (!hasAccess) {
-      router.replace('/sell-subscribe');
+      router.replace('/subscribe');
     }
   }, [user, userLoading, subscriptionChecked, hasAccess, router]);
 

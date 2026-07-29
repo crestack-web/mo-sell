@@ -27,10 +27,14 @@ const PATH_TO_PAGE: Record<string, SellPageId> = {
   '/dashboard/earnings':   'earnings',
   '/dashboard/settings':   'settings',
   '/dashboard/customize':  'theme-editor',
+  '/dashboard/themes':     'themes',
+  '/dashboard/link-in-bio':'link-in-bio',
   '/dashboard/ask-mo':     'ask-mo',
   '/dashboard/bookings':   'bookings',
   '/dashboard/customers':  'customers',
-  '/dashboard/content':    'content',
+  '/dashboard/content':       'content',
+  '/dashboard/content-hub':   'content-hub',
+  '/dashboard/admin/ugc-disputes': 'admin-ugc-disputes',
 };
 
 const PAGE_TO_PATH: Record<SellPageId, string> = {
@@ -43,11 +47,15 @@ const PAGE_TO_PATH: Record<SellPageId, string> = {
   'earnings':      '/dashboard/earnings',
   'settings':      '/dashboard/settings',
   'theme-editor':  '/dashboard/customize',
+  'themes':        '/dashboard/themes',
+  'link-in-bio':   '/dashboard/link-in-bio',
   'setup-wizard':  '/dashboard/overview',
   'ask-mo':        '/dashboard/ask-mo',
   'bookings':      '/dashboard/bookings',
   'customers':     '/dashboard/customers',
-  'content':       '/dashboard/content',
+  'content':              '/dashboard/content',
+  'content-hub':          '/dashboard/content-hub',
+  'admin-ugc-disputes':   '/dashboard/admin/ugc-disputes',
 };
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -62,11 +70,15 @@ export type SellPageId =
   | 'earnings'
   | 'settings'
   | 'theme-editor'
+  | 'themes'
+  | 'link-in-bio'
   | 'setup-wizard'
   | 'ask-mo'
   | 'bookings'
   | 'customers'
-  | 'content';
+  | 'content'
+  | 'content-hub'
+  | 'admin-ugc-disputes';
 
 export type SellTheme = 'light' | 'dark';
 

@@ -50,11 +50,11 @@ export function MarketProductPage({ product, storeSlug, currency }: ThemeProduct
       </nav>
 
       {/* 2-column grid: info left, image right (desktop) */}
-      <div style={{
+      <div className="sf-product-page-grid" style={{
         display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 48, alignItems: 'start',
       }}>
         {/* Product info — left side */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, order: 1 }}>
+        <div className="sf-product-page-info" style={{ display: 'flex', flexDirection: 'column', gap: 16, order: 1 }}>
           {/* Category */}
           {product.category && (
             <span style={{
@@ -199,7 +199,7 @@ export function MarketProductPage({ product, storeSlug, currency }: ThemeProduct
         </div>
 
         {/* Image gallery — right side */}
-        <div style={{ order: 2 }}>
+        <div className="sf-product-page-gallery" style={{ order: 2 }}>
           <div style={{
             width: '100%', aspectRatio: '1', overflow: 'hidden',
             background: '#FFF7ED', borderRadius: 12, border: '2px solid #F3F4F6',

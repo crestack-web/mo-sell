@@ -69,7 +69,7 @@ export function SparkProductPage({ product, storeSlug, currency }: ThemeProductP
         <span style={{ color: '#2D1B69', fontWeight: 600 }}>{product.displayName}</span>
       </nav>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1.15fr 1fr', gap: 56, alignItems: 'start' }}>
+      <div className="sf-product-page-grid" style={{ display: 'grid', gridTemplateColumns: '1.15fr 1fr', gap: 56, alignItems: 'start' }}>
         {/* Image gallery */}
         <div>
           <div style={{

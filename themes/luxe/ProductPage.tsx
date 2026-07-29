@@ -41,7 +41,7 @@ export function LuxeProductPage({ product, storeSlug, currency }: ThemeProductPa
         <span style={{ color: '#A89878' }}>{product.displayName}</span>
       </nav>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 64, alignItems: 'start' }}>
+      <div className="sf-product-page-grid" style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 64, alignItems: 'start' }}>
         {/* Full editorial image gallery */}
         <div>
           <div style={{

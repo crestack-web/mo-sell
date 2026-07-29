@@ -313,9 +313,9 @@ function FooterSettings({ s, upd }: { s: FooterSectionSettings; upd: (p: Partial
   </>);
 }
 
-function ThemeCard({ themeId, isActive, storeName, tagline, primary, secondary, onSelect }: {
+function ThemeCard({ themeId, isActive, storeName, tagline, primary, secondary, onSelect, businessId }: {
   themeId: StorefrontTheme; isActive: boolean; storeName: string; tagline: string;
-  primary: string; secondary: string; onSelect: () => void;
+  primary: string; secondary: string; onSelect: () => void; businessId?: string;
 }) {
   const t = THEMES.find(x => x.id === themeId)!;
   const cardRef = useRef<HTMLDivElement>(null);
@@ -336,7 +336,7 @@ function ThemeCard({ themeId, isActive, storeName, tagline, primary, secondary, 
     return () => ro.disconnect();
   }, []);
 
-  const previewUrl = `/dashboard/theme-preview/${themeId}?primary=${encodeURIComponent(primary)}&secondary=${encodeURIComponent(secondary)}&storeName=${encodeURIComponent(storeName || 'Your Store')}&tagline=${encodeURIComponent(tagline || 'Shop our latest collection')}`;
+  const previewUrl = `/dashboard/theme-preview/${themeId}?primary=${encodeURIComponent(primary)}&secondary=${encodeURIComponent(secondary)}&storeName=${encodeURIComponent(storeName || 'Your Store')}&tagline=${encodeURIComponent(tagline || 'Shop our latest collection')}${businessId ? `&businessId=${encodeURIComponent(businessId)}` : ''}`;
 
   return (
     <div className={[styles.themeCard, isActive ? styles.themeCardActive : ''].join(' ')} onClick={onSelect}>
@@ -477,7 +477,7 @@ export function ThemeEditorPage() {
 
   useEffect(() => {
     if (!user?.businessId) return;
-    const baseUrl = process.env.PUBLIC_APP_URL ?? 'http://localhost:3000';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? '';
     fetch(`${baseUrl}/api/store/products?businessId=${user.businessId}&available=true`)
       .then(r => r.ok ? r.json() : { products: [] })
       .then(d => setProducts(d.products ?? []))
@@ -486,7 +486,7 @@ export function ThemeEditorPage() {
 
   useEffect(() => {
     if (!user?.businessId) return;
-    const baseUrl = process.env.PUBLIC_APP_URL ?? 'http://localhost:3000';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? '';
     fetch(`${baseUrl}/api/store/collections?businessId=${user.businessId}`)
       .then(r => r.ok ? r.json() : { collections: [] })
       .then(d => setCollections(d.collections ?? []))
@@ -698,6 +698,7 @@ export function ThemeEditorPage() {
             {THEMES.map(t => (
               <ThemeCard key={t.id} themeId={t.id} isActive={theme === t.id}
                 storeName={storeName} tagline={tagline} primary={primary} secondary={secondary}
+                businessId={user?.businessId}
                 onSelect={() => { setTheme(t.id); pushUndo(); mark(); setView('editor'); }} />
             ))}
           </div>
