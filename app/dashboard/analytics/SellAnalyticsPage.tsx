@@ -153,9 +153,10 @@ export function SellAnalyticsPage() {
     { label: 'Orders completed',    count: totalOrders,         color: '#16A34A' },
   ];
 
+  const appDomain = process.env.NEXT_PUBLIC_APP_URL || 'https://mo-sell.store';
   const liveUrl = storeConfig?.customDomainStatus === 'verified' && storeConfig?.customDomain
     ? `https://${storeConfig.customDomain}`
-    : storeConfig?.storeSlug ? `${process.env.NEXT_PUBLIC_APP_URL}/${storeConfig.storeSlug}` : null;
+    : storeConfig?.storeSlug ? `${appDomain}/${storeConfig.storeSlug}` : null;
 
   if (loading) {
     return (
