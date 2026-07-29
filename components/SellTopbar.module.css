@@ -119,6 +119,29 @@
 
 @media (max-width: 640px) { .viewStoreBtn span { display: none; } }
 
+/* ── Share button ── */
+.shareBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: var(--sell-radius-sm);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--sell-text-2);
+  background: var(--sell-bg);
+  border: 1px solid var(--sell-border);
+  cursor: pointer;
+  transition: background var(--sell-transition), color var(--sell-transition);
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.shareBtn:hover { background: var(--sell-surface-2); color: var(--sell-text-1); }
+.shareBtn svg { width: 13px; height: 13px; flex-shrink: 0; }
+
+@media (max-width: 640px) { .shareBtn span { display: none; } }
+
 /* ── Icon buttons ── */
 .iconBtn {
   width: 36px;

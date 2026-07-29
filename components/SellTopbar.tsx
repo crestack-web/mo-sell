@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import { useSell } from '../context/SellContext';
 import styles from './SellTopbar.module.css';
 
@@ -20,12 +20,21 @@ const PAGE_LABELS: Record<string, string> = {
 export function SellTopbar() {
   const {
     activePage, openSidebar, toggleTheme, theme,
-    user, storeConfig, quickStats, navigateTo,
+    user, storeConfig, quickStats, navigateTo, showToast,
   } = useSell();
 
   const pageTitle   = PAGE_LABELS[activePage] ?? 'MO Sell';
   const storeSlug   = storeConfig?.storeSlug;
   const storeStatus = storeConfig?.status ?? null;
+
+  const copyStoreLink = useCallback(() => {
+    const url = `${window.location.origin}/${storeSlug}`;
+    navigator.clipboard.writeText(url).then(() => {
+      showToast('Store link copied!', 'success');
+    }).catch(() => {
+      showToast('Failed to copy link', 'error');
+    });
+  }, [storeSlug, showToast]);
 
   const badgeClass =
     storeStatus === 'active' ? styles.badgeActive :
@@ -90,6 +99,17 @@ export function SellTopbar() {
             </svg>
             <span>View Store</span>
           </a>
+        )}
+
+        {/* Share / Copy link */}
+        {storeSlug && (
+          <button className={styles.shareBtn} onClick={copyStoreLink} title="Copy store link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+            </svg>
+            <span>Share</span>
+          </button>
         )}
 
         {/* Pending orders indicator */}
