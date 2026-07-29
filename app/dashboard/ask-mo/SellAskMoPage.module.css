@@ -322,6 +322,89 @@
   font-weight: 600;
 }
 
+/* ── Ebook Content Preview (scrollable card) ── */
+
+.ebookContent {
+  max-height: 320px;
+  overflow-y: auto;
+  margin-top: 8px;
+  border: 1px solid var(--sell-border, #e5e7eb);
+  border-radius: 8px;
+  padding: 12px;
+  background: var(--sell-bg-alt, #f9fafb);
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--sell-text, #1a1a1a);
+}
+
+.ebookContent::-webkit-scrollbar {
+  width: 5px;
+}
+
+.ebookContent::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.ebookContent::-webkit-scrollbar-thumb {
+  background: var(--sell-border, #d1d5db);
+  border-radius: 8px;
+}
+
+.ebookChapter {
+  margin-bottom: 16px;
+}
+
+.ebookChapter:last-child {
+  margin-bottom: 0;
+}
+
+.ebookChapterNum {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--sell-accent, #6366f1);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
+}
+
+.ebookChapterHeading {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--sell-text, #1a1a1a);
+  margin-bottom: 6px;
+}
+
+.ebookChapterBody {
+  font-size: 12px;
+  color: var(--sell-text, #1a1a1a);
+  white-space: pre-wrap;
+  line-height: 1.7;
+}
+
+/* ── Preview Button ── */
+
+.previewBtn {
+  width: 100%;
+  padding: 10px 16px;
+  background: transparent;
+  border: 1.5px solid var(--sell-accent, #6366f1);
+  border-radius: 8px;
+  color: var(--sell-accent, #6366f1);
+  font-weight: 700;
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.previewBtn:hover {
+  background: var(--sell-accent, #6366f1);
+  color: #ffffff;
+}
+
 .confirmBtn {
   flex: 1;
   padding: 7px 14px;
@@ -467,6 +550,170 @@
 .sendBtnIcon {
   width: 18px;
   height: 18px;
+}
+
+/* ── Action Buttons (attach, record) ── */
+
+.actionBtn {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid var(--sell-border, #e5e7eb);
+  background: var(--sell-bg-alt, #f9fafb);
+  color: var(--sell-text-muted, #6b7280);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.actionBtn:hover:not(:disabled) {
+  background: var(--sell-bg, #ffffff);
+  color: var(--sell-text, #1a1a1a);
+  border-color: var(--sell-border-hover, #d1d5db);
+}
+
+.actionBtn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.actionBtnActive {
+  background: #fef2f2;
+  border-color: #fca5a5;
+  color: #dc2626;
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+/* ── Hidden File Input ── */
+
+.hiddenInput {
+  display: none;
+}
+
+/* ── Recording Badge ── */
+
+.recordingBadge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #dc2626;
+  flex-shrink: 0;
+  background: #fef2f2;
+  padding: 4px 10px;
+  border-radius: 8px;
+}
+
+.recordingDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #dc2626;
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+  50% { opacity: 0; }
+}
+
+/* ── Attachment Bar ── */
+
+.attachmentBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 0 8px;
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+.attachmentChip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px 4px 6px;
+  border-radius: 8px;
+  background: var(--sell-bg-alt, #f3f4f6);
+  border: 1px solid var(--sell-border, #e5e7eb);
+  font-size: 11px;
+  color: var(--sell-text, #1a1a1a);
+  max-width: 200px;
+}
+
+.attachmentChipIcon {
+  font-size: 13px;
+  line-height: 1;
+}
+
+.attachmentChipName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attachmentChipRemove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: none;
+  background: transparent;
+  color: var(--sell-text-muted, #9ca3af);
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.attachmentChipRemove:hover {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+/* ── Attachment Previews in Messages ── */
+
+.attachmentPreview {
+  margin-bottom: 6px;
+}
+
+.attachmentImage {
+  max-width: 200px;
+  max-height: 200px;
+  border-radius: 8px;
+  display: block;
+}
+
+.attachmentAudio {
+  width: 100%;
+  max-width: 240px;
+  height: 36px;
+  border-radius: 8px;
+}
+
+.attachmentFile {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  background: rgba(255,255,255,0.15);
+  font-size: 12px;
+  font-weight: 500;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* ── History Panel ── */
@@ -672,5 +919,29 @@
   .welcomeSubtitle {
     font-size: 12px;
     margin-bottom: 16px;
+  }
+
+  .actionBtn {
+    width: 32px;
+    height: 32px;
+  }
+
+  .actionBtn svg {
+    width: 15px;
+    height: 15px;
+  }
+
+  .recordingBadge {
+    font-size: 11px;
+    padding: 3px 8px;
+  }
+
+  .attachmentImage {
+    max-width: 140px;
+    max-height: 140px;
+  }
+
+  .attachmentAudio {
+    max-width: 180px;
   }
 }

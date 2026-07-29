@@ -19,24 +19,12 @@ interface Props {
   secondaryColor?: string;
 }
 
-const THEME_PRESETS = [
-  { name: 'Default', primary: '', secondary: '' },
-  { name: 'Ocean', primary: '#0EA5E9', secondary: '#0284C7' },
-  { name: 'Forest', primary: '#10B981', secondary: '#059669' },
-  { name: 'Rose', primary: '#F43F5E', secondary: '#E11D48' },
-  { name: 'Amber', primary: '#F59E0B', secondary: '#D97706' },
-  { name: 'Violet', primary: '#8B5CF6', secondary: '#7C3AED' },
-  { name: 'Dark', primary: '#1E293B', secondary: '#334155' },
-];
-
-export function StorefrontNav({ storeName, logoUrl, storeSlug, businessId, hideStoreNameWithLogo, headerStyle = 'left', showSearch = false, primaryColor, secondaryColor }: Props) {
+export function StorefrontNav({ storeName, logoUrl, storeSlug, businessId, hideStoreNameWithLogo, headerStyle = 'left', showSearch = false }: Props) {
   const { totalItems, toggleCart } = useCart();
   const [collections, setCollections] = useState<Collection[]>([]);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [showColorPicker, setShowColorPicker] = useState(false);
-  const [activePreset, setActivePreset] = useState(0);
 
   useEffect(() => {
     if (!businessId) return;
@@ -45,18 +33,6 @@ export function StorefrontNav({ storeName, logoUrl, storeSlug, businessId, hideS
       .then(d => setCollections((d.collections ?? []).slice(0, 5)))
       .catch(() => {});
   }, [businessId]);
-
-  const applyPreset = useCallback((idx: number) => {
-    const p = THEME_PRESETS[idx];
-    setActivePreset(idx);
-    if (idx === 0 && primaryColor && secondaryColor) {
-      document.documentElement.style.setProperty('--sf-primary', primaryColor);
-      document.documentElement.style.setProperty('--sf-secondary', secondaryColor);
-    } else if (p.primary) {
-      document.documentElement.style.setProperty('--sf-primary', p.primary);
-      document.documentElement.style.setProperty('--sf-secondary', p.secondary);
-    }
-  }, [primaryColor, secondaryColor]);
 
   const handleSearch = useCallback((e: React.FormEvent) => {
     e.preventDefault();
@@ -122,53 +98,23 @@ export function StorefrontNav({ storeName, logoUrl, storeSlug, businessId, hideS
     </button>
   ) : null;
 
-  const colorPickerButton = (
-    <button
-      onClick={() => setShowColorPicker(!showColorPicker)}
-      aria-label="Change theme colors"
-      title="Theme colors"
+  const customizeLink = (
+    <a
+      href={`/dashboard/customize`}
+      title="Customize your store"
       style={{
         background: 'none', border: 'none', cursor: 'pointer',
-        padding: 6, color: 'var(--sf-text-2)', display: 'flex',
-        alignItems: 'center', borderRadius: 8, position: 'relative',
+        padding: '6px 10px', color: 'var(--sf-text-2)', display: 'flex',
+        alignItems: 'center', borderRadius: 8, gap: 4,
+        fontSize: 12, fontWeight: 500, textDecoration: 'none',
       }}
     >
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-        <circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+        <circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
       </svg>
-    </button>
+      Customize
+    </a>
   );
-
-  const colorPickerPopup = showColorPicker ? (
-    <div style={{
-      position: 'absolute', top: '100%', right: 0, zIndex: 100,
-      background: '#fff', borderRadius: 12, boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
-      padding: 12, minWidth: 200, marginTop: 4,
-    }}>
-      <p style={{ fontSize: '0.75rem', fontWeight: 600, color: '#6B7280', margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-        Theme Colors
-      </p>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-        {THEME_PRESETS.map((p, i) => (
-          <button
-            key={p.name}
-            onClick={() => applyPreset(i)}
-            title={p.name}
-            style={{
-              width: 28, height: 28, borderRadius: '50%', border: activePreset === i ? '2px solid #111' : '2px solid transparent',
-              cursor: 'pointer', padding: 0,
-              background: i === 0 && primaryColor ? `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`
-                         : p.primary ? `linear-gradient(135deg, ${p.primary}, ${p.secondary})`
-                         : 'linear-gradient(135deg, #C9A84C, #8B7355)',
-            }}
-          />
-        ))}
-      </div>
-      <p style={{ fontSize: '0.65rem', color: '#9CA3AF', margin: '6px 0 0' }}>
-        Colors only you can see
-      </p>
-    </div>
-  ) : null;
 
   const searchOverlay = searchOpen ? (
     <div style={{
@@ -205,8 +151,7 @@ export function StorefrontNav({ storeName, logoUrl, storeSlug, businessId, hideS
   const cartAndActions = (
     <div style={{ display: 'flex', gap: 2, alignItems: 'center', position: 'relative' }}>
       {searchButton}
-      {colorPickerButton}
-      {colorPickerPopup}
+      {customizeLink}
       <button
         className="sf-nav-menu sf-nav-mobile-only"
         onClick={() => setMobileMenuOpen(!mobileMenuOpen)}

@@ -100,6 +100,8 @@ export function ThemesPage() {
             <div
               key={theme.id}
               className={[styles.card, isActive ? styles.cardActive : ''].join(' ')}
+              onClick={() => handleApply(theme.id)}
+              style={{ cursor: isActive ? 'default' : 'pointer' }}
             >
               <div
                 className={styles.preview}
@@ -155,7 +157,7 @@ export function ThemesPage() {
                     </div>
                   )}
                 </div>
-                {isLink && <span className={styles.badge}>E-COMMERCE</span>}
+                {!isLink && <span className={styles.badge}>E-COMMERCE</span>}
               </div>
 
               <div className={styles.info}>
@@ -178,7 +180,7 @@ export function ThemesPage() {
               <button
                 className={[styles.applyBtn, isActive ? styles.appliedBtn : ''].join(' ')}
                 style={isActive ? { background: '#10B981', color: '#fff' } : {}}
-                onClick={() => handleApply(theme.id)}
+                onClick={(e) => { e.stopPropagation(); handleApply(theme.id); }}
                 disabled={isActive || isLoading}
               >
                 {isLoading ? 'Applying...' : isActive ? 'Active' : 'Use Theme'}

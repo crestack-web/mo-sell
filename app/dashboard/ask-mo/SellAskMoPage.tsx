@@ -9,10 +9,19 @@ import styles from './SellAskMoPage.module.css';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
+interface Attachment {
+  id: string;
+  type: 'image' | 'audio' | 'file';
+  name: string;
+  data: string;
+  mimeType: string;
+}
+
 interface ChatMessage {
   id: string;
   role: 'user' | 'bot';
   text: string;
+  attachments?: Attachment[];
   storeUpdate?: Record<string, unknown> | null;
   newProduct?: Record<string, unknown> | null;
   editProduct?: Record<string, unknown> | null;
@@ -85,8 +94,15 @@ export function SellAskMoPage() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [recording, setRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordingChunksRef = useRef<Blob[]>([]);
+  const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const loadedRef = useRef(false);
   const messagesRef = useRef<ChatMessage[]>([]);
   const historyRef = useRef<{ role: 'user' | 'model'; parts: { text: string }[] }[]>([]);
@@ -103,6 +119,76 @@ export function SellAskMoPage() {
   useEffect(() => {
     scrollToBottom();
   }, [messages, loading, scrollToBottom]);
+
+  // ── File picker ────────────────────────────────────────────────────────
+
+  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files?.length) return;
+    const file = files[0];
+    const MAX_SIZE = 20 * 1024 * 1024;
+    if (file.size > MAX_SIZE) {
+      showToast('File too large. Maximum size is 20 MB.', 'error');
+      e.target.value = '';
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const data = (reader.result as string).split(',')[1];
+      const type: 'image' | 'audio' | 'file' = file.type.startsWith('image/') ? 'image' : file.type.startsWith('audio/') ? 'audio' : 'file';
+      setAttachments(prev => [...prev, { id: nextMsgId(), type, name: file.name, data, mimeType: file.type }]);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  }, [showToast]);
+
+  // ── Voice recording ────────────────────────────────────────────────────
+
+  const startRecording = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
+      const recorder = new MediaRecorder(stream, { mimeType });
+        mediaRecorderRef.current = recorder;
+      recordingChunksRef.current = [];
+      setRecording(true);
+      setRecordingTime(0);
+
+      recordingTimerRef.current = setInterval(() => {
+        setRecordingTime(prev => prev + 1);
+      }, 1000);
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) recordingChunksRef.current.push(e.data);
+      };
+
+      recorder.onstop = () => {
+        stream.getTracks().forEach(t => t.stop());
+        if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+        setRecording(false);
+        const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
+        const blob = new Blob(recordingChunksRef.current, { type: mimeType });
+        const reader = new FileReader();
+        reader.onload = () => {
+          const data = (reader.result as string).split(',')[1];
+          setAttachments(prev => [...prev, { id: nextMsgId(), type: 'audio', name: 'Voice note.webm', data, mimeType: 'audio/webm' }]);
+        };
+        reader.readAsDataURL(blob);
+      };
+
+      recorder.start();
+    } catch {
+      showToast('Microphone access denied', 'error');
+    }
+  }, [showToast]);
+
+  const stopRecording = useCallback(() => {
+    mediaRecorderRef.current?.stop();
+  }, []);
+
+  const removeAttachment = useCallback((id: string) => {
+    setAttachments(prev => prev.filter(a => a.id !== id));
+  }, []);
 
   // ── Load active conversation from Firestore ────────────────────────────
 
@@ -261,6 +347,7 @@ export function SellAskMoPage() {
     setConversationHistory([]);
     setActiveConvId(null);
     setInput('');
+    setAttachments([]);
   }, [user?.businessId]);
 
   // ── Delete a past conversation ─────────────────────────────────────────
@@ -281,25 +368,30 @@ export function SellAskMoPage() {
 
   const sendMessage = useCallback(
     async (text: string) => {
-      if (!text.trim() || loading) return;
+      const hasAttachments = attachments.length > 0;
+      if (!text.trim() && !hasAttachments) return;
       if (!user?.businessId) {
         showToast('Business ID not found. Please try again.', 'error');
         return;
       }
 
-      const userMsg: ChatMessage = { id: nextMsgId(), role: 'user', text: text.trim() };
+      const messageText = text.trim();
+      const currentAttachments = [...attachments];
+      const userMsg: ChatMessage = { id: nextMsgId(), role: 'user', text: messageText, attachments: currentAttachments };
       setMessages(prev => [...prev, userMsg]);
       setInput('');
+      setAttachments([]);
       setLoading(true);
 
-      const userHistoryEntry = { role: 'user' as const, parts: [{ text: text.trim() }] };
+      const userHistoryEntry = { role: 'user' as const, parts: [{ text: messageText || '(attachment)' }] };
 
       try {
         const res = await fetch('/api/sell/ask-mo', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            message: text.trim(),
+            message: messageText,
+            attachments: currentAttachments,
             businessId: user.businessId,
             storeConfig: storeConfig ?? null,
             conversationHistory: conversationHistory,
@@ -309,28 +401,29 @@ export function SellAskMoPage() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || data.details || 'Failed to get response');
 
+        // proposedProduct = ebook content for inline review (not yet created)
+        const productToShow = data.proposedProduct ?? data.newProduct ?? null;
+
         const botMsg: ChatMessage = {
           id: nextMsgId(),
           role: 'bot',
           text: data.answer,
           storeUpdate: data.storeUpdate ?? null,
-          newProduct: data.newProduct ?? null,
+          newProduct: productToShow,
           editProduct: data.editProduct ?? null,
-          showPreview: !!(data.newProduct || data.editProduct),
+          showPreview: !!(data.storeUpdate || productToShow || data.editProduct),
         };
 
-        // If an editProduct was returned, find the original message and update its newProduct
+        // If an editProduct was returned for an existing product, find original and update
         if (data.editProduct && data.editProduct.id) {
           setMessages(prev => {
             const updated = [...prev];
-            // Find the last bot message with a matching newProduct and update it
             for (let i = updated.length - 1; i >= 0; i--) {
               if (updated[i].newProduct && (updated[i].newProduct as any).id === data.editProduct.id) {
                 updated[i] = { ...updated[i], newProduct: data.editProduct, showPreview: true };
                 break;
               }
             }
-            // Add the new bot message with the edit confirmation
             updated.push(botMsg);
             return updated;
           });
@@ -352,7 +445,7 @@ export function SellAskMoPage() {
         setLoading(false);
       }
     },
-    [loading, user, storeConfig, conversationHistory, showToast]
+    [loading, user, storeConfig, conversationHistory, attachments, showToast]
   );
 
   // ── Apply store update ─────────────────────────────────────────────────
@@ -382,8 +475,71 @@ export function SellAskMoPage() {
 
   const markProductCreated = useCallback((messageId: string) => {
     setMessages(prev => prev.map(msg => msg.id === messageId ? { ...msg, productCreated: true } : msg));
-    showToast('Product created and ready to sell!', 'success');
+    showToast('Product is now live in your store!', 'success');
   }, [showToast]);
+
+  // ── Approve proposed product (generate PDF + create in Firestore) ──────
+
+  const approveProduct = useCallback(
+    async (msgId: string, productData: Record<string, unknown>) => {
+      if (!user?.businessId) return;
+      setLoading(true);
+      try {
+        const res = await fetch('/api/sell/ask-mo', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            businessId: user.businessId,
+            storeConfig: storeConfig ?? null,
+            productData,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) throw new Error(data.error || data.details || 'Approval failed');
+
+        // Update the message with the created product (now has id + digitalFileUrl)
+        // Do NOT set productCreated yet — user must click "Looks Good" or "Publish to Store"
+        setMessages(prev => prev.map(msg => {
+          if (msg.id === msgId) {
+            return {
+              ...msg,
+              newProduct: { ...productData, ...data.product },
+            };
+          }
+          return msg;
+        }));
+
+        showToast('Ebook created successfully! Preview it below.', 'success');
+      } catch (err) {
+        const errMsg = err instanceof Error ? err.message : 'Failed to approve product';
+        showToast(errMsg, 'error');
+      } finally {
+        setLoading(false);
+      }
+    },
+    [user?.businessId, storeConfig, showToast]
+  );
+
+  // ── Open product PDF in new tab ───────────────────────────────────────
+
+  const openProductPdf = useCallback((url: string) => {
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }, []);
+
+  // ── Make product public ───────────────────────────────────────────────
+
+  const publishProduct = useCallback(async (messageId: string, productId: string) => {
+    if (!user?.businessId) return;
+    try {
+      const { firestore } = initializeFirebase();
+      const productRef = doc(firestore, 'businesses', user.businessId, 'storeProducts', productId);
+      await updateDoc(productRef, { available: true, featured: true });
+      setMessages(prev => prev.map(msg => msg.id === messageId ? { ...msg, productCreated: true } : msg));
+      showToast('Product is now public in your store!', 'success');
+    } catch {
+      showToast('Failed to publish product.', 'error');
+    }
+  }, [user?.businessId, showToast]);
 
   // ── Handlers ───────────────────────────────────────────────────────────
 
@@ -470,8 +626,24 @@ export function SellAskMoPage() {
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={MO_AVATAR} alt="MO" className={styles.botAvatar} />
                   )}
-                  <div className={styles.messageContent}>
-                    <div className={styles.messageBubble}>{msg.text}</div>
+                    <div className={styles.messageContent}>
+                      <div className={styles.messageBubble}>
+                        {msg.attachments?.map(a => (
+                          <div key={a.id} className={styles.attachmentPreview}>
+                            {a.type === 'image' ? (
+                              <img src={`data:${a.mimeType};base64,${a.data}`} alt={a.name} className={styles.attachmentImage} />
+                            ) : a.type === 'audio' ? (
+                              <audio controls src={`data:${a.mimeType};base64,${a.data}`} className={styles.attachmentAudio} />
+                            ) : (
+                              <div className={styles.attachmentFile}>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                {a.name}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                        {msg.text}
+                      </div>
 
                     {/* ── Store Update Card ── */}
                     {msg.storeUpdate && !isAllNull(msg.storeUpdate) && (
@@ -516,65 +688,88 @@ export function SellAskMoPage() {
                           <div className={styles.actionCardRow}><span className={styles.actionCardLabel}>Price</span><span className={styles.actionCardValue}>₦{Number(msg.newProduct.price).toLocaleString()}</span></div>
                           {msg.newProduct.category ? <div className={styles.actionCardRow}><span className={styles.actionCardLabel}>Category</span><span className={styles.actionCardValue}>{String(msg.newProduct.category)}</span></div> : null}
                           {msg.newProduct.description ? (
-                            <div style={{ padding: '8px 0', fontSize: '12px', color: 'var(--sell-text-muted, #6b7280)', lineHeight: 1.5 }}>
+                            <div style={{ fontSize: '11.5px', color: 'var(--sell-text-muted, #6b7280)', lineHeight: 1.5, marginTop: 4 }}>
                               {String(msg.newProduct.description)}
                             </div>
                           ) : null}
 
-                          {/* Chapter list */}
-                          {(msg.newProduct as any).pdfContent?.chapters && (
-                            <div style={{ marginTop: 8 }}>
-                              <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--sell-text, #1a1a1a)', marginBottom: 6 }}>
+                          {/* ── Scrollable Ebook Content (proposal mode) ── */}
+                          {!msg.newProduct.digitalFileUrl && (msg.newProduct as any).pdfContent?.chapters && (
+                            <>
+                              <div style={{ marginTop: 8, fontSize: 11, fontWeight: 700, color: 'var(--sell-text, #1a1a1a)' }}>
                                 📄 {((msg.newProduct as any).pdfContent.chapters as any[]).length} Chapters
-                              </p>
-                              {((msg.newProduct as any).pdfContent.chapters as any[]).map((ch: any, i: number) => (
-                                <div key={i} style={{ padding: '4px 0', fontSize: 11, color: 'var(--sell-text-muted, #6b7280)', display: 'flex', gap: 6 }}>
-                                  <span style={{ color: 'var(--sell-accent, #6366f1)', fontWeight: 600, minWidth: 20 }}>{String(i + 1).padStart(2, '0')}</span>
-                                  <span>{ch.heading}</span>
-                                </div>
-                              ))}
-                            </div>
+                                {' '}·{' '}
+                                ✍️ ~{((msg.newProduct as any).pdfContent.chapters as any[]).reduce((sum: number, ch: any) => sum + (ch.body?.split(/\s+/).length || 0), 0).toLocaleString()} words
+                              </div>
+                              <div className={styles.ebookContent}>
+                                {((msg.newProduct as any).pdfContent.chapters as any[]).map((ch: any, i: number) => (
+                                  <div key={i} className={styles.ebookChapter}>
+                                    <div className={styles.ebookChapterNum}>CHAPTER {i + 1}</div>
+                                    <div className={styles.ebookChapterHeading}>{ch.heading}</div>
+                                    <div className={styles.ebookChapterBody}>{ch.body}</div>
+                                  </div>
+                                ))}
+                              </div>
+                            </>
                           )}
 
-                          {/* PDF Preview */}
+                          {/* ── Post-approval: Preview / Download / Publish ── */}
                           {msg.newProduct?.digitalFileUrl && (
-                            <div style={{ marginTop: 12 }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 10 }}>
                               <button
                                 onClick={() => setPreviewEbook({ url: String(msg.newProduct!.digitalFileUrl), title: String(msg.newProduct!.displayName || 'Ebook Preview') })}
-                                style={{
-                                  width: '100%', padding: '10px 16px',
-                                  background: 'transparent', border: '1.5px solid var(--sell-accent, #6366f1)',
-                                  borderRadius: 8, color: 'var(--sell-accent, #6366f1)',
-                                  fontWeight: 700, fontSize: 12, cursor: 'pointer',
-                                  display: 'flex', alignItems: 'center', gap: 6,
-                                  justifyContent: 'center', transition: 'all 0.15s',
-                                }}
-                                onMouseEnter={e => { e.currentTarget.style.background = 'var(--sell-accent, #6366f1)'; e.currentTarget.style.color = '#fff'; }}
-                                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--sell-accent, #6366f1)'; }}
+                                className={styles.previewBtn}
                               >
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                   <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
                                 </svg>
                                 Preview ebook
                               </button>
-                            </div>
-                          )}
-
-                          {/* Word count estimate */}
-                          {(msg.newProduct as any).pdfContent?.chapters && (
-                            <div style={{ marginTop: 8, fontSize: 11, color: 'var(--sell-accent, #6366f1)', fontWeight: 500 }}>
-                              ✍️ ~{((msg.newProduct as any).pdfContent.chapters as any[]).reduce((sum: number, ch: any) => sum + (ch.body?.split(/\s+/).length || 0), 0).toLocaleString()} words of content
+                              <div style={{ display: 'flex', gap: 8 }}>
+                                <button
+                                  onClick={() => openProductPdf(String(msg.newProduct!.digitalFileUrl))}
+                                  className={`${styles.confirmBtn} ${styles.confirmBtnSecondary}`}
+                                  style={{ flex: 1 }}
+                                >
+                                  ⬇ Open PDF
+                                </button>
+                                {(msg.newProduct as any).id && !msg.productCreated && (
+                                  <button
+                                    onClick={() => publishProduct(msg.id, String(msg.newProduct!.id))}
+                                    className={`${styles.confirmBtn} ${styles.confirmBtnPrimary}`}
+                                    style={{ flex: 1 }}
+                                  >
+                                    🌐 Publish to Store
+                                  </button>
+                                )}
+                              </div>
                             </div>
                           )}
                         </div>
                         <div className={styles.actionCardFooter}>
-                          {msg.productCreated ? (
+                          {msg.productCreated && msg.newProduct?.digitalFileUrl ? (
                             <span className={styles.appliedLabel}>✓ Product live in your store</span>
-                          ) : (
+                          ) : msg.newProduct?.digitalFileUrl ? (
                             <>
                               <button
                                 className={`${styles.confirmBtn} ${styles.confirmBtnPrimary}`}
                                 onClick={() => markProductCreated(msg.id)}
+                              >
+                                ✓ Looks Good
+                              </button>
+                              <button
+                                className={`${styles.confirmBtn} ${styles.confirmBtnSecondary}`}
+                                onClick={() => setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, newProduct: null } : m))}
+                              >
+                                Dismiss
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                className={`${styles.confirmBtn} ${styles.confirmBtnPrimary}`}
+                                onClick={() => approveProduct(msg.id, msg.newProduct as Record<string, unknown>)}
+                                disabled={loading}
                               >
                                 ✓ Looks Good
                               </button>
@@ -621,7 +816,54 @@ export function SellAskMoPage() {
 
         {/* ── Input Area ── */}
         <div className={styles.inputArea}>
+          {attachments.length > 0 && (
+            <div className={styles.attachmentBar}>
+              {attachments.map(a => (
+                <div key={a.id} className={styles.attachmentChip}>
+                  {a.type === 'image' && <span className={styles.attachmentChipIcon}>🖼️</span>}
+                  {a.type === 'audio' && <span className={styles.attachmentChipIcon}>🎤</span>}
+                  {a.type === 'file' && <span className={styles.attachmentChipIcon}>📎</span>}
+                  <span className={styles.attachmentChipName}>{a.name}</span>
+                  <button className={styles.attachmentChipRemove} onClick={() => removeAttachment(a.id)} aria-label="Remove attachment">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
           <div className={styles.inputWrapper}>
+            <button
+              className={styles.actionBtn}
+              onClick={() => fileInputRef.current?.click()}
+              disabled={loading}
+              aria-label="Attach file or image"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/>
+              </svg>
+            </button>
+            <input ref={fileInputRef} type="file" accept="image/*,audio/*,.pdf,.doc,.docx,.txt,.csv" className={styles.hiddenInput} onChange={handleFileSelect} />
+            <button
+              className={`${styles.actionBtn} ${recording ? styles.actionBtnActive : ''}`}
+              onClick={recording ? stopRecording : startRecording}
+              disabled={loading}
+              aria-label={recording ? 'Stop recording' : 'Record voice'}
+            >
+              {recording ? (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
+              ) : (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/>
+                  <path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/>
+                </svg>
+              )}
+            </button>
+            {recording && (
+              <span className={styles.recordingBadge}>
+                <span className={styles.recordingDot} />
+                {Math.floor(recordingTime / 60)}:{(recordingTime % 60).toString().padStart(2, '0')}
+              </span>
+            )}
             <textarea
               ref={inputRef}
               className={styles.inputField}
@@ -635,7 +877,7 @@ export function SellAskMoPage() {
             <button
               className={styles.sendBtn}
               onClick={() => sendMessage(input)}
-              disabled={!input.trim() || loading}
+              disabled={(!input.trim() && attachments.length === 0) || loading}
               aria-label="Send message"
             >
               <svg className={styles.sendBtnIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

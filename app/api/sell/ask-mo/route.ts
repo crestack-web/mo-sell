@@ -141,12 +141,34 @@ THEME GUIDE:
 CATEGORIES: fashion, beauty, food, electronics, home, health, services, general, digital
 `;
 
+interface AttachmentData {
+  id: string;
+  type: 'image' | 'audio' | 'file';
+  name: string;
+  data: string;
+  mimeType: string;
+}
+
+type GeminiPart = { text: string } | { inlineData: { mimeType: string; data: string } };
+
+function buildParts(message: string, attachments?: AttachmentData[]): GeminiPart[] {
+  const parts: GeminiPart[] = [];
+  if (message) parts.push({ text: message });
+  if (attachments) {
+    for (const a of attachments) {
+      parts.push({ inlineData: { mimeType: a.mimeType, data: a.data } });
+    }
+  }
+  return parts;
+}
+
 async function callGemini(
   genAI: GoogleGenerativeAI,
   modelName: string,
   systemPrompt: string,
-  history: { role: 'user' | 'model'; parts: { text: string }[] }[],
+  history: { role: 'user' | 'model'; parts: GeminiPart[] }[],
   message: string,
+  attachments?: AttachmentData[],
 ): Promise<string> {
   const model = genAI.getGenerativeModel({
     model: modelName,
@@ -159,7 +181,8 @@ async function callGemini(
     })),
     generationConfig: { temperature: 0.8, maxOutputTokens: 8192 },
   });
-  const result = await chat.sendMessage(message);
+  const parts = buildParts(message, attachments);
+  const result = await chat.sendMessage(parts);
   const text = result.response.text();
   if (!text) throw new Error('Gemini returned empty response');
   return text;
@@ -168,13 +191,14 @@ async function callGemini(
 async function callWithFallback(
   genAI: GoogleGenerativeAI,
   systemPrompt: string,
-  history: { role: 'user' | 'model'; parts: { text: string }[] }[],
+  history: { role: 'user' | 'model'; parts: GeminiPart[] }[],
   message: string,
+  attachments?: AttachmentData[],
 ): Promise<string> {
   const errors: string[] = [];
   for (const modelName of MODELS) {
     try {
-      return await callGemini(genAI, modelName, systemPrompt, history, message);
+      return await callGemini(genAI, modelName, systemPrompt, history, message, attachments);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       errors.push(`${modelName}: ${msg}`);
@@ -568,24 +592,83 @@ async function generateAndUploadPdf(
   }
 }
 
-// ── POST Handler ─────────────────────────────────────────────────────────────
+// ── Helper: create product in Firestore (generates PDF + stores doc) ─────────
+
+async function createProductInFirestore(
+  businessId: string,
+  productData: Record<string, unknown>,
+  storeConfig: Record<string, unknown> | null,
+): Promise<Record<string, unknown>> {
+  const db = getAdminDb();
+  const pdfContent = productData.pdfContent as {
+    title: string;
+    subtitle?: string;
+    chapters: { heading: string; body: string }[];
+    author?: string;
+  } | undefined;
+
+  let digitalFileUrl: string | null = null;
+  let digitalFileName: string | null = null;
+
+  if (pdfContent?.chapters?.length) {
+    const uploaded = await generateAndUploadPdf(businessId, pdfContent, storeConfig);
+    if (uploaded) { digitalFileUrl = uploaded.url; digitalFileName = uploaded.fileName; }
+  }
+
+  const payload: Record<string, unknown> = {
+    displayName: productData.displayName,
+    description: productData.description ?? '',
+    price: productData.price,
+    productType: 'digital',
+    digitalSubtype: productData.digitalSubtype ?? 'ebook',
+    category: productData.category ?? 'general',
+    tags: productData.tags ?? [],
+    images: [],
+    collectionIds: [],
+    stock: 9999,
+    sku: null,
+    available: true,
+    featured: false,
+    digitalFileUrl,
+    digitalFileName,
+    pdfContent: pdfContent ?? null,
+    deliveryNote: null,
+    compareAtPrice: null,
+    lowStockThreshold: 10,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  const docRef = await db
+    .collection('businesses').doc(businessId)
+    .collection('storeProducts')
+    .add(payload);
+  await docRef.update({ productId: docRef.id });
+
+  return { id: docRef.id, ...payload };
+}
+
+// ── POST Handler (chat + product proposal) ───────────────────────────────────
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { message, businessId, storeConfig, conversationHistory = [] } = body as {
+    const { message, businessId, storeConfig, conversationHistory = [], attachments: rawAttachments } = body as {
       message: string;
       businessId: string;
       storeConfig: Record<string, unknown> | null;
-      conversationHistory: { role: 'user' | 'model'; parts: { text: string }[] }[];
+      conversationHistory: { role: 'user' | 'model'; parts: GeminiPart[] }[];
+      attachments?: AttachmentData[];
     };
 
-    if (!message?.trim()) {
-      return NextResponse.json({ error: 'Message is required' }, { status: 400 });
+    if (!message?.trim() && (!rawAttachments || rawAttachments.length === 0)) {
+      return NextResponse.json({ error: 'Message or attachment is required' }, { status: 400 });
     }
     if (!businessId) {
       return NextResponse.json({ error: 'businessId is required' }, { status: 400 });
     }
+
+    const attachments = rawAttachments?.filter(a => a.data && a.mimeType) ?? [];
 
     const apiKey = process.env.GOOGLE_GENAI_API_KEY;
     console.log('[AskMo] API key present:', !!apiKey, 'length:', apiKey?.length, 'prefix:', apiKey?.slice(0, 6));
@@ -650,143 +733,84 @@ CURRENT STORE CONFIG:
     const fullPrompt = SELL_MO_SYSTEM_PROMPT + storeContext + productContext + collectionContext;
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const raw = await callWithFallback(genAI, fullPrompt, conversationHistory, message);
+    const raw = await callWithFallback(genAI, fullPrompt, conversationHistory, message, attachments);
     const { answer, storeUpdate, newProduct, editProduct } = parseActionBlocks(raw);
 
-    // ── Handle new product creation ──
+    // ── Product flow: proposals (not yet approved) ──
+    // If the AI returns a newProduct with pdfContent, return it as a proposal
+    // WITHOUT generating PDF or creating a Firestore doc.
+    // The user must review + approve it first.
+
+    let proposedProduct: Record<string, unknown> | null = null;
     let createdProduct: Record<string, unknown> | null = null;
-    if (newProduct && businessId) {
-      try {
-        const db = getAdminDb();
-        const productData = newProduct as Record<string, unknown>;
-        const pdfContent = productData.pdfContent as {
-          title: string;
-          subtitle?: string;
-          chapters: { heading: string; body: string }[];
-          author?: string;
-        } | undefined;
+    let editedProduct: Record<string, unknown> | null = null;
 
-        let digitalFileUrl: string | null = null;
-        let digitalFileName: string | null = null;
-
-        if (pdfContent?.chapters?.length) {
-          const uploaded = await generateAndUploadPdf(businessId, pdfContent, storeConfig);
-          if (uploaded) { digitalFileUrl = uploaded.url; digitalFileName = uploaded.fileName; }
-        }
-
-        const payload: Record<string, unknown> = {
-          displayName: productData.displayName,
-          description: productData.description ?? '',
-          price: productData.price,
-          productType: 'digital',
-          digitalSubtype: productData.digitalSubtype ?? 'ebook',
-          category: productData.category ?? 'general',
-          tags: productData.tags ?? [],
-          images: [],
-          collectionIds: [],
-          stock: 9999,
-          sku: null,
-          available: true,
-          featured: false,
-          digitalFileUrl,
-          digitalFileName,
-          pdfContent: pdfContent ?? null, // Store for future editing
-          deliveryNote: null,
-          compareAtPrice: null,
-          lowStockThreshold: 10,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
-
-        const docRef = await db
-          .collection('businesses').doc(businessId)
-          .collection('storeProducts')
-          .add(payload);
-        await docRef.update({ productId: docRef.id });
-
-        createdProduct = { id: docRef.id, ...payload };
-      } catch (err) {
-        const errMsg = err instanceof Error ? err.message : String(err);
-        return NextResponse.json({
-          answer: `I created the product details, but there was an error saving it: ${errMsg}. You can try again or create it manually from the Products page.`,
-          storeUpdate: null,
-          newProduct: null,
-          editProduct: null,
-          error: errMsg,
-        });
-      }
+    const newPdfContent = newProduct?.pdfContent as { chapters?: unknown[] } | undefined;
+    if (newPdfContent?.chapters?.length) {
+      // Proposal mode — return content for inline review, no Firestore yet
+      proposedProduct = newProduct as Record<string, unknown>;
+    } else if (newProduct && businessId) {
+      // No pdfContent (e.g. simple product with no ebook) — create immediately
+      createdProduct = await createProductInFirestore(businessId, newProduct as Record<string, unknown>, storeConfig);
     }
 
     // ── Handle product editing ──
-    let editedProduct: Record<string, unknown> | null = null;
     if (editProduct && businessId) {
-      try {
-        const db = getAdminDb();
-        const editData = editProduct as Record<string, unknown>;
-        const productId = editData.productId as string;
+      const editData = editProduct as Record<string, unknown>;
+      const productId = editData.productId as string;
 
-        if (!productId) {
-          return NextResponse.json({
-            answer: 'I need the product ID to edit it. Could you tell me which product you want to change?',
-            storeUpdate: null,
-            newProduct: null,
-            editProduct: null,
-          });
-        }
+      if (productId) {
+        // Editing an existing product in Firestore
+        try {
+          const db = getAdminDb();
+          const productRef = db
+            .collection('businesses').doc(businessId)
+            .collection('storeProducts').doc(productId);
+          const productSnap = await productRef.get();
 
-        const productRef = db
-          .collection('businesses').doc(businessId)
-          .collection('storeProducts').doc(productId);
-        const productSnap = await productRef.get();
-
-        if (!productSnap.exists) {
-          return NextResponse.json({
-            answer: `Product not found (ID: ${productId}). It may have been deleted.`,
-            storeUpdate: null,
-            newProduct: null,
-            editProduct: null,
-          });
-        }
-
-        const existing = productSnap.data()!;
-        const updates: Record<string, unknown> = { updatedAt: new Date().toISOString() };
-
-        // Merge simple fields
-        if (editData.displayName) updates.displayName = editData.displayName;
-        if (editData.description) updates.description = editData.description;
-        if (editData.price) updates.price = editData.price;
-        if (editData.category) updates.category = editData.category;
-        if (editData.tags) updates.tags = editData.tags;
-
-        // Regenerate PDF if pdfContent provided
-        const newPdfContent = editData.pdfContent as {
-          title: string;
-          subtitle?: string;
-          chapters: { heading: string; body: string }[];
-          author?: string;
-        } | undefined;
-
-        if (newPdfContent?.chapters?.length) {
-          updates.pdfContent = newPdfContent;
-          const uploaded = await generateAndUploadPdf(businessId, newPdfContent, storeConfig);
-          if (uploaded) {
-            updates.digitalFileUrl = uploaded.url;
-            updates.digitalFileName = uploaded.fileName;
+          if (!productSnap.exists) {
+            return NextResponse.json({
+              answer: `Product not found (ID: ${productId}). It may have been deleted.`,
+              storeUpdate: null,
+              newProduct: null,
+              editProduct: null,
+            });
           }
-        }
 
-        await productRef.update(updates);
-        const updatedSnap = await productRef.get();
-        editedProduct = { id: productId, ...updatedSnap.data() };
-      } catch (err) {
-        const errMsg = err instanceof Error ? err.message : String(err);
-        return NextResponse.json({
-          answer: `There was an error updating the product: ${errMsg}. Please try again.`,
-          storeUpdate: null,
-          newProduct: null,
-          editProduct: null,
-          error: errMsg,
-        });
+          const updates: Record<string, unknown> = { updatedAt: new Date().toISOString() };
+
+          if (editData.displayName) updates.displayName = editData.displayName;
+          if (editData.description) updates.description = editData.description;
+          if (editData.price) updates.price = editData.price;
+          if (editData.category) updates.category = editData.category;
+          if (editData.tags) updates.tags = editData.tags;
+
+          const newPdfContent = editData.pdfContent as {
+            title: string; subtitle?: string; chapters: { heading: string; body: string }[]; author?: string;
+          } | undefined;
+
+          if (newPdfContent?.chapters?.length) {
+            updates.pdfContent = newPdfContent;
+            const uploaded = await generateAndUploadPdf(businessId, newPdfContent, storeConfig);
+            if (uploaded) {
+              updates.digitalFileUrl = uploaded.url;
+              updates.digitalFileName = uploaded.fileName;
+            }
+          }
+
+          await productRef.update(updates);
+          const updatedSnap = await productRef.get();
+          editedProduct = { id: productId, ...updatedSnap.data() };
+        } catch (err) {
+          const errMsg = err instanceof Error ? err.message : String(err);
+          return NextResponse.json({
+            answer: `There was an error updating the product: ${errMsg}. Please try again.`,
+            storeUpdate: null, newProduct: null, editProduct: null, error: errMsg,
+          });
+        }
+      } else {
+        // Editing a proposed product (no productId yet) — treat as updated proposal
+        proposedProduct = editData;
       }
     }
 
@@ -795,6 +819,7 @@ CURRENT STORE CONFIG:
       storeUpdate,
       newProduct: createdProduct,
       editProduct: editedProduct,
+      proposedProduct,
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
@@ -807,6 +832,46 @@ CURRENT STORE CONFIG:
         details: msg,
       },
       { status: isKeyError ? 503 : 500 }
+    );
+  }
+}
+
+// ── PUT Handler (approve proposed product) ──────────────────────────────────
+
+export async function PUT(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { businessId, storeConfig, productData } = body as {
+      businessId: string;
+      storeConfig: Record<string, unknown> | null;
+      productData: Record<string, unknown>;
+    };
+
+    if (!businessId) {
+      return NextResponse.json({ error: 'businessId is required' }, { status: 400 });
+    }
+    const putPdfContent = productData?.pdfContent as { chapters?: unknown[] } | undefined;
+    if (!putPdfContent?.chapters?.length) {
+      return NextResponse.json({ error: 'Valid productData with pdfContent.chapters is required' }, { status: 400 });
+    }
+
+    const apiKey = process.env.GOOGLE_GENAI_API_KEY;
+    if (!apiKey || apiKey === 'your-google-ai-api-key') {
+      return NextResponse.json(
+        { error: 'AI service not configured', details: 'GOOGLE_GENAI_API_KEY is missing.' },
+        { status: 503 }
+      );
+    }
+
+    const created = await createProductInFirestore(businessId, productData, storeConfig);
+
+    return NextResponse.json({ success: true, product: created });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('[AskMo] Approve error:', msg);
+    return NextResponse.json(
+      { error: 'Failed to approve product', details: msg },
+      { status: 500 }
     );
   }
 }

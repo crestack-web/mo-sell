@@ -473,6 +473,7 @@ export function ThemeEditorPage() {
     setSocials((footerSec?.settings as FooterSectionSettings)?.socials ?? {});
     setDirty(false);
     undoStack.current = []; redoStack.current = [];
+    if (storeConfig.theme && view === 'marketplace') setView('editor');
   }, [storeConfig]);
 
   useEffect(() => {
