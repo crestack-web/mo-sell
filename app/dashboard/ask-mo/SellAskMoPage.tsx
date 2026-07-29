@@ -140,7 +140,7 @@ export function SellAskMoPage() {
           conversationHistory: hist,
           updatedAt: Date.now(),
         }, { merge: true });
-      } catch { /* silent */ }
+      } catch (e) { console.error('Ask MO save failed:', e); }
     },
     [user?.businessId]
   );
@@ -151,6 +151,17 @@ export function SellAskMoPage() {
     const t = setTimeout(() => saveActive(messages, conversationHistory), 500);
     return () => clearTimeout(t);
   }, [messages, conversationHistory, saveActive]);
+
+  // Save on visibility change (tab switch, minimize, navigation)
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'hidden' && messagesRef.current.length > 0) {
+        saveActive(messagesRef.current, historyRef.current);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [saveActive]);
 
   // Save immediately on unmount so navigating away doesn't lose messages
   useEffect(() => {
