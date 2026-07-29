@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { getServerFirestore as getAdminDb, getServerStorage as getAdminStorage } from '@/lib/server-firestore';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 
@@ -141,55 +142,31 @@ CATEGORIES: fashion, beauty, food, electronics, home, health, services, general,
 `;
 
 async function callGemini(
-  apiKey: string,
+  genAI: GoogleGenerativeAI,
   modelName: string,
   systemPrompt: string,
   history: { role: 'user' | 'model'; parts: { text: string }[] }[],
   message: string,
 ): Promise<string> {
-  const contents = [
-    ...history.map(h => ({
-      role: h.role === 'model' ? 'model' : 'user',
-      parts: [{ text: h.parts[0]?.text ?? '' }],
+  const model = genAI.getGenerativeModel({
+    model: modelName,
+    systemInstruction: systemPrompt,
+  });
+  const chat = model.startChat({
+    history: history.map(h => ({
+      role: h.role,
+      parts: h.parts,
     })),
-    { role: 'user' as const, parts: [{ text: message }] },
-  ];
-
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        system_instruction: { parts: [{ text: systemPrompt }] },
-        contents,
-        generationConfig: {
-          temperature: 0.8,
-          maxOutputTokens: 8192,
-        },
-      }),
-    }
-  );
-
-  if (!res.ok) {
-    const errBody = await res.text();
-    throw new Error(`Gemini ${modelName} returned ${res.status}: ${errBody.slice(0, 200)}`);
-  }
-
-  const data = await res.json() as {
-    candidates?: { content?: { parts?: { text?: string }[] } }[];
-    error?: { message?: string };
-  };
-
-  if (data.error) throw new Error(data.error.message ?? 'Unknown Gemini error');
-
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    generationConfig: { temperature: 0.8, maxOutputTokens: 8192 },
+  });
+  const result = await chat.sendMessage(message);
+  const text = result.response.text();
   if (!text) throw new Error('Gemini returned empty response');
   return text;
 }
 
 async function callWithFallback(
-  apiKey: string,
+  genAI: GoogleGenerativeAI,
   systemPrompt: string,
   history: { role: 'user' | 'model'; parts: { text: string }[] }[],
   message: string,
@@ -197,7 +174,7 @@ async function callWithFallback(
   const errors: string[] = [];
   for (const modelName of MODELS) {
     try {
-      return await callGemini(apiKey, modelName, systemPrompt, history, message);
+      return await callGemini(genAI, modelName, systemPrompt, history, message);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       errors.push(`${modelName}: ${msg}`);
@@ -671,7 +648,8 @@ CURRENT STORE CONFIG:
 
     const fullPrompt = SELL_MO_SYSTEM_PROMPT + storeContext + productContext + collectionContext;
 
-    const raw = await callWithFallback(apiKey, fullPrompt, conversationHistory, message);
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const raw = await callWithFallback(genAI, fullPrompt, conversationHistory, message);
     const { answer, storeUpdate, newProduct, editProduct } = parseActionBlocks(raw);
 
     // ── Handle new product creation ──

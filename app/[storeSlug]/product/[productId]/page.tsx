@@ -9,19 +9,33 @@ import { ProductDetailClient } from './ProductDetailClient';
 async function getStoreConfig(storeSlug: string) {
   try {
     const db = getAdminDb();
+    let data: any = null;
+    let businessId = '';
+
     const idxDoc = await db.collection('storeIndex').doc(storeSlug).get();
     if (idxDoc.exists) {
       const bId = idxDoc.data()?.businessId as string | undefined;
       if (bId) {
         const configSnap = await db.collection('businesses').doc(bId).collection('store').doc('config').get();
         if (configSnap.exists) {
-          const data = configSnap.data()!;
-          if ((data.status ?? 'draft') !== 'active') return null;
-          return { ...data, businessId: bId } as Record<string, any>;
+          data = configSnap.data()!;
+          businessId = bId;
         }
       }
     }
-    return null;
+
+    if (!data) {
+      const snap = await db.collectionGroup('store').where('storeSlug', '==', storeSlug).limit(1).get();
+      if (!snap.empty) {
+        const doc = snap.docs[0];
+        data = doc.data();
+        businessId = doc.ref.path.split('/')[1];
+      }
+    }
+
+    if (!data) return null;
+    if ((data.status ?? 'draft') !== 'active') return null;
+    return { ...data, businessId } as Record<string, any>;
   } catch { return null; }
 }
 
