@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { collection, getDocs, query, where, orderBy, limit } from 'firebase/firestore';
 import { initializeFirebase } from '@/lib/firebase';
 import { useSell } from '@/context/SellContext';
+import { getStorePublicUrl } from '@/lib/store-url';
 import styles from './SellAnalyticsPage.module.css';
 
 // â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -153,9 +154,9 @@ export function SellAnalyticsPage() {
     { label: 'Orders completed',    count: totalOrders,         color: '#16A34A' },
   ];
 
-  const liveUrl = storeConfig?.customDomainStatus === 'verified' && storeConfig?.customDomain
-    ? `https://${storeConfig.customDomain}`
-    : storeConfig?.storeSlug ? `${process.env.NEXT_PUBLIC_APP_URL}/${storeConfig.storeSlug}` : null;
+  const liveUrl = storeConfig?.storeSlug
+    ? getStorePublicUrl(storeConfig.storeSlug, storeConfig.customDomain, storeConfig.customDomainStatus === 'verified')
+    : null;
 
   if (loading) {
     return (
