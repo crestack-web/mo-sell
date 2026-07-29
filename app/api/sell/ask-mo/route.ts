@@ -588,6 +588,7 @@ export async function POST(request: NextRequest) {
     }
 
     const apiKey = process.env.GOOGLE_GENAI_API_KEY;
+    console.log('[AskMo] API key present:', !!apiKey, 'length:', apiKey?.length, 'prefix:', apiKey?.slice(0, 6));
     if (!apiKey || apiKey === 'your-google-ai-api-key') {
       return NextResponse.json(
         { error: 'AI service not configured', details: 'GOOGLE_GENAI_API_KEY is missing.' },
@@ -799,6 +800,7 @@ CURRENT STORE CONFIG:
     const msg = err instanceof Error ? err.message : String(err);
     const isKeyError = msg.includes('API_KEY') || msg.includes('quota') || msg.includes('permission') || msg.includes('403') || msg.includes('400');
     console.error('[AskMo] Error:', msg);
+    console.error('[AskMo] Full error:', err);
     return NextResponse.json(
       {
         error: isKeyError ? 'AI service configuration error' : 'Failed to generate response',
