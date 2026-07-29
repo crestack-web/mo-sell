@@ -148,8 +148,9 @@ export function SellAskMoPage() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
+      const ext = mimeType === 'audio/webm' ? 'webm' : 'm4a';
       const recorder = new MediaRecorder(stream, { mimeType });
-        mediaRecorderRef.current = recorder;
+      mediaRecorderRef.current = recorder;
       recordingChunksRef.current = [];
       setRecording(true);
       setRecordingTime(0);
@@ -166,18 +167,21 @@ export function SellAskMoPage() {
         stream.getTracks().forEach(t => t.stop());
         if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
         setRecording(false);
-        const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
+        if (recordingChunksRef.current.length === 0) return;
         const blob = new Blob(recordingChunksRef.current, { type: mimeType });
         const reader = new FileReader();
         reader.onload = () => {
           const data = (reader.result as string).split(',')[1];
-          setAttachments(prev => [...prev, { id: nextMsgId(), type: 'audio', name: 'Voice note.webm', data, mimeType: 'audio/webm' }]);
+          if (!data) return;
+          setAttachments(prev => [...prev, { id: nextMsgId(), type: 'audio', name: `Voice note.${ext}`, data, mimeType }]);
         };
         reader.readAsDataURL(blob);
       };
 
       recorder.start();
-    } catch {
+      console.log('[AskMo] Recording started, mimeType:', mimeType);
+    } catch (err) {
+      console.error('[AskMo] Mic error:', err);
       showToast('Microphone access denied', 'error');
     }
   }, [showToast]);
