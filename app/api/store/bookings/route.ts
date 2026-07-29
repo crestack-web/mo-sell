@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAdminDb } from '@/lib/firebase-admin';
-import { FieldValue } from 'firebase-admin/firestore';
+import { getServerFirestore as getAdminDb, FieldValue } from '@/lib/server-firestore';
 import type { Booking, BookingStatus } from '@/types/mo-sell.types';
 
 /**
@@ -29,7 +28,7 @@ export async function GET(req: NextRequest) {
 
     const snap = await query.get();
 
-    const bookings = snap.docs.map(d => {
+    const bookings = snap.docs.map((d: any) => {
       const data = d.data();
       return {
         id: d.id,

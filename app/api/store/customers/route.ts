@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAdminDb } from '@/lib/firebase-admin';
+import { getServerFirestore as getAdminDb } from '@/lib/server-firestore';
 import type { CustomerTag, StoreCustomer } from '@/types/mo-sell.types';
 
 /**
@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
     // array-contains-any can't filter a single tag easily, so we fetch and filter in-memory
     const snap = await query.get();
 
-    let customers = snap.docs.map(d => {
+    let customers = snap.docs.map((d: any) => {
       const data = d.data() as StoreCustomer;
       return {
         id: d.id,

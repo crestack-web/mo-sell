@@ -602,7 +602,7 @@ export default function SellWelcomePage() {
               <FeatureCard icon="📦" title="Inventory Sync" desc="Physical, digital, or service — every sale automatically updates your stock and fulfilment status." />
               <FeatureCard icon="📊" title="Real-time Analytics" desc="See visitors, conversions, top products, and revenue trends at a glance on your dashboard." />
               <FeatureCard icon="🚚" title="Shipping & Delivery" desc="Flat-rate, free, or pickup — set shipping rules per region. Digital products deliver instantly." />
-              <FeatureCard icon="🌐" title="Custom Domain" desc="Use your own domain or get a free busmo.io/store/your-name link. Fully branded, always." />
+              <FeatureCard icon="🌐" title="Custom Domain" desc="Use your own domain or get a free store link. Fully branded, always." />
               <FeatureCard icon="📥" title="Digital Products" desc="Sell ebooks, courses, templates, and downloads. Files deliver instantly after payment." />
               <FeatureCard icon="📅" title="Bookings & Services" desc="Offer appointments, coaching sessions, and consultations with built-in scheduling." />
             </div>

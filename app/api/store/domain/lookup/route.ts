@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAdminDb } from '@/lib/firebase-admin';
+import { getServerFirestore as getAdminDb } from '@/lib/server-firestore';
 
 /**
  * GET /api/store/domain/lookup?domain=shop.mybrand.com

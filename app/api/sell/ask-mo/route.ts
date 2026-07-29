@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAdminDb, getAdminStorage } from '@/lib/firebase-admin';
+import { getServerFirestore as getAdminDb, getServerStorage as getAdminStorage } from '@/lib/server-firestore';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 
 const MODELS = ['gemini-2.5-flash', 'gemini-flash-latest', 'gemini-2.5-pro'];
@@ -646,7 +646,7 @@ CURRENT STORE CONFIG:
         .where('available', '==', true)
         .limit(20).get();
       if (!snap.empty) {
-        const items = snap.docs.map(d => {
+        const items = snap.docs.map((d: any) => {
           const data = d.data();
           const hasPdf = data.pdfContent ? ' [HAS PDF CONTENT - can be edited]' : '';
           return `${data.displayName ?? 'Unknown'} (ID: ${d.id}, ₦${data.price ?? 0}, ${data.productType ?? 'physical'})${hasPdf}`;
@@ -664,7 +664,7 @@ CURRENT STORE CONFIG:
         .collection('storeCollections')
         .limit(10).get();
       if (!snap.empty) {
-        const names = snap.docs.map(d => d.data().title ?? 'Untitled');
+        const names = snap.docs.map((d: any) => d.data().title ?? 'Untitled');
         collectionContext = `\n\nEXISTING COLLECTIONS: ${names.join(', ')}`;
       }
     } catch { /* non-fatal */ }

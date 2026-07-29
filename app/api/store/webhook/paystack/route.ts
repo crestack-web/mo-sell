@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
-import { getAdminDb } from '@/lib/firebase-admin';
-import { FieldValue } from 'firebase-admin/firestore';
+import { getServerFirestore as getAdminDb, FieldValue } from '@/lib/server-firestore';
 import { processConfirmedOrder } from '@/lib/services/mo-sell-integration-bridge';
 import type { CheckoutSession } from '@/types/mo-sell.types';
 

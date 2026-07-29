@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAdminDb } from '@/lib/firebase-admin';
+import { getServerFirestore as getAdminDb } from '@/lib/server-firestore';
 
 const WIZARD_MODELS = ['gemini-2.5-flash', 'gemini-flash-latest', 'gemini-2.5-pro'];
 
@@ -168,7 +168,7 @@ export async function POST(request: NextRequest) {
           .limit(20).get();
         if (!snap.empty) {
           const names = snap.docs
-            .map(d => (d.data().displayName ?? d.data().name ?? '') as string)
+            .map((d: any) => (d.data().displayName ?? d.data().name ?? '') as string)
             .filter(Boolean)
             .slice(0, 10)
             .join(', ');

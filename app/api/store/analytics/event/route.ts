@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAdminDb } from '@/lib/firebase-admin';
-import { FieldValue } from 'firebase-admin/firestore';
+import { getServerFirestore as getAdminDb, FieldValue } from '@/lib/server-firestore';
 import type { AnalyticsEventType } from '@/types/mo-sell.types';
 
 const VALID_EVENT_TYPES: AnalyticsEventType[] = [

@@ -8,7 +8,7 @@
  * If the batch fails, no partial state is created.
  */
 
-import { getAdminDb } from '@/lib/firebase-admin';
+import { getServerFirestore, FieldValue } from '@/lib/server-firestore';
 import type {
   IntegrationBridgeParams,
   IntegrationBridgeResult,
@@ -16,7 +16,6 @@ import type {
   CheckoutSession,
   StoreConfig,
 } from '@/types/mo-sell.types';
-import { FieldValue } from 'firebase-admin/firestore';
 
 // ─── Email helpers (fire-and-forget, non-blocking) ────────────────────────────
 
@@ -60,7 +59,7 @@ async function sendNewOrderEmail(params: {
 
 // ─── Order number generation ───────────────────────────────────────────────────
 
-async function getNextOrderNumber(db: ReturnType<typeof getAdminDb>, businessId: string): Promise<string> {
+async function getNextOrderNumber(db: ReturnType<typeof getServerFirestore>, businessId: string): Promise<string> {
   const snap = await db
     .collection('businesses').doc(businessId)
     .collection('storeOrders')
@@ -76,7 +75,7 @@ export async function processConfirmedOrder(
   params: IntegrationBridgeParams
 ): Promise<IntegrationBridgeResult> {
   const { businessId, sessionId, paystackData } = params;
-  const db = getAdminDb();
+  const db = getServerFirestore();
   const now = new Date();
   const timestamp = FieldValue.serverTimestamp();
 
@@ -101,7 +100,7 @@ export async function processConfirmedOrder(
   const storeLinkBase =
     config?.customDomainStatus === 'verified' && config?.customDomain
       ? `https://${config.customDomain}`
-      : `https://busmo.io/store/${config?.storeSlug ?? ''}`;
+      : `${process.env.PUBLIC_APP_URL ?? 'http://localhost:3000'}/${config?.storeSlug ?? ''}`;
 
   // 3. Derive order total from Paystack (source of truth: kobo → NGN)
   const verifiedTotal = paystackData.amount / 100;

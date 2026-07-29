@@ -172,7 +172,7 @@ function PreviewPanel({ suggestions: s, setSuggestions, onRegenerate, logoPrevie
             <span /><span /><span />
           </div>
           <div className={styles.browserUrl}>
-            busmo.io/store/<strong>{s.storeSlug}</strong>
+            {process.env.NEXT_PUBLIC_APP_URL}/<strong>{s.storeSlug}</strong>
           </div>
         </div>
         <div className={styles.browserViewport}>

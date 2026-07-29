@@ -1,6 +1,6 @@
 import React from 'react';
 import { notFound } from 'next/navigation';
-import { getAdminDb } from '@/lib/firebase-admin';
+import { getServerFirestore as getAdminDb } from '@/lib/server-firestore';
 import { CheckoutForm } from './CheckoutForm';
 
 async function getStoreConfig(storeSlug: string) {
@@ -28,7 +28,7 @@ async function getShippingZones(businessId: string) {
     const snap = await db
       .collection('businesses').doc(businessId)
       .collection('storeShippingZones').get();
-    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    return snap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
   } catch { return []; }
 }
 

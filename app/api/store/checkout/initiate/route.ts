@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAdminDb } from '@/lib/firebase-admin';
-import { FieldValue } from 'firebase-admin/firestore';
+import { getServerFirestore as getAdminDb, FieldValue } from '@/lib/server-firestore';
 
 interface LineItemInput {
   productId: string;
@@ -105,7 +104,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Payment service not configured' }, { status: 500 });
     }
 
-    const baseUrl = process.env.PUBLIC_APP_URL ?? 'https://busmo.io';
+    const baseUrl = process.env.PUBLIC_APP_URL ?? 'http://localhost:3000';
     const reference = `mosell_${sessionId}_${Date.now()}`;
 
     const paystackRes = await fetch('https://api.paystack.co/transaction/initialize', {

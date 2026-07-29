@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAdminDb } from '@/lib/firebase-admin';
+import { getServerFirestore as getAdminDb } from '@/lib/server-firestore';
 import type { BookingAvailability, DayOfWeek } from '@/types/mo-sell.types';
 
 const DAY_MAP: Record<number, DayOfWeek> = {
@@ -71,7 +71,7 @@ export async function GET(req: NextRequest) {
       .get();
 
     const takenStartTimes = new Set<string>();
-    bookingsSnap.docs.forEach(doc => {
+    bookingsSnap.docs.forEach((doc: any) => {
       const booking = doc.data();
       takenStartTimes.add(booking.startTime);
     });

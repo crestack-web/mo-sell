@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAdminDb } from '@/lib/firebase-admin';
-import { FieldValue } from 'firebase-admin/firestore';
+import { getServerFirestore as getAdminDb, FieldValue } from '@/lib/server-firestore';
 
 const COMMISSION_RATE = 0.05;
 
@@ -56,8 +55,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No available earnings to pay out.' }, { status: 400 });
     }
 
-    const earningIds = earningsSnap.docs.map(d => d.id);
-    const totalNet = earningsSnap.docs.reduce((sum, d) => sum + (d.data().netAmount ?? 0), 0);
+    const earningIds = earningsSnap.docs.map((d: any) => d.id);
+    const totalNet = earningsSnap.docs.reduce((sum: number, d: any) => sum + (d.data().netAmount ?? 0), 0);
     const roundedNet = Math.round(totalNet * 100) / 100;
 
     const timestamp = FieldValue.serverTimestamp();

@@ -155,7 +155,7 @@ export function SellAnalyticsPage() {
 
   const liveUrl = storeConfig?.customDomainStatus === 'verified' && storeConfig?.customDomain
     ? `https://${storeConfig.customDomain}`
-    : storeConfig?.storeSlug ? `busmo.io/store/${storeConfig.storeSlug}` : null;
+    : storeConfig?.storeSlug ? `${process.env.NEXT_PUBLIC_APP_URL}/${storeConfig.storeSlug}` : null;
 
   if (loading) {
     return (

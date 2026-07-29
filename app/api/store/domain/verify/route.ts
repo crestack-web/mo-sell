@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAdminDb } from '@/lib/firebase-admin';
-import { FieldValue } from 'firebase-admin/firestore';
+import { getServerFirestore as getAdminDb, FieldValue } from '@/lib/server-firestore';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const dns = require('dns').promises as { resolveCname(hostname: string): Promise<string[]> };
 

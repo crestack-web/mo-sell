@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAdminDb } from '@/lib/firebase-admin';
+import { getServerFirestore as getAdminDb } from '@/lib/server-firestore';
 
 /**
  * GET /api/store/products
@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
 
     const snap = await query.limit(Math.min(limitParam, 200)).get();
 
-    const products = snap.docs.map(d => ({
+    const products = snap.docs.map((d: any) => ({
       id: d.id,
       ...d.data(),
       // Convert Timestamps to ISO strings for JSON serialization

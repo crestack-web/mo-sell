@@ -14,7 +14,7 @@ import type {
   FooterSectionSettings,
 } from '@/types/mo-sell.types';
 import { DEFAULT_SECTIONS } from '@/types/mo-sell.types';
-import { getAdminDb } from '@/lib/firebase-admin';
+import { getServerFirestore as getAdminDb } from '@/lib/server-firestore';
 
 async function getStoreConfig(storeSlug: string) {
   try {
@@ -82,7 +82,7 @@ async function getProducts(businessId: string, filter?: { featured?: boolean }) 
     query = query.where('available', '==', true);
     if (filter?.featured) query = query.where('featured', '==', true);
     const snap = await query.limit(100).get();
-    return snap.docs.map(d => {
+    return snap.docs.map((d: any) => {
       const data = d.data();
       return {
         id: d.id,
@@ -104,7 +104,7 @@ async function getCollections(businessId: string) {
   try {
     const db = getAdminDb();
     const snap = await db.collection('businesses').doc(businessId).collection('storeCollections').limit(20).get();
-    return snap.docs.map(d => {
+    return snap.docs.map((d: any) => {
       const data = d.data();
       return {
         id: d.id,
@@ -263,7 +263,7 @@ export default async function StorefrontHomePage({
               <div key={section.id} className="sf-page sf-section">
                 <p className="sf-section-title">{cs.heading || 'Collections'}</p>
                 <div className="sf-collection-grid">
-                  {visible.map((col, i) => (
+                  {visible.map((col: any, i: number) => (
                     <CollectionCard key={col.id} collection={col} storeSlug={storeSlug} index={i} />
                   ))}
                 </div>

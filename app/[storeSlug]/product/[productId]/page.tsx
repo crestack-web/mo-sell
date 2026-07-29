@@ -1,7 +1,7 @@
 import React from 'react';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import { getAdminDb } from '@/lib/firebase-admin';
+import { getServerFirestore as getAdminDb } from '@/lib/server-firestore';
 import { ProductDetailClient } from './ProductDetailClient';
 
 // ─── Data fetching ─────────────────────────────────────────────────────────────

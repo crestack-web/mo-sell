@@ -244,7 +244,7 @@ export function SellSettingsPage() {
   const domStatus = (storeConfig as any)?.customDomainStatus ?? 'pending';
   const verifiedCustomDomain = storeConfig?.customDomain && domStatus === 'verified' ? storeConfig.customDomain : null;
   const liveUrl   = storeConfig?.storeSlug
-    ? (verifiedCustomDomain ?? `busmo.io/store/${storeConfig.storeSlug}`)
+    ? (verifiedCustomDomain ?? `${process.env.NEXT_PUBLIC_APP_URL}/${storeConfig.storeSlug}`)
     : null;
 
   const domainStatusClass =

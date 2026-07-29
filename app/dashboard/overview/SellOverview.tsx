@@ -247,7 +247,7 @@ export function SellOverview() {
           <StatCard
             label="Store status"
             value={isLive ? 'Live' : storeConfig.status === 'draft' ? 'Draft' : 'Paused'}
-            sub={isLive ? (storeConfig.customDomain && storeConfig.customDomainStatus === 'verified' ? storeConfig.customDomain : `busmo.io/store/${storeConfig.storeSlug}`) : 'Not published yet'}
+            sub={isLive ? (storeConfig.customDomain && storeConfig.customDomainStatus === 'verified' ? storeConfig.customDomain : `${process.env.NEXT_PUBLIC_APP_URL}/${storeConfig.storeSlug}`) : 'Not published yet'}
             accent={isLive ? 'var(--sell-green)' : 'var(--sell-amber)'}
             bg={isLive ? 'var(--sell-green-bg)' : 'var(--sell-amber-bg)'}
             onClick={() => navigateTo('settings')}

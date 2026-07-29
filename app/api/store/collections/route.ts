@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAdminDb } from '@/lib/firebase-admin';
+import { getServerFirestore as getAdminDb } from '@/lib/server-firestore';
 
 /**
  * GET /api/store/collections?businessId=xxx
@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
       .orderBy('title', 'asc')
       .get();
 
-    const collections = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const collections = snap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
 
     return NextResponse.json({ collections }, {
       headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=30' },

@@ -1,7 +1,7 @@
 import React from 'react';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import { getAdminDb } from '@/lib/firebase-admin';
+import { getServerFirestore as getAdminDb } from '@/lib/server-firestore';
 import { ProductGrid } from '../../components/ProductGrid';
 import type { ProductCardData } from '../../components/ProductCard';
 
@@ -44,7 +44,7 @@ async function getProducts(businessId: string, collectionId: string) {
       .where('collectionIds', 'array-contains', collectionId)
       .limit(100)
       .get();
-    return snap.docs.map(d => {
+    return snap.docs.map((d: any) => {
       const data = d.data();
       return {
         id: d.id,
