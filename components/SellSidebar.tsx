@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import { Sparkles } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useSell } from '../context/SellContext';
 import type { SellPageId } from '../context/SellContext';
@@ -115,11 +114,6 @@ const NAV_SECTIONS: { section: string; items: NavItem[] }[] = [
             <circle cx="15" cy="10" r="1" fill="currentColor"/>
           </svg>
         ),
-      },
-      {
-        id: 'content' as SellPageId,
-        label: 'Content',
-        icon: <Sparkles size={20} />,
       },
       {
         id: 'content-hub' as SellPageId,

@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Lightbulb, Video, Copy, Sparkles, Check, X, AlertCircle } from 'lucide-react';
-import styles from './SellContentPage.module.css';
+import styles from './ContentHub.module.css';
 
 interface Product {
   id: string;

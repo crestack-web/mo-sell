@@ -1,6 +1,6 @@
 import React from 'react';
 import { Sparkles, Package } from 'lucide-react';
-import styles from './SellContentPage.module.css';
+import styles from './ContentHub.module.css';
 
 interface Product {
   id: string;
