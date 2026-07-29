@@ -175,6 +175,8 @@ export interface StoreConfig {
   bodyTextColor?: string | null;
   /** Header style: 'left' (logo left), 'center' (logo centered), 'minimal' (no header) */
   headerStyle?: 'left' | 'center' | 'minimal';
+  /** Background color override for link-style themes */
+  bgColor?: string | null;
   /** Busmo collects payments on behalf of merchant, charges 5% commission */
   managedPayments?: boolean;
   /** Merchant bank account for payouts (only stored when managedPayments = true) */

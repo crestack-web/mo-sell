@@ -383,6 +383,7 @@ export function ThemeEditorPage() {
   const [fontFamily, setFontFamily] = useState<string>('');
   const [buttonStyle, setButtonStyle] = useState<'pill' | 'square' | 'rounded'>('pill');
   const [bodyTextColor, setBodyTextColor] = useState<string>('');
+  const [bgColor, setBgColor] = useState<string>('');
   const [socials, setSocials] = useState<Record<string, string>>({});
 
   const isLinkStyle = getThemeType(theme) === 'link-style';
@@ -424,10 +425,10 @@ export function ThemeEditorPage() {
   const availW = Math.max(0, containerWidth - horizontalPadding);
   const scale = availW > 0 ? Math.min(1, availW / deviceWidth) : 1;
 
-  const undoStack = useRef<{ sections: StoreSection[]; theme: StorefrontTheme; primary: string; secondary: string; fontFamily: string; buttonStyle: 'pill' | 'square' | 'rounded'; bodyTextColor: string; socials: Record<string, string> }[]>([]);
-  const redoStack = useRef<{ sections: StoreSection[]; theme: StorefrontTheme; primary: string; secondary: string; fontFamily: string; buttonStyle: 'pill' | 'square' | 'rounded'; bodyTextColor: string; socials: Record<string, string> }[]>([]);
+  const undoStack = useRef<{ sections: StoreSection[]; theme: StorefrontTheme; primary: string; secondary: string; fontFamily: string; buttonStyle: 'pill' | 'square' | 'rounded'; bodyTextColor: string; bgColor: string; socials: Record<string, string> }[]>([]);
+  const redoStack = useRef<{ sections: StoreSection[]; theme: StorefrontTheme; primary: string; secondary: string; fontFamily: string; buttonStyle: 'pill' | 'square' | 'rounded'; bodyTextColor: string; bgColor: string; socials: Record<string, string> }[]>([]);
 
-  const snapshot = useCallback(() => ({ sections: sections.map(s => ({ ...s, settings: { ...s.settings } })), theme, primary, secondary, fontFamily, buttonStyle, bodyTextColor, socials }), [sections, theme, primary, secondary, fontFamily, buttonStyle, bodyTextColor, socials]);
+  const snapshot = useCallback(() => ({ sections: sections.map(s => ({ ...s, settings: { ...s.settings } })), theme, primary, secondary, fontFamily, buttonStyle, bodyTextColor, bgColor, socials }), [sections, theme, primary, secondary, fontFamily, buttonStyle, bodyTextColor, bgColor, socials]);
 
   const pushUndo = useCallback(() => {
     undoStack.current = [...undoStack.current.slice(-20), snapshot()];
@@ -440,6 +441,7 @@ export function ThemeEditorPage() {
     redoStack.current.push(snapshot());
     setSections(prev.sections); setTheme(prev.theme); setPrimary(prev.primary); setSecondary(prev.secondary);
     setFontFamily(prev.fontFamily); setButtonStyle(prev.buttonStyle); setBodyTextColor(prev.bodyTextColor);
+    setBgColor(prev.bgColor);
     setSocials(prev.socials);
     setDirty(true);
   }, [snapshot]);
@@ -450,6 +452,7 @@ export function ThemeEditorPage() {
     undoStack.current.push(snapshot());
     setSections(next.sections); setTheme(next.theme); setPrimary(next.primary); setSecondary(next.secondary);
     setFontFamily(next.fontFamily); setButtonStyle(next.buttonStyle); setBodyTextColor(next.bodyTextColor);
+    setBgColor(next.bgColor);
     setSocials(next.socials);
     setDirty(true);
   }, [snapshot]);
@@ -469,6 +472,7 @@ export function ThemeEditorPage() {
     setFontFamily((storeConfig as any).fontFamily ?? '');
     setButtonStyle((storeConfig as any).buttonStyle ?? 'pill');
     setBodyTextColor((storeConfig as any).bodyTextColor ?? '');
+    setBgColor((storeConfig as any).bgColor ?? '');
     const footerSec = merged.find(s => s.type === 'footer');
     setSocials((footerSec?.settings as FooterSectionSettings)?.socials ?? {});
     setDirty(false);
@@ -568,7 +572,7 @@ export function ThemeEditorPage() {
       const slug = storeConfig.storeSlug;
       await setDoc(
         doc(firestore, 'businesses', user.businessId, 'store', 'config'),
-        { ...storeConfig, theme, primaryColor: primary, secondaryColor: secondary, fontFamily: fontFamily || null, buttonStyle, bodyTextColor: bodyTextColor || null, sections: sections.map(s => ({ ...s })), storeSlug: slug, status: 'active', updatedAt: serverTimestamp() },
+        { ...storeConfig, theme, primaryColor: primary, secondaryColor: secondary, fontFamily: fontFamily || null, buttonStyle, bodyTextColor: bodyTextColor || null, bgColor: bgColor || null, sections: sections.map(s => ({ ...s })), storeSlug: slug, status: 'active', updatedAt: serverTimestamp() },
         { merge: true }
       );
       if (slug) await setDoc(doc(firestore, 'storeIndex', slug), { businessId: user.businessId, storeName: storeConfig.storeName, updatedAt: serverTimestamp() });
@@ -593,10 +597,11 @@ export function ThemeEditorPage() {
       theme, storeName, tagline, primaryColor: primary, secondaryColor: secondary, logoUrl, sections,
       storeSlug: storeConfig?.storeSlug, products, collections, fontFamily: fontFamily || null,
       buttonStyle, bodyTextColor: bodyTextColor || null, hideStoreNameWithLogo,
+      bgColor: bgColor || null,
     };
     sessionStorage.setItem('mobilePreviewData', JSON.stringify(previewData));
     window.open('/dashboard/mobile-preview', '_blank');
-  }, [theme, storeName, tagline, primary, secondary, logoUrl, sections, storeConfig, products, collections, fontFamily, buttonStyle, bodyTextColor, hideStoreNameWithLogo]);
+  }, [theme, storeName, tagline, primary, secondary, logoUrl, sections, storeConfig, products, collections, fontFamily, buttonStyle, bodyTextColor, bgColor, hideStoreNameWithLogo]);
 
   // Sync to sessionStorage so theme-preview iframes get real products/collections
   useEffect(() => {
@@ -604,13 +609,15 @@ export function ThemeEditorPage() {
       theme, storeName, tagline, primaryColor: primary, secondaryColor: secondary, logoUrl, sections,
       storeSlug: storeConfig?.storeSlug, products, collections, fontFamily: fontFamily || null,
       buttonStyle, bodyTextColor: bodyTextColor || null, hideStoreNameWithLogo,
+      bgColor: bgColor || null,
     }));
-  }, [theme, storeName, tagline, primary, secondary, logoUrl, sections, storeConfig, products, collections, fontFamily, buttonStyle, bodyTextColor, hideStoreNameWithLogo]);
+  }, [theme, storeName, tagline, primary, secondary, logoUrl, sections, storeConfig, products, collections, fontFamily, buttonStyle, bodyTextColor, bgColor, hideStoreNameWithLogo]);
 
   const canvasProps = {
     theme, storeName, tagline, primaryColor: primary, secondaryColor: secondary, logoUrl,
     sections, storeSlug: storeConfig?.storeSlug ?? '', products, collections,
     fontFamily: fontFamily || null, buttonStyle, bodyTextColor: bodyTextColor || null, hideStoreNameWithLogo,
+    bgColor: bgColor || null,
   };
 
   return (
@@ -855,6 +862,15 @@ export function ThemeEditorPage() {
                       <input className={styles.fInput} value={bodyTextColor} onChange={e => { pushUndo(); setBodyTextColor(e.target.value); mark(); }} placeholder="Theme default" style={{ width: 90 }} />
                     </div>
                     <p className={styles.fHint}>Overrides the main text color across the store</p>
+                  </div>
+                  <div className={styles.field}>
+                    <label className={styles.fLabel}>Background color override</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <input type="color" value={bgColor || '#ffffff'} onChange={e => { pushUndo(); setBgColor(e.target.value); mark(); }}
+                        style={{ width: 32, height: 32, borderRadius: 7, border: '1.5px solid var(--sell-border)', cursor: 'pointer', padding: 2, background: 'transparent', flexShrink: 0 }} />
+                      <input className={styles.fInput} value={bgColor} onChange={e => { pushUndo(); setBgColor(e.target.value); mark(); }} placeholder="Theme default" style={{ width: 90 }} />
+                    </div>
+                    <p className={styles.fHint}>Overrides the page background for link-style stores</p>
                   </div>
                 </div>
                 {(isCreator || isLinkStyle) && (

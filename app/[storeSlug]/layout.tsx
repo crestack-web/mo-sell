@@ -96,6 +96,7 @@ export default async function StorefrontLayout({
   const secondary = config.secondaryColor ?? '#8B7355';
   const fontFamily = config.fontFamily ?? null;
   const bodyTextColor = config.bodyTextColor ?? null;
+  const bgColor = config.bgColor ?? null;
   const headerStyle = config.headerStyle ?? 'left';
 
   const savedSections: StoreSection[] = config.sections ?? [];
@@ -165,6 +166,7 @@ export default async function StorefrontLayout({
             --sf-secondary: ${secondary};
             ${fontFamily ? `--sf-font: '${fontFamily}', system-ui, sans-serif;` : ''}
             ${bodyTextColor ? `--sf-text-1: ${bodyTextColor};` : ''}
+            ${bgColor ? `--sf-bg: ${bgColor};` : ''}
           }
         `}</style>
       </head>
