@@ -1,6 +1,10 @@
-'use client';
-
+import type { Metadata } from 'next';
 import dynamic from 'next/dynamic';
+
+export const metadata: Metadata = {
+  title: 'Hire UGC Creators | MO Sell',
+  description: 'Discover and hire UGC creators for your brand. Browse portfolios, request videos, and pay securely.',
+};
 
 const UGCMarketplacePage = dynamic(() => import('./UGCMarketplacePage').then(m => ({ default: m.UGCMarketplacePage })), {
   ssr: false,
