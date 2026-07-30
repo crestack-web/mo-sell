@@ -69,6 +69,7 @@ async function getStoreConfig(storeSlug: string) {
       customDomainStatus:  data.customDomainStatus ?? 'pending',
       paystackPublicKey:   data.paystackPublicKey ?? '',
       fontFamily:          data.fontFamily ?? null,
+      bgColor:             data.bgColor ?? null,
       bodyTextColor:       data.bodyTextColor ?? null,
       headerStyle:         data.headerStyle ?? 'left',
       buttonStyle:         data.buttonStyle ?? 'pill',
