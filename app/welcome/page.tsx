@@ -1,6 +1,7 @@
 "use client";
 
 import React from 'react';
+import { SupportChatWidget } from '@/components/SupportChatWidget';
 
 // ── Design tokens (MO Sell palette, self-contained) ──────────────────────────
 const C = {
@@ -1082,6 +1083,8 @@ export default function SellWelcomePage() {
         </footer>
 
       </main>
+
+      <SupportChatWidget />
     </>
   );
 }
