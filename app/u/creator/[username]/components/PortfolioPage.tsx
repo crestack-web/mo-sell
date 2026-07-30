@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Star, Clock, Play, Check, Shield, ChevronRight, Loader2, User as UserIcon, AlertTriangle, Package } from 'lucide-react';
+import { Star, Clock, Play, Check, Shield, ChevronRight, Loader2, User as UserIcon, AlertTriangle, Package, Instagram, Music2, Youtube, Twitter, ExternalLink, Mail } from 'lucide-react';
 import { UGCRequestModal } from './UGCRequestModal';
 
 interface CreatorData {
@@ -19,6 +19,10 @@ interface CreatorData {
   sampleVideos: { id: string; url: string; thumbnailUrl?: string }[];
   completedOrders: number;
   avatarUrl?: string;
+  socialLinks?: Record<string, string>;
+  followerCounts?: Record<string, number>;
+  portfolioImages?: string[];
+  contactEmail?: string;
 }
 
 interface PortfolioPageProps {
@@ -136,12 +140,53 @@ export function PortfolioPage({ username }: PortfolioPageProps) {
               <span>{creator.completedOrders} order{creator.completedOrders !== 1 ? 's' : ''} completed</span>
             </div>
           )}
+
+          {/* Social Links */}
+          {creator.socialLinks && Object.keys(creator.socialLinks).some(k => creator.socialLinks![k]) && (
+            <div style={s.socialRow}>
+              {((
+                [
+                  ['instagram', 'Instagram', Instagram],
+                  ['tiktok', 'TikTok', Music2],
+                  ['youtube', 'YouTube', Youtube],
+                  ['twitter', 'X (Twitter)', Twitter],
+                ] as [string, string, React.FC<{ size?: number; color?: string }>][]
+              ).map(([key, label, Icon]) => {
+                const url = creator.socialLinks![key];
+                if (!url) return null;
+                return (
+                  <a key={key} href={url} target="_blank" rel="noopener noreferrer" style={s.socialPill}>
+                    <Icon size={14} color="#0EA5E9" />
+                    <span>{label}</span>
+                    {creator.followerCounts?.[key] ? (
+                      <span style={s.followerCount}>{creator.followerCounts![key].toLocaleString()} followers</span>
+                    ) : null}
+                    <ExternalLink size={10} color="#9CA3AF" />
+                  </a>
+                );
+              }))}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Portfolio Grid */}
+      {/* Portfolio Images Gallery */}
+      {creator.portfolioImages && creator.portfolioImages.length > 0 && (
+        <div style={s.content}>
+          <h2 style={s.sectionTitle}>Gallery</h2>
+          <div style={s.grid}>
+            {creator.portfolioImages.map((url, idx) => (
+              <div key={idx} style={s.imageCard}>
+                <img src={url} alt={`Portfolio ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Videos */}
       <div style={s.content}>
-        <h2 style={s.sectionTitle}>Portfolio</h2>
+        <h2 style={s.sectionTitle}>{creator.portfolioImages?.length ? 'Videos' : 'Portfolio'}</h2>
         {creator.sampleVideos && creator.sampleVideos.length > 0 ? (
           <div style={s.grid}>
             {creator.sampleVideos.map((video) => (
@@ -165,6 +210,16 @@ export function PortfolioPage({ username }: PortfolioPageProps) {
           </div>
         )}
       </div>
+
+      {/* Contact Email */}
+      {creator.contactEmail && (
+        <div style={s.content}>
+          <a href={`mailto:${creator.contactEmail}`} style={s.emailLink}>
+            <Mail size={16} color="#0EA5E9" />
+            <span>{creator.contactEmail}</span>
+          </a>
+        </div>
+      )}
 
       {/* Trust Badge */}
       <div style={s.trustBar}>
@@ -286,6 +341,53 @@ const s: Record<string, React.CSSProperties> = {
     flexWrap: 'wrap' as const,
     gap: 6,
     justifyContent: 'center',
+  },
+  socialRow: {
+    display: 'flex',
+    flexWrap: 'wrap' as const,
+    gap: 8,
+    justifyContent: 'center',
+    marginTop: 4,
+  },
+  socialPill: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 6,
+    padding: '6px 14px',
+    borderRadius: 100,
+    border: '1px solid #E5E7EB',
+    background: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: 600,
+    color: '#374151',
+    textDecoration: 'none',
+    cursor: 'pointer',
+    transition: 'box-shadow 0.15s',
+  },
+  followerCount: {
+    fontSize: 11,
+    color: '#6B7280',
+    fontWeight: 500,
+  },
+  imageCard: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    border: '1px solid #F3F4F6',
+    background: '#F9FAFB',
+    aspectRatio: '1',
+  },
+  emailLink: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 8,
+    fontSize: 14,
+    color: '#0EA5E9',
+    fontWeight: 600,
+    textDecoration: 'none',
+    padding: '8px 16px',
+    borderRadius: 100,
+    border: '1px solid #E5E7EB',
+    background: '#FFFFFF',
   },
   nicheBadge: {
     fontSize: 12,

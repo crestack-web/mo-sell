@@ -5,7 +5,7 @@ import { collection, getDocs, addDoc, doc, getDoc, setDoc, query, where, orderBy
 import {
   Lightbulb, Calendar, TrendingUp, Megaphone, BarChart3, Users,
   Copy, Check, Bell, BellOff,
-  Sparkles, Package, X, Plus, Star,
+  Sparkles, Package, X, Plus, Star, Camera, Instagram, Music2, Youtube, Twitter, Trash2, Upload,
 } from 'lucide-react';
 import { initializeFirebase } from '@/lib/firebase';
 import { useSell } from '@/context/SellContext';
@@ -258,6 +258,12 @@ export function ContentHub() {
   const [ugcUsername, setUgcUsername] = useState('');
   const [savingUgc, setSavingUgc] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [socialLinks, setSocialLinks] = useState<Record<string, string>>({});
+  const [followerCounts, setFollowerCounts] = useState<Record<string, number>>({});
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [portfolioImages, setPortfolioImages] = useState<string[]>([]);
+  const [contactEmail, setContactEmail] = useState('');
 
   const [ugcProfile, setUgcProfile] = useState<any>(null);
   const [ugcRequests, setUgcRequests] = useState<UGCRequest[]>([]);
@@ -320,13 +326,32 @@ export function ContentHub() {
     try {
       const { firestore } = initializeFirebase();
       const profileSnap = await getDoc(doc(firestore, 'ugcCreators', user.id));
-      if (profileSnap.exists()) setUgcProfile(profileSnap.data());
+      if (profileSnap.exists()) {
+        const data = profileSnap.data();
+        setUgcProfile(data);
+        setBio(data.bio || '');
+        setNiches(data.niches || []);
+        setPrice30s(data.price30s ? String(data.price30s / 100) : '');
+        setPrice60s(data.price60s ? String(data.price60s / 100) : '');
+        setDeliveryDays(String(data.deliveryDays || 5));
+        setUgcUsername(data.username || '');
+        setSocialLinks(data.socialLinks || {});
+        setFollowerCounts(data.followerCounts || {});
+        setAvatarPreview(data.avatarUrl || null);
+        setPortfolioImages(data.portfolioImages || []);
+        setContactEmail(data.contactEmail || '');
+      }
       const ordersSnap = await getDocs(
         query(collection(firestore, 'ugcOrders'), where('creatorId', '==', user.id))
       );
       const allOrders = ordersSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
       setUgcRequests(allOrders.filter(o => o.type === 'request' || o.status === 'pending'));
       setUgcOrders(allOrders.filter(o => o.type !== 'request' && o.status !== 'pending'));
+      const videosSnap = await getDocs(
+        query(collection(firestore, 'ugcVideos'), where('creatorId', '==', user.id))
+      );
+      const vids = videosSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
+      setSampleVideos(vids.length > 0 ? vids.map((v: any) => v.url) : ['', '', '']);
     } catch (err) {
       console.error('[ContentHub] Load UGC data error:', err);
     } finally {
@@ -397,6 +422,21 @@ export function ContentHub() {
     setSampleVideos(prev => [...prev, '']);
   };
 
+  const handleAvatarUpload = async (): Promise<string | null> => {
+    if (!avatarFile) return avatarPreview;
+    try {
+      const storageMod = await import('firebase/storage');
+      const storage = storageMod.getStorage();
+      const ext = avatarFile.name.split('.').pop() || 'jpg';
+      const fileRef = storageMod.ref(storage, `ugc-avatars/${user!.id}.${ext}`);
+      await storageMod.uploadBytes(fileRef, avatarFile);
+      return await storageMod.getDownloadURL(fileRef);
+    } catch {
+      showToast('Failed to upload avatar', 'error');
+      return avatarPreview;
+    }
+  };
+
   const handleSaveUgcProfile = async () => {
     if (!user?.id) return;
     if (!niches.length || !price30s || !price60s || !deliveryDays) {
@@ -413,12 +453,13 @@ export function ContentHub() {
         return;
       }
       const username = ugcUsername.trim() || user.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'creator';
+      const avatarUrl = await handleAvatarUpload();
       const creator = {
         userId: user.id,
         username,
         displayName: user.name,
         bio: bio || '',
-        avatarUrl: null,
+        avatarUrl,
         niches,
         isActive: true,
         isBanned: false,
@@ -428,6 +469,10 @@ export function ContentHub() {
         rating: 0,
         totalOrders: 0,
         totalEarnings: 0,
+        socialLinks,
+        followerCounts,
+        portfolioImages: portfolioImages.filter(Boolean),
+        contactEmail: contactEmail || user.email || '',
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       };
@@ -444,7 +489,7 @@ export function ContentHub() {
         }
         await batch.commit();
       }
-      showToast('Profile saved! You\'re now listed as a creator.', 'success');
+      showToast(ugcProfile ? 'Profile updated!' : 'Profile saved! You\'re now listed as a creator.', 'success');
       setUgcView('dashboard');
       await loadUgcData();
     } catch (err) {
@@ -758,8 +803,8 @@ export function ContentHub() {
               )}
             </div>
             <div style={s.cardBody}>
-              {!ugcProfile && ugcView === 'apply' ? (
-                /* ─── Apply Form ─── */
+              {ugcView === 'apply' ? (
+                /* ─── Apply / Edit Form ─── */
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 600 }}>
                   <p style={{ fontSize: '0.82rem', color: 'var(--sell-text-2)', fontWeight: 600 }}>Become a UGC Creator</p>
 
@@ -846,13 +891,110 @@ export function ContentHub() {
                     <p style={{ fontSize: '0.72rem', color: 'var(--sell-text-3)', margin: 0 }}>Your public portfolio will be at /u/creator/{ugcUsername || 'your-username'}</p>
                   </div>
 
+                  {/* Avatar Upload */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                    <label style={s.formLabel}>Profile Avatar</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div style={{ width: 64, height: 64, borderRadius: '50%', overflow: 'hidden', border: '1px solid var(--sell-border)', background: 'var(--sell-bg)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', fontWeight: 700, color: 'var(--sell-primary)', backgroundImage: avatarPreview ? `url(${avatarPreview})` : undefined, backgroundSize: 'cover', backgroundPosition: 'center' }}>
+                        {!avatarPreview && (user?.name?.charAt(0).toUpperCase() || <Camera size={20} />)}
+                      </div>
+                      <label style={{ ...s.btnGhost, fontSize: '0.75rem', padding: '6px 12px', cursor: 'pointer' }}>
+                        <Upload size={12} />
+                        {avatarPreview ? 'Change Photo' : 'Upload Photo'}
+                        <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          if (file.size > 2 * 1024 * 1024) { showToast('Image must be under 2MB', 'error'); return; }
+                          setAvatarFile(file);
+                          const reader = new FileReader();
+                          reader.onloadend = () => setAvatarPreview(reader.result as string);
+                          reader.readAsDataURL(file);
+                        }} />
+                      </label>
+                      {avatarPreview && (
+                        <button style={{ ...s.btnGhost, fontSize: '0.75rem', padding: '6px 12px', color: 'var(--sell-red, #EF4444)' }} onClick={() => { setAvatarFile(null); setAvatarPreview(null); }}>
+                          <Trash2 size={12} /> Remove
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Social Links + Follower Counts */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <label style={s.formLabel}>Social Proof</label>
+                    {((
+                      [
+                        ['instagram', 'Instagram', Instagram],
+                        ['tiktok', 'TikTok', Music2],
+                        ['youtube', 'YouTube', Youtube],
+                        ['twitter', 'X (Twitter)', Twitter],
+                      ] as [string, string, React.FC<{ size?: number }>][]
+                    ).map(([key, label, Icon]) => (
+                      <div key={key} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 120, fontSize: '0.82rem', color: 'var(--sell-text-2)' }}>
+                          <Icon size={16} />
+                          <span>{label}</span>
+                        </div>
+                        <input
+                          style={{ ...s.formInput, flex: 1 }}
+                          value={socialLinks[key] || ''}
+                          onChange={e => setSocialLinks(prev => ({ ...prev, [key]: e.target.value }))}
+                          placeholder={`${label} URL (optional)`}
+                        />
+                        <input
+                          style={{ ...s.formInput, width: 100, flex: 'none' }}
+                          type="number"
+                          value={followerCounts[key] || ''}
+                          onChange={e => setFollowerCounts(prev => ({ ...prev, [key]: Number(e.target.value) || 0 }))}
+                          placeholder="Followers"
+                        />
+                      </div>
+                    )))}
+                    <p style={{ fontSize: '0.72rem', color: 'var(--sell-text-3)', margin: 0 }}>Enter your public social profile URLs and approximate follower counts.</p>
+                  </div>
+
+                  {/* Portfolio Images */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                    <label style={s.formLabel}>Portfolio Images (URLs)</label>
+                    {portfolioImages.map((url, idx) => (
+                      <div key={idx} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                        <input
+                          style={s.formInput}
+                          value={url}
+                          onChange={e => setPortfolioImages(prev => prev.map((v, i) => i === idx ? e.target.value : v))}
+                          placeholder={`Image URL ${idx + 1}`}
+                        />
+                        <button style={{ ...s.btnGhost, padding: '6px 8px', fontSize: '0.72rem', color: 'var(--sell-red, #EF4444)' }} onClick={() => setPortfolioImages(prev => prev.filter((_, i) => i !== idx))}>
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                    ))}
+                    <button style={{ ...s.btnGhost, alignSelf: 'flex-start', fontSize: '0.75rem', padding: '6px 12px' }} onClick={() => setPortfolioImages(prev => [...prev, ''])}>
+                      <Plus size={12} />
+                      Add another image
+                    </button>
+                  </div>
+
+                  {/* Contact Email */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                    <label style={s.formLabel}>Contact Email</label>
+                    <input
+                      style={s.formInput}
+                      type="email"
+                      value={contactEmail}
+                      onChange={e => setContactEmail(e.target.value)}
+                      placeholder={user?.email || 'your@email.com'}
+                    />
+                    <p style={{ fontSize: '0.72rem', color: 'var(--sell-text-3)', margin: 0 }}>Shown on your public portfolio so brands can contact you.</p>
+                  </div>
+
                   <button style={s.btnPrimary} onClick={handleSaveUgcProfile} disabled={savingUgc}>
                     {savingUgc ? (
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ width: 14, height: 14, animation: 'spin 0.7s linear infinite' }}>
                         <path d="M21 12a9 9 0 11-6.219-8.56"/>
                       </svg>
                     ) : <Star size={14} />}
-                    {savingUgc ? 'Saving\u2026' : 'Apply as Creator'}
+                    {savingUgc ? 'Saving\u2026' : ugcProfile ? 'Save Changes' : 'Apply as Creator'}
                   </button>
                 </div>
               ) : (
@@ -861,8 +1003,8 @@ export function ContentHub() {
                   {/* Profile Summary */}
                   {ugcProfile && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '14px 16px', border: '1px solid var(--sell-border)', borderRadius: 'var(--sell-radius-sm)', background: 'var(--sell-bg)' }}>
-                      <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'var(--sell-primary-lt)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', fontWeight: 700, color: 'var(--sell-primary)', flexShrink: 0 }}>
-                        {user?.name?.charAt(0).toUpperCase() || '?'}
+                      <div style={{ width: 48, height: 48, borderRadius: '50%', overflow: 'hidden', background: 'var(--sell-primary-lt)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', fontWeight: 700, color: 'var(--sell-primary)', flexShrink: 0, backgroundImage: ugcProfile?.avatarUrl ? `url(${ugcProfile.avatarUrl})` : undefined, backgroundSize: 'cover', backgroundPosition: 'center' }}>
+                        {!ugcProfile?.avatarUrl && (user?.name?.charAt(0).toUpperCase() || '?')}
                       </div>
                       <div style={{ flex: 1 }}>
                         <p style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--sell-text-1)' }}>{user?.name}</p>
