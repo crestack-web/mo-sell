@@ -109,9 +109,7 @@ export function LuxeProductPage({ product, storeSlug, currency }: ThemeProductPa
           <div style={{ height: 1, background: '#2A2A2A' }} />
 
           {product.description && (
-            <p style={{ fontSize: '0.92rem', color: '#A89878', lineHeight: 1.75, fontWeight: 300 }}>
-              {product.description}
-            </p>
+            <div style={{ fontSize: '0.92rem', color: '#A89878', lineHeight: 1.75, fontWeight: 300, overflowWrap: 'break-word' }} dangerouslySetInnerHTML={{ __html: product.description }} />
           )}
 
           {/* Stock */}

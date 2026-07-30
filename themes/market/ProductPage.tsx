@@ -98,9 +98,7 @@ export function MarketProductPage({ product, storeSlug, currency }: ThemeProduct
 
           {/* Description */}
           {product.description && (
-            <p style={{ fontSize: '0.95rem', color: '#4B5563', lineHeight: 1.65, fontWeight: 500 }}>
-              {product.description}
-            </p>
+            <div style={{ fontSize: '0.95rem', color: '#4B5563', lineHeight: 1.65, fontWeight: 500, overflowWrap: 'break-word' }} dangerouslySetInnerHTML={{ __html: product.description }} />
           )}
 
           {/* Stock info */}

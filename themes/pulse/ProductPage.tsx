@@ -197,9 +197,9 @@ export function PulseProductPage({ product, storeSlug, currency }: ThemeProductP
 
           {/* Description */}
           {product.description && (
-            <p style={{
-              fontSize: '0.95rem', color: '#6B5B4E', lineHeight: 1.65, fontWeight: 500,
-            }}>{product.description}</p>
+            <div style={{
+              fontSize: '0.95rem', color: '#6B5B4E', lineHeight: 1.65, fontWeight: 500, overflowWrap: 'break-word',
+            }} dangerouslySetInnerHTML={{ __html: product.description }} />
           )}
 
           {/* Stock indicator */}

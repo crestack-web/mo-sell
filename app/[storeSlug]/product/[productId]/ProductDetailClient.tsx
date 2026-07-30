@@ -64,7 +64,7 @@ function GenericProductPage({ product, storeSlug, currency }: ThemeProductPagePr
           <p style={{ fontSize: '1.4rem', fontWeight: 800, color: '#4F46E5', marginTop: 12 }}>
             {currency === 'NGN' ? '₦' : currency === 'USD' ? '$' : currency + ' '}{product.price.toLocaleString()}
           </p>
-          {product.description && <p style={{ color: '#6B7280', marginTop: 16, lineHeight: 1.7 }}>{product.description}</p>}
+          {product.description && <div style={{ color: '#6B7280', marginTop: 16, lineHeight: 1.7, overflowWrap: 'break-word' }} dangerouslySetInnerHTML={{ __html: product.description }} />}
         </div>
       </div>
     </div>

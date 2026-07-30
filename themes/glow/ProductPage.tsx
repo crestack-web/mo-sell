@@ -148,9 +148,9 @@ export function GlowProductPage({ product, storeSlug, currency }: ThemeProductPa
 
           {/* Description */}
           {product.description && (
-            <p style={{
-              fontSize: '0.92rem', color: COLORS.dustyRose, lineHeight: 1.8, fontWeight: 300,
-            }}>{product.description}</p>
+            <div style={{
+              fontSize: '0.92rem', color: COLORS.dustyRose, lineHeight: 1.8, fontWeight: 300, overflowWrap: 'break-word',
+            }} dangerouslySetInnerHTML={{ __html: product.description }} />
           )}
 
           {/* Stock */}

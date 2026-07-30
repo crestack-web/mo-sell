@@ -8,6 +8,7 @@ import { useSell } from '@/context/SellContext';
 import { EbookPreviewModal } from '@/app/store-components/EbookPreviewModal';
 import { ContentIdeasModal } from '@/components/ContentIdeasModal';
 import styles from './SellProductsPage.module.css';
+import { RichDescription } from './RichDescription';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -735,12 +736,10 @@ function ProductSlideOver({ product, onClose, onSaved, businessId, currency, sto
                   )}
                 </div>
               </div>
-              <textarea
-                className={styles.formTextarea}
-                placeholder="Describe the product — materials, key features, who it's for…"
+              <RichDescription
                 value={form.description}
-                onChange={e => set('description', e.target.value)}
-                rows={4}
+                onChange={v => set('description', v)}
+                placeholder="Describe the product — materials, key features, who it's for…"
               />
             </div>
 

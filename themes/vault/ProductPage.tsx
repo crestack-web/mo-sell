@@ -193,11 +193,11 @@ export function VaultProductPage({ product, storeSlug, currency }: ThemeProductP
 
           {/* Description */}
           {product.description && (
-            <p style={{
+            <div style={{
               fontSize: '0.9rem', color: C.darkText, lineHeight: 1.8,
               fontFamily: "'Space Grotesk', sans-serif",
-              fontWeight: 400,
-            }}>{product.description}</p>
+              fontWeight: 400, overflowWrap: 'break-word',
+            }} dangerouslySetInnerHTML={{ __html: product.description }} />
           )}
 
           {/* Preview button for digital products */}

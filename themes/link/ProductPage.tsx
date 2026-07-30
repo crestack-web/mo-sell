@@ -126,9 +126,9 @@ export function LinkProductPage({ product, storeSlug, currency }: ThemeProductPa
         </div>
 
         {product.description && (
-          <p style={{
-            fontSize: '0.92rem', color: 'var(--sf-text-2)', lineHeight: 1.65,
-          }}>{product.description}</p>
+          <div style={{
+            fontSize: '0.92rem', color: 'var(--sf-text-2)', lineHeight: 1.65, overflowWrap: 'break-word',
+          }} dangerouslySetInnerHTML={{ __html: product.description }} />
         )}
 
         {/* Stock */}

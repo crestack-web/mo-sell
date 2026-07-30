@@ -182,9 +182,7 @@ export function SparkProductPage({ product, storeSlug, currency }: ThemeProductP
 
           {/* Description */}
           {product.description && (
-            <p style={{ fontFamily: "'Raleway', Georgia, serif", fontSize: '0.92rem', color: '#5B4A8A', lineHeight: 1.75, fontWeight: 400 }}>
-              {product.description}
-            </p>
+            <div style={{ fontFamily: "'Raleway', Georgia, serif", fontSize: '0.92rem', color: '#5B4A8A', lineHeight: 1.75, fontWeight: 400, overflowWrap: 'break-word' }} dangerouslySetInnerHTML={{ __html: product.description }} />
           )}
 
           {/* What You'll Get checklist */}

@@ -194,10 +194,10 @@ export function AtlasProductPage({ product, storeSlug, currency }: ThemeProductP
 
           {/* Description */}
           {product.description && (
-            <p style={{
+            <div style={{
               fontFamily: "'Manrope', sans-serif",
-              fontSize: '0.9rem', color: C.slateMuted, lineHeight: 1.75, fontWeight: 400,
-            }}>{product.description}</p>
+              fontSize: '0.9rem', color: C.slateMuted, lineHeight: 1.75, fontWeight: 400, overflowWrap: 'break-word',
+            }} dangerouslySetInnerHTML={{ __html: product.description }} />
           )}
 
           {/* Service availability / Stock */}
