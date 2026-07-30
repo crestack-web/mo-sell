@@ -52,6 +52,12 @@ export const TOKEN_PURCHASED_FIELD = 'askMoTotalPurchased';
 export const TOKEN_MONTH_USAGE_FIELD = 'askMoMonthUsage';
 export const TOKEN_MONTH_RESET_FIELD = 'askMoMonthReset';
 
+// ─── Free Tokens (one-time grant for all users) ────────────────────────────────
+
+/** Free tokens every user gets on first Ask Mo access */
+export const FREE_TOKEN_AMOUNT = 2000;
+export const FREE_TOKENS_CREDITED_FIELD = 'askMoFreeTokensCredited';
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 export function getTokenCost(

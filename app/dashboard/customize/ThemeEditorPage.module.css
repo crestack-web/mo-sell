@@ -28,15 +28,6 @@
   color: var(--sell-text-1); letter-spacing: -0.02em;
 }
 
-.backBtn {
-  display: flex; align-items: center; gap: 5px; font-size: 0.8rem;
-  font-weight: 600; color: var(--sell-text-2); background: none;
-  border: none; cursor: pointer; font-family: var(--sell-font-body);
-  padding: 5px 8px; border-radius: 6px;
-  transition: color var(--sell-transition), background var(--sell-transition);
-}
-.backBtn:hover { color: var(--sell-text-1); background: var(--sell-bg); }
-
 .themePill {
   font-size: 0.72rem; font-weight: 600; padding: 3px 10px;
   border-radius: 100px; background: var(--sell-primary-lt); color: var(--sell-primary);
@@ -97,76 +88,8 @@
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* ══════════ MARKETPLACE ══════════ */
-.marketplace { flex: 1; overflow-y: auto; padding: 20px 24px 40px; }
-.marketplace::-webkit-scrollbar { width: 4px; }
-.marketplace::-webkit-scrollbar-thumb { background: var(--sell-border); border-radius: 4px; }
-
-.marketColors {
-  display: flex; align-items: center; gap: 14px; margin-bottom: 20px;
-  padding: 12px 16px; background: var(--sell-surface);
-  border: 1px solid var(--sell-border); border-radius: var(--sell-radius);
-  flex-wrap: wrap;
-}
-.marketColorsLabel { font-size: 0.78rem; font-weight: 600; color: var(--sell-text-2); }
-
 .cLabel { display: flex; align-items: center; gap: 7px; font-size: 0.78rem; color: var(--sell-text-2); cursor: pointer; font-weight: 500; }
 .cPicker { width: 26px; height: 26px; border-radius: 6px; border: 1.5px solid var(--sell-border); cursor: pointer; padding: 2px; background: transparent; }
-
-.themeGrid {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 16px;
-}
-@media (min-width: 768px) { .themeGrid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); } }
-@media (min-width: 1280px) { .themeGrid { grid-template-columns: repeat(4, 1fr); } }
-
-.themeCard {
-  border: 2px solid var(--sell-border); border-radius: var(--sell-radius-md);
-  cursor: pointer; position: relative; overflow: hidden;
-  transition: border-color var(--sell-transition), box-shadow var(--sell-transition), transform 0.15s;
-}
-.themeCard::before {
-  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; z-index: 2;
-  background: var(--sell-primary); opacity: 0; transition: opacity 0.15s;
-}
-.themeCard:hover { border-color: var(--sell-primary); box-shadow: var(--sell-shadow-sm); }
-.themeCard:hover::before { opacity: 1; }
-.themeCard:hover .themeCardPreview { transform: scale(1.02); }
-.themeCardActive { border-color: var(--sell-primary) !important; box-shadow: 0 0 0 2px var(--sell-primary-glow) !important; }
-.themeCardActive::before { opacity: 1 !important; }
-
-.themeCardPreview {
-  position: relative; width: 100%; aspect-ratio: 3/4; overflow: hidden;
-  background: var(--sell-surface); transition: transform 0.2s;
-}
-
-.themeCardIframe {
-  border: none; display: block;
-}
-
-.themeCardSkeleton {
-  position: absolute; inset: 0;
-  background: linear-gradient(110deg, var(--sell-surface) 30%, var(--sell-border) 50%, var(--sell-surface) 70%);
-  background-size: 200% 100%; animation: shimmer 1.5s ease-in-out infinite;
-}
-
-@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-
-.themeCardBadge {
-  position: absolute; top: 6px; left: 6px; z-index: 3;
-  font-size: 0.5rem; font-weight: 700; padding: 2px 6px; border-radius: 100;
-  background: rgba(99,102,241,0.9); color: #fff; letter-spacing: 0.04em;
-}
-
-.mName {
-  font-size: 0.8rem; font-weight: 700; margin: 0; padding: 8px 10px;
-  color: var(--sell-text-1); background: var(--sell-surface);
-}
-.mActive {
-  position: absolute; top: 8px; right: 8px; z-index: 3;
-  display: flex; align-items: center; justify-content: center;
-  width: 20px; height: 20px; border-radius: 50%;
-  background: var(--sell-primary); color: #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.2);
-}
 
 /* ══════════ RESPONSIVE EDITOR GRID ══════════ */
 .editorGrid {
@@ -412,11 +335,6 @@
   .liveBadge { display: none; }
   .previewBtn { display: none; }
   .zoomBadge { display: none; }
-  .themeGrid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px; }
-  .marketColors { gap: 10px; padding: 10px 12px; margin-bottom: 16px; }
-  .marketColorsLabel { font-size: 0.72rem; flex: 1; }
-  .cLabel { font-size: 0.72rem; gap: 5px; }
-  .cPicker { width: 22px; height: 22px; }
   .mobilePreviewIcon {
     display: flex; align-items: center; justify-content: center;
     width: 34px; height: 34px; border-radius: 8px; border: none;
@@ -451,9 +369,6 @@
 /* Small mobile: <480px */
 @media (max-width: 480px) {
   .editorGrid { grid-template-columns: 1fr; }
-  .themeGrid { grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 6px; }
-  .marketColors { flex-direction: row; justify-content: space-between; padding: 8px 10px; }
-  .marketColorsLabel { font-size: 0.7rem; }
   .topbarCenter { display: none; }
   .publishBtn { padding: 8px 14px; font-size: 0.8rem; }
 }

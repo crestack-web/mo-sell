@@ -313,58 +313,6 @@ function FooterSettings({ s, upd }: { s: FooterSectionSettings; upd: (p: Partial
   </>);
 }
 
-function ThemeCard({ themeId, isActive, storeName, tagline, primary, secondary, onSelect, businessId }: {
-  themeId: StorefrontTheme; isActive: boolean; storeName: string; tagline: string;
-  primary: string; secondary: string; onSelect: () => void; businessId?: string;
-}) {
-  const t = THEMES.find(x => x.id === themeId)!;
-  const cardRef = useRef<HTMLDivElement>(null);
-  const iframeRef = useRef<HTMLIFrameElement>(null);
-  const [loaded, setLoaded] = useState(false);
-  const [scale, setScale] = useState(0.5);
-
-  useEffect(() => {
-    const el = cardRef.current;
-    if (!el) return;
-    const update = () => {
-      const cardW = el.clientWidth;
-      setScale(cardW / 375);
-    };
-    update();
-    const ro = new ResizeObserver(update);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-
-  const previewUrl = `/dashboard/theme-preview/${themeId}?primary=${encodeURIComponent(primary)}&secondary=${encodeURIComponent(secondary)}&storeName=${encodeURIComponent(storeName || 'Your Store')}&tagline=${encodeURIComponent(tagline || 'Shop our latest collection')}${businessId ? `&businessId=${encodeURIComponent(businessId)}` : ''}`;
-
-  return (
-    <div className={[styles.themeCard, isActive ? styles.themeCardActive : ''].join(' ')} onClick={onSelect}>
-      {isActive && <span className={styles.mActive}><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>}
-      {t.badge && <span className={styles.themeCardBadge} style={{ background: t.badge.bg, color: t.badge.color }}>{t.badge.label}</span>}
-      <div className={styles.themeCardPreview} ref={cardRef}>
-        {!loaded && <div className={styles.themeCardSkeleton} />}
-        <iframe
-          ref={iframeRef}
-          src={previewUrl}
-          className={styles.themeCardIframe}
-          style={{
-            width: 375,
-            height: 700,
-            transform: `scale(${scale})`,
-            transformOrigin: 'top left',
-            pointerEvents: 'none',
-          }}
-          loading="lazy"
-          onLoad={() => setLoaded(true)}
-          title={`${t.name} theme preview`}
-        />
-      </div>
-      <p className={styles.mName}>{t.name}</p>
-    </div>
-  );
-}
-
 export function ThemeEditorPage() {
   const { user, storeConfig, refreshStoreConfig, showToast } = useSell();
 
@@ -375,7 +323,6 @@ export function ThemeEditorPage() {
   const [activeId,  setActiveId]  = useState<string | null>(null);
   const [applying,  setApplying]  = useState(false);
   const [dirty,     setDirty]     = useState(false);
-  const [view,      setView]      = useState<'marketplace' | 'editor'>('marketplace');
   const [device,    setDevice]    = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
   const [products,  setProducts]  = useState<StorefrontProduct[]>([]);
   const [collections, setCollections] = useState<StoreCollection[]>([]);
@@ -417,7 +364,7 @@ export function ThemeEditorPage() {
     const ro = new ResizeObserver(update);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [view]);
+  }, []);
 
   const DEVICE_WIDTHS = { desktop: 1200, tablet: 768, mobile: 375 } as const;
   const deviceWidth = DEVICE_WIDTHS[device];
@@ -477,7 +424,6 @@ export function ThemeEditorPage() {
     setSocials((footerSec?.settings as FooterSectionSettings)?.socials ?? {});
     setDirty(false);
     undoStack.current = []; redoStack.current = [];
-    if (storeConfig.theme && view === 'marketplace') setView('editor');
   }, [storeConfig]);
 
   useEffect(() => {
@@ -626,95 +572,57 @@ export function ThemeEditorPage() {
       {/* ── Topbar ── */}
       <div className={styles.topbar}>
         <div className={styles.topbarLeft}>
-          {view === 'editor' && (
-            <button className={styles.backBtn} onClick={() => { setActiveId(null); setView('marketplace'); }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-              Themes
-            </button>
-          )}
-          <span className={styles.topbarTitle}>{view === 'marketplace' ? 'Choose a theme' : 'Customize'}</span>
-          {view === 'editor' && (
-            <span className={styles.themePill}>{THEMES.find(t => t.id === theme)?.name ?? theme}</span>
-          )}
-          {view === 'editor' && storeConfig?.storeSlug && (
+          <span className={styles.topbarTitle}>Customize</span>
+          <span className={styles.themePill}>{THEMES.find(t => t.id === theme)?.name ?? theme}</span>
+          {storeConfig?.storeSlug && (
             <a href={`/${storeConfig.storeSlug}`} target="_blank" rel="noopener noreferrer" className={styles.liveBadge}>
               <span className={styles.liveDot} />Live
             </a>
           )}
         </div>
         <div className={styles.topbarCenter}>
-          {view === 'editor' && (
-            <>
-              <button className={styles.iconBtn} onClick={undo} title="Undo (Ctrl+Z)" disabled={undoStack.current.length === 0} aria-label="Undo">
-                <Undo2 size={14} />
-              </button>
-              <button className={styles.iconBtn} onClick={redo} title="Redo (Ctrl+Shift+Z)" disabled={redoStack.current.length === 0} aria-label="Redo">
-                <Redo2 size={14} />
-              </button>
-              <div className={styles.dividerV} />
-              {!isMobile && (['desktop','tablet','mobile'] as const).map(d => (
-                <button
-                  key={d}
-                  className={[styles.iconBtn, device === d ? styles.iconBtnActive : ''].join(' ')}
-                  onClick={() => setDevice(d)}
-                  title={d.charAt(0).toUpperCase() + d.slice(1)}
-                  aria-label={`Preview in ${d} mode`}
-                  aria-pressed={device === d}
-                >
-                  {d === 'desktop' && <Monitor size={15} />}
-                  {d === 'tablet'  && <Tablet size={15} />}
-                  {d === 'mobile'  && <Smartphone size={15} />}
-                </button>
-              ))}
-            </>
-          )}
+          <button className={styles.iconBtn} onClick={undo} title="Undo (Ctrl+Z)" disabled={undoStack.current.length === 0} aria-label="Undo">
+            <Undo2 size={14} />
+          </button>
+          <button className={styles.iconBtn} onClick={redo} title="Redo (Ctrl+Shift+Z)" disabled={redoStack.current.length === 0} aria-label="Redo">
+            <Redo2 size={14} />
+          </button>
+          <div className={styles.dividerV} />
+          {!isMobile && (['desktop','tablet','mobile'] as const).map(d => (
+            <button
+              key={d}
+              className={[styles.iconBtn, device === d ? styles.iconBtnActive : ''].join(' ')}
+              onClick={() => setDevice(d)}
+              title={d.charAt(0).toUpperCase() + d.slice(1)}
+              aria-label={`Preview in ${d} mode`}
+              aria-pressed={device === d}
+            >
+              {d === 'desktop' && <Monitor size={15} />}
+              {d === 'tablet'  && <Tablet size={15} />}
+              {d === 'mobile'  && <Smartphone size={15} />}
+            </button>
+          ))}
         </div>
         <div className={styles.topbarRight}>
-          {view === 'editor' && (
-            <span className={styles.zoomBadge}>
-              {deviceWidth}px &middot; {Math.round(scale * 100)}%
-            </span>
-          )}
-          {view === 'editor' && isMobile && (
+          <span className={styles.zoomBadge}>
+            {deviceWidth}px &middot; {Math.round(scale * 100)}%
+          </span>
+          {isMobile && (
             <button className={styles.mobilePreviewIcon} onClick={handlePreview} title="Preview on mobile">
               <Smartphone size={18} />
             </button>
           )}
-          {view === 'editor' && (
-            <button className={styles.previewBtn} onClick={handlePreview}>
-              Preview
-            </button>
-          )}
-          {view === 'editor' && dirty && <span className={styles.unsavedDot} />}
-          {view === 'editor' && (
-            <button className={styles.publishBtn} onClick={handleApply} disabled={applying || !dirty}>
-              {applying ? <><span className={styles.spinner} />Publishing...</> : 'Publish'}
-            </button>
-          )}
+          <button className={styles.previewBtn} onClick={handlePreview}>
+            Preview
+          </button>
+          {dirty && <span className={styles.unsavedDot} />}
+          <button className={styles.publishBtn} onClick={handleApply} disabled={applying || !dirty}>
+            {applying ? <><span className={styles.spinner} />Publishing...</> : 'Publish'}
+          </button>
         </div>
       </div>
 
-      {/* ── MARKETPLACE ── */}
-      {view === 'marketplace' && (
-        <div className={styles.marketplace}>
-          <div className={styles.marketColors}>
-            <span className={styles.marketColorsLabel}>Preview with your colors:</span>
-            <label className={styles.cLabel}><input type="color" value={primary} onChange={e => setPrimary(e.target.value)} className={styles.cPicker} aria-label="Primary color" />Primary</label>
-            <label className={styles.cLabel}><input type="color" value={secondary} onChange={e => setSecondary(e.target.value)} className={styles.cPicker} aria-label="Accent color" />Accent</label>
-          </div>
-          <div className={styles.themeGrid}>
-            {THEMES.map(t => (
-              <ThemeCard key={t.id} themeId={t.id} isActive={theme === t.id}
-                storeName={storeName} tagline={tagline} primary={primary} secondary={secondary}
-                businessId={user?.businessId}
-                onSelect={() => { setTheme(t.id); pushUndo(); mark(); setView('editor'); }} />
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* ── RESPONSIVE EDITOR ── */}
-      {view === 'editor' && (
         <div className={styles.editorGrid}>
 
           {/* LEFT: Section list */}
@@ -900,7 +808,6 @@ export function ThemeEditorPage() {
           </button>
 
         </div>
-      )}
 
     </div>
   );
