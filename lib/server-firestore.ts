@@ -1,5 +1,6 @@
 import { firebaseConfig } from '@/lib/firebase/config';
-import { isAdminInitialized, getAdminDb, getAdminStorage, admin } from './firebase-admin';
+import { isAdminInitialized, getAdminDb, getAdminStorage } from './firebase-admin';
+import { FieldValue as AdminFieldValue, Timestamp as AdminTimestamp } from 'firebase-admin/firestore';
 export { isAdminInitialized };
 
 
@@ -87,48 +88,38 @@ export function getServerStorage(): any {
   return ensureCompat().storage;
 }
 
-// FieldValue polyfill — uses compat SDK when Admin SDK unavailable
+// FieldValue polyfill — uses AdminFieldValue directly (no ESM interop issues)
 export const FieldValue = {
   serverTimestamp(): any {
-    if (admin) {
-      try { return admin.firestore.FieldValue.serverTimestamp(); } catch {}
-    }
+    try { return AdminFieldValue.serverTimestamp(); } catch {}
     try {
       const firebase = require('firebase/compat/app');
       require('firebase/compat/firestore');
       return firebase.firestore.FieldValue.serverTimestamp();
     } catch {
-      throw new Error('Firestore FieldValue not available — admin SDK not initialized and compat fallback failed');
+      throw new Error('Firestore FieldValue not available');
     }
   },
   arrayUnion(...elements: any[]): any {
-    if (admin) {
-      try { return admin.firestore.FieldValue.arrayUnion(...elements); } catch {}
-    }
+    try { return AdminFieldValue.arrayUnion(...elements); } catch {}
     const firebase = require('firebase/compat/app');
     require('firebase/compat/firestore');
     return firebase.firestore.FieldValue.arrayUnion(...elements);
   },
   arrayRemove(...elements: any[]): any {
-    if (admin) {
-      try { return admin.firestore.FieldValue.arrayRemove(...elements); } catch {}
-    }
+    try { return AdminFieldValue.arrayRemove(...elements); } catch {}
     const firebase = require('firebase/compat/app');
     require('firebase/compat/firestore');
     return firebase.firestore.FieldValue.arrayRemove(...elements);
   },
   increment(n: number): any {
-    if (admin) {
-      try { return admin.firestore.FieldValue.increment(n); } catch {}
-    }
+    try { return AdminFieldValue.increment(n); } catch {}
     const firebase = require('firebase/compat/app');
     require('firebase/compat/firestore');
     return firebase.firestore.FieldValue.increment(n);
   },
   delete(): any {
-    if (admin) {
-      try { return admin.firestore.FieldValue.delete(); } catch {}
-    }
+    try { return AdminFieldValue.delete(); } catch {}
     const firebase = require('firebase/compat/app');
     require('firebase/compat/firestore');
     return firebase.firestore.FieldValue.delete();
@@ -138,22 +129,16 @@ export const FieldValue = {
 // Timestamp polyfill
 export const Timestamp = {
   now(): any {
-    if (admin) {
-      try { return admin.firestore.Timestamp.now(); } catch {}
-    }
+    try { return AdminTimestamp.now(); } catch {}
     return { toMillis: () => Date.now(), toDate: () => new Date() };
   },
   fromMillis(milliseconds: number): any {
-    if (admin) {
-      try { return admin.firestore.Timestamp.fromMillis(milliseconds); } catch {}
-    }
+    try { return AdminTimestamp.fromMillis(milliseconds); } catch {}
     const d = new Date(milliseconds);
     return { seconds: Math.floor(d.getTime() / 1000), nanoseconds: (d.getTime() % 1000) * 1000000, toMillis: () => d.getTime(), toDate: () => d };
   },
   fromDate(date: Date): any {
-    if (admin) {
-      try { return admin.firestore.Timestamp.fromDate(date); } catch {}
-    }
+    try { return AdminTimestamp.fromDate(date); } catch {}
     return { seconds: Math.floor(date.getTime() / 1000), nanoseconds: (date.getTime() % 1000) * 1000000, toMillis: () => date.getTime(), toDate: () => date };
   },
 };
