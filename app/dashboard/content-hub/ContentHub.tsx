@@ -406,32 +406,31 @@ export function ContentHub() {
     }
     setSavingUgc(true);
     try {
-      const { firestore } = initializeFirebase();
-      let finalUsername = ugcUsername.trim();
-      if (!finalUsername) {
-        finalUsername = user.name?.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') || `creator-${user.id}`;
-      }
-      await setDoc(doc(firestore, 'ugcCreators', user.id), {
-        userId: user.id,
-        name: user.name,
-        email: user.email,
-        username: finalUsername,
-        niches,
-        price30s: Number(price30s),
-        price60s: Number(price60s),
-        deliveryDays: Number(deliveryDays),
-        sampleVideos: sampleVideos.filter(Boolean),
-        bio,
-        status: 'active',
-        isActive: true,
-        isBanned: false,
-        displayName: user.name,
-        createdAt: Date.now(),
+      const res = await fetch('/api/ugc/apply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          displayName: user.name,
+          bio,
+          niches,
+          price30s: Number(price30s),
+          price60s: Number(price60s),
+          deliveryDays: Number(deliveryDays) || 5,
+          sampleVideos: sampleVideos.filter(Boolean),
+          username: ugcUsername.trim() || undefined,
+        }),
       });
+      const data = await res.json();
+      if (!res.ok) {
+        showToast(data.error || 'Failed to save profile', 'error');
+        setSavingUgc(false);
+        return;
+      }
       showToast('Profile saved! You\'re now listed as a creator.', 'success');
       setUgcView('dashboard');
       await loadUgcData();
-    } catch (err) {
+    } catch {
       showToast('Failed to save profile', 'error');
     } finally {
       setSavingUgc(false);

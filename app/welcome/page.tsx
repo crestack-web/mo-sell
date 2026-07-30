@@ -605,6 +605,18 @@ export default function SellWelcomePage() {
               <FeatureCard icon="🌐" title="Custom Domain" desc="Use your own domain or get a free store link. Fully branded, always." />
               <FeatureCard icon="📥" title="Digital Products" desc="Sell ebooks, courses, templates, and downloads. Files deliver instantly after payment." />
               <FeatureCard icon="📅" title="Bookings & Services" desc="Offer appointments, coaching sessions, and consultations with built-in scheduling." />
+              <FeatureCard icon="🎬" title="UGC Creator Marketplace" desc="Discover and hire UGC creators for your brand. Browse portfolios, request videos, and pay securely." />
+            </div>
+            <div style={{ textAlign: 'center', marginTop: 20 }}>
+              <a href="/ugc-creators" style={{
+                display: 'inline-flex', alignItems: 'center', gap: 8,
+                padding: '11px 24px', borderRadius: 10,
+                background: `linear-gradient(135deg, ${C.primary}, ${C.accent})`,
+                color: 'white', fontFamily: FONT_BODY, fontWeight: 700, fontSize: 14,
+                textDecoration: 'none', boxShadow: '0 4px 12px rgba(14,165,233,0.28)',
+              }}>
+                Browse UGC Creators →
+              </a>
             </div>
           </div>
         </section>
