@@ -795,6 +795,24 @@ export default function SellSignupPage() {
                   <div style={{ padding: '10px 14px', borderRadius: 10, background: C.redBg, color: C.red, fontSize: 13, marginBottom: 16 }}>{error}</div>
                 )}
 
+                {/* Payment step indicator */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 28 }}>
+                  {[1, 2, 3].map(s => (
+                    <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div style={{
+                        width: 32, height: 32, borderRadius: '50%',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 13, fontWeight: 700,
+                        background: s < 3 ? `linear-gradient(135deg, ${C.primary}, ${C.accent})` : C.green,
+                        color: 'white',
+                      }}>
+                        {s < 3 ? '✓' : s}
+                      </div>
+                      {s < 3 && <div style={{ width: 24, height: 2, background: `linear-gradient(90deg, ${C.primary}, ${C.green})`, borderRadius: 1 }} />}
+                    </div>
+                  ))}
+                </div>
+
                 <div className="text-center mb-6">
                   <div className="inline-flex items-center justify-center mb-4">
                     <img src="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1785078071/mosell_gpzl2q.png" alt="MO Sell" style={{ width: 56, height: 56, objectFit: 'contain' }} />
@@ -846,6 +864,15 @@ export default function SellSignupPage() {
                     Then $10/month · Cancel anytime · No lock-in
                   </div>
                 </div>
+
+                <button type="button" onClick={() => setShowPayment(false)}
+                  style={{
+                    padding: '10px 18px', borderRadius: 10, border: `1.5px solid ${C.border}`,
+                    background: C.surface, color: C.text1, cursor: 'pointer',
+                    fontFamily: FONT_BODY, fontWeight: 600, fontSize: 13, marginBottom: 12,
+                    width: '100%',
+                  }}
+                >← Back to review answers</button>
 
                 <button onClick={handlePayAndCreateStore} disabled={isProcessingPayment}
                   className="w-full py-4 rounded-xl text-white font-bold text-lg transition"
