@@ -103,11 +103,12 @@ export function LinkInBioEditor() {
 
   useEffect(() => {
     if (!user?.businessId) return;
-    fetch(`/api/store/config/${storeConfig?.storeSlug}/products`)
-      .then(r => r.json())
-      .then((data: ProductCardData[]) => {
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? '';
+    fetch(`${baseUrl}/api/store/products?businessId=${user.businessId}&available=true`)
+      .then(r => r.ok ? r.json() : { products: [] })
+      .then(data => {
         const saved = (storeConfig as any)?.linkBio as LinkBioConfig | undefined;
-        setProducts(data.map(p => ({
+        setProducts((data.products ?? []).map((p: ProductCardData) => ({
           ...p,
           visible: saved?.productVisibility?.[p.id] ?? true,
         })));

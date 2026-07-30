@@ -59,7 +59,7 @@ async function getStoreConfig(storeSlug: string) {
       contactEmail:        data.contactEmail ?? '',
       contactPhone:        data.contactPhone ?? '',
       status:              data.status,
-      theme:               data.theme ?? 'classic',
+      theme:               data.theme ?? 'luxe',
       tagline:             data.tagline ?? null,
       storePolicy:         data.storePolicy ?? null,
       sections:            data.sections ?? null,
@@ -337,32 +337,67 @@ export default async function StorefrontHomePage({
             );
           }
 
+          case 'footer': {
+            const fs = s.settings as FooterSectionSettings;
+            const socialEntries = fs.socials ? Object.entries(fs.socials).filter(([, v]) => v) as [string, string][] : [];
+            return (
+              <footer key={section.id} className="sf-footer">
+                <div className="sf-footer-inner">
+                  {fs.showLogo !== false && config.logoUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={config.logoUrl} alt={config.storeName} className="sf-footer-logo" />
+                  )}
+                  {fs.links && fs.links.length > 0 && (
+                    <nav className="sf-footer-nav">
+                      {fs.links.map((link, i) => (
+                        <a key={i} href={link.url} className="sf-footer-link">{link.label}</a>
+                      ))}
+                    </nav>
+                  )}
+                  {socialEntries.length > 0 && (
+                    <div className="sf-footer-socials">
+                      {socialEntries.map(([platform, url]) => (
+                        <a key={platform} href={url} target="_blank" rel="noopener noreferrer" className="sf-footer-social-link">{platform}</a>
+                      ))}
+                    </div>
+                  )}
+                  <p className="sf-footer-text">
+                    {fs.customText || `${config.storeName}. All rights reserved.`}
+                  </p>
+                  {fs.showPoweredBy !== false && (
+                    <p className="sf-footer-powered">Powered by <a href="https://busmo.co" target="_blank" rel="noopener noreferrer">MO Sell</a></p>
+                  )}
+                </div>
+              </footer>
+            );
+          }
+
           default:
             return null;
         }
       })}
 
-      {/* Always show all products at the bottom */}
-      {allProducts.length > 0 && (
+      {/* Link-style: always render LinkBioPage (handles empty products gracefully) */}
+      {isLinkStyle ? (
+        <LinkBioPage
+          config={{
+            storeSlug,
+            storeName: config.storeName,
+            logoUrl: config.logoUrl,
+            primaryColor: config.primaryColor,
+            secondaryColor: config.secondaryColor,
+            currency: config.currency,
+            tagline: config.tagline,
+            contactEmail: config.contactEmail,
+            contactPhone: config.contactPhone,
+            paystackPublicKey: config.paystackPublicKey ?? '',
+          }}
+          products={allProducts as any}
+          linkBio={(config as any).linkBio}
+        />
+      ) : allProducts.length > 0 ? (
         <div className="sf-page sf-section" id="products">
-          {isLinkStyle ? (
-            <LinkBioPage
-              config={{
-                storeSlug,
-                storeName: config.storeName,
-                logoUrl: config.logoUrl,
-                primaryColor: config.primaryColor,
-                secondaryColor: config.secondaryColor,
-                currency: config.currency,
-                tagline: config.tagline,
-                contactEmail: config.contactEmail,
-                contactPhone: config.contactPhone,
-                paystackPublicKey: config.paystackPublicKey ?? '',
-              }}
-              products={allProducts as any}
-              linkBio={(config as any).linkBio}
-            />
-          ) : isCreatorTheme(theme) ? (
+          {isCreatorTheme(theme) ? (
             <CreatorProductTabs
               products={allProducts}
               storeSlug={storeSlug}
@@ -389,7 +424,7 @@ export default async function StorefrontHomePage({
             </>
           )}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
