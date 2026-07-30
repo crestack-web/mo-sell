@@ -83,7 +83,7 @@ const NAV_SECTIONS: { section: string; items: NavItem[] }[] = [
       },
 
       {
-        id: 'theme-editor' as SellPageId,
+        id: 'storefront' as SellPageId,
         label: 'Storefront',
         icon: (
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
