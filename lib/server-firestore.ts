@@ -42,8 +42,6 @@ function ensureAdmin(): boolean {
   if (_lazyAdminTried) return false;
   _lazyAdminTried = true;
   try {
-    // Re-trigger import side-effects (already cached by Node, safe to call)
-    const admin = require('firebase-admin');
     const projectId     = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
     const clientEmail   = process.env.FIREBASE_ADMIN_CLIENT_EMAIL;
     const privateKeyRaw = process.env.FIREBASE_ADMIN_PRIVATE_KEY;
@@ -57,10 +55,8 @@ function ensureAdmin(): boolean {
         ...(storageBucket ? { storageBucket } : {}),
       });
     }
-    const { getFirestore } = require('firebase-admin/firestore');
-    const { getStorage } = require('firebase-admin/storage');
-    _adminDbOwn = getFirestore();
-    _adminStorageOwn = getStorage();
+    _adminDbOwn = admin.firestore();
+    _adminStorageOwn = admin.storage();
     return true;
   } catch (e) {
     console.error('[ensureAdmin] Lazy admin init failed:', e);
