@@ -18,12 +18,24 @@ async function generateUniqueUsername(db: any, base: string): Promise<string> {
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId, displayName, bio, niches, price30s, price60s, deliveryDays, sampleVideos, avatarUrl, username: providedUsername } = await req.json();
+    let body;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    }
+
+    const { userId, displayName, bio, niches, price30s, price60s, deliveryDays, sampleVideos, avatarUrl, username: providedUsername } = body;
     if (!userId || !displayName || !niches?.length || !price30s || !price60s) {
       return NextResponse.json({ error: 'userId, displayName, niches, price30s, price60s required' }, { status: 400 });
     }
 
-    const db = getAdminDb();
+    let db;
+    try {
+      db = getAdminDb();
+    } catch (initErr) {
+      return NextResponse.json({ error: 'Database not available. Please configure FIREBASE_ADMIN_PRIVATE_KEY, FIREBASE_ADMIN_CLIENT_EMAIL, and NEXT_PUBLIC_FIREBASE_PROJECT_ID.' }, { status: 500 });
+    }
     const existing = await db.collection('ugcCreators').doc(userId).get();
     if (existing.exists) {
       return NextResponse.json({ error: 'Creator already exists. Update your profile instead.' }, { status: 409 });

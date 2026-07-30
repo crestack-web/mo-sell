@@ -6,6 +6,7 @@ import { initializeFirebase } from '@/lib/firebase';
 import { getAuth, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { getFirestore, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { THEMES } from '@/themes/registry';
+import { convertFromUsd } from '@/lib/currency';
 import posthog from 'posthog-js';
 
 // ── Tokens ────────────────────────────────────────────────────────────────────
@@ -21,13 +22,21 @@ const FONT_BODY = "'Plus Jakarta Sans',system-ui,sans-serif";
 // ── Types ─────────────────────────────────────────────────────────────────────
 type Q1Answer = 'products' | 'courses' | 'services' | 'digital';
 type Q2Answer = 'genz' | 'smallbiz' | 'creative' | 'everyone' | 'custom';
-type Q3Answer = string;
+type Q3Answer = 'business_owner' | 'creator' | 'both';
+type Q4Answer = 'never' | 'just_started' | 'less_than_year' | '1_3_years' | '3_plus_years';
+type Q5Answer = '0' | 'under_100k' | '100k_500k' | '500k_2m' | '2m_plus' | 'prefer_not_say';
+type Q6Answer = 'none' | 'under_1k' | '1k_10k' | '10k_100k' | '100k_plus';
+type Q7Answer = string;
 
 interface OnboardingAnswers {
   q1: Q1Answer | null;
   q2: Q2Answer | null;
   q2Custom: string;
   q3: Q3Answer | null;
+  q4: Q4Answer | null;
+  q5: Q5Answer | null;
+  q6: Q6Answer | null;
+  q7: Q7Answer | null;
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -60,6 +69,37 @@ const Q3_OPTIONS = THEMES.filter(t => t.type === 'link-style').map(t => ({
   accent: t.previewAccent,
   badge: t.badge,
 }));
+
+const Q3_OPTIONS_USER: { id: Q3Answer; emoji: string; label: string; desc: string }[] = [
+  { id: 'business_owner', emoji: '🏢', label: 'Business Owner', desc: 'Selling products or services' },
+  { id: 'creator', emoji: '🎨', label: 'Creator', desc: 'Building a personal brand' },
+  { id: 'both', emoji: '🔄', label: 'Both', desc: 'Running a business & creating content' },
+];
+
+const Q4_OPTIONS: { id: Q4Answer; label: string; desc: string }[] = [
+  { id: 'never', label: 'Never', desc: 'First time selling online' },
+  { id: 'just_started', label: 'Just started', desc: 'Less than 3 months' },
+  { id: 'less_than_year', label: 'Under 1 year', desc: '3–12 months' },
+  { id: '1_3_years', label: '1–3 years', desc: 'Growing' },
+  { id: '3_plus_years', label: '3+ years', desc: 'Experienced' },
+];
+
+const Q5_OPTIONS: { id: Q5Answer; label: string; desc: string }[] = [
+  { id: '0', label: '₦0', desc: 'Not yet selling' },
+  { id: 'under_100k', label: 'Under ₦100k', desc: 'Just starting out' },
+  { id: '100k_500k', label: '₦100k–₦500k', desc: 'Building momentum' },
+  { id: '500k_2m', label: '₦500k–₦2M', desc: 'Growing fast' },
+  { id: '2m_plus', label: '₦2M+', desc: 'Scaling up' },
+  { id: 'prefer_not_say', label: 'Prefer not to say', desc: '' },
+];
+
+const Q6_OPTIONS: { id: Q6Answer; label: string; desc: string }[] = [
+  { id: 'none', label: 'None', desc: 'No social presence' },
+  { id: 'under_1k', label: 'Under 1K', desc: 'Building audience' },
+  { id: '1k_10k', label: '1K–10K', desc: 'Growing following' },
+  { id: '10k_100k', label: '10K–100K', desc: 'Strong presence' },
+  { id: '100k_plus', label: '100K+', desc: 'Influencer level' },
+];
 
 const PLACEHOLDER_PRODUCTS: Record<Q1Answer, { title: string; price: number; desc: string }[]> = {
   products: [
@@ -105,11 +145,13 @@ export default function SellSignupPage() {
   const [businessName, setBusinessName] = useState('');
   const [businessType, setBusinessType] = useState('');
 
-  // Step 3: Onboarding answers
-  const [answers, setAnswers] = useState<OnboardingAnswers>({ q1: null, q2: null, q2Custom: '', q3: null });
+  // Step 3: Onboarding answers (7 questions + payment)
+  const [answers, setAnswers] = useState<OnboardingAnswers>({ q1: null, q2: null, q2Custom: '', q3: null, q4: null, q5: null, q6: null, q7: null });
   const [questionIdx, setQuestionIdx] = useState(0);
-  const [building, setBuilding] = useState(false);
-  const [storeCreated, setStoreCreated] = useState(false);
+
+  // Payment
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [showPayment, setShowPayment] = useState(false);
 
   // Shared
   const [loading, setLoading] = useState(false);
@@ -180,25 +222,25 @@ export default function SellSignupPage() {
     }
   };
 
-  // ── Step 3: Create store ──────────────────────────────────────────────────
-  const handleCreateStore = async () => {
-    setBuilding(true);
+  // ── Step 3: Save pending store → Pay $1 → Create store on success ──────────
+  const handleSavePendingStore = async () => {
+    setLoading(true);
+    setError('');
     try {
       const { firestore } = initializeFirebase();
       const q1 = answers.q1!;
-      const q3 = answers.q3!;
+      const q7 = answers.q7!;
       const storeSlug = slugify(businessName);
       const tagline = answers.q2 === 'custom' ? answers.q2Custom : (Q2_TAGLINES[answers.q2!] ?? '');
 
       // Theme colors from registry
-      const themeMeta = THEMES.find(t => t.id === q3);
+      const themeMeta = THEMES.find(t => t.id === q7);
       const colors = {
         primary: themeMeta?.previewAccent ?? '#0EA5E9',
         secondary: themeMeta?.previewBg ?? '#FFFFFF',
       };
 
-      // Store config
-      const configData = {
+      const pendingStore = {
         storeSlug,
         storeName: businessName,
         logoUrl: null,
@@ -209,7 +251,7 @@ export default function SellSignupPage() {
         contactEmail: email,
         contactPhone: '',
         status: 'draft' as const,
-        theme: q3,
+        theme: q7,
         tagline,
         storePolicy: '',
         paystackPublicKey: '',
@@ -219,57 +261,80 @@ export default function SellSignupPage() {
         customDomainStatus: 'pending' as const,
         customDomainVerifiedAt: null,
         domainPurchaseRecord: null,
-        onboardingAnswers: answers,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
+        onboardingAnswers: {
+          ...answers,
+          businessType,
+          businessName,
+        },
+        productCategory: q1,
       };
 
-      await setDoc(doc(firestore, 'businesses', businessId, 'store', 'config'), configData);
-      await setDoc(doc(firestore, 'storeIndex', storeSlug), {
-        businessId, storeName: businessName, updatedAt: serverTimestamp(),
+      // Save pending store data to user doc for the success page to pick up
+      await setDoc(doc(firestore, 'users', userId), {
+        pendingStore,
+        onboardingComplete: false,
+        updatedAt: serverTimestamp(),
+      }, { merge: true });
+
+      posthog.capture('sell_onboarding_answers_saved', {
+        q1: answers.q1,
+        q3: answers.q3,
+        q4: answers.q4,
+        q5: answers.q5,
+        q6: answers.q6,
+        theme: q7,
       });
 
-      // Create placeholder products
-      const placeholderProducts = PLACEHOLDER_PRODUCTS[q1];
-      for (const p of placeholderProducts) {
-        const productId = `prod_${Math.random().toString(36).slice(2, 10)}`;
-        await setDoc(doc(firestore, 'businesses', businessId, 'storeProducts', productId), {
-          id: productId,
-          title: p.title,
-          description: p.desc,
-          price: p.price,
-          compareAtPrice: null,
-          images: [],
-          category: q1,
-          type: 'simple' as const,
-          status: 'draft' as const,
-          metadata: {},
-          stock: null,
-          variants: [],
-          isSubscription: false,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        });
-      }
-
-      posthog.capture('sell_signup_completed', { step: 3, theme: q3, category: q1 });
-      setStoreCreated(true);
-
-      setTimeout(() => {
-        router.replace('/dashboard/customize');
-      }, 1500);
+      setShowPayment(true);
+      setLoading(false);
     } catch (err: any) {
-      setError(err.message || 'Failed to create store');
-      setBuilding(false);
+      setError(err.message || 'Failed to save onboarding data');
+      setLoading(false);
     }
   };
 
-  // Auto-create store when all questions answered
-  useEffect(() => {
-    if (step === 3 && questionIdx === 3 && !building && !storeCreated) {
-      handleCreateStore();
+  // ── Start Paystack payment ──────────────────────────────────────────────
+  const handlePayAndCreateStore = async () => {
+    setIsProcessingPayment(true);
+    setError('');
+    try {
+      const { auth } = initializeFirebase();
+      const currentUser = auth.currentUser;
+      if (!currentUser) throw new Error('Not authenticated');
+
+      const response = await fetch('https://us-central1-bizassistant2-62305643-adad7.cloudfunctions.net/initializePayment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          plan: 'sell-starter',
+          userId: currentUser.uid,
+          email: currentUser.email,
+          amount: convertFromUsd(1, 'NG'),
+          currency: 'NGN',
+          billing: 'trial',
+          callback_url: `${window.location.origin}/subscribe/success`,
+          metadata: {
+            plan: 'sell-starter',
+            billing: 'trial',
+            userId: currentUser.uid,
+            product: 'mo-sell',
+          },
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to initialize payment');
+      if (data.data?.authorization_url) {
+        window.location.href = data.data.authorization_url;
+      } else {
+        throw new Error('No checkout URL returned');
+      }
+    } catch (err: any) {
+      console.error('MO Sell payment error:', err);
+      setError(err.message || 'Something went wrong. Please try again.');
+      setIsProcessingPayment(false);
     }
-  }, [questionIdx, step]);
+  };
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
@@ -402,302 +467,420 @@ export default function SellSignupPage() {
         )}
 
         {/* ════════════════════════════════════════════════════════════════════
-            STEP 3 — 3-Question Store Builder
+            STEP 3 — Qualifying Questions + Payment
         ════════════════════════════════════════════════════════════════════ */}
-        {step === 3 && !building && !storeCreated && (
+        {step === 3 && (
           <div style={{
             background: C.surface, borderRadius: 20, padding: '32px 28px',
             border: `1px solid ${C.border}`, boxShadow: '0 8px 32px rgba(14,88,140,0.08)',
             transition: 'opacity 0.25s',
           }}>
-            {/* Progress */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 28 }}>
-              {[0, 1, 2].map(i => (
-                <div key={i} style={{
-                  flex: 1, height: 4, borderRadius: 2,
-                  background: i <= questionIdx ? C.primary : C.border,
-                  transition: 'background 0.3s',
-                }} />
-              ))}
-            </div>
-
-            {/* ── Q1 ─────────────────────────────────────────────────────── */}
-            {questionIdx === 0 && (
-              <div>
-                <div style={{ textAlign: 'center', marginBottom: 24 }}>
-                  <h1 style={{ fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 22, color: C.text1, marginBottom: 4 }}>
-                    What do you sell?
-                  </h1>
-                  <p style={{ fontSize: 14, color: C.text2 }}>Pick the category that fits best</p>
+            {!showPayment ? (
+              <>
+                {/* Progress bar — 7 segments */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 28 }}>
+                  {[0, 1, 2, 3, 4, 5, 6].map(i => (
+                    <div key={i} style={{
+                      flex: 1, height: 4, borderRadius: 2,
+                      background: i <= questionIdx ? C.primary : C.border,
+                      transition: 'background 0.3s',
+                    }} />
+                  ))}
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                  {Q1_OPTIONS.map(opt => {
-                    const selected = answers.q1 === opt.id;
-                    return (
-                      <button
-                        key={opt.id}
-                        type="button"
-                        onClick={() => setAnswers(prev => ({ ...prev, q1: opt.id }))}
+                {/* ── Q1: What do you sell? ────────────────────────────── */}
+                {questionIdx === 0 && (
+                  <div>
+                    <div style={{ textAlign: 'center', marginBottom: 24 }}>
+                      <h1 style={{ fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 22, color: C.text1, marginBottom: 4 }}>
+                        What do you sell?
+                      </h1>
+                      <p style={{ fontSize: 14, color: C.text2 }}>Pick the category that fits best</p>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                      {Q1_OPTIONS.map(opt => {
+                        const selected = answers.q1 === opt.id;
+                        return (
+                          <button key={opt.id} type="button" onClick={() => setAnswers(prev => ({ ...prev, q1: opt.id }))}
+                            style={{
+                              padding: '20px 16px', borderRadius: 14, border: `2px solid ${selected ? C.primary : C.border}`,
+                              background: selected ? '#F0F9FF' : C.surface, cursor: 'pointer',
+                              textAlign: 'center', transition: 'all 0.2s',
+                              boxShadow: selected ? '0 0 0 3px rgba(14,165,233,0.12)' : 'none',
+                            }}
+                          >
+                            <div style={{ fontSize: 32, marginBottom: 8 }}>{opt.emoji}</div>
+                            <div style={{ fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 15, color: C.text1, marginBottom: 2 }}>{opt.label}</div>
+                            <div style={{ fontSize: 12, color: C.text3 }}>{opt.desc}</div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Q2: Who is your audience? ────────────────────────── */}
+                {questionIdx === 1 && (
+                  <div>
+                    <div style={{ textAlign: 'center', marginBottom: 24 }}>
+                      <h1 style={{ fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 22, color: C.text1, marginBottom: 4 }}>
+                        Who is it for?
+                      </h1>
+                      <p style={{ fontSize: 14, color: C.text2 }}>Describe your ideal customer</p>
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'center', marginBottom: 16 }}>
+                      {Q2_OPTIONS.map(opt => {
+                        const selected = answers.q2 === opt.id;
+                        return (
+                          <button key={opt.id} type="button" onClick={() => setAnswers(prev => ({ ...prev, q2: opt.id, q2Custom: '' }))}
+                            style={{
+                              padding: '10px 20px', borderRadius: 100, border: `2px solid ${selected ? C.primary : C.border}`,
+                              background: selected ? C.primary : C.surface,
+                              color: selected ? 'white' : C.text1,
+                              cursor: 'pointer', fontFamily: FONT_BODY, fontWeight: 600, fontSize: 13,
+                              transition: 'all 0.2s',
+                            }}
+                          >{opt.label}</button>
+                        );
+                      })}
+                      <button type="button" onClick={() => setAnswers(prev => ({ ...prev, q2: 'custom' }))}
                         style={{
-                          padding: '20px 16px', borderRadius: 14, border: `2px solid ${selected ? C.primary : C.border}`,
-                          background: selected ? '#F0F9FF' : C.surface, cursor: 'pointer',
-                          textAlign: 'center', transition: 'all 0.2s',
-                          boxShadow: selected ? '0 0 0 3px rgba(14,165,233,0.12)' : 'none',
-                        }}
-                      >
-                        <div style={{ fontSize: 32, marginBottom: 8 }}>{opt.emoji}</div>
-                        <div style={{ fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 15, color: C.text1, marginBottom: 2 }}>{opt.label}</div>
-                        <div style={{ fontSize: 12, color: C.text3 }}>{opt.desc}</div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* ── Q2 ─────────────────────────────────────────────────────── */}
-            {questionIdx === 1 && (
-              <div>
-                <div style={{ textAlign: 'center', marginBottom: 24 }}>
-                  <h1 style={{ fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 22, color: C.text1, marginBottom: 4 }}>
-                    Who is it for?
-                  </h1>
-                  <p style={{ fontSize: 14, color: C.text2 }}>Describe your ideal customer</p>
-                </div>
-
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'center', marginBottom: 16 }}>
-                  {Q2_OPTIONS.map(opt => {
-                    const selected = answers.q2 === opt.id;
-                    return (
-                      <button
-                        key={opt.id}
-                        type="button"
-                        onClick={() => setAnswers(prev => ({ ...prev, q2: opt.id, q2Custom: '' }))}
-                        style={{
-                          padding: '10px 20px', borderRadius: 100, border: `2px solid ${selected ? C.primary : C.border}`,
-                          background: selected ? C.primary : C.surface,
-                          color: selected ? 'white' : C.text1,
+                          padding: '10px 20px', borderRadius: 100, border: `2px solid ${answers.q2 === 'custom' ? C.primary : C.border}`,
+                          background: answers.q2 === 'custom' ? C.primary : C.surface,
+                          color: answers.q2 === 'custom' ? 'white' : C.text1,
                           cursor: 'pointer', fontFamily: FONT_BODY, fontWeight: 600, fontSize: 13,
                           transition: 'all 0.2s',
                         }}
-                      >
-                        {opt.label}
-                      </button>
-                    );
-                  })}
-                  <button
-                    type="button"
-                    onClick={() => setAnswers(prev => ({ ...prev, q2: 'custom' }))}
-                    style={{
-                      padding: '10px 20px', borderRadius: 100, border: `2px solid ${answers.q2 === 'custom' ? C.primary : C.border}`,
-                      background: answers.q2 === 'custom' ? C.primary : C.surface,
-                      color: answers.q2 === 'custom' ? 'white' : C.text1,
-                      cursor: 'pointer', fontFamily: FONT_BODY, fontWeight: 600, fontSize: 13,
-                      transition: 'all 0.2s',
-                    }}
-                  >
-                    Other
-                  </button>
-                </div>
-
-                {answers.q2 === 'custom' && (
-                  <input
-                    type="text"
-                    placeholder="Describe your audience..."
-                    value={answers.q2Custom}
-                    onChange={e => setAnswers(prev => ({ ...prev, q2Custom: e.target.value }))}
-                    autoFocus
-                    style={{
-                      width: '100%', padding: '12px 14px', borderRadius: 10, border: `1.5px solid ${C.border}`,
-                      fontSize: 14, fontFamily: FONT_BODY, outline: 'none', background: '#F8FBFF',
-                      boxSizing: 'border-box',
-                    }}
-                  />
-                )}
-              </div>
-            )}
-
-            {/* ── Q3 ─────────────────────────────────────────────────────── */}
-            {questionIdx === 2 && (
-              <div>
-                <div style={{ textAlign: 'center', marginBottom: 24 }}>
-                  <h1 style={{ fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 22, color: C.text1, marginBottom: 4 }}>
-                    Pick a vibe
-                  </h1>
-                  <p style={{ fontSize: 14, color: C.text2 }}>Choose a theme style for your store</p>
-                </div>
-
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
-                  gap: 14,
-                }}>
-                  {Q3_OPTIONS.map(opt => {
-                    const selected = answers.q3 === opt.id;
-                    return (
-                      <button
-                        key={opt.id}
-                        type="button"
-                        onClick={() => setAnswers(prev => ({ ...prev, q3: opt.id }))}
+                      >Other</button>
+                    </div>
+                    {answers.q2 === 'custom' && (
+                      <input type="text" placeholder="Describe your audience..." value={answers.q2Custom}
+                        onChange={e => setAnswers(prev => ({ ...prev, q2Custom: e.target.value }))} autoFocus
                         style={{
-                          borderRadius: 16, border: `3px solid ${selected ? opt.accent : C.border}`,
-                          background: C.surface, cursor: 'pointer', overflow: 'hidden',
-                          transition: 'all 0.25s', padding: 0,
-                          boxShadow: selected ? `0 0 0 3px ${opt.accent}33` : 'none',
+                          width: '100%', padding: '12px 14px', borderRadius: 10, border: `1.5px solid ${C.border}`,
+                          fontSize: 14, fontFamily: FONT_BODY, outline: 'none', background: '#F8FBFF',
+                          boxSizing: 'border-box',
                         }}
-                      >
-                        <div style={{
-                          height: 140, background: opt.bg,
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          position: 'relative',
-                        }}>
-                          {opt.badge && (
-                            <span style={{
-                              position: 'absolute', top: 8, right: 8,
-                              fontSize: 9, fontWeight: 700, padding: '2px 8px',
-                              borderRadius: 100, color: opt.badge.color, background: opt.badge.bg,
-                            }}>{opt.badge.label}</span>
-                          )}
-                          <div style={{ textAlign: 'center' }}>
-                            <div style={{
-                              width: 36, height: 36, borderRadius: '50%',
-                              background: opt.accent, margin: '0 auto 8px',
-                            }} />
-                            <div style={{ width: 50, height: 5, borderRadius: 3, background: opt.accent, margin: '0 auto 5px', opacity: 0.5 }} />
-                            <div style={{ width: 70, height: 5, borderRadius: 3, background: opt.accent, margin: '0 auto 5px', opacity: 0.3 }} />
-                            <div style={{ width: 40, height: 5, borderRadius: 3, background: opt.accent, margin: '0 auto', opacity: 0.2 }} />
-                          </div>
-                        </div>
-                        <div style={{ padding: '10px 10px', textAlign: 'center' }}>
-                          <div style={{ fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 13, color: C.text1 }}>{opt.label}</div>
-                          <div style={{ fontSize: 10, color: C.text3, marginTop: 2, lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{opt.vibe}</div>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Navigation */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 28 }}>
-              <button
-                type="button"
-                onClick={() => setQuestionIdx(i => Math.max(0, i - 1))}
-                disabled={questionIdx === 0}
-                style={{
-                  padding: '10px 18px', borderRadius: 10, border: `1.5px solid ${C.border}`,
-                  background: C.surface, color: C.text1, cursor: questionIdx === 0 ? 'not-allowed' : 'pointer',
-                  fontFamily: FONT_BODY, fontWeight: 600, fontSize: 13,
-                  opacity: questionIdx === 0 ? 0.4 : 1,
-                }}
-              >
-                ← Back
-              </button>
-
-              {questionIdx < 2 ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (questionIdx === 0 && answers.q1) setQuestionIdx(1);
-                    else if (questionIdx === 1 && (answers.q2 && (answers.q2 !== 'custom' || answers.q2Custom.trim()))) setQuestionIdx(2);
-                  }}
-                  disabled={
-                    (questionIdx === 0 && !answers.q1) ||
-                    (questionIdx === 1 && (!answers.q2 || (answers.q2 === 'custom' && !answers.q2Custom.trim())))
-                  }
-                  style={{
-                    padding: '10px 22px', borderRadius: 10, border: 'none',
-                    background: (questionIdx === 0 && !answers.q1) || (questionIdx === 1 && (!answers.q2 || (answers.q2 === 'custom' && !answers.q2Custom.trim())))
-                      ? C.border : `linear-gradient(135deg, ${C.primary}, ${C.accent})`,
-                    color: 'white', cursor: 'pointer',
-                    fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 13,
-                  }}
-                >
-                  Next →
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  disabled={!answers.q3}
-                  onClick={() => setQuestionIdx(3)}
-                  style={{
-                    padding: '10px 22px', borderRadius: 10, border: 'none',
-                    background: answers.q3 ? C.green : C.border,
-                    color: 'white', cursor: 'pointer',
-                    fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 13,
-                  }}
-                >
-                  Build my store →
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* ════════════════════════════════════════════════════════════════════
-            BUILDING — "MO is building your store..."
-        ════════════════════════════════════════════════════════════════════ */}
-        {(building || storeCreated) && step === 3 && (
-          <div style={{
-            background: C.surface, borderRadius: 20, padding: '48px 28px',
-            border: `1px solid ${C.border}`, boxShadow: '0 8px 32px rgba(14,88,140,0.08)',
-            textAlign: 'center',
-          }}>
-            <div style={{
-              width: 72, height: 72, borderRadius: 18,
-              background: `linear-gradient(135deg, ${C.primary}, ${C.accent})`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              margin: '0 auto 20px',
-            }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1784636144/mo_sell_chat_ucbw3x.png"
-                alt="MO"
-                style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 10 }}
-              />
-            </div>
-
-            <h1 style={{ fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 20, color: C.text1, marginBottom: 6 }}>
-              {storeCreated ? 'Your store is ready!' : 'MO is building your store...'}
-            </h1>
-            <p style={{ fontSize: 14, color: C.text3, marginBottom: 32 }}>
-              {storeCreated ? 'Taking you to customize your store' : 'Setting up your storefront with your answers'}
-            </p>
-
-            {!storeCreated && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxWidth: 280, margin: '0 auto' }}>
-                {[
-                  'Creating your storefront with your chosen theme',
-                  'Adding sample products based on your category',
-                  'Setting up your dashboard for customization',
-                ].map((text, i) => (
-                  <div
-                    key={i}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 10,
-                      padding: '10px 14px', borderRadius: 10,
-                      background: '#F8FBFF', border: `1px solid ${C.border}`,
-                      opacity: 0,
-                      animation: 'buildingFadeIn 0.5s forwards',
-                      animationDelay: `${0.5 + i * 0.8}s`,
-                    }}
-                  >
-                    <div style={{
-                      width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
-                      background: C.primary,
-                      animation: 'buildingPulse 1.2s infinite',
-                      animationDelay: `${i * 0.8}s`,
-                    }} />
-                    <span style={{ fontSize: 13, color: C.text1 }}>{text}</span>
+                      />
+                    )}
                   </div>
-                ))}
-              </div>
-            )}
+                )}
 
-            {storeCreated && (
-              <div style={{ fontSize: 48, marginBottom: 8 }}>🎉</div>
+                {/* ── Q3: Business owner or creator? ───────────────────── */}
+                {questionIdx === 2 && (
+                  <div>
+                    <div style={{ textAlign: 'center', marginBottom: 24 }}>
+                      <h1 style={{ fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 22, color: C.text1, marginBottom: 4 }}>
+                        Are you a business owner or creator?
+                      </h1>
+                      <p style={{ fontSize: 14, color: C.text2 }}>This helps us tailor your experience</p>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+                      {Q3_OPTIONS_USER.map(opt => {
+                        const selected = answers.q3 === opt.id;
+                        return (
+                          <button key={opt.id} type="button" onClick={() => setAnswers(prev => ({ ...prev, q3: opt.id }))}
+                            style={{
+                              padding: '20px 12px', borderRadius: 14, border: `2px solid ${selected ? C.primary : C.border}`,
+                              background: selected ? '#F0F9FF' : C.surface, cursor: 'pointer',
+                              textAlign: 'center', transition: 'all 0.2s',
+                              boxShadow: selected ? '0 0 0 3px rgba(14,165,233,0.12)' : 'none',
+                            }}
+                          >
+                            <div style={{ fontSize: 28, marginBottom: 8 }}>{opt.emoji}</div>
+                            <div style={{ fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 14, color: C.text1, marginBottom: 2 }}>{opt.label}</div>
+                            <div style={{ fontSize: 11, color: C.text3 }}>{opt.desc}</div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Q4: Selling history ──────────────────────────────── */}
+                {questionIdx === 3 && (
+                  <div>
+                    <div style={{ textAlign: 'center', marginBottom: 24 }}>
+                      <h1 style={{ fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 22, color: C.text1, marginBottom: 4 }}>
+                        How long have you been selling online?
+                      </h1>
+                      <p style={{ fontSize: 14, color: C.text2 }}>Your experience level</p>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                      {Q4_OPTIONS.map(opt => {
+                        const selected = answers.q4 === opt.id;
+                        return (
+                          <button key={opt.id} type="button" onClick={() => setAnswers(prev => ({ ...prev, q4: opt.id }))}
+                            style={{
+                              padding: '16px 14px', borderRadius: 12, border: `2px solid ${selected ? C.primary : C.border}`,
+                              background: selected ? '#F0F9FF' : C.surface, cursor: 'pointer',
+                              textAlign: 'center', transition: 'all 0.2s',
+                              boxShadow: selected ? '0 0 0 3px rgba(14,165,233,0.12)' : 'none',
+                            }}
+                          >
+                            <div style={{ fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 15, color: C.text1, marginBottom: 2 }}>{opt.label}</div>
+                            <div style={{ fontSize: 12, color: C.text3 }}>{opt.desc}</div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Q5: Monthly revenue ──────────────────────────────── */}
+                {questionIdx === 4 && (
+                  <div>
+                    <div style={{ textAlign: 'center', marginBottom: 24 }}>
+                      <h1 style={{ fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 22, color: C.text1, marginBottom: 4 }}>
+                        What's your monthly revenue?
+                      </h1>
+                      <p style={{ fontSize: 14, color: C.text2 }}>We'll tailor features to your stage</p>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                      {Q5_OPTIONS.map(opt => {
+                        const selected = answers.q5 === opt.id;
+                        return (
+                          <button key={opt.id} type="button" onClick={() => setAnswers(prev => ({ ...prev, q5: opt.id }))}
+                            style={{
+                              padding: '16px 14px', borderRadius: 12, border: `2px solid ${selected ? C.primary : C.border}`,
+                              background: selected ? '#F0F9FF' : C.surface, cursor: 'pointer',
+                              textAlign: 'center', transition: 'all 0.2s',
+                              boxShadow: selected ? '0 0 0 3px rgba(14,165,233,0.12)' : 'none',
+                              opacity: opt.id === 'prefer_not_say' ? 0.7 : 1,
+                            }}
+                          >
+                            <div style={{ fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 15, color: C.text1, marginBottom: 2 }}>{opt.label}</div>
+                            <div style={{ fontSize: 12, color: C.text3 }}>{opt.desc}</div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Q6: Social following ─────────────────────────────── */}
+                {questionIdx === 5 && (
+                  <div>
+                    <div style={{ textAlign: 'center', marginBottom: 24 }}>
+                      <h1 style={{ fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 22, color: C.text1, marginBottom: 4 }}>
+                        What's your social media following?
+                      </h1>
+                      <p style={{ fontSize: 14, color: C.text2 }}>Help us understand your reach</p>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                      {Q6_OPTIONS.map(opt => {
+                        const selected = answers.q6 === opt.id;
+                        return (
+                          <button key={opt.id} type="button" onClick={() => setAnswers(prev => ({ ...prev, q6: opt.id }))}
+                            style={{
+                              padding: '16px 14px', borderRadius: 12, border: `2px solid ${selected ? C.primary : C.border}`,
+                              background: selected ? '#F0F9FF' : C.surface, cursor: 'pointer',
+                              textAlign: 'center', transition: 'all 0.2s',
+                              boxShadow: selected ? '0 0 0 3px rgba(14,165,233,0.12)' : 'none',
+                            }}
+                          >
+                            <div style={{ fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 15, color: C.text1, marginBottom: 2 }}>{opt.label}</div>
+                            <div style={{ fontSize: 12, color: C.text3 }}>{opt.desc}</div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Q7: Pick a vibe / theme ──────────────────────────── */}
+                {questionIdx === 6 && (
+                  <div>
+                    <div style={{ textAlign: 'center', marginBottom: 24 }}>
+                      <h1 style={{ fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 22, color: C.text1, marginBottom: 4 }}>
+                        Pick a vibe
+                      </h1>
+                      <p style={{ fontSize: 14, color: C.text2 }}>Choose a theme style for your store</p>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 14 }}>
+                      {Q3_OPTIONS.map(opt => {
+                        const selected = answers.q7 === opt.id;
+                        return (
+                          <button key={opt.id} type="button" onClick={() => setAnswers(prev => ({ ...prev, q7: opt.id }))}
+                            style={{
+                              borderRadius: 16, border: `3px solid ${selected ? opt.accent : C.border}`,
+                              background: C.surface, cursor: 'pointer', overflow: 'hidden',
+                              transition: 'all 0.25s', padding: 0,
+                              boxShadow: selected ? `0 0 0 3px ${opt.accent}33` : 'none',
+                            }}
+                          >
+                            <div style={{
+                              height: 140, background: opt.bg,
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              position: 'relative',
+                            }}>
+                              {opt.badge && (
+                                <span style={{
+                                  position: 'absolute', top: 8, right: 8,
+                                  fontSize: 9, fontWeight: 700, padding: '2px 8px',
+                                  borderRadius: 100, color: opt.badge.color, background: opt.badge.bg,
+                                }}>{opt.badge.label}</span>
+                              )}
+                              <div style={{ textAlign: 'center' }}>
+                                <div style={{ width: 36, height: 36, borderRadius: '50%', background: opt.accent, margin: '0 auto 8px' }} />
+                                <div style={{ width: 50, height: 5, borderRadius: 3, background: opt.accent, margin: '0 auto 5px', opacity: 0.5 }} />
+                                <div style={{ width: 70, height: 5, borderRadius: 3, background: opt.accent, margin: '0 auto 5px', opacity: 0.3 }} />
+                                <div style={{ width: 40, height: 5, borderRadius: 3, background: opt.accent, margin: '0 auto', opacity: 0.2 }} />
+                              </div>
+                            </div>
+                            <div style={{ padding: '10px 10px', textAlign: 'center' }}>
+                              <div style={{ fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 13, color: C.text1 }}>{opt.label}</div>
+                              <div style={{ fontSize: 10, color: C.text3, marginTop: 2, lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{opt.vibe}</div>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Navigation */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 28 }}>
+                  <button type="button" onClick={() => setQuestionIdx(i => Math.max(0, i - 1))}
+                    disabled={questionIdx === 0}
+                    style={{
+                      padding: '10px 18px', borderRadius: 10, border: `1.5px solid ${C.border}`,
+                      background: C.surface, color: C.text1, cursor: questionIdx === 0 ? 'not-allowed' : 'pointer',
+                      fontFamily: FONT_BODY, fontWeight: 600, fontSize: 13,
+                      opacity: questionIdx === 0 ? 0.4 : 1,
+                    }}
+                  >← Back</button>
+
+                  {questionIdx < 6 ? (
+                    <button type="button" onClick={() => setQuestionIdx(i => i + 1)}
+                      disabled={
+                        (questionIdx === 0 && !answers.q1) ||
+                        (questionIdx === 1 && (!answers.q2 || (answers.q2 === 'custom' && !answers.q2Custom.trim()))) ||
+                        (questionIdx === 2 && !answers.q3) ||
+                        (questionIdx === 3 && !answers.q4) ||
+                        (questionIdx === 4 && !answers.q5) ||
+                        (questionIdx === 5 && !answers.q6)
+                      }
+                      style={{
+                        padding: '10px 22px', borderRadius: 10, border: 'none',
+                        background: `linear-gradient(135deg, ${C.primary}, ${C.accent})`,
+                        color: 'white', cursor: 'pointer',
+                        fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 13,
+                        opacity:
+                          (questionIdx === 0 && !answers.q1) ||
+                          (questionIdx === 1 && (!answers.q2 || (answers.q2 === 'custom' && !answers.q2Custom.trim()))) ||
+                          (questionIdx === 2 && !answers.q3) ||
+                          (questionIdx === 3 && !answers.q4) ||
+                          (questionIdx === 4 && !answers.q5) ||
+                          (questionIdx === 5 && !answers.q6) ? 0.4 : 1,
+                      }}
+                    >Next →</button>
+                  ) : (
+                    <button type="button" disabled={!answers.q7 || loading}
+                      onClick={handleSavePendingStore}
+                      style={{
+                        padding: '10px 22px', borderRadius: 10, border: 'none',
+                        background: (!answers.q7 || loading) ? C.border : C.green,
+                        color: 'white', cursor: 'pointer',
+                        fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 13,
+                      }}
+                    >{loading ? 'Saving...' : 'Continue → $1'}</button>
+                  )}
+                </div>
+              </>
+            ) : (
+              <>
+                {error && (
+                  <div style={{ padding: '10px 14px', borderRadius: 10, background: C.redBg, color: C.red, fontSize: 13, marginBottom: 16 }}>{error}</div>
+                )}
+
+                <div className="text-center mb-6">
+                  <div className="inline-flex items-center justify-center mb-4">
+                    <img src="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1785078071/mosell_gpzl2q.png" alt="MO Sell" style={{ width: 56, height: 56, objectFit: 'contain' }} />
+                  </div>
+                  <h1 className="text-3xl font-bold mb-3" style={{ color: C.text1, fontFamily: FONT_DISPLAY }}>
+                    Start Selling with MO
+                  </h1>
+                  <p style={{ color: C.text2, maxWidth: 400, margin: '0 auto', fontSize: 14 }}>
+                    Get full access for just $1 for 3 months. Then $10/month.
+                  </p>
+                </div>
+
+                <div className="rounded-2xl p-6 mb-6" style={{
+                  background: C.surface,
+                  border: `2px solid ${C.green}`,
+                  boxShadow: '0 8px 32px rgba(22,163,74,0.12)',
+                }}>
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <span className="inline-block px-3 py-1 rounded-full text-xs font-bold text-white" style={{ background: C.green }}>
+                        LIMITED OFFER
+                      </span>
+                      <h2 className="text-xl font-bold mt-2" style={{ color: C.text1, fontFamily: FONT_DISPLAY }}>
+                        $1 for 3 Months
+                      </h2>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-3xl font-bold" style={{ color: C.green, fontFamily: FONT_DISPLAY }}>
+                        $1
+                      </div>
+                      <div className="text-xs" style={{ color: C.text3 }}>total for 3 months</div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl p-4 mb-4" style={{ background: C.greenBg }}>
+                    <div className="grid grid-cols-2 gap-3">
+                      {['AI-powered store builder', 'Unlimited products', 'Paystack payments', '10 premium themes', 'Custom domain', 'Real-time analytics'].map((feature, idx) => (
+                        <div key={idx} className="flex items-center gap-2 text-sm" style={{ color: C.text2 }}>
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.green} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                          {feature}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="text-center text-xs" style={{ color: C.text3 }}>
+                    Then $10/month · Cancel anytime · No lock-in
+                  </div>
+                </div>
+
+                <button onClick={handlePayAndCreateStore} disabled={isProcessingPayment}
+                  className="w-full py-4 rounded-xl text-white font-bold text-lg transition"
+                  style={{
+                    background: isProcessingPayment ? C.text3 : `linear-gradient(135deg, ${C.green} 0%, #15803D 100%)`,
+                    cursor: isProcessingPayment ? 'not-allowed' : 'pointer',
+                    boxShadow: isProcessingPayment ? 'none' : '0 6px 24px rgba(22,163,74,0.30)',
+                    fontFamily: FONT_DISPLAY,
+                  }}
+                >
+                  {isProcessingPayment ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ animation: 'spin 0.7s linear infinite' }}>
+                        <path d="M21 12a9 9 0 11-6.219-8.56" />
+                      </svg>
+                      Redirecting to Paystack...
+                    </span>
+                  ) : 'Pay $1 →'}
+                </button>
+
+                <div className="mt-8 grid grid-cols-3 gap-4">
+                  <div className="text-center">
+                    <div className="text-2xl mb-2">🔒</div>
+                    <div className="text-xs" style={{ color: C.text3 }}>Secure Payment</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl mb-2">✓</div>
+                    <div className="text-xs" style={{ color: C.text3 }}>Cancel Anytime</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl mb-2">⚡</div>
+                    <div className="text-xs" style={{ color: C.text3 }}>Instant Access</div>
+                  </div>
+                </div>
+              </>
             )}
           </div>
         )}
@@ -708,15 +891,7 @@ export default function SellSignupPage() {
         </div>
       </div>
 
-      <style>{`
-        @keyframes buildingFadeIn {
-          to { opacity: 1; }
-        }
-        @keyframes buildingPulse {
-          0%, 100% { transform: scale(1); opacity: 0.6; }
-          50% { transform: scale(1.3); opacity: 1; }
-        }
-      `}</style>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }

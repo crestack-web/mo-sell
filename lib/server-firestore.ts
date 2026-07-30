@@ -8,25 +8,33 @@ let compatStorage: any = null;
 
 function ensureCompat() {
   if (!compatApp) {
-    const firebase = require('firebase/compat/app');
-    require('firebase/compat/firestore');
-    require('firebase/compat/storage');
     try {
-      compatApp = firebase.initializeApp(firebaseConfig, 'server-fallback');
-    } catch {
-      compatApp = firebase.app('server-fallback');
+      const firebase = require('firebase/compat/app');
+      require('firebase/compat/firestore');
+      require('firebase/compat/storage');
+      try {
+        compatApp = firebase.initializeApp(firebaseConfig, 'server-fallback');
+      } catch {
+        compatApp = firebase.app('server-fallback');
+      }
+      compatDb = compatApp.firestore();
+      compatStorage = compatApp.storage();
+    } catch (e) {
+      console.error('Compat Firebase SDK initialization failed:', e);
     }
-    compatDb = compatApp.firestore();
-    compatStorage = compatApp.storage();
   }
   return { db: compatDb, storage: compatStorage };
 }
 
 export function getServerFirestore(): any {
   if (isAdminInitialized()) {
-    try { return getAdminDb(); } catch {}
+    try { return getAdminDb(); } catch (e) { console.error('Admin DB init failed:', e); }
   }
-  return ensureCompat().db;
+  const compat = ensureCompat();
+  if (!compat.db) {
+    throw new Error('Firestore not available — admin SDK not initialized and compat fallback failed');
+  }
+  return compat.db;
 }
 
 export function getServerStorage(): any {
@@ -45,10 +53,13 @@ export const FieldValue = {
         return admin.firestore.FieldValue.serverTimestamp();
       } catch {}
     }
-    // Lazy-load compat SDK to avoid issues at import time
-    const firebase = require('firebase/compat/app');
-    require('firebase/compat/firestore');
-    return firebase.firestore.FieldValue.serverTimestamp();
+    try {
+      const firebase = require('firebase/compat/app');
+      require('firebase/compat/firestore');
+      return firebase.firestore.FieldValue.serverTimestamp();
+    } catch {
+      throw new Error('Firestore FieldValue not available — admin SDK not initialized and compat fallback failed');
+    }
   },
   arrayUnion(...elements: any[]): any {
     if (isAdminInitialized()) {

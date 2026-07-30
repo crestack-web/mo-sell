@@ -4,7 +4,7 @@ import React, { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { initializeFirebase } from '@/lib/firebase';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
-import { getFirestore, doc, updateDoc } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, setDoc, deleteField, updateDoc, serverTimestamp } from 'firebase/firestore';
 
 const C = {
   primary: '#0EA5E9', bg: '#F0F9FF', surface: '#FFFFFF',
@@ -47,6 +47,8 @@ function SellSubscribeSuccessContent() {
         const { auth, firestore } = initializeFirebase();
         const user = auth.currentUser;
 
+        let hasPendingStore = false;
+
         if (user) {
           await updateDoc(doc(firestore, 'users', user.uid), {
             moSellSubscription: {
@@ -58,13 +60,113 @@ function SellSubscribeSuccessContent() {
             },
             updatedAt: new Date(),
           });
+
+          // Check for pending store data from signup flow
+          const userSnap = await getDoc(doc(firestore, 'users', user.uid));
+          const userData = userSnap.data();
+          const pendingStore = userData?.pendingStore;
+
+          if (pendingStore) {
+            hasPendingStore = true;
+            const { businessId } = userData;
+            const businessSnap = await getDoc(doc(firestore, 'businesses', businessId));
+            const businessData = businessSnap.data();
+            const businessName = pendingStore.storeName || businessData?.businessName || 'My Store';
+
+            // Create store config from pending data
+            const configData = {
+              storeSlug: pendingStore.storeSlug,
+              storeName: businessName,
+              logoUrl: pendingStore.logoUrl,
+              primaryColor: pendingStore.primaryColor,
+              secondaryColor: pendingStore.secondaryColor,
+              businessCategory: pendingStore.businessCategory,
+              currency: pendingStore.currency || 'NGN',
+              contactEmail: user.email || '',
+              contactPhone: '',
+              status: 'draft',
+              theme: pendingStore.theme,
+              tagline: pendingStore.tagline || '',
+              storePolicy: '',
+              paystackPublicKey: '',
+              enabledProductTypes: ['physical'],
+              pickupLocations: [],
+              customDomain: null,
+              customDomainStatus: 'pending',
+              customDomainVerifiedAt: null,
+              domainPurchaseRecord: null,
+              onboardingAnswers: pendingStore.onboardingAnswers || {},
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp(),
+              paidAt: new Date(),
+            };
+
+            await setDoc(doc(firestore, 'businesses', businessId, 'store', 'config'), configData);
+            await setDoc(doc(firestore, 'storeIndex', pendingStore.storeSlug), {
+              businessId, storeName: businessName, updatedAt: serverTimestamp(),
+            });
+
+            // Create placeholder products
+            const PLACEHOLDER_PRODUCTS: Record<string, { title: string; price: number; desc: string }[]> = {
+              products: [
+                { title: 'Classic Tee', price: 15000, desc: 'Premium quality cotton t-shirt' },
+                { title: 'Signature Mug', price: 8000, desc: 'Ceramic mug with brand design' },
+                { title: 'Canvas Tote', price: 12000, desc: 'Eco-friendly canvas tote bag' },
+              ],
+              courses: [
+                { title: 'Starter Course', price: 25000, desc: 'Complete beginner-friendly course' },
+                { title: 'Masterclass', price: 50000, desc: 'Advanced deep-dive masterclass' },
+                { title: 'Quick Guide', price: 10000, desc: 'Bite-sized actionable guide' },
+              ],
+              services: [
+                { title: '30-min Consultation', price: 20000, desc: 'One-on-one strategy session' },
+                { title: '1-Hour Workshop', price: 35000, desc: 'Interactive group workshop' },
+                { title: 'Premium Package', price: 75000, desc: 'Comprehensive service package' },
+              ],
+              digital: [
+                { title: 'Ebook', price: 5000, desc: 'In-depth digital ebook' },
+                { title: 'Template Pack', price: 8000, desc: 'Ready-to-use templates' },
+                { title: 'Preset Collection', price: 6000, desc: 'Professional preset pack' },
+              ],
+            };
+
+            const category = pendingStore.productCategory || 'products';
+            const products = PLACEHOLDER_PRODUCTS[category as keyof typeof PLACEHOLDER_PRODUCTS] || PLACEHOLDER_PRODUCTS.products;
+
+            for (const p of products) {
+              const productId = `prod_${Math.random().toString(36).slice(2, 10)}`;
+              await setDoc(doc(firestore, 'businesses', businessId, 'storeProducts', productId), {
+                id: productId,
+                title: p.title,
+                description: p.desc,
+                price: p.price,
+                compareAtPrice: null,
+                images: [],
+                category: category,
+                type: 'simple',
+                status: 'draft',
+                metadata: {},
+                stock: null,
+                variants: [],
+                isSubscription: false,
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp(),
+              });
+            }
+
+            // Clear pending store data
+            await updateDoc(doc(firestore, 'users', user.uid), {
+              pendingStore: deleteField(),
+              onboardingComplete: true,
+            });
+          }
         }
 
         setStatus('success');
 
-        // Redirect to MO Sell dashboard after 2 seconds
+        // Redirect after 2 seconds
         setTimeout(() => {
-          router.push('/dashboard');
+          router.push(hasPendingStore ? '/dashboard/customize' : '/dashboard');
         }, 2000);
       } catch (err: any) {
         console.error('MO Sell subscription verification error:', err);
