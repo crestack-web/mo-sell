@@ -49,6 +49,7 @@
   padding: 40px 20px 32px;
   text-align: center;
   min-height: 100%;
+  font-family: var(--sf-font, inherit);
 }
 
 .pAvatar {
@@ -83,14 +84,13 @@
   margin: 0 0 4px;
   font-size: 1.3rem;
   font-weight: 800;
-  color: #fff;
-  text-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  color: var(--sf-text-1, #fff);
 }
 
 .pBio {
   margin: 0 0 16px;
   font-size: 0.85rem;
-  color: rgba(255,255,255,0.7);
+  color: var(--sf-text-2, rgba(255,255,255,0.7));
   max-width: 320px;
   line-height: 1.5;
 }
@@ -105,16 +105,16 @@
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: rgba(255,255,255,0.1);
+  background: var(--sf-surface, rgba(255,255,255,0.1));
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  color: var(--sf-text-2, #fff);
   transition: all 0.15s;
 }
 
 .pSocialLink:hover {
-  background: rgba(255,255,255,0.2);
+  background: var(--sf-border, rgba(255,255,255,0.2));
   transform: scale(1.1);
 }
 
@@ -165,7 +165,7 @@
   gap: 12px;
   padding: 10px;
   border-radius: 16px;
-  background: rgba(255,255,255,0.1);
+  background: var(--sf-surface, rgba(255,255,255,0.1));
   backdrop-filter: blur(10px);
 }
 
@@ -185,20 +185,20 @@
   margin: 0;
   font-size: 0.85rem;
   font-weight: 700;
-  color: #fff;
+  color: var(--sf-text-1, #fff);
 }
 
 .pCalloutPrice {
   margin: 2px 0 0;
   font-size: 0.78rem;
-  color: rgba(255,255,255,0.7);
+  color: var(--sf-text-2, rgba(255,255,255,0.7));
 }
 
 .pCalloutBtn {
   padding: 6px 14px;
   border-radius: 20px;
-  background: #fff;
-  color: #111;
+  background: var(--sf-surface, #fff);
+  color: var(--sf-text-1, #111);
   font-size: 0.72rem;
   font-weight: 700;
   white-space: nowrap;
@@ -209,25 +209,25 @@
   justify-content: space-between;
   align-items: center;
   padding: 8px 12px;
-  border-bottom: 1px solid rgba(255,255,255,0.08);
+  border-bottom: 1px solid var(--sf-border, rgba(255,255,255,0.08));
 }
 
 .pMinimalName {
   font-size: 0.85rem;
-  color: #fff;
+  color: var(--sf-text-1, #fff);
 }
 
 .pMinimalPrice {
   font-size: 0.82rem;
   font-weight: 700;
-  color: rgba(255,255,255,0.8);
+  color: var(--sf-text-2, rgba(255,255,255,0.8));
 }
 
 .pFooter {
   margin-top: auto;
   padding-top: 24px;
   font-size: 0.65rem;
-  color: rgba(255,255,255,0.4);
+  color: var(--sf-text-3, rgba(255,255,255,0.4));
 }
 
 .editorCol {
@@ -612,6 +612,58 @@
 .viewBtn:hover {
   border-color: var(--sell-text-2, #64748b);
   color: var(--sell-text, #0f172a);
+}
+
+.themeGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.themeOption {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 8px;
+  border: 2px solid var(--sell-border, #e2e8f0);
+  border-radius: 10px;
+  background: var(--sell-surface, #fff);
+  cursor: pointer;
+  transition: all 0.15s;
+  position: relative;
+}
+
+.themeOption:hover {
+  border-color: var(--sell-text-3, #94a3b8);
+}
+
+.themeOptionActive {
+  border-color: var(--sell-primary, #0ea5e9);
+}
+
+.themeSwatch {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.themeOptName {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--sell-text, #0f172a);
+  line-height: 1.2;
+  text-align: center;
+}
+
+.themeCheck {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  font-size: 0.6rem;
+  color: var(--sell-primary, #0ea5e9);
+  font-weight: 800;
 }
 
 @media (max-width: 900px) {

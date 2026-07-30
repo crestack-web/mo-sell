@@ -80,32 +80,44 @@ export async function ensureFreeTokens(
 
   // 1) Brand-new user: no balance field at all → grant 2000
   if (!hasBalanceField) {
-    await docRef.set({
-      [TOKEN_BALANCE_FIELD]: FREE_TOKEN_AMOUNT,
-      [FREE_TOKENS_CREDITED_FIELD]: true,
-    }, { merge: true });
-    return FREE_TOKEN_AMOUNT;
+    try {
+      await docRef.set({
+        [TOKEN_BALANCE_FIELD]: FREE_TOKEN_AMOUNT,
+        [FREE_TOKENS_CREDITED_FIELD]: true,
+      }, { merge: true });
+      return FREE_TOKEN_AMOUNT;
+    } catch {
+      return 0;
+    }
   }
 
   // 2) Already credited → return what they have
   if (credited) {
     // Edge-case: credited but balance=0 and never purchased (bug from earlier deployment)
     if (currentBalance === 0 && totalPurchased === 0) {
-      await docRef.set({
-        [TOKEN_BALANCE_FIELD]: FREE_TOKEN_AMOUNT,
-      }, { merge: true });
-      return FREE_TOKEN_AMOUNT;
+      try {
+        await docRef.set({
+          [TOKEN_BALANCE_FIELD]: FREE_TOKEN_AMOUNT,
+        }, { merge: true });
+        return FREE_TOKEN_AMOUNT;
+      } catch {
+        return 0;
+      }
     }
     return currentBalance;
   }
 
   // 3) Has balance field but not yet credited → grant free tokens on top
-  const newBalance = currentBalance + FREE_TOKEN_AMOUNT;
-  await docRef.set({
-    [TOKEN_BALANCE_FIELD]: newBalance,
-    [FREE_TOKENS_CREDITED_FIELD]: true,
-  }, { merge: true });
-  return newBalance;
+  try {
+    const newBalance = currentBalance + FREE_TOKEN_AMOUNT;
+    await docRef.set({
+      [TOKEN_BALANCE_FIELD]: newBalance,
+      [FREE_TOKENS_CREDITED_FIELD]: true,
+    }, { merge: true });
+    return newBalance;
+  } catch {
+    return currentBalance;
+  }
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

@@ -742,19 +742,27 @@ CURRENT STORE CONFIG:
 
     // ── Token verification ──
     const hasMedia = attachments.length > 0;
-    const minCost = getTokenCost(hasMedia, false, false);
+    let currentBalance = 0;
+    let db2: any = null;
+    try {
+      const minCost = getTokenCost(hasMedia, false, false);
 
-    const db2 = getAdminDb();
-    const currentBalance = await ensureFreeTokens(db2, businessId);
+      db2 = getAdminDb();
+      currentBalance = await ensureFreeTokens(db2, businessId);
 
-    if (currentBalance < minCost) {
-      return NextResponse.json({
-        error: 'Insufficient tokens',
-        details: `You need at least ${minCost} tokens. Balance: ${currentBalance}. Purchase more tokens to continue using Ask MO.`,
-        tokenError: true,
-        balance: currentBalance,
-        required: minCost,
-      }, { status: 403 });
+      if (currentBalance < minCost) {
+        return NextResponse.json({
+          error: 'Insufficient tokens',
+          details: `You need at least ${minCost} tokens. Balance: ${currentBalance}. Purchase more tokens to continue using Ask MO.`,
+          tokenError: true,
+          balance: currentBalance,
+          required: minCost,
+        }, { status: 403 });
+      }
+    } catch (tokenErr) {
+      const tokenMsg = tokenErr instanceof Error ? tokenErr.message : String(tokenErr);
+      console.error('[AskMo] Token error (non-fatal, proceeding):', tokenMsg);
+      // If token system is unavailable, let the user proceed
     }
 
     // ── AI call ──
@@ -779,9 +787,11 @@ CURRENT STORE CONFIG:
       }, { status: 403 });
     }
 
-    await db2.doc(TOKEN_DOC_PATH(businessId)).set({
-      [TOKEN_BALANCE_FIELD]: FieldValue.increment(-actualCost),
-    }, { merge: true });
+    if (db2) {
+      await db2.doc(TOKEN_DOC_PATH(businessId)).set({
+        [TOKEN_BALANCE_FIELD]: FieldValue.increment(-actualCost),
+      }, { merge: true });
+    }
 
     // ── Product flow: proposals (not yet approved) ──
     // If the AI returns a newProduct with pdfContent, return it as a proposal

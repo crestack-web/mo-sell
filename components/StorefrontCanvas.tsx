@@ -51,7 +51,7 @@ export interface StorefrontCanvasProps {
 // These mirror storefront.css [data-theme="..."] exactly.
 // Injected inline so the canvas works anywhere without global CSS.
 
-function getThemeCssVars(theme: StorefrontTheme, primary: string, secondary: string) {
+export function getThemeCssVars(theme: StorefrontTheme, primary: string, secondary: string) {
   const base = { '--sf-primary': primary, '--sf-secondary': secondary };
   const themeVars = (() => {
     switch (theme) {

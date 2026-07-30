@@ -6,6 +6,8 @@ import { initializeFirebase } from '@/lib/firebase';
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useSell } from '@/context/SellContext';
 import { THEMES, getThemeType } from '@/themes/registry';
+import { getThemeCssVars } from '@/components/StorefrontCanvas';
+import type { StorefrontTheme } from '@/types/mo-sell.types';
 import { useRouter } from 'next/navigation';
 import {
   Instagram, Twitter, Youtube, Music2, MessageCircle, Globe,
@@ -90,6 +92,16 @@ export function LinkInBioEditor() {
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
+  const [localTheme, setLocalTheme] = useState<StorefrontTheme>((storeConfig?.theme ?? 'luxe') as StorefrontTheme);
+
+  const THEME_DEFAULT_COLORS: Record<string, [string, string]> = {
+    luxe: ['#C9A84C', '#8B7355'], glow: ['#E8927C', '#D4756A'],
+    market: ['#EA580C', '#C2410C'], creator: ['#6366F1', '#4F46E5'],
+    link: ['#A78BFA', '#7C3AED'], pulse: ['#FF6B35', '#F7C948'],
+    vault: ['#3B82F6', '#1D4ED8'], atlas: ['#0D9488', '#0F766E'],
+    spark: ['#D97706', '#2D1B69'], bazaar: ['#059669', '#F97316'],
+    abby: ['#5383FF', '#3B6FE0'],
+  };
 
   useEffect(() => {
     if (!storeConfig) return;
@@ -565,25 +577,4 @@ export function LinkInBioEditor() {
         </div>
 
         <div className={styles.saveRow}>
-          <button
-            className={styles.saveBtn}
-            onClick={handleSave}
-            disabled={saving || !dirty}
-          >
-            {saving ? 'Saving...' : 'Save Changes'}
-          </button>
-          <button
-            className={styles.viewBtn}
-            onClick={() => {
-              if (storeConfig?.storeSlug) {
-                window.open(`/${storeConfig.storeSlug}`, '_blank');
-              }
-            }}
-          >
-            <Eye size={16} /> View Page
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
+       
