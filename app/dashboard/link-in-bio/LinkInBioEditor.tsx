@@ -107,6 +107,7 @@ export function LinkInBioEditor() {
     if (!storeConfig) return;
     setName(storeConfig.storeName ?? '');
     setBio(storeConfig.tagline ?? '');
+    setLocalTheme((storeConfig.theme ?? 'luxe') as StorefrontTheme);
 
     const saved = (storeConfig as any).linkBio as LinkBioConfig | undefined;
     if (saved) {
@@ -193,6 +194,23 @@ export function LinkInBioEditor() {
     }
   }, [user?.businessId, avatarPreview, avatarFile, name, bio, socials, displayType, bgType, bgValue, products, customLinks, productOrder, refreshStoreConfig, showToast]);
 
+  const handleThemeChange = useCallback(async (themeId: string) => {
+    setLocalTheme(themeId as StorefrontTheme);
+    if (!user?.businessId) return;
+    try {
+      const { firestore } = initializeFirebase();
+      await setDoc(
+        doc(firestore, 'businesses', user.businessId, 'store', 'config'),
+        { theme: themeId, updatedAt: serverTimestamp() },
+        { merge: true }
+      );
+      await refreshStoreConfig();
+      showToast(`Theme changed to ${THEMES.find(t => t.id === themeId)?.name}`, 'success');
+    } catch {
+      showToast('Failed to update theme', 'error');
+    }
+  }, [user?.businessId, refreshStoreConfig, showToast]);
+
   const toggleProductVisibility = useCallback((productId: string) => {
     setProducts(prev => prev.map(p => p.id === productId ? { ...p, visible: !p.visible } : p));
     setDirty(true);
@@ -261,6 +279,11 @@ export function LinkInBioEditor() {
     bgType === 'solid' ? bgValue :
     bgType === 'image' ? `url(${bgValue}) center/cover` :
     bgValue;
+
+  const [themeDefPrimary, themeDefSecondary] = THEME_DEFAULT_COLORS[localTheme] ?? ['#6366F1', '#4F46E5'];
+  const themePrimary = storeConfig?.primaryColor ?? themeDefPrimary;
+  const themeSecondary = storeConfig?.secondaryColor ?? themeDefSecondary;
+  const themeVars = getThemeCssVars(localTheme, themePrimary, themeSecondary);
 
   return (
     <div className={styles.page}>
@@ -619,4 +642,4 @@ export function LinkInBioEditor() {
     </div>
   );
 }
-        
+
