@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { collection, getDocs, addDoc, doc, getDoc, setDoc, query, where, orderBy } from 'firebase/firestore';
+import { collection, getDocs, addDoc, doc, getDoc, setDoc, query, where, orderBy, serverTimestamp, writeBatch } from 'firebase/firestore';
 import {
   Lightbulb, Calendar, TrendingUp, Megaphone, BarChart3, Users,
   Copy, Check, Bell, BellOff,
@@ -318,11 +318,13 @@ export function ContentHub() {
     if (!user?.id) return;
     setLoadingUgcData(true);
     try {
-      const res = await fetch(`/api/ugc/my-profile?userId=${encodeURIComponent(user.id)}`);
-      if (!res.ok) throw new Error('Failed to load UGC data');
-      const data = await res.json();
-      if (data.profile) setUgcProfile(data.profile);
-      const allOrders = (data.orders ?? []) as any[];
+      const { firestore } = initializeFirebase();
+      const profileSnap = await getDoc(doc(firestore, 'ugcCreators', user.id));
+      if (profileSnap.exists()) setUgcProfile(profileSnap.data());
+      const ordersSnap = await getDocs(
+        query(collection(firestore, 'ugcOrders'), where('creatorId', '==', user.id))
+      );
+      const allOrders = ordersSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
       setUgcRequests(allOrders.filter(o => o.type === 'request' || o.status === 'pending'));
       setUgcOrders(allOrders.filter(o => o.type !== 'request' && o.status !== 'pending'));
     } catch (err) {
@@ -403,31 +405,49 @@ export function ContentHub() {
     }
     setSavingUgc(true);
     try {
-      const res = await fetch('/api/ugc/apply', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: user.id,
-          displayName: user.name,
-          bio,
-          niches,
-          price30s: Number(price30s),
-          price60s: Number(price60s),
-          deliveryDays: Number(deliveryDays) || 5,
-          sampleVideos: sampleVideos.filter(Boolean),
-          username: ugcUsername.trim() || undefined,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        showToast(data.error || 'Failed to save profile', 'error');
-        setSavingUgc(false);
+      const { firestore } = initializeFirebase();
+      const p30 = Number(price30s);
+      const p60 = Number(price60s);
+      if (isNaN(p30) || isNaN(p60) || p30 < 0 || p60 < 0) {
+        showToast('Prices must be valid non-negative numbers', 'error');
         return;
+      }
+      const username = ugcUsername.trim() || user.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'creator';
+      const creator = {
+        userId: user.id,
+        username,
+        displayName: user.name,
+        bio: bio || '',
+        avatarUrl: null,
+        niches,
+        isActive: true,
+        isBanned: false,
+        price30s: Math.round(p30 * 100),
+        price60s: Math.round(p60 * 100),
+        deliveryDays: Number(deliveryDays) || 5,
+        rating: 0,
+        totalOrders: 0,
+        totalEarnings: 0,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      };
+      await setDoc(doc(firestore, 'ugcCreators', user.id), creator);
+      const videos = sampleVideos.filter(Boolean);
+      if (videos.length > 0) {
+        const batch = writeBatch(firestore);
+        for (const url of videos.slice(0, 5)) {
+          const ref = doc(collection(firestore, 'ugcVideos'));
+          batch.set(ref, {
+            creatorId: user.id, url, thumbnail: null, duration: 15,
+            hasWatermark: true, title: null, createdAt: serverTimestamp(),
+          });
+        }
+        await batch.commit();
       }
       showToast('Profile saved! You\'re now listed as a creator.', 'success');
       setUgcView('dashboard');
       await loadUgcData();
-    } catch {
+    } catch (err) {
       showToast('Failed to save profile', 'error');
     } finally {
       setSavingUgc(false);
