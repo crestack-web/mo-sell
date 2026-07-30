@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
   try {
     const {
       brandId, creatorId, productName, productUrl, brief, deliverables, deadline, brandEmail,
-      guestName, guestEmail, guestCompany, creatorUsername, videoLength,
+      guestName, guestEmail, guestCompany, creatorUsername, videoLength, bidAmount,
     } = await req.json();
 
     if (!creatorId || !productName || !brief || !deliverables) {
@@ -37,7 +37,8 @@ export async function POST(req: NextRequest) {
       creator = creatorSnap.data() as any;
     }
 
-    const agreedPrice = videoLength === '60s' ? creator.price60s : creator.price30s;
+    const basePrice = videoLength === '60s' ? creator.price60s : creator.price30s;
+    const agreedPrice = bidAmount ? Math.round(Number(bidAmount) * 100) : basePrice;
     const { platformFee, creatorPayout, deposit, balance } = calculateUGCPayment(agreedPrice);
 
     const orderRef = db.collection('ugcOrders').doc();
@@ -46,6 +47,8 @@ export async function POST(req: NextRequest) {
     const order: Record<string, any> = {
       brandId: brandId ?? null,
       creatorId: creator.userId,
+      bidAmount: bidAmount ? Math.round(Number(bidAmount) * 100) : null,
+      basePrice,
       productName,
       productUrl: productUrl ?? null,
       brief,

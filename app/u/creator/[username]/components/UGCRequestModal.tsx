@@ -27,6 +27,7 @@ export function UGCRequestModal({ open, onClose, creatorId, creatorName, price30
   const [letCreatorScript, setLetCreatorScript] = useState(false);
   const [videoLength, setVideoLength] = useState<'30s' | '60s'>('30s');
   const [deadline, setDeadline] = useState('');
+  const [bidAmount, setBidAmount] = useState('');
 
   useEffect(() => {
     if (open) {
@@ -42,11 +43,14 @@ export function UGCRequestModal({ open, onClose, creatorId, creatorName, price30
       setLetCreatorScript(false);
       setVideoLength('30s');
       setDeadline('');
+      setBidAmount('');
     }
   }, [open]);
 
   const selectedPrice = videoLength === '30s' ? price30s : price60s;
-  const depositAmount = Math.round(selectedPrice * 0.5);
+  const customPrice = bidAmount ? Math.round(Number(bidAmount) * 100) : 0;
+  const effectivePrice = customPrice || selectedPrice;
+  const depositAmount = Math.round(effectivePrice * 0.5);
 
   const handleSubmit = useCallback(async () => {
     if (!guestName.trim() || !guestEmail.trim() || !productName.trim() || !brief.trim()) {
@@ -69,6 +73,7 @@ export function UGCRequestModal({ open, onClose, creatorId, creatorName, price30
         scriptByCreator: letCreatorScript,
         videoLength,
         deadline: deadline || null,
+        bidAmount: bidAmount || null,
         guestName: guestName.trim(),
         guestEmail: guestEmail.trim(),
         guestCompany: guestCompany.trim() || null,
@@ -114,7 +119,7 @@ export function UGCRequestModal({ open, onClose, creatorId, creatorName, price30
       setError('Network error. Please try again.');
       setSubmitting(false);
     }
-  }, [guestName, guestEmail, guestCompany, productName, productUrl, brief, letCreatorScript, videoLength, deadline, creatorId]);
+  }, [guestName, guestEmail, guestCompany, productName, productUrl, brief, letCreatorScript, videoLength, deadline, creatorId, bidAmount]);
 
   if (!open) return null;
 
@@ -353,7 +358,7 @@ export function UGCRequestModal({ open, onClose, creatorId, creatorName, price30
               </div>
 
               {/* Deadline */}
-              <div style={{ marginBottom: 24 }}>
+              <div style={{ marginBottom: 16 }}>
                 <label style={label}>Deadline <span style={{ fontWeight: 400, color: '#9CA3AF' }}>(optional)</span></label>
                 <input
                   type="date" style={input}
@@ -362,6 +367,30 @@ export function UGCRequestModal({ open, onClose, creatorId, creatorName, price30
                   onFocus={(e) => { e.currentTarget.style.borderColor = '#0EA5E9'; }}
                   onBlur={(e) => { e.currentTarget.style.borderColor = '#E5E7EB'; }}
                 />
+              </div>
+
+              {/* Bid Amount */}
+              <div style={{ marginBottom: 24 }}>
+                <label style={label}>Your Offer (Bid) <span style={{ fontWeight: 400, color: '#9CA3AF' }}>(optional — leave blank to use creator's price)</span></label>
+                <div style={{ position: 'relative' }}>
+                  <span style={{
+                    position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)',
+                    fontSize: 15, color: '#6B7280', fontWeight: 600, pointerEvents: 'none',
+                  }}>&#x20A6;</span>
+                  <input
+                    placeholder={(selectedPrice / 100).toLocaleString()}
+                    type="number" min="0" style={{ ...input, paddingLeft: 28 }}
+                    value={bidAmount} onChange={(e) => setBidAmount(e.target.value)}
+                    disabled={submitting}
+                    onFocus={(e) => { e.currentTarget.style.borderColor = '#0EA5E9'; }}
+                    onBlur={(e) => { e.currentTarget.style.borderColor = '#E5E7EB'; }}
+                  />
+                </div>
+                {customPrice > 0 && customPrice !== selectedPrice && (
+                  <p style={{ fontSize: 12, color: '#059669', marginTop: 4 }}>
+                    Using your bid of ₦{(customPrice / 100).toLocaleString()} — deposit: ₦{(depositAmount / 100).toLocaleString()}
+                  </p>
+                )}
               </div>
 
               {/* Submit */}

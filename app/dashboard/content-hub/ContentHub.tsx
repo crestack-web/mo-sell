@@ -6,6 +6,7 @@ import {
   Lightbulb, Calendar, TrendingUp, Megaphone, BarChart3, Users,
   Copy, Check, Bell, BellOff,
   Sparkles, Package, X, Plus, Star, Camera, Instagram, Music2, Youtube, Twitter, Trash2, Upload,
+
 } from 'lucide-react';
 import { initializeFirebase } from '@/lib/firebase';
 import { useSell } from '@/context/SellContext';
@@ -270,6 +271,11 @@ export function ContentHub() {
   const [ugcOrders, setUgcOrders] = useState<UGCOrder[]>([]);
   const [loadingUgcData, setLoadingUgcData] = useState(false);
 
+  const [ideasRequestId, setIdeasRequestId] = useState<string | null>(null);
+  const [generatedIdeas, setGeneratedIdeas] = useState<any>(null);
+  const [generatingIdeas, setGeneratingIdeas] = useState(false);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+
   const handleSelectProduct = (product: Product) => {
     setSelectedProduct(prev => prev?.id === product.id ? null : product);
   };
@@ -358,6 +364,68 @@ export function ContentHub() {
       setLoadingUgcData(false);
     }
   }, [user?.id]);
+
+  const handleAcceptRequest = useCallback(async (orderId: string) => {
+    setActionLoading(orderId);
+    try {
+      const res = await fetch(`/api/ugc/orders/${orderId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'accept' }),
+      });
+      if (!res.ok) throw new Error('Failed to accept');
+      setUgcRequests(prev => prev.filter(r => r.id !== orderId));
+      showToast('Request accepted!', 'success');
+      loadUgcData();
+    } catch {
+      showToast('Failed to accept request', 'error');
+    } finally {
+      setActionLoading(null);
+    }
+  }, [showToast, loadUgcData]);
+
+  const handleRejectRequest = useCallback(async (orderId: string) => {
+    setActionLoading(orderId);
+    try {
+      const res = await fetch(`/api/ugc/orders/${orderId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'reject' }),
+      });
+      if (!res.ok) throw new Error('Failed to reject');
+      setUgcRequests(prev => prev.filter(r => r.id !== orderId));
+      showToast('Request rejected', 'info');
+      loadUgcData();
+    } catch {
+      showToast('Failed to reject request', 'error');
+    } finally {
+      setActionLoading(null);
+    }
+  }, [showToast, loadUgcData]);
+
+  const handleGenerateIdeas = useCallback(async (req: any) => {
+    setIdeasRequestId(req.id);
+    setGeneratedIdeas(null);
+    setGeneratingIdeas(true);
+    try {
+      const res = await fetch('/api/ugc/content-ideas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productName: req.productName || req.product || 'Unknown Product',
+          brief: req.brief || req.brand || '',
+          deliverables: req.deliverables || null,
+        }),
+      });
+      const data = await res.json();
+      setGeneratedIdeas(data.ideas);
+    } catch {
+      showToast('Failed to generate ideas', 'error');
+      setIdeasRequestId(null);
+    } finally {
+      setGeneratingIdeas(false);
+    }
+  }, [showToast]);
 
   useEffect(() => {
     if (activeTab === 'ugc') loadUgcData();
@@ -1056,20 +1124,71 @@ export function ContentHub() {
                             <th style={{ textAlign: 'left', padding: '8px 10px', fontWeight: 700, color: 'var(--sell-text-3)', fontSize: '0.72rem', textTransform: 'uppercase' }}>Brand</th>
                             <th style={{ textAlign: 'left', padding: '8px 10px', fontWeight: 700, color: 'var(--sell-text-3)', fontSize: '0.72rem', textTransform: 'uppercase' }}>Product</th>
                             <th style={{ textAlign: 'left', padding: '8px 10px', fontWeight: 700, color: 'var(--sell-text-3)', fontSize: '0.72rem', textTransform: 'uppercase' }}>Budget</th>
-                            <th style={{ textAlign: 'left', padding: '8px 10px', fontWeight: 700, color: 'var(--sell-text-3)', fontSize: '0.72rem', textTransform: 'uppercase' }}>Status</th>
+                            <th style={{ textAlign: 'left', padding: '8px 10px', fontWeight: 700, color: 'var(--sell-text-3)', fontSize: '0.72rem', textTransform: 'uppercase' }}>Brief</th>
+                            <th style={{ textAlign: 'center', padding: '8px 10px', fontWeight: 700, color: 'var(--sell-text-3)', fontSize: '0.72rem', textTransform: 'uppercase' }}>Actions</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {ugcRequests.map(req => (
-                            <tr key={req.id} style={{ borderBottom: '1px solid var(--sell-border-subtle)' }}>
-                              <td style={{ padding: '8px 10px', fontWeight: 600, color: 'var(--sell-text-1)' }}>{req.brand}</td>
-                              <td style={{ padding: '8px 10px', color: 'var(--sell-text-2)' }}>{req.product}</td>
-                              <td style={{ padding: '8px 10px', fontWeight: 700, color: 'var(--sell-green)' }}>{currency} {req.budget?.toLocaleString()}</td>
-                              <td style={{ padding: '8px 10px' }}>
-                                <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '2px 8px', borderRadius: 99, background: 'var(--sell-amber-bg)', color: 'var(--sell-amber)', textTransform: 'capitalize' }}>{req.status}</span>
-                              </td>
-                            </tr>
-                          ))}
+                          {ugcRequests.map(req => {
+                            const brief = (req as any).brief || '';
+                            return (
+                              <tr key={req.id} style={{ borderBottom: '1px solid var(--sell-border-subtle)' }}>
+                                <td style={{ padding: '8px 10px', fontWeight: 600, color: 'var(--sell-text-1)' }}>{(req as any).guestName || req.brand || 'Guest'}</td>
+                                <td style={{ padding: '8px 10px', color: 'var(--sell-text-2)' }}>{(req as any).productName || req.product}</td>
+                                <td style={{ padding: '8px 10px', fontWeight: 700, color: 'var(--sell-green)' }}>{currency} {((req as any).agreedPrice ?? req.budget ?? 0) / ((req as any).agreedPrice ? 100 : 1)}</td>
+                                <td style={{ padding: '8px 10px', color: 'var(--sell-text-3)', fontSize: '0.75rem', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>{brief}</td>
+                                <td style={{ padding: '8px 10px' }}>
+                                  <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
+                                    <button
+                                      onClick={() => handleGenerateIdeas(req)}
+                                      disabled={generatingIdeas && ideasRequestId === req.id}
+                                      title="Generate content ideas"
+                                      style={{
+                                        display: 'flex', alignItems: 'center', gap: 4, padding: '5px 10px',
+                                        border: '1px solid var(--sell-border)', borderRadius: 6,
+                                        background: 'var(--sell-bg)', cursor: 'pointer',
+                                        fontSize: '0.7rem', fontWeight: 600, color: 'var(--sell-accent)',
+                                        fontFamily: 'var(--sell-font-body)',
+                                      }}
+                                    >
+                                      <Lightbulb size={12} />
+                                      Ideas
+                                    </button>
+                                    <button
+                                      onClick={() => handleAcceptRequest(req.id)}
+                                      disabled={actionLoading === req.id}
+                                      title="Accept request"
+                                      style={{
+                                        display: 'flex', alignItems: 'center', gap: 4, padding: '5px 10px',
+                                        border: 'none', borderRadius: 6,
+                                        background: 'var(--sell-green)', cursor: 'pointer',
+                                        fontSize: '0.7rem', fontWeight: 600, color: '#fff',
+                                        fontFamily: 'var(--sell-font-body)',
+                                      }}
+                                    >
+                                      <Check size={12} />
+                                      Accept
+                                    </button>
+                                    <button
+                                      onClick={() => handleRejectRequest(req.id)}
+                                      disabled={actionLoading === req.id}
+                                      title="Reject request"
+                                      style={{
+                                        display: 'flex', alignItems: 'center', gap: 4, padding: '5px 10px',
+                                        border: '1px solid #FCA5A5', borderRadius: 6,
+                                        background: '#FEF2F2', cursor: 'pointer',
+                                        fontSize: '0.7rem', fontWeight: 600, color: '#DC2626',
+                                        fontFamily: 'var(--sell-font-body)',
+                                      }}
+                                    >
+                                      <X size={12} />
+                                      Reject
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
                         </tbody>
                       </table>
                     </div>
@@ -1107,6 +1226,95 @@ export function ContentHub() {
                           ))}
                         </tbody>
                       </table>
+                    </div>
+                  )}
+
+                  {/* Ideas Modal */}
+                  {ideasRequestId && generatedIdeas && (
+                    <div style={{
+                      position: 'fixed', inset: 0, zIndex: 999,
+                      background: 'rgba(0,0,0,0.45)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
+                    }} onClick={() => { setIdeasRequestId(null); setGeneratedIdeas(null); }}>
+                      <div style={{
+                        background: 'var(--sell-surface)', borderRadius: 'var(--sell-radius-lg)',
+                        maxWidth: 560, width: '100%', maxHeight: '85dvh', overflow: 'auto',
+                        padding: 28, position: 'relative', boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
+                      }} onClick={e => e.stopPropagation()}>
+                        <button onClick={() => { setIdeasRequestId(null); setGeneratedIdeas(null); }}
+                          style={{ position: 'absolute', top: 12, right: 12, background: 'none', border: 'none', cursor: 'pointer', padding: 6, borderRadius: 8, display: 'flex', color: 'var(--sell-text-3)' }}>
+                          <X size={18} />
+                        </button>
+                        <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--sell-text-1)', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <Lightbulb size={18} color="var(--sell-accent)" /> Content Ideas
+                        </h3>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                          {generatedIdeas.videoHooks && (
+                            <div>
+                              <p style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--sell-text-2)', marginBottom: 6 }}>Video Hooks</p>
+                              {generatedIdeas.videoHooks.map((h: string, i: number) => (
+                                <div key={i} style={{ padding: '8px 12px', background: 'var(--sell-bg)', borderRadius: 8, marginBottom: 6, fontSize: '0.82rem', color: 'var(--sell-text-1)', border: '1px solid var(--sell-border-subtle)' }}>
+                                  <span style={{ fontWeight: 700, color: 'var(--sell-accent)', marginRight: 8 }}>#{i + 1}</span>{h}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {generatedIdeas.contentAngles && (
+                            <div>
+                              <p style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--sell-text-2)', marginBottom: 6 }}>Content Angles</p>
+                              {generatedIdeas.contentAngles.map((a: any, i: number) => (
+                                <div key={i} style={{ padding: '10px 12px', background: 'var(--sell-bg)', borderRadius: 8, marginBottom: 6, border: '1px solid var(--sell-border-subtle)' }}>
+                                  <p style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--sell-primary)', marginBottom: 4 }}>{a.angle}</p>
+                                  <p style={{ fontSize: '0.78rem', color: 'var(--sell-text-2)', marginBottom: 4 }}>{a.description}</p>
+                                  {a.suggestedScript && <p style={{ fontSize: '0.75rem', color: 'var(--sell-text-3)', fontStyle: 'italic' }}>{a.suggestedScript}</p>}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {generatedIdeas.visualIdeas && (
+                            <div>
+                              <p style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--sell-text-2)', marginBottom: 6 }}>Visual Ideas</p>
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                                {generatedIdeas.visualIdeas.map((v: string, i: number) => (
+                                  <span key={i} style={{ padding: '5px 10px', background: 'var(--sell-primary-lt)', color: 'var(--sell-primary)', borderRadius: 99, fontSize: '0.75rem', fontWeight: 600 }}>{v}</span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {generatedIdeas.suggestedHashtags && (
+                            <div>
+                              <p style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--sell-text-2)', marginBottom: 6 }}>Hashtags</p>
+                              <p style={{ fontSize: '0.78rem', color: 'var(--sell-accent)' }}>{generatedIdeas.suggestedHashtags.join(' ')}</p>
+                            </div>
+                          )}
+                          {generatedIdeas.callToAction && (
+                            <div style={{ padding: '10px 12px', background: 'var(--sell-green-bg)', borderRadius: 8, border: '1px solid var(--sell-green)' }}>
+                              <p style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--sell-green)', marginBottom: 2 }}>Suggested CTA</p>
+                              <p style={{ fontSize: '0.82rem', color: 'var(--sell-text-1)' }}>{generatedIdeas.callToAction}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Generating ideas loader */}
+                  {generatingIdeas && (
+                    <div style={{
+                      position: 'fixed', inset: 0, zIndex: 999,
+                      background: 'rgba(0,0,0,0.45)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      <div style={{
+                        background: 'var(--sell-surface)', borderRadius: 'var(--sell-radius-lg)',
+                        padding: '32px 40px', textAlign: 'center',
+                      }}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="var(--sell-accent)" strokeWidth="2.5" style={{ width: 32, height: 32, animation: 'spin 0.7s linear infinite', margin: '0 auto 12px' }}>
+                          <path d="M21 12a9 9 0 11-6.219-8.56"/>
+                        </svg>
+                        <p style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--sell-text-1)' }}>Generating content ideas...</p>
+                        <p style={{ fontSize: '0.78rem', color: 'var(--sell-text-3)' }}>Using AI to create video concepts from the brief</p>
+                      </div>
                     </div>
                   )}
 

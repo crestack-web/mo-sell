@@ -77,6 +77,7 @@ export function UGCMarketplacePage() {
     brief: '',
     deliverables: '',
     deadline: '',
+    bidAmount: '',
   });
 
   const nicheTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -122,7 +123,7 @@ export function UGCMarketplacePage() {
 
   const openModal = useCallback((creator: Creator) => {
     setError('');
-    setForm({ productName: '', productUrl: '', brief: '', deliverables: '', deadline: '' });
+    setForm({ productName: '', productUrl: '', brief: '', deliverables: '', deadline: '', bidAmount: '' });
     setSelectedCreator(creator);
   }, []);
 
@@ -148,16 +149,17 @@ export function UGCMarketplacePage() {
       const res = await fetch('/api/ugc/request', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          brandId: user.uid,
-          creatorId: selectedCreator.id,
-          productName: form.productName.trim(),
-          productUrl: form.productUrl.trim() || null,
-          brief: form.brief.trim(),
-          deliverables: form.deliverables.trim(),
-          deadline: form.deadline || null,
-          brandEmail: user.email,
-        }),
+          body: JSON.stringify({
+            brandId: user.uid,
+            creatorId: selectedCreator.id,
+            productName: form.productName.trim(),
+            productUrl: form.productUrl.trim() || null,
+            brief: form.brief.trim(),
+            deliverables: form.deliverables.trim(),
+            deadline: form.deadline || null,
+            brandEmail: user.email,
+            bidAmount: form.bidAmount ? form.bidAmount.trim() : null,
+          }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -592,10 +594,10 @@ export function UGCMarketplacePage() {
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                 }}>
                   <span style={{ fontSize: 14, fontWeight: 600, color: '#0369A1' }}>
-                    30s Video
+                    {form.bidAmount ? 'Your Bid' : '30s Video Price'}
                   </span>
                   <span style={{ fontSize: 16, fontWeight: 700, color: '#0369A1' }}>
-                    {formatPrice(selectedCreator.price30sDisplay)}
+                    {form.bidAmount ? formatPrice(Number(form.bidAmount)) : formatPrice(selectedCreator.price30sDisplay)}
                   </span>
                 </div>
 
@@ -664,7 +666,7 @@ export function UGCMarketplacePage() {
                 </div>
 
                 {/* Deadline */}
-                <div style={{ marginBottom: 24 }}>
+                <div style={{ marginBottom: 16 }}>
                   <label style={labelStyle}>Deadline <span style={{ fontWeight: 400, color: '#9CA3AF' }}>(optional)</span></label>
                   <input
                     type="date"
@@ -674,6 +676,27 @@ export function UGCMarketplacePage() {
                     onFocus={(e) => { e.currentTarget.style.borderColor = '#0EA5E9'; }}
                     onBlur={(e) => { e.currentTarget.style.borderColor = '#E5E7EB'; }}
                   />
+                </div>
+
+                {/* Bid Amount */}
+                <div style={{ marginBottom: 24 }}>
+                  <label style={labelStyle}>Your Offer (Bid) <span style={{ fontWeight: 400, color: '#9CA3AF' }}>(optional — leave blank to use creator's price)</span></label>
+                  <div style={{ position: 'relative' }}>
+                    <span style={{
+                      position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)',
+                      fontSize: 15, color: '#6B7280', fontWeight: 600, pointerEvents: 'none',
+                    }}>&#x20A6;</span>
+                    <input
+                      placeholder={String(selectedCreator.price30sDisplay)}
+                      type="number"
+                      min="0"
+                      value={form.bidAmount}
+                      onChange={(e) => handleFormChange('bidAmount', e.target.value)}
+                      style={{ ...inputBase, paddingLeft: 28 }}
+                      onFocus={(e) => { e.currentTarget.style.borderColor = '#0EA5E9'; }}
+                      onBlur={(e) => { e.currentTarget.style.borderColor = '#E5E7EB'; }}
+                    />
+                  </div>
                 </div>
 
                 {/* Submit */}
