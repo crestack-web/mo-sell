@@ -753,7 +753,7 @@ CURRENT STORE CONFIG:
       if (currentBalance < minCost) {
         return NextResponse.json({
           error: 'Insufficient tokens',
-          details: `You need at least ${minCost} tokens. Balance: ${currentBalance}. Purchase more tokens to continue using Ask MO.`,
+          details: `You need at least ${minCost} tokens. Balance: ${currentBalance}.`,
           tokenError: true,
           balance: currentBalance,
           required: minCost,
@@ -780,7 +780,7 @@ CURRENT STORE CONFIG:
     if (currentBalance < actualCost) {
       return NextResponse.json({
         error: 'Insufficient tokens for ebook creation',
-        details: `Ebook actions cost ${actualCost} tokens. Your balance: ${currentBalance}. Purchase more tokens and try again.`,
+        details: `Ebook actions cost ${actualCost} tokens. Your balance: ${currentBalance}.`,
         tokenError: true,
         balance: currentBalance,
         required: actualCost,

@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerFirestore as getAdminDb, FieldValue } from '@/lib/server-firestore';
 import {
   TOKEN_COSTS,
-  TOKEN_PACKAGES,
   getMonthlyAllowance,
   TOKEN_DOC_PATH,
   TOKEN_BALANCE_FIELD,
@@ -44,7 +43,6 @@ export async function GET(request: NextRequest) {
       monthUsage: effectiveMonthUsage,
       monthlyAllowance,
       costs: TOKEN_COSTS,
-      packages: TOKEN_PACKAGES,
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

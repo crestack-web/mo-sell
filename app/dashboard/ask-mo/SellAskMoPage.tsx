@@ -12,7 +12,6 @@ import styles from './SellAskMoPage.module.css';
 interface TokenData {
   balance: number;
   costs: { chat: number; chatWithMedia: number; ebookCreate: number; ebookEdit: number };
-  packages: { label: string; tokens: number; price: number; popular?: boolean }[];
 }
 
 interface Attachment {
@@ -114,8 +113,7 @@ export function SellAskMoPage() {
   const historyRef = useRef<{ role: 'user' | 'model'; parts: { text: string }[] }[]>([]);
   const [previewEbook, setPreviewEbook] = useState<{ url: string; title: string } | null>(null);
   const [tokenData, setTokenData] = useState<TokenData | null>(null);
-  const [showPurchaseModal, setShowPurchaseModal] = useState(false);
-  const [purchaseLoading, setPurchaseLoading] = useState(false);
+
 
   // ── Fetch token data ──
   const fetchTokenData = useCallback(async () => {
@@ -406,8 +404,7 @@ export function SellAskMoPage() {
 
       // Check token balance
       if (tokenData && tokenData.balance < (hasAttachments ? tokenData.costs.chatWithMedia : tokenData.costs.chat)) {
-        setShowPurchaseModal(true);
-        showToast('Insufficient tokens. Purchase more to continue.', 'info');
+        showToast('You have run out of tokens.', 'info');
         return;
       }
 
@@ -437,7 +434,6 @@ export function SellAskMoPage() {
         const data = await res.json();
         if (!res.ok) {
           if (data.tokenError) {
-            setShowPurchaseModal(true);
             throw new Error(data.details || 'Insufficient tokens');
           }
           throw new Error(data.error || data.details || 'Failed to get response');
@@ -509,44 +505,6 @@ export function SellAskMoPage() {
     },
     [loading, user, storeConfig, conversationHistory, attachments, showToast, tokenData, fetchTokenData]
   );
-
-  // ── Purchase tokens ────────────────────────────────────────────────────
-
-  const handlePurchase = useCallback(async (pkg: { label: string; tokens: number; price: number }) => {
-    if (!user?.businessId) return;
-    setPurchaseLoading(true);
-    try {
-      const res = await fetch('/api/sell/ask-mo/tokens/purchase', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          businessId: user.businessId,
-          package: pkg.label.toLowerCase(),
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.authorizationUrl) throw new Error(data.error || 'Purchase failed');
-      window.location.href = data.authorizationUrl;
-    } catch (err) {
-      showToast(`Purchase failed: ${err instanceof Error ? err.message : 'Unknown error'}`, 'error');
-    } finally {
-      setPurchaseLoading(false);
-    }
-  }, [user?.businessId, showToast]);
-
-  const tokenCostLabel = useCallback(() => {
-    if (!tokenData) return '';
-    const hasMedia = attachments.length > 0;
-    const cost = hasMedia ? tokenData.costs.chatWithMedia : tokenData.costs.chat;
-    return `${cost} tokens`;
-  }, [tokenData, attachments]);
-
-  const isTokenShort = useCallback(() => {
-    if (!tokenData) return false;
-    const hasMedia = attachments.length > 0;
-    const needed = hasMedia ? tokenData.costs.chatWithMedia : tokenData.costs.chat;
-    return tokenData.balance < needed;
-  }, [tokenData, attachments]);
 
   // ── Apply store update ─────────────────────────────────────────────────
 
@@ -676,7 +634,7 @@ export function SellAskMoPage() {
             <span className={styles.headerStatus}>AI Commerce Assistant</span>
           </div>
           {tokenData && (
-            <div className={styles.tokenBadge} onClick={() => setShowPurchaseModal(true)} title={`${tokenData.balance} tokens remaining`}>
+            <div className={styles.tokenBadge} title={`${tokenData.balance} tokens remaining`}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="10"/><path d="M12 6v12"/><path d="M9 9h4a2 2 0 010 4H9"/>
               </svg>
@@ -1005,42 +963,7 @@ export function SellAskMoPage() {
         </div>
       </div>
 
-      {/* ── Purchase Tokens Modal ── */}
-      {showPurchaseModal && (
-        <>
-          <div className={styles.historyBackdrop} onClick={() => setShowPurchaseModal(false)} />
-          <div className={`${styles.historyPanel} ${styles.historyPanelOpen}`}>
-            <div className={styles.historyHeader}>
-              <span className={styles.historyTitle}>Buy Tokens</span>
-              <button className={styles.historyClose} onClick={() => setShowPurchaseModal(false)} aria-label="Close">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              </button>
-            </div>
-            <div className={styles.historyList}>
-              {tokenData?.packages.map(pkg => (
-                <div key={pkg.label} className={`${styles.purchasePackage} ${pkg.popular ? styles.purchasePackagePopular : ''}`}>
-                  {pkg.popular && <div className={styles.purchasePackageBadge}>POPULAR</div>}
-                  <div className={styles.purchasePackageInfo}>
-                    <span className={styles.purchasePackageTokens}>{pkg.tokens.toLocaleString()} tokens</span>
-                    <span className={styles.purchasePackagePrice}>₦{pkg.price.toLocaleString()}</span>
-                  </div>
-                  <p className={styles.purchasePackageRate}>₦{(pkg.price / pkg.tokens).toFixed(2)}/token</p>
-                  <button
-                    className={styles.purchasePackageBtn}
-                    onClick={() => handlePurchase(pkg)}
-                    disabled={purchaseLoading}
-                  >
-                    {purchaseLoading ? 'Processing...' : 'Buy Now'}
-                  </button>
-                </div>
-              ))}
-              {!tokenData?.packages.length && <p className={styles.historyEmpty}>No packages available.</p>}
-            </div>
-          </div>
-        </>
-      )}
-
-      {/* ── History Panel (after chat so z-index wins) ── */}
+      {/* ── History Panel ── */}
       {historyOpen && (
         <>
           <div className={styles.historyBackdrop} onClick={() => setHistoryOpen(false)} />
