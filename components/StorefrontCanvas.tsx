@@ -53,7 +53,7 @@ export interface StorefrontCanvasProps {
 
 function getThemeCssVars(theme: StorefrontTheme, primary: string, secondary: string) {
   const base = { '--sf-primary': primary, '--sf-secondary': secondary };
-  const themeVars: Record<string, string | undefined> = (() => {
+  const themeVars = (() => {
     switch (theme) {
       case 'luxe': return {
         '--sf-bg': '#0A0A0A', '--sf-surface': '#111111', '--sf-border': '#222222',
@@ -112,9 +112,17 @@ function getThemeCssVars(theme: StorefrontTheme, primary: string, secondary: str
       };
       case 'bazaar': return {
         '--sf-bg': '#ECFDF5', '--sf-surface': '#FFFFFF', '--sf-border': '#D1FAE5',
-        '--sf-text-1': '#064E3B', '--sf-text-2': '#047857', '--sf-text-3': '#6EE7B7',
+        '--sf-text-1': '#064E3B', '--sf-text-2': '#065F46', '--sf-text-3': '#10B981',
+        '--sf-radius': '16px', '--sf-radius-sm': '10px', '--sf-radius-lg': '24px',
+        '--sf-nav-h': '60px', '--sf-font': '"Poppins",system-ui,sans-serif',
+        '--sf-emerald': '#059669',
+      };
+      case 'abby': return {
+        '--sf-bg': '#F8FAFC', '--sf-surface': '#FFFFFF', '--sf-border': '#E2E8F0',
+        '--sf-text-1': '#1E293B', '--sf-text-2': '#64748B', '--sf-text-3': '#94A3B8',
         '--sf-radius': '12px', '--sf-radius-sm': '8px', '--sf-radius-lg': '16px',
-        '--sf-nav-h': '64px', '--sf-font': '"Poppins","Inter",system-ui,sans-serif',
+        '--sf-nav-h': '60px', '--sf-font': '"Nunito Sans",system-ui,sans-serif',
+        '--sf-blue': '#5383FF',
       };
     }
   })();
@@ -624,6 +632,7 @@ export function StorefrontCanvas({
     atlas:   ['#0D9488', '#0F766E'],
     spark:   ['#D97706', '#2D1B69'],
     bazaar:  ['#059669', '#F97316'],
+    abby:    ['#5383FF', '#3B6FE0'],
   };
   const [defPrimary, defSecondary] = defaultColors[theme];
   const primary   = primaryColor   ?? defPrimary;

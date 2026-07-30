@@ -5,7 +5,7 @@ import { useParams, useSearchParams } from 'next/navigation';
 import { StorefrontCanvas } from '@/components/StorefrontCanvas';
 import type { StorefrontTheme, StorefrontProduct, StoreCollection, StoreSection } from '@/types/mo-sell.types';
 
-const VALID_THEMES: StorefrontTheme[] = ['luxe','glow','market','creator','link','pulse','vault','atlas','spark','bazaar'];
+const VALID_THEMES: StorefrontTheme[] = ['luxe','glow','market','creator','link','pulse','vault','atlas','spark','bazaar','abby'];
 
 export default function ThemePreviewPage() {
   const params = useParams<{ theme: string }>();

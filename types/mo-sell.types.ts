@@ -15,7 +15,7 @@ export interface DomainPurchaseRecord {
 
 export type StorefrontTheme =
   | 'luxe' | 'glow' | 'market' | 'creator' | 'link'
-  | 'pulse' | 'vault' | 'atlas' | 'spark' | 'bazaar';
+  | 'pulse' | 'vault' | 'atlas' | 'spark' | 'bazaar' | 'abby';
 
 // ─── Theme Section Editor ─────────────────────────────────────────────────────
 

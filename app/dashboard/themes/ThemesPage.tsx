@@ -30,6 +30,7 @@ const THEME_PREVIEW_COLORS: Record<string, string> = {
   creator:'#0F172A',
   atlas: '#F8FAFC',
   bazaar:'#ECFDF5',
+  abby: '#F8FAFC',
 };
 
 export function ThemesPage() {

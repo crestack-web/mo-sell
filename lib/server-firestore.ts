@@ -33,8 +33,12 @@ function ensureCompat() {
  * loaded in some Next.js runtimes); this retries once when first needed.
  */
 let _lazyAdminTried = false;
+let _adminDbOwn: any = null;    // local admin ref from lazy init
+let _adminStorageOwn: any = null;
+
 function ensureAdmin(): boolean {
   if (isAdminInitialized()) return true;
+  if (_adminDbOwn) return true;       // already got a local ref
   if (_lazyAdminTried) return false;
   _lazyAdminTried = true;
   try {
@@ -53,6 +57,10 @@ function ensureAdmin(): boolean {
         ...(storageBucket ? { storageBucket } : {}),
       });
     }
+    const { getFirestore } = require('firebase-admin/firestore');
+    const { getStorage } = require('firebase-admin/storage');
+    _adminDbOwn = getFirestore();
+    _adminStorageOwn = getStorage();
     return true;
   } catch (e) {
     console.error('[ensureAdmin] Lazy admin init failed:', e);
@@ -63,6 +71,7 @@ function ensureAdmin(): boolean {
 export function getServerFirestore(): any {
   // Attempt lazy re-init if top-level init failed
   ensureAdmin();
+  if (_adminDbOwn) return _adminDbOwn;
   if (isAdminInitialized()) {
     try { return getAdminDb(); } catch (e) { console.error('[getServerFirestore] Admin DB get failed:', e); }
   }
@@ -74,6 +83,8 @@ export function getServerFirestore(): any {
 }
 
 export function getServerStorage(): any {
+  ensureAdmin();
+  if (_adminStorageOwn) return _adminStorageOwn;
   if (isAdminInitialized()) {
     try { return getAdminStorage(); } catch {}
   }

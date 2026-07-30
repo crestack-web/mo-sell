@@ -45,11 +45,11 @@ export const THEMES: ThemeMeta[] = [
   },
   {
     id: 'creator', name: 'Creator',
-    description: 'Clean and conversion-focused for digital products and online services.',
+    description: 'Clean one-page bio store for digital creators. Social links and products in one scroll.',
     previewBg: '#0F172A', previewAccent: '#6366F1', previewFont: 'Sora',
-    bestFor: ['Digital Products'],
+    bestFor: ['Digital Products', 'Creators'],
     badge: { label: 'Best for Creators', color: '#5B21B6', bg: '#EDE9FE' },
-    dataAttr: 'creator', type: 'e-commerce',
+    dataAttr: 'creator', type: 'link-style',
   },
   {
     id: 'link', name: 'Link',
@@ -77,11 +77,11 @@ export const THEMES: ThemeMeta[] = [
   },
   {
     id: 'atlas', name: 'Atlas',
-    description: 'Professional service showcase. Portfolio, packages, booking, and testimonials for high-end service providers.',
+    description: 'Professional one-page bio for consultants and freelancers. Portfolio and booking in one scroll.',
     previewBg: '#F8FAFC', previewAccent: '#0D9488', previewFont: 'Manrope',
     bestFor: ['Consultants', 'Designers', 'Freelancers'],
     badge: { label: 'Pro Services', color: '#134E4A', bg: '#CCFBF1' },
-    dataAttr: 'atlas', type: 'e-commerce',
+    dataAttr: 'atlas', type: 'link-style',
   },
   {
     id: 'spark', name: 'Spark',
@@ -93,11 +93,19 @@ export const THEMES: ThemeMeta[] = [
   },
   {
     id: 'bazaar', name: 'Bazaar',
-    description: 'Ecommerce-focused small business store. Product catalog, categories, reviews, and WhatsApp ordering.',
+    description: 'One-page bio store for small businesses. Products and social links in one scroll.',
     previewBg: '#ECFDF5', previewAccent: '#059669', previewFont: 'Poppins',
     bestFor: ['Fashion', 'Food', 'Beauty', 'Handmade'],
     badge: { label: 'Small Biz', color: '#065F46', bg: '#D1FAE5' },
-    dataAttr: 'bazaar', type: 'e-commerce',
+    dataAttr: 'bazaar', type: 'link-style',
+  },
+  {
+    id: 'abby', name: 'Abby',
+    description: 'Clean branded bio page for creators and coaches. Blue accent, modern and professional.',
+    previewBg: '#F8FAFC', previewAccent: '#5383FF', previewFont: 'Nunito Sans',
+    bestFor: ['Creators', 'Coaches', 'Digital Products'],
+    badge: { label: 'NEW', color: '#2563EB', bg: '#DBEAFE' },
+    dataAttr: 'abby', type: 'link-style',
   },
 ];
 
@@ -115,6 +123,7 @@ export function suggestTheme(category: string): StorefrontTheme {
   if (['consult', 'freelance', 'designer', 'developer', 'photographer', 'service', 'agency', 'booking'].some(k => c.includes(k))) return 'atlas';
   if (['food', 'grocery', 'market', 'home', 'lifestyle', 'general', 'handmade', 'artisan'].some(k => c.includes(k))) return 'bazaar';
   if (['creator', 'course', 'software'].some(k => c.includes(k))) return 'creator';
+  if (['bio', 'link', 'profile', 'simple', 'clean', 'professional'].some(k => c.includes(k))) return 'abby';
   return 'luxe';
 }
 
@@ -190,6 +199,13 @@ const themeLoader: Record<string, () => Promise<ThemeComponents>> = {
     Hero: m.BazaarHero,
     ProductPage: m.BazaarProductPage,
     cssClass: 'theme-bazaar',
+  })),
+  abby: () => import('./abby').then(m => ({
+    ProductCard: m.AbbyProductCard,
+    CollectionCard: m.AbbyCollectionCard,
+    Hero: m.AbbyHero,
+    ProductPage: m.AbbyProductPage,
+    cssClass: 'theme-abby',
   })),
 };
 
