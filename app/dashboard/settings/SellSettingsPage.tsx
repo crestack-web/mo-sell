@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef, ChangeEvent } from 'react';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { signOut } from 'firebase/auth';
 import { initializeFirebase } from '@/lib/firebase';
 import { useSell } from '@/context/SellContext';
 
@@ -43,6 +44,36 @@ export function SellSettingsPage() {
   const [verifying, setVerifying]           = useState(false);
   const [dirty, setDirty]                   = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const currencySym = currency === 'NGN' ? '₦' : currency === 'USD' ? '$' : currency === 'GBP' ? '£' : currency === 'EUR' ? '€' : currency + ' ';
+  const fmtEarnings = (n: number) => `${currencySym}${n.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+  const [earningsStats, setEarningsStats] = useState<{ totalGross: number; totalCommission: number; totalNet: number; available: number } | null>(null);
+  const [loadingEarnings, setLoadingEarnings] = useState(false);
+
+  const managedPayments = (storeConfig as any)?.managedPayments === true;
+
+  useEffect(() => {
+    if (!user?.businessId || !managedPayments) { setEarningsStats(null); return; }
+    let cancelled = false;
+    setLoadingEarnings(true);
+    (async () => {
+      try {
+        const { firestore } = initializeFirebase();
+        const { collection, getDocs, query, orderBy } = await import('firebase/firestore');
+        const snap = await getDocs(query(collection(firestore, 'businesses', user.businessId, 'storeEarnings'), orderBy('createdAt', 'desc')));
+        const earnings = snap.docs.map(d => ({ ...d.data() as any, createdAt: d.data().createdAt?.toDate?.() ?? new Date() }));
+        if (cancelled) return;
+        setEarningsStats({
+          totalGross:      earnings.reduce((s: number, e: any) => s + (e.grossAmount ?? 0), 0),
+          totalCommission: earnings.reduce((s: number, e: any) => s + (e.commissionAmount ?? 0), 0),
+          totalNet:        earnings.reduce((s: number, e: any) => s + (e.netAmount ?? 0), 0),
+          available:       earnings.filter((e: any) => e.status === 'available').reduce((s: number, e: any) => s + (e.netAmount ?? 0), 0),
+        });
+      } catch { /* ignore */ } finally { if (!cancelled) setLoadingEarnings(false); }
+    })();
+    return () => { cancelled = true; };
+  }, [user?.businessId, managedPayments]);
 
   // Sync from storeConfig on load
   useEffect(() => {
@@ -467,17 +498,55 @@ export function SellSettingsPage() {
             )}
           </div>
 
-          <button
-            type="button"
-            className={`${styles.btn} ${styles.btnGhost}`}
-            style={{ alignSelf: 'flex-start', fontSize: '0.8rem' }}
-            onClick={() => navigateTo('earnings')}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}>
-              <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
-            </svg>
-            View Earnings &amp; Payouts
-          </button>
+          {/* Earnings summary */}
+          {managedPayments && (
+            <div style={{ marginTop: 14, borderTop: '1px solid var(--sell-border)', paddingTop: 14 }}>
+              <p style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--sell-text-2)', marginBottom: 10 }}>Your earnings</p>
+              {loadingEarnings ? (
+                <p style={{ fontSize: '0.78rem', color: 'var(--sell-text-3)' }}>Loading...</p>
+              ) : earningsStats ? (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  <div style={{ background: 'var(--sell-bg)', borderRadius: 8, padding: '10px 12px' }}>
+                    <p style={{ fontSize: '0.7rem', color: 'var(--sell-text-3)', marginBottom: 2 }}>Total Sales</p>
+                    <p style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--sell-text-1)' }}>
+                      {fmtEarnings(earningsStats.totalGross)}
+                    </p>
+                  </div>
+                  <div style={{ background: 'var(--sell-bg)', borderRadius: 8, padding: '10px 12px' }}>
+                    <p style={{ fontSize: '0.7rem', color: 'var(--sell-text-3)', marginBottom: 2 }}>Commission (5%)</p>
+                    <p style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--sell-red, #ef4444)' }}>
+                      -{fmtEarnings(earningsStats.totalCommission)}
+                    </p>
+                  </div>
+                  <div style={{ background: 'var(--sell-bg)', borderRadius: 8, padding: '10px 12px' }}>
+                    <p style={{ fontSize: '0.7rem', color: 'var(--sell-text-3)', marginBottom: 2 }}>Net Earnings</p>
+                    <p style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--sell-green, #16a34a)' }}>
+                      {fmtEarnings(earningsStats.totalNet)}
+                    </p>
+                  </div>
+                  <div style={{ background: 'var(--sell-primary-lt)', borderRadius: 8, padding: '10px 12px', border: '1px solid var(--sell-primary)' }}>
+                    <p style={{ fontSize: '0.7rem', color: 'var(--sell-primary)', marginBottom: 2, fontWeight: 600 }}>Available to Payout</p>
+                    <p style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--sell-primary)' }}>
+                      {fmtEarnings(earningsStats.available)}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <p style={{ fontSize: '0.78rem', color: 'var(--sell-text-3)' }}>No earnings yet.</p>
+              )}
+              <button
+                type="button"
+                className={`${styles.btn} ${styles.btnGhost}`}
+                style={{ marginTop: 10, fontSize: '0.8rem' }}
+                onClick={() => navigateTo('earnings')}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}>
+                  <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
+                </svg>
+                View full Earnings &amp; Payouts
+              </button>
+            </div>
+          )}
 
           {/* â”€â”€ Advanced: Own Paystack Key â”€â”€ */}
           <div style={{ marginTop: 20, borderTop: '1px solid var(--sell-border)', paddingTop: 16 }}>
@@ -582,6 +651,27 @@ export function SellSettingsPage() {
             ? <><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ animation: 'spin 0.7s linear infinite' }}><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>Savingâ€¦</>
             : <><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>Save settings</>}
         </button>
+      </div>
+
+      {/* ── Logout ── */}
+      <div className={styles.card} style={{ borderColor: 'var(--sell-danger-border, rgba(239,68,68,0.2))' }}>
+        <div className={styles.cardHeader}>
+          <div className={styles.cardTitle}>Logout</div>
+        </div>
+        <div className={styles.cardBody}>
+          <p className={styles.formHint} style={{ margin: 0 }}>Sign out of your account</p>
+          <button
+            className={`${styles.btn} ${styles.btnDanger}`}
+            onClick={async () => {
+              const { auth } = initializeFirebase();
+              await signOut(auth);
+              window.location.href = '/login';
+            }}
+            style={{ alignSelf: 'flex-start' }}
+          >
+            Logout
+          </button>
+        </div>
       </div>
 
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>

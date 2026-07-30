@@ -2,8 +2,10 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
+import { signOut } from 'firebase/auth';
 import { useSell } from '../context/SellContext';
 import type { SellPageId } from '../context/SellContext';
+import { initializeFirebase } from '@/lib/firebase';
 import styles from './SellSidebar.module.css';
 
 // ─── Nav Config ───────────────────────────────────────────────────────────────
@@ -175,6 +177,16 @@ export function SellSidebar() {
     activePage, navigateTo, user, storeConfig, quickStats,
   } = useSell();
 
+  const handleLogout = async () => {
+    try {
+      const { auth } = initializeFirebase();
+      await signOut(auth);
+    } catch {
+      // ignore
+    }
+    window.location.href = '/login';
+  };
+
   const statusDotClass =
     storeConfig?.status === 'active' ? styles.dotActive :
     storeConfig?.status === 'draft'  ? styles.dotDraft  :
@@ -290,6 +302,23 @@ export function SellSidebar() {
                 <div className={styles.userName}>{user.shortName}</div>
                 <div className={styles.userRole}>{user.plan}</div>
               </div>
+              <button
+                onClick={handleLogout}
+                title="Logout"
+                style={{
+                  marginLeft: 'auto', background: 'none', border: 'none',
+                  color: 'var(--sell-text-3)', cursor: 'pointer', padding: 4,
+                  display: 'flex', borderRadius: 6, flexShrink: 0,
+                }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'var(--sell-bg)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
+                  <polyline points="16 17 21 12 16 7"/>
+                  <line x1="21" y1="12" x2="9" y2="12"/>
+                </svg>
+              </button>
             </div>
           </div>
         )}
