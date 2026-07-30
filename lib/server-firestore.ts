@@ -1,5 +1,5 @@
 import { firebaseConfig } from '@/lib/firebase/config';
-import { isAdminInitialized, getAdminDb, getAdminStorage } from './firebase-admin';
+import { isAdminInitialized, getAdminDb, getAdminStorage, admin } from './firebase-admin';
 
 
 let compatApp: any = null;
@@ -47,11 +47,8 @@ export function getServerStorage(): any {
 // FieldValue polyfill — uses compat SDK when Admin SDK unavailable
 export const FieldValue = {
   serverTimestamp(): any {
-    if (isAdminInitialized()) {
-      try {
-        const admin = require('firebase-admin');
-        return admin.firestore.FieldValue.serverTimestamp();
-      } catch {}
+    if (admin) {
+      try { return admin.firestore.FieldValue.serverTimestamp(); } catch {}
     }
     try {
       const firebase = require('firebase/compat/app');
@@ -62,44 +59,32 @@ export const FieldValue = {
     }
   },
   arrayUnion(...elements: any[]): any {
-    if (isAdminInitialized()) {
-      try {
-        const admin = require('firebase-admin');
-        return admin.firestore.FieldValue.arrayUnion(...elements);
-      } catch {}
+    if (admin) {
+      try { return admin.firestore.FieldValue.arrayUnion(...elements); } catch {}
     }
     const firebase = require('firebase/compat/app');
     require('firebase/compat/firestore');
     return firebase.firestore.FieldValue.arrayUnion(...elements);
   },
   arrayRemove(...elements: any[]): any {
-    if (isAdminInitialized()) {
-      try {
-        const admin = require('firebase-admin');
-        return admin.firestore.FieldValue.arrayRemove(...elements);
-      } catch {}
+    if (admin) {
+      try { return admin.firestore.FieldValue.arrayRemove(...elements); } catch {}
     }
     const firebase = require('firebase/compat/app');
     require('firebase/compat/firestore');
     return firebase.firestore.FieldValue.arrayRemove(...elements);
   },
   increment(n: number): any {
-    if (isAdminInitialized()) {
-      try {
-        const admin = require('firebase-admin');
-        return admin.firestore.FieldValue.increment(n);
-      } catch {}
+    if (admin) {
+      try { return admin.firestore.FieldValue.increment(n); } catch {}
     }
     const firebase = require('firebase/compat/app');
     require('firebase/compat/firestore');
     return firebase.firestore.FieldValue.increment(n);
   },
   delete(): any {
-    if (isAdminInitialized()) {
-      try {
-        const admin = require('firebase-admin');
-        return admin.firestore.FieldValue.delete();
-      } catch {}
+    if (admin) {
+      try { return admin.firestore.FieldValue.delete(); } catch {}
     }
     const firebase = require('firebase/compat/app');
     require('firebase/compat/firestore');
@@ -110,30 +95,21 @@ export const FieldValue = {
 // Timestamp polyfill
 export const Timestamp = {
   now(): any {
-    if (isAdminInitialized()) {
-      try {
-        const admin = require('firebase-admin');
-        return admin.firestore.Timestamp.now();
-      } catch {}
+    if (admin) {
+      try { return admin.firestore.Timestamp.now(); } catch {}
     }
     return { toMillis: () => Date.now(), toDate: () => new Date() };
   },
   fromMillis(milliseconds: number): any {
-    if (isAdminInitialized()) {
-      try {
-        const admin = require('firebase-admin');
-        return admin.firestore.Timestamp.fromMillis(milliseconds);
-      } catch {}
+    if (admin) {
+      try { return admin.firestore.Timestamp.fromMillis(milliseconds); } catch {}
     }
     const d = new Date(milliseconds);
     return { seconds: Math.floor(d.getTime() / 1000), nanoseconds: (d.getTime() % 1000) * 1000000, toMillis: () => d.getTime(), toDate: () => d };
   },
   fromDate(date: Date): any {
-    if (isAdminInitialized()) {
-      try {
-        const admin = require('firebase-admin');
-        return admin.firestore.Timestamp.fromDate(date);
-      } catch {}
+    if (admin) {
+      try { return admin.firestore.Timestamp.fromDate(date); } catch {}
     }
     return { seconds: Math.floor(date.getTime() / 1000), nanoseconds: (date.getTime() % 1000) * 1000000, toMillis: () => date.getTime(), toDate: () => date };
   },

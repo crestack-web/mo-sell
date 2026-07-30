@@ -26,14 +26,21 @@ export async function POST(req: NextRequest) {
     }
 
     const { userId, displayName, bio, niches, price30s, price60s, deliveryDays, sampleVideos, avatarUrl, username: providedUsername } = body;
-    if (!userId || !displayName || !niches?.length || !price30s || !price60s) {
+    if (!userId || !displayName || !niches?.length || price30s == null || price60s == null) {
       return NextResponse.json({ error: 'userId, displayName, niches, price30s, price60s required' }, { status: 400 });
+    }
+
+    const price30sNum = Number(price30s);
+    const price60sNum = Number(price60s);
+    if (isNaN(price30sNum) || isNaN(price60sNum) || price30sNum < 0 || price60sNum < 0) {
+      return NextResponse.json({ error: 'price30s and price60s must be non-negative numbers' }, { status: 400 });
     }
 
     let db;
     try {
       db = getAdminDb();
     } catch (initErr) {
+      console.error('[ugc/apply] Admin DB init failed:', initErr);
       return NextResponse.json({ error: 'Database not available. Please configure FIREBASE_ADMIN_PRIVATE_KEY, FIREBASE_ADMIN_CLIENT_EMAIL, and NEXT_PUBLIC_FIREBASE_PROJECT_ID.' }, { status: 500 });
     }
     const existing = await db.collection('ugcCreators').doc(userId).get();
@@ -54,8 +61,8 @@ export async function POST(req: NextRequest) {
       niches,
       isActive: true,
       isBanned: false,
-      price30s: Math.round(price30s * 100),
-      price60s: Math.round(price60s * 100),
+      price30s: Math.round(price30sNum * 100),
+      price60s: Math.round(price60sNum * 100),
       deliveryDays: deliveryDays ?? 5,
       rating: 0,
       totalOrders: 0,
@@ -85,7 +92,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, isActive: true, username });
   } catch (err) {
+    console.error('[ugc/apply] Unexpected error:', err);
     const msg = err instanceof Error ? err.message : 'Internal server error';
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return NextResponse.json({ error: msg || 'Internal server error' }, { status: 500 });
   }
 }

@@ -68,3 +68,5 @@ export function getAdminAuth() {
 export function isAdminInitialized() {
   return adminInitialized;
 }
+
+export { admin };
