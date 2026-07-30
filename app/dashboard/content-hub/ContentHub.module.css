@@ -498,3 +498,23 @@
 .platformIcon {
   opacity: 0.5;
 }
+
+.regenerateBtn {
+  background: none;
+  border: 1px solid var(--sell-border);
+  border-radius: var(--sell-radius-sm);
+  padding: 5px 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--sell-text-3);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.15s;
+}
+
+.regenerateBtn:hover {
+  border-color: var(--sell-primary);
+  color: var(--sell-primary);
+}
