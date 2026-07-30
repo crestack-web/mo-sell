@@ -44,8 +44,14 @@ function TopNav() {
         <span className="sw-nav-brand" style={{ fontSize: 16, fontWeight: 800, letterSpacing: '0.06em', color: C.text1, fontFamily: FONT_DISPLAY }}>MO-SELL</span>
       </a>
       <div className="sw-nav-links" style={{ display:'flex', alignItems:'center', gap: 10 }}>
-        <a href="/welcome" style={{ color: C.text2, fontSize: 14, fontWeight: 500, textDecoration: 'none', fontFamily: FONT_BODY, padding: '8px 14px' }}>
-          Back to Busmo
+        <a href="/ugc-creators" style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          padding: '9px 18px', borderRadius: 10,
+          border: `1.5px solid ${C.border}`,
+          color: C.text2, fontFamily: FONT_BODY, fontWeight: 600, fontSize: 14,
+          textDecoration: 'none',
+        }}>
+          🎬 Discover Creators
         </a>
         <a href="/login" style={{
           display: 'inline-flex', alignItems: 'center', gap: 6,
