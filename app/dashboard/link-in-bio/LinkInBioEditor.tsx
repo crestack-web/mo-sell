@@ -73,7 +73,7 @@ export function LinkInBioEditor() {
   useEffect(() => {
     if (getThemeType(activeTheme) !== 'link-style') {
       showToast('Switch to a Link-in-Bio theme first', 'info');
-      navigateTo('themes');
+      navigateTo('theme-editor');
     }
   }, [activeTheme, navigateTo, showToast]);
 

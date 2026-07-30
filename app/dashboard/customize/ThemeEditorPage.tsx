@@ -5,7 +5,7 @@ import { Monitor, Tablet, Smartphone, Undo2, Redo2, ChevronLeft } from 'lucide-r
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { initializeFirebase } from '@/lib/firebase';
 import { useSell } from '@/context/SellContext';
-import { isCreatorTheme, getThemeType } from '@/themes/registry';
+import { isCreatorTheme, getThemeType, THEMES } from '@/themes/registry';
 import { StorefrontCanvas } from '@/components/StorefrontCanvas';
 import { CartProvider } from '@/app/[storeSlug]/context/CartContext';
 import type {
@@ -335,6 +335,8 @@ export function ThemeEditorPage() {
   const [bodyTextColor, setBodyTextColor] = useState<string>('');
   const [bgColor, setBgColor] = useState<string>('');
   const [socials, setSocials] = useState<Record<string, string>>({});
+  const [showThemePicker, setShowThemePicker] = useState(false);
+  const [themeApplying, setThemeApplying] = useState<string | null>(null);
 
   const isLinkStyle = getThemeType(theme) === 'link-style';
   const isCreator = isCreatorTheme(theme);
@@ -539,6 +541,27 @@ export function ThemeEditorPage() {
     mark();
   }, [pushUndoDebounced, mark]);
 
+  const handleThemeSelect = useCallback(async (themeId: string) => {
+    if (!user?.businessId || themeId === theme) return;
+    setThemeApplying(themeId);
+    try {
+      const { firestore } = initializeFirebase();
+      await setDoc(
+        doc(firestore, 'businesses', user.businessId, 'store', 'config'),
+        { theme: themeId, updatedAt: serverTimestamp() },
+        { merge: true }
+      );
+      setTheme(themeId as StorefrontTheme);
+      setShowThemePicker(false);
+      setDirty(true);
+      showToast(`Switched to "${THEMES.find(t => t.id === themeId)?.name}"`, 'success');
+    } catch {
+      showToast('Failed to switch theme', 'error');
+    } finally {
+      setThemeApplying(null);
+    }
+  }, [user?.businessId, theme, showToast]);
+
   const handleApply = useCallback(async () => {
     if (!user?.businessId || !storeConfig) return;
     setApplying(true);
@@ -723,6 +746,51 @@ export function ThemeEditorPage() {
               </>
             ) : (
               <>
+                <div className={styles.designGroup}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <p className={styles.designTitle} style={{ margin: 0 }}>Theme</p>
+                    <button className={styles.iconBtn} onClick={() => setShowThemePicker(!showThemePicker)} style={{ fontSize: '0.75rem', fontWeight: 600, gap: 4, width: 'auto', padding: '4px 10px' }} type="button">
+                      {showThemePicker ? 'Cancel' : 'Change'}
+                    </button>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 0' }}>
+                    <div style={{ width: 20, height: 20, borderRadius: 6, background: primary, flexShrink: 0 }} />
+                    <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--sell-text)' }}>
+                      {THEMES.find(t => t.id === theme)?.name || theme}
+                    </span>
+                  </div>
+                  {showThemePicker && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4, maxHeight: 300, overflowY: 'auto' }}>
+                      {THEMES.filter(t => t.type === 'e-commerce').map(t => {
+                        const isActive = theme === t.id;
+                        const isLoading = themeApplying === t.id;
+                        return (
+                          <button
+                            key={t.id}
+                            onClick={() => handleThemeSelect(t.id)}
+                            disabled={isActive || !!themeApplying}
+                            style={{
+                              display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px',
+                              border: `1px solid ${isActive ? 'var(--sell-primary)' : 'var(--sell-border)'}`,
+                              borderRadius: 8, background: isActive ? 'var(--sell-primary-lt, #f0f9ff)' : 'transparent',
+                              cursor: isActive ? 'default' : 'pointer', textAlign: 'left', width: '100%',
+                              opacity: isLoading ? 0.6 : 1,
+                            }}
+                          >
+                            <div style={{ width: 28, height: 28, borderRadius: 6, background: t.previewAccent || primary, flexShrink: 0 }} />
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--sell-text)' }}>{t.name}</div>
+                              <div style={{ fontSize: '0.7rem', color: 'var(--sell-text-2)' }}>{t.description}</div>
+                            </div>
+                            {isActive && <span style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--sell-primary)' }}>Active</span>}
+                            {isLoading && <span style={{ fontSize: '0.68rem' }}>...</span>}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+                <div className={styles.designDivider} />
                 <div className={styles.designGroup}>
                   <p className={styles.designTitle}>Brand Colors</p>
                   <label className={styles.cLabel}><input type="color" value={primary} onChange={e => { pushUndo(); setPrimary(e.target.value); mark(); }} className={styles.cPicker} aria-label="Primary color" />Primary</label>

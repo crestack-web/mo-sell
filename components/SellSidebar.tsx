@@ -81,20 +81,7 @@ const NAV_SECTIONS: { section: string; items: NavItem[] }[] = [
           </svg>
         ),
       },
-      {
-        id: 'themes' as SellPageId,
-        label: 'Themes',
-        icon: (
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <ellipse cx="12" cy="14" rx="9" ry="7"/>
-            <circle cx="12" cy="14" r="2" fill="currentColor"/>
-            <circle cx="6.5" cy="11" r="1.5" fill="currentColor"/>
-            <circle cx="17.5" cy="11" r="1.5" fill="currentColor"/>
-            <circle cx="9.5" cy="8.5" r="1" fill="currentColor"/>
-            <circle cx="14.5" cy="8.5" r="1" fill="currentColor"/>
-          </svg>
-        ),
-      },
+
       {
         id: 'theme-editor' as SellPageId,
         label: 'Storefront',
