@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Monitor, Tablet, Smartphone, Undo2, Redo2, Settings, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Monitor, Tablet, Smartphone, Undo2, Redo2, ChevronLeft } from 'lucide-react';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { initializeFirebase } from '@/lib/firebase';
 import { useSell } from '@/context/SellContext';
@@ -327,6 +327,7 @@ export function ThemeEditorPage() {
   const [products,  setProducts]  = useState<StorefrontProduct[]>([]);
   const [collections, setCollections] = useState<StoreCollection[]>([]);
   const [isMobile, setIsMobile] = useState(false);
+  const [dragId, setDragId] = useState<string | null>(null);
   const [fontFamily, setFontFamily] = useState<string>('');
   const [buttonStyle, setButtonStyle] = useState<'pill' | 'square' | 'rounded'>('pill');
   const [bodyTextColor, setBodyTextColor] = useState<string>('');
@@ -337,7 +338,6 @@ export function ThemeEditorPage() {
   const isCreator = isCreatorTheme(theme);
   const HIDDEN_FOR_LINK_STYLE: Set<StoreSectionType> = new Set(['header', 'collections', 'about', 'testimonials', 'instagram', 'newsletter', 'footer']);
 
-  const [rightDrawerOpen, setRightDrawerOpen] = useState(false);
   const previewWrapRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
 
@@ -493,6 +493,25 @@ export function ThemeEditorPage() {
     mark();
   }, [pushUndoDebounced, mark]);
 
+  const handleDragStart = useCallback((id: string) => { setDragId(id); }, []);
+  const handleDragOver = useCallback((e: React.DragEvent) => { e.preventDefault(); }, []);
+  const handleDrop = useCallback((targetId: string) => {
+    if (!dragId || dragId === targetId) return;
+    pushUndo();
+    setSections(prev => {
+      const arr = [...prev];
+      const from = arr.findIndex(s => s.id === dragId);
+      const to = arr.findIndex(s => s.id === targetId);
+      if (from === -1 || to === -1) return prev;
+      const [moved] = arr.splice(from, 1);
+      arr.splice(to, 0, moved);
+      return arr.map((s, i) => ({ ...s, order: i }));
+    });
+    setDragId(null);
+    mark();
+  }, [dragId, pushUndo, mark]);
+  const handleDragEnd = useCallback(() => { setDragId(null); }, []);
+
   const moveSection = useCallback((id: string, dir: -1 | 1) => {
     pushUndo();
     setSections(prev => {
@@ -572,6 +591,7 @@ export function ThemeEditorPage() {
     sections, storeSlug: storeConfig?.storeSlug ?? '', products, collections,
     fontFamily: fontFamily || null, buttonStyle, bodyTextColor: bodyTextColor || null, hideStoreNameWithLogo,
     bgColor: bgColor || null,
+    onSectionClick: (id: string) => setActiveId(id),
   };
 
   return (
@@ -611,17 +631,6 @@ export function ThemeEditorPage() {
           ))}
         </div>
         <div className={styles.topbarRight}>
-          <span className={styles.zoomBadge}>
-            {deviceWidth}px &middot; {Math.round(scale * 100)}%
-          </span>
-          {isMobile && (
-            <button className={styles.mobilePreviewIcon} onClick={handlePreview} title="Preview on mobile">
-              <Smartphone size={18} />
-            </button>
-          )}
-          <button className={styles.previewBtn} onClick={handlePreview}>
-            Preview
-          </button>
           {dirty && <span className={styles.unsavedDot} />}
           <button className={styles.publishBtn} onClick={handleApply} disabled={applying || !dirty}>
             {applying ? <><span className={styles.spinner} />Publishing...</> : 'Publish'}
@@ -629,119 +638,97 @@ export function ThemeEditorPage() {
         </div>
       </div>
 
-      {/* ── RESPONSIVE EDITOR ── */}
-        <div className={styles.editorGrid}>
+      {/* ── Two-column body ── */}
+      <div className={styles.body}>
 
-          {/* LEFT: Section list */}
-          <div className={styles.leftPanel}>
-            <div className={styles.sectionsList}>
-              {sections.map((sec, idx) => {
-                const meta = SECTION_META[sec.type];
-                if (isLinkStyle && HIDDEN_FOR_LINK_STYLE.has(sec.type)) return null;
-                return (
-                  <div key={sec.id} className={[styles.secRow, !sec.enabled ? styles.secRowOff : '', activeId === sec.id ? styles.secRowActive : ''].join(' ')}>
-                    {meta.movable ? (
-                      <div className={styles.moveBtns}>
-                        <button className={styles.moveBtn} onClick={() => moveSection(sec.id, -1)} disabled={idx === 0} aria-label={`Move ${meta.label} up`}><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="18 15 12 9 6 15"/></svg></button>
-                        <button className={styles.moveBtn} onClick={() => moveSection(sec.id, 1)} disabled={idx === sections.length - 1} aria-label={`Move ${meta.label} down`}><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9"/></svg></button>
-                      </div>
-                    ) : <div className={styles.moveBtns} />}
-                    <button className={styles.secBtn} onClick={() => setActiveId(activeId === sec.id ? null : sec.id)}>
-                      <span className={styles.secIcon}>{SectionIcons[sec.type]}</span>
-                      <span className={styles.secLabel}>{meta.label}</span>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 'auto', opacity: 0.3 }}><polyline points="9 18 15 12 9 6"/></svg>
-                    </button>
-                    <button className={[styles.eyeBtn, sec.enabled ? styles.eyeOn : ''].join(' ')} onClick={() => toggleSection(sec.id)} type="button" aria-label={sec.enabled ? `Hide ${meta.label}` : `Show ${meta.label}`} aria-pressed={sec.enabled}>
-                      {sec.enabled
-                        ? <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                        : <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-                      }
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* CENTER: Preview */}
-          <div className={styles.centerPanel} ref={previewWrapRef}>
-            <div className={styles.previewContainer}>
-              <div
-                className={styles.previewScaler}
-                style={{
-                  width: deviceWidth,
-                  height: device === 'desktop' ? 800 : device === 'tablet' ? 600 : 750,
-                  transform: `scale(${scale})`,
-                  transformOrigin: 'top center',
-                }}
-              >
-                <div className={styles.previewInner}>
-                  <CartProvider storeSlug={storeConfig?.storeSlug ?? ''}>
-                    <StorefrontCanvas {...canvasProps} width={deviceWidth} />
-                  </CartProvider>
-                </div>
+        {/* Preview */}
+        <div className={styles.previewWrap} ref={previewWrapRef}>
+          <div className={styles.previewContainer}>
+            <div
+              className={styles.previewScaler}
+              style={{
+                width: deviceWidth,
+                height: device === 'desktop' ? 800 : device === 'tablet' ? 600 : 750,
+                transform: `scale(${scale})`,
+                transformOrigin: 'top center',
+              }}
+            >
+              <div className={styles.previewInner}>
+                <CartProvider storeSlug={storeConfig?.storeSlug ?? ''}>
+                  <StorefrontCanvas {...canvasProps} width={deviceWidth} />
+                </CartProvider>
               </div>
             </div>
           </div>
+        </div>
 
-          {/* RIGHT: Section settings panel (desktop: always visible; tablet: drawer) */}
-          <div className={[styles.rightPanel, rightDrawerOpen ? styles.rightPanelOpen : ''].join(' ')}>
+        {/* Settings */}
+        <div className={styles.settingsPanel}>
+          {/* Section list */}
+          <div className={styles.sectionList}>
+            {sections.map(sec => {
+              const meta = SECTION_META[sec.type];
+              if (isLinkStyle && HIDDEN_FOR_LINK_STYLE.has(sec.type)) return null;
+              return (
+                <div
+                  key={sec.id}
+                  draggable
+                  onDragStart={() => handleDragStart(sec.id)}
+                  onDragOver={handleDragOver}
+                  onDrop={() => handleDrop(sec.id)}
+                  onDragEnd={handleDragEnd}
+                  style={{ display: 'flex', alignItems: 'center', opacity: dragId === sec.id ? 0.4 : 1 }}
+                >
+                  <button
+                    className={[styles.secItem, !sec.enabled ? styles.secItemOff : '', activeId === sec.id ? styles.secItemActive : ''].join(' ')}
+                    onClick={() => setActiveId(activeId === sec.id ? null : sec.id)}
+                  >
+                    <span className={styles.secIcon}>{SectionIcons[sec.type]}</span>
+                    <span className={styles.secLabel}>{meta.label}</span>
+                  </button>
+                  <button className={[styles.eyeBtn, sec.enabled ? styles.eyeOn : ''].join(' ')} onClick={() => toggleSection(sec.id)} type="button" aria-label={sec.enabled ? `Hide ${meta.label}` : `Show ${meta.label}`} aria-pressed={sec.enabled}>
+                    {sec.enabled
+                      ? <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                      : <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                    }
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Settings content */}
+          <div className={styles.settingsContent}>
             {activeSection ? (
               <>
-                <div className={styles.rHeader}>
-                  <button className={styles.rBackBtn} onClick={() => setActiveId(null)} aria-label="Back to sections">
+                <div className={styles.settingsHeader}>
+                  <button className={styles.settingsBack} onClick={() => setActiveId(null)} aria-label="Back">
                     <ChevronLeft size={14} />
                   </button>
-                  <span className={styles.rIcon}>{SectionIcons[activeSection.type]}</span>
-                  <span className={styles.rTitle}>{SECTION_META[activeSection.type].label}</span>
-                  <button className={styles.iconBtn} style={{ marginLeft: 'auto' }} onClick={() => { setActiveId(null); setRightDrawerOpen(false); }} aria-label="Close">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                  </button>
+                  <span className={styles.settingsIcon}>{SectionIcons[activeSection.type]}</span>
+                  <span className={styles.settingsTitle}>{SECTION_META[activeSection.type].label}</span>
                 </div>
-                <div className={styles.rBody}>
-                  {activeSection.type === 'hero'         && <HeroSettings         s={activeSection.settings as HeroSectionSettings}         upd={p => updateSettings(activeSection.id, p as Record<string,unknown>)} isLinkStyle={isLinkStyle} isCreator={isCreator} />}
-                  {activeSection.type === 'announcement' && <AnnouncementSettings s={activeSection.settings as AnnouncementSectionSettings} upd={p => updateSettings(activeSection.id, p as Record<string,unknown>)} />}
-                  {activeSection.type === 'featured'     && <FeaturedSettings     s={activeSection.settings as FeaturedSectionSettings}     upd={p => updateSettings(activeSection.id, p as Record<string,unknown>)} />}
-                  {activeSection.type === 'collections'  && <CollectionsSettings  s={activeSection.settings as CollectionsSectionSettings}  upd={p => updateSettings(activeSection.id, p as Record<string,unknown>)} />}
-                  {activeSection.type === 'about'        && <AboutSettings        s={activeSection.settings as AboutSectionSettings}        upd={p => updateSettings(activeSection.id, p as Record<string,unknown>)} />}
-                  {activeSection.type === 'testimonials' && <TestimonialsSettings s={activeSection.settings as TestimonialsSectionSettings} upd={p => updateSettings(activeSection.id, p as Record<string,unknown>)} />}
-                  {activeSection.type === 'instagram'    && <InstagramSettings    s={activeSection.settings as InstagramSectionSettings}    upd={p => updateSettings(activeSection.id, p as Record<string,unknown>)} />}
-                  {activeSection.type === 'newsletter'   && <NewsletterSettings   s={activeSection.settings as NewsletterSectionSettings}   upd={p => updateSettings(activeSection.id, p as Record<string,unknown>)} />}
-                  {activeSection.type === 'header'       && <HeaderSettings       s={activeSection.settings as HeaderSectionSettings}       upd={p => updateSettings(activeSection.id, p as Record<string,unknown>)} />}
-                  {activeSection.type === 'footer'       && <FooterSettings       s={activeSection.settings as FooterSectionSettings}       upd={p => updateSettings(activeSection.id, p as Record<string,unknown>)} />}
-                </div>
+                {activeSection.type === 'hero'         && <HeroSettings         s={activeSection.settings as HeroSectionSettings}         upd={p => updateSettings(activeSection.id, p as Record<string,unknown>)} isLinkStyle={isLinkStyle} isCreator={isCreator} />}
+                {activeSection.type === 'announcement' && <AnnouncementSettings s={activeSection.settings as AnnouncementSectionSettings} upd={p => updateSettings(activeSection.id, p as Record<string,unknown>)} />}
+                {activeSection.type === 'featured'     && <FeaturedSettings     s={activeSection.settings as FeaturedSectionSettings}     upd={p => updateSettings(activeSection.id, p as Record<string,unknown>)} />}
+                {activeSection.type === 'collections'  && <CollectionsSettings  s={activeSection.settings as CollectionsSectionSettings}  upd={p => updateSettings(activeSection.id, p as Record<string,unknown>)} />}
+                {activeSection.type === 'about'        && <AboutSettings        s={activeSection.settings as AboutSectionSettings}        upd={p => updateSettings(activeSection.id, p as Record<string,unknown>)} />}
+                {activeSection.type === 'testimonials' && <TestimonialsSettings s={activeSection.settings as TestimonialsSectionSettings} upd={p => updateSettings(activeSection.id, p as Record<string,unknown>)} />}
+                {activeSection.type === 'instagram'    && <InstagramSettings    s={activeSection.settings as InstagramSectionSettings}    upd={p => updateSettings(activeSection.id, p as Record<string,unknown>)} />}
+                {activeSection.type === 'newsletter'   && <NewsletterSettings   s={activeSection.settings as NewsletterSectionSettings}   upd={p => updateSettings(activeSection.id, p as Record<string,unknown>)} />}
+                {activeSection.type === 'header'       && <HeaderSettings       s={activeSection.settings as HeaderSectionSettings}       upd={p => updateSettings(activeSection.id, p as Record<string,unknown>)} />}
+                {activeSection.type === 'footer'       && <FooterSettings       s={activeSection.settings as FooterSectionSettings}       upd={p => updateSettings(activeSection.id, p as Record<string,unknown>)} />}
               </>
             ) : (
-              <div className={styles.rEmpty}>
-                {/* Mobile: Section navigator (visible when no section selected) */}
-                {isMobile && (
-                  <div className={styles.mobileSectionList}>
-                    <p className={styles.rEmptyTitle} style={{ padding: '0 0 6px' }}>SECTIONS</p>
-                    {sections.map(sec => {
-                      const meta = SECTION_META[sec.type];
-                      if (isLinkStyle && HIDDEN_FOR_LINK_STYLE.has(sec.type)) return null;
-                      return (
-                        <button
-                          key={sec.id}
-                          className={[styles.mobileSectionItem, activeId === sec.id ? styles.mobileSectionItemActive : ''].join(' ')}
-                          onClick={() => setActiveId(sec.id)}
-                        >
-                          <span className={styles.secIcon}>{SectionIcons[sec.type]}</span>
-                          <span className={styles.mobileSectionLabel}>{meta.label}</span>
-                          {!sec.enabled && <span style={{ fontSize: '0.65rem', color: 'var(--sell-text-3)', fontWeight: 600 }}>OFF</span>}
-                          <ChevronRight size={14} className={styles.mobileSectionChevron} />
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-                <div className={styles.rEmptyColors}>
-                  <p className={styles.rEmptyTitle}>Brand Colors</p>
+              <>
+                <div className={styles.designGroup}>
+                  <p className={styles.designTitle}>Brand Colors</p>
                   <label className={styles.cLabel}><input type="color" value={primary} onChange={e => { pushUndo(); setPrimary(e.target.value); mark(); }} className={styles.cPicker} aria-label="Primary color" />Primary</label>
                   <label className={styles.cLabel}><input type="color" value={secondary} onChange={e => { pushUndo(); setSecondary(e.target.value); mark(); }} className={styles.cPicker} aria-label="Accent color" />Accent</label>
                 </div>
-                <div style={{ marginTop: 16 }}>
-                  <p className={styles.rEmptyTitle}>Store Design</p>
+                <div className={styles.designDivider} />
+                <div className={styles.designGroup}>
+                  <p className={styles.designTitle}>Store Design</p>
                   <div className={styles.field}>
                     <label className={styles.fLabel}>Font family</label>
                     <select className={styles.fSelect} value={fontFamily} onChange={e => { pushUndo(); setFontFamily(e.target.value); mark(); }}>
@@ -785,36 +772,30 @@ export function ThemeEditorPage() {
                         style={{ width: 32, height: 32, borderRadius: 7, border: '1.5px solid var(--sell-border)', cursor: 'pointer', padding: 2, background: 'transparent', flexShrink: 0 }} />
                       <input className={styles.fInput} value={bgColor} onChange={e => { pushUndo(); setBgColor(e.target.value); mark(); }} placeholder="Theme default" style={{ width: 90 }} />
                     </div>
-                    <p className={styles.fHint}>Overrides the page background for link-style stores</p>
+                    <p className={styles.fHint}>Overrides the page background</p>
                   </div>
                 </div>
-                {(isCreator || isLinkStyle) && (
-                  <div style={{ marginTop: 16 }}>
-                    <p className={styles.rEmptyTitle}>Social Links</p>
-                    <p className={styles.fHint} style={{ marginBottom: 10 }}>These appear on your storefront and help visitors find you on social media.</p>
-                    {(['instagram','twitter','tiktok','facebook','whatsapp','youtube'] as const).map(k => (
-                      <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 7 }}>
-                        <span className={styles.socialKey}>{k.slice(0,2).toUpperCase()}</span>
-                        <input className={styles.fInput} value={socials[k] ?? ''} onChange={e => updateSocials(k, e.target.value)} placeholder={`https://${k}.com/...`} style={{ fontSize: '0.78rem' }} />
-                      </div>
-                    ))}
-                  </div>
+                {(isCreator) && (
+                  <>
+                    <div className={styles.designDivider} />
+                    <div className={styles.designGroup}>
+                      <p className={styles.designTitle}>Social Links</p>
+                      <p className={styles.fHint} style={{ marginBottom: 6 }}>Appear on your storefront.</p>
+                      {(['instagram','twitter','tiktok','facebook','whatsapp','youtube'] as const).map(k => (
+                        <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 7 }}>
+                          <span className={styles.socialKey}>{k.slice(0,2).toUpperCase()}</span>
+                          <input className={styles.fInput} value={socials[k] ?? ''} onChange={e => updateSocials(k, e.target.value)} placeholder={`https://${k}.com/...`} style={{ fontSize: '0.78rem' }} />
+                        </div>
+                      ))}
+                    </div>
+                  </>
                 )}
-                {(isCreator || isLinkStyle) ? (
-                  <p className={styles.rEmptyHint}>This theme uses a centered profile layout with your social links, bio, and products. Your store logo becomes the profile picture. Tap any section above to customize it.</p>
-                ) : (
-                  <p className={styles.rEmptyHint}>{isMobile ? 'Tap any section above to edit its settings.' : 'Click any section on the left to edit its settings.'}</p>
-                )}
-              </div>
+              </>
             )}
           </div>
-
-          {/* Settings toggle button (visible when right panel is hidden) */}
-          <button className={styles.settingsFab} onClick={() => setRightDrawerOpen(!rightDrawerOpen)} title="Settings" aria-label="Toggle settings panel">
-            <Settings size={18} />
-          </button>
-
         </div>
+
+      </div>
 
     </div>
   );

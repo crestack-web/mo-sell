@@ -44,6 +44,7 @@ export interface StorefrontCanvasProps {
   bodyTextColor?: string | null;
   bgColor?: string | null;
   hideStoreNameWithLogo?: boolean;
+  onSectionClick?: (sectionId: string) => void;
 }
 
 // ─── CSS variable injection per theme ─────────────────────────────────────────
@@ -602,6 +603,7 @@ export function StorefrontCanvas({
   bodyTextColor,
   bgColor,
   hideStoreNameWithLogo,
+  onSectionClick,
 }: StorefrontCanvasProps) {
   // Fall back to theme defaults if no colors provided
   const defaultColors: Record<StorefrontTheme, [string, string]> = {
@@ -670,41 +672,49 @@ export function StorefrontCanvas({
       {activeSections.map(section => {
         if (!section.enabled) return null;
         const s = section.settings as Record<string, unknown>;
-
-        switch (section.type) {
-          case 'header':
-            return <SfNav key={section.id} theme={theme} storeName={storeName} logoUrl={logoUrl} primary={primary} storeSlug={storeSlug} hideStoreNameWithLogo={hideStoreNameWithLogo} width={width} />;
-
-          case 'announcement':
-            return <SfAnnouncement key={section.id} settings={s as unknown as AnnouncementSectionSettings} />;
-
-          case 'hero':
-            return <SfHero key={section.id} theme={theme} storeName={storeName} tagline={tagline} settings={s as HeroSectionSettings} primary={primary} secondary={secondary} buttonStyle={buttonStyle} />;
-
-          case 'featured':
-            return <SfFeatured key={section.id} theme={theme} settings={s as FeaturedSectionSettings} primary={primary} products={products} storeSlug={storeSlug} />;
-
-          case 'collections':
-            return <SfCollections key={section.id} collections={collections} settings={s as CollectionsSectionSettings} primary={primary} secondary={secondary} />;
-
-          case 'about':
-            return <SfAbout key={section.id} settings={s as AboutSectionSettings} theme={theme} />;
-
-          case 'testimonials':
-            return <SfTestimonials key={section.id} settings={s as TestimonialsSectionSettings} primary={primary} />;
-
-          case 'instagram':
-            return <SfInstagram key={section.id} settings={s as InstagramSectionSettings} />;
-
-          case 'newsletter':
-            return <SfNewsletter key={section.id} settings={s as NewsletterSectionSettings} primary={primary} />;
-
-          case 'footer':
-            return <SfFooter key={section.id} settings={s as FooterSectionSettings} storeName={storeName} logoUrl={logoUrl} theme={theme} />;
-
-          default:
-            return null;
-        }
+        const sectionEl = (() => {
+          switch (section.type) {
+            case 'header':
+              return <SfNav key={section.id} theme={theme} storeName={storeName} logoUrl={logoUrl} primary={primary} storeSlug={storeSlug} hideStoreNameWithLogo={hideStoreNameWithLogo} width={width} />;
+            case 'announcement':
+              return <SfAnnouncement key={section.id} settings={s as unknown as AnnouncementSectionSettings} />;
+            case 'hero':
+              return <SfHero key={section.id} theme={theme} storeName={storeName} tagline={tagline} settings={s as HeroSectionSettings} primary={primary} secondary={secondary} buttonStyle={buttonStyle} />;
+            case 'featured':
+              return <SfFeatured key={section.id} theme={theme} settings={s as FeaturedSectionSettings} primary={primary} products={products} storeSlug={storeSlug} />;
+            case 'collections':
+              return <SfCollections key={section.id} collections={collections} settings={s as CollectionsSectionSettings} primary={primary} secondary={secondary} />;
+            case 'about':
+              return <SfAbout key={section.id} settings={s as AboutSectionSettings} theme={theme} />;
+            case 'testimonials':
+              return <SfTestimonials key={section.id} settings={s as TestimonialsSectionSettings} primary={primary} />;
+            case 'instagram':
+              return <SfInstagram key={section.id} settings={s as InstagramSectionSettings} />;
+            case 'newsletter':
+              return <SfNewsletter key={section.id} settings={s as NewsletterSectionSettings} primary={primary} />;
+            case 'footer':
+              return <SfFooter key={section.id} settings={s as FooterSectionSettings} storeName={storeName} logoUrl={logoUrl} theme={theme} />;
+            default:
+              return null;
+          }
+        })();
+        if (!sectionEl) return null;
+        return (
+          <div
+            key={section.id}
+            onClick={() => onSectionClick?.(section.id)}
+            style={{
+              cursor: onSectionClick ? 'pointer' : undefined,
+              position: 'relative',
+              transition: 'outline 0.15s',
+            }}
+            title={onSectionClick ? `Edit ${section.type}` : undefined}
+            onMouseEnter={e => { if (onSectionClick) (e.currentTarget as HTMLElement).style.outline = '2px dashed var(--sf-primary, #0EA5E9)'; (e.currentTarget as HTMLElement).style.outlineOffset = '-2px'; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.outline = ''; }}
+          >
+            {sectionEl}
+          </div>
+        );
       })}
     </div>
   );

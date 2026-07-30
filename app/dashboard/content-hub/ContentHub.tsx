@@ -318,14 +318,11 @@ export function ContentHub() {
     if (!user?.id) return;
     setLoadingUgcData(true);
     try {
-      const { firestore } = initializeFirebase();
-      const profileDoc = await getDoc(doc(firestore, 'ugcCreators', user.id));
-      if (profileDoc.exists()) setUgcProfile(profileDoc.data());
-
-      const allDocs = await getDocs(
-        query(collection(firestore, 'ugcOrders'), where('creatorId', '==', user.id))
-      );
-      const allOrders = allDocs.docs.map(d => ({ id: d.id, ...d.data() } as any));
+      const res = await fetch(`/api/ugc/my-profile?userId=${encodeURIComponent(user.id)}`);
+      if (!res.ok) throw new Error('Failed to load UGC data');
+      const data = await res.json();
+      if (data.profile) setUgcProfile(data.profile);
+      const allOrders = (data.orders ?? []) as any[];
       setUgcRequests(allOrders.filter(o => o.type === 'request' || o.status === 'pending'));
       setUgcOrders(allOrders.filter(o => o.type !== 'request' && o.status !== 'pending'));
     } catch (err) {

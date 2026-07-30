@@ -54,15 +54,16 @@ export function LinkBioPage({ config, products, linkBio }: LinkBioPageProps) {
     (ProductCardData & { description?: string; digitalFileUrl?: string | null }) | null
   >(null);
 
-  const bio = linkBio ?? {
-    avatarUrl: config.logoUrl,
-    name: config.storeName,
-    bio: config.tagline ?? '',
-    socials: [],
-    displayType: 'button' as const,
-    backgroundType: 'solid' as const,
-    backgroundValue: '#0A0A0A',
-    productVisibility: {},
+  const raw = (linkBio ?? {}) as Partial<LinkBioConfig>;
+  const bio = {
+    avatarUrl: 'avatarUrl' in raw ? raw.avatarUrl : config.logoUrl,
+    name: raw.name || config.storeName,
+    bio: raw.bio || (config.tagline ?? ''),
+    socials: Array.isArray(raw.socials) ? raw.socials : [],
+    displayType: raw.displayType || ('button' as const),
+    backgroundType: raw.backgroundType || ('solid' as const),
+    backgroundValue: raw.backgroundValue || '#0A0A0A',
+    productVisibility: raw.productVisibility ?? {},
   };
 
   const displayType = bio.displayType || 'button';

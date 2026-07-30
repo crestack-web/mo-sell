@@ -5,9 +5,7 @@ import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { initializeFirebase } from '@/lib/firebase';
 import { useSell } from '@/context/SellContext';
-import { THEMES, getThemeType } from '@/themes/registry';
-import type { StorefrontTheme } from '@/types/mo-sell.types';
-import { StorefrontCanvas } from '@/components/StorefrontCanvas';
+
 import styles from './SellSettingsPage.module.css';
 
 const CURRENCIES = ['NGN', 'USD', 'GBP', 'EUR', 'GHS', 'KES', 'ZAR'];
@@ -40,7 +38,7 @@ export function SellSettingsPage() {
   const [logoUrl, setLogoUrl]               = useState<string | null>(null);
   const [imageFile, setImageFile]           = useState<File | null>(null);
   const [imagePreview, setImagePreview]     = useState<string | null>(null);
-  const [theme, setTheme]                   = useState<StorefrontTheme>('luxe');
+
   const [saving, setSaving]                 = useState(false);
   const [verifying, setVerifying]           = useState(false);
   const [dirty, setDirty]                   = useState(false);
@@ -66,7 +64,6 @@ export function SellSettingsPage() {
     setCustomDomain(storeConfig.customDomain ?? '');
     setLogoUrl(storeConfig.logoUrl ?? null);
     setImagePreview(storeConfig.logoUrl ?? null);
-    setTheme((storeConfig as any).theme ?? 'luxe');
   }, [storeConfig]);
 
   // Load bank list
@@ -151,7 +148,6 @@ export function SellSettingsPage() {
           useOwnPaystack,
           paystackSecretKey: useOwnPaystack ? paystackSecretKey.trim() : null,
           logoUrl: finalLogoUrl,
-          theme,
           customDomain: customDomain.trim() || null,
           customDomainStatus: (() => {
             const savedDomain = (storeConfig as any)?.customDomain ?? '';
@@ -576,43 +572,7 @@ export function SellSettingsPage() {
       </div>
 
       {/* â”€â”€ Theme Display â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-      <div className={styles.card}>
-        <div className={styles.cardHeader}>
-          <div>
-            <p className={styles.cardTitle}>Storefront theme</p>
-            <p className={styles.cardSub}>Current visual style for your public store</p>
-          </div>
-        </div>
-        <div className={styles.cardBody}>
-          <div className={styles.themeDisplay}>
-            <div className={styles.themeThumbnailSmall}>
-              <StorefrontCanvas 
-                theme={THEMES.find(t => t.id === theme)?.id ?? 'luxe'} 
-                width={60}
-                storeName={storeName}
-                tagline="Shop our latest collection"
-                primaryColor={primaryColor}
-                secondaryColor={secondaryColor}
-                logoUrl={logoUrl}
-              />
-            </div>
-            <div className={styles.themeInfo}>
-              <p className={styles.themeName}>{THEMES.find(t => t.id === theme)?.name ?? 'Classic'}</p>
-              <p className={styles.themeDesc}>{THEMES.find(t => t.id === theme)?.description ?? 'Clean and professional'}</p>
-            </div>
-            <button
-              className={`${styles.btn} ${styles.btnSecondary}`}
-              onClick={() => navigateTo(getThemeType(theme) === 'link-style' ? 'link-in-bio' : 'theme-editor')}
-              style={{ marginLeft: 'auto' }}
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}>
-                <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
-              </svg>
-              Customize
-            </button>
-          </div>
-        </div>
-      </div>
+
 
       {/* Save bar */}
       <div className={styles.saveBar}>

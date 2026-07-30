@@ -1,5 +1,6 @@
 import { firebaseConfig } from '@/lib/firebase/config';
 import { isAdminInitialized, getAdminDb, getAdminStorage, admin } from './firebase-admin';
+export { isAdminInitialized };
 
 
 let compatApp: any = null;

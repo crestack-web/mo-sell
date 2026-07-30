@@ -161,9 +161,16 @@ export default async function StorefrontHomePage({
   if (!config) notFound();
 
   const theme: StorefrontTheme = config.theme ?? 'luxe';
-  const components = await getThemeComponentsServer(theme as ThemeId);
   const themeType = getThemeType(theme);
   const isLinkStyle = themeType === 'link-style';
+
+  // If theme components fail to load, fall back to luxe so the page still renders
+  let components: Awaited<ReturnType<typeof getThemeComponentsServer>>;
+  try {
+    components = await getThemeComponentsServer(theme as ThemeId);
+  } catch {
+    components = await getThemeComponentsServer('luxe' as ThemeId);
+  }
 
   // Merge saved sections with defaults
   const savedSections: StoreSection[] = config.sections ?? [];

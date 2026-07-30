@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerFirestore as getAdminDb, FieldValue } from '@/lib/server-firestore';
+import { getServerFirestore, FieldValue, isAdminInitialized } from '@/lib/server-firestore';
 
 function slugify(text: string): string {
   return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'creator';
@@ -38,11 +38,17 @@ export async function POST(req: NextRequest) {
 
     let db;
     try {
-      db = getAdminDb();
+      db = getServerFirestore();
     } catch (initErr) {
-      console.error('[ugc/apply] Admin DB init failed:', initErr);
+      console.error('[ugc/apply] DB init failed:', initErr);
       return NextResponse.json({ error: 'Database not available. Please configure FIREBASE_ADMIN_PRIVATE_KEY, FIREBASE_ADMIN_CLIENT_EMAIL, and NEXT_PUBLIC_FIREBASE_PROJECT_ID.' }, { status: 500 });
     }
+
+    // Write operations require Admin SDK (compat SDK fallback is unauthenticated)
+    if (!isAdminInitialized()) {
+      return NextResponse.json({ error: 'Firebase Admin SDK not configured. Server cannot process creator applications.' }, { status: 500 });
+    }
+
     const existing = await db.collection('ugcCreators').doc(userId).get();
     if (existing.exists) {
       return NextResponse.json({ error: 'Creator already exists. Update your profile instead.' }, { status: 409 });
