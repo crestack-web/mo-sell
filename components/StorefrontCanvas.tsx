@@ -203,6 +203,7 @@ function SfHero({ theme, storeName, tagline, settings, primary, secondary, butto
   const cta = settings.ctaLabel || 'Shop Now';
   const bgImg = settings.backgroundImage;
   const textAlign = settings.textAlign ?? 'left';
+  const badgeText = settings.showBadge !== false ? (settings.badgeText || '') : '';
   const heroBg = bgImg ? `url(${bgImg}) center/cover` :
     theme === 'luxe'   ? '#111111' :
     theme === 'glow'   ? `linear-gradient(135deg,${primary}1a 0%,${secondary}0d 100%)` :
@@ -226,9 +227,15 @@ function SfHero({ theme, storeName, tagline, settings, primary, secondary, butto
   else radius = isMarket ? 100 : isLuxe ? 0 : 'var(--sf-radius-sm)' as unknown as number;
 
   return (
-    <section style={{ background: heroBg, padding: isLuxe ? '72px 48px' : '60px 32px', display: 'flex', flexDirection: 'column', gap: 16, minHeight: 340, justifyContent: 'center', alignItems: align, textAlign }}>
+      <section style={{ background: heroBg, padding: isLuxe ? '72px 48px' : '60px 32px', display: 'flex', flexDirection: 'column', gap: 16, minHeight: 340, justifyContent: 'center', alignItems: align, textAlign }}>
 
-      <h1 style={{
+        {badgeText && <p style={{
+          fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase',
+          fontWeight: 700, marginBottom: 0,
+          color: isMarket || isPulse || isBazaar ? 'rgba(255,255,255,0.7)' : isLuxe ? '#C9A84C' : isCreator ? '#A5B4FC' : isVault ? '#94A3B8' : isSpark ? '#D97706' : isAtlas ? '#0D9488' : 'var(--sf-text-2)',
+        }}>{badgeText}</p>}
+
+        <h1 style={{
         fontFamily: isLuxe ? '"Playfair Display",Georgia,serif' : isCreator ? '"Sora","Inter",sans-serif' : 'var(--sf-font)',
         fontSize: isCreator || isPulse ? 'clamp(2.4rem,6vw,4.2rem)' : isLuxe ? 'clamp(2.2rem,5.5vw,3.5rem)' : 'clamp(2rem,5vw,3.2rem)',
         fontWeight: isLuxe ? 400 : 800, fontStyle: isLuxe ? 'italic' : 'normal',

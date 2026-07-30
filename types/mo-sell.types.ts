@@ -40,6 +40,8 @@ export interface HeroSectionSettings {
   overlayOpacity?: number;    // 0-1
   textAlign?: 'left' | 'center' | 'right';
   showTagline?: boolean;
+  badgeText?: string;         // Small decorative text above heading (e.g. "New Collection", "Professional Services")
+  showBadge?: boolean;        // Show/hide badge text
 }
 
 export interface CollectionsSectionSettings {
@@ -142,7 +144,7 @@ export interface StoreSection {
 export const DEFAULT_SECTIONS: StoreSection[] = [
   { id: 'header',       type: 'header',       enabled: true,  order: 0,  settings: { showSearch: false, showCartCount: true, sticky: true } },
   { id: 'announcement', type: 'announcement', enabled: false, order: 1,  settings: { text: 'Free delivery on orders over ₦20,000', backgroundColor: '#0F172A', textColor: '#fff' } },
-  { id: 'hero',         type: 'hero',         enabled: true,  order: 2,  settings: { ctaLabel: 'Shop Now', ctaUrl: '#products', textAlign: 'left', showTagline: true } },
+  { id: 'hero',         type: 'hero',         enabled: true,  order: 2,  settings: { ctaLabel: 'Shop Now', ctaUrl: '#products', textAlign: 'left', showTagline: true, badgeText: '', showBadge: false } },
   { id: 'featured',     type: 'featured',     enabled: true,  order: 3,  settings: { heading: 'Shop Bestsellers', maxItems: 4, columns: 4 } },
   { id: 'collections',  type: 'collections',  enabled: true,  order: 4,  settings: { heading: 'Collections', layout: 'strip', maxItems: 6, showCoverImages: true } },
   { id: 'about',        type: 'about',        enabled: false, order: 5,  settings: { heading: 'Our Story', body: 'Tell customers about your brand and what makes you special.', imagePosition: 'right' } },

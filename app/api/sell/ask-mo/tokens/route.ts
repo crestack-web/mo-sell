@@ -8,8 +8,7 @@ import {
   TOKEN_BALANCE_FIELD,
   TOKEN_MONTH_USAGE_FIELD,
   TOKEN_MONTH_RESET_FIELD,
-  FREE_TOKEN_AMOUNT,
-  FREE_TOKENS_CREDITED_FIELD,
+  ensureFreeTokens,
 } from '@/lib/ask-mo-tokens';
 
 // ─── GET: balance + costs + packages ─────────────────────────────────────────
@@ -26,23 +25,12 @@ export async function GET(request: NextRequest) {
 
     const db = getAdminDb();
     const docRef = db.doc(TOKEN_DOC_PATH(businessId));
+
+    const balance = await ensureFreeTokens(db, businessId);
     const cfgSnap = await docRef.get();
-    const data = cfgSnap.data() ?? {};
-
-    // ── One-time free token grant for all users ──
-    if (!data[FREE_TOKENS_CREDITED_FIELD]) {
-      const currentBalance = (data[TOKEN_BALANCE_FIELD] as number) ?? 0;
-      await docRef.set({
-        [TOKEN_BALANCE_FIELD]: currentBalance + FREE_TOKEN_AMOUNT,
-        [FREE_TOKENS_CREDITED_FIELD]: true,
-      }, { merge: true });
-      data[TOKEN_BALANCE_FIELD] = currentBalance + FREE_TOKEN_AMOUNT;
-      data[FREE_TOKENS_CREDITED_FIELD] = true;
-    }
-
-    const balance = (data[TOKEN_BALANCE_FIELD] as number) ?? 0;
-    const monthUsage = (data[TOKEN_MONTH_USAGE_FIELD] as number) ?? 0;
-    const monthReset = (data[TOKEN_MONTH_RESET_FIELD] as number) ?? 0;
+    const cfgData = cfgSnap.data() ?? {};
+    const monthUsage = (cfgData[TOKEN_MONTH_USAGE_FIELD] as number) ?? 0;
+    const monthReset = (cfgData[TOKEN_MONTH_RESET_FIELD] as number) ?? 0;
     const monthlyAllowance = getMonthlyAllowance(plan);
 
     // Auto-reset monthly usage if new month

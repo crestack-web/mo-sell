@@ -58,6 +58,35 @@ export const TOKEN_MONTH_RESET_FIELD = 'askMoMonthReset';
 export const FREE_TOKEN_AMOUNT = 2000;
 export const FREE_TOKENS_CREDITED_FIELD = 'askMoFreeTokensCredited';
 
+// ─── Ensure free tokens (shared across APIs) ──────────────────────────────────
+
+/**
+ * Ensures the business has been granted FREE_TOKEN_AMOUNT once.
+ * Call this before any token check so users always get their 2000 free tokens
+ * regardless of which API route is hit first.
+ */
+export async function ensureFreeTokens(
+  db: any,
+  businessId: string,
+): Promise<number> {
+  const docRef = db.doc(TOKEN_DOC_PATH(businessId));
+  const snap = await docRef.get();
+  const data = snap.data() ?? {};
+
+  const hasBalance = TOKEN_BALANCE_FIELD in data;
+  const currentBalance = (data[TOKEN_BALANCE_FIELD] as number) ?? 0;
+
+  if (!hasBalance && !data[FREE_TOKENS_CREDITED_FIELD]) {
+    await docRef.set({
+      [TOKEN_BALANCE_FIELD]: currentBalance + FREE_TOKEN_AMOUNT,
+      [FREE_TOKENS_CREDITED_FIELD]: true,
+    }, { merge: true });
+    return currentBalance + FREE_TOKEN_AMOUNT;
+  }
+
+  return currentBalance;
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 export function getTokenCost(

@@ -16,22 +16,24 @@ const C = {
 };
 
 export function AtlasHero({
-  storeName, tagline, logoUrl, ctaLabel = 'View Services', ctaUrl = '#products',
-  backgroundImage, textAlign = 'left', buttonStyle,
+  storeName, tagline, ctaLabel = 'View Services', ctaUrl = '#products',
+  backgroundImage, textAlign = 'left', buttonStyle, badgeText,
+  bgColor, bodyTextColor,
 }: ThemeHeroProps) {
   const bgStyle = backgroundImage
     ? { backgroundImage: `url(${backgroundImage})`, backgroundSize: 'cover' as const, backgroundPosition: 'center' as const }
     : {};
 
   const align = textAlign ?? 'left';
+  const textMain = bodyTextColor || C.slate;
+  const textMuted = bodyTextColor ? `${bodyTextColor}99` : C.slateMuted;
+  const heroBg = bgColor || `linear-gradient(160deg, ${C.bg} 0%, #EFF6FF 30%, ${C.tealPale} 70%, rgba(13,148,136,0.08) 100%)`;
 
   return (
     <section style={{
       position: 'relative', padding: '100px 5%', overflow: 'hidden',
-      background: backgroundImage
-        ? undefined
-        : `linear-gradient(160deg, ${C.bg} 0%, #EFF6FF 30%, ${C.tealPale} 70%, rgba(13,148,136,0.08) 100%)`,
-      color: C.slate, ...bgStyle,
+      background: backgroundImage ? undefined : heroBg,
+      color: textMain, ...bgStyle,
     }}>
       {backgroundImage && (
         <div style={{
@@ -78,35 +80,26 @@ export function AtlasHero({
         alignItems: align === 'center' ? 'center' : align === 'right' ? 'flex-end' : 'flex-start',
         textAlign: align,
       }}>
-        {logoUrl && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={logoUrl} alt={storeName}
-            style={{
-              width: 56, height: 56, borderRadius: 14,
-              objectFit: 'cover', marginBottom: 28,
-              border: `1px solid ${C.tealBorder}`,
-              boxShadow: '0 2px 12px rgba(13,148,136,0.1)',
-            }} />
+        {badgeText && (
+          <p style={{
+            fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase',
+            color: C.teal, fontWeight: 700, marginBottom: 16,
+            fontFamily: "'Manrope', sans-serif",
+          }}>{badgeText}</p>
         )}
-
-        <p style={{
-          fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase',
-          color: C.teal, fontWeight: 700, marginBottom: 16,
-          fontFamily: "'Manrope', sans-serif",
-        }}>Professional Services</p>
 
         <h1 style={{
           fontFamily: "'Manrope', sans-serif",
           fontWeight: 700,
           fontSize: 'clamp(2.2rem, 5.5vw, 3.8rem)',
           letterSpacing: '-0.02em', lineHeight: 1.12,
-          color: C.slate, margin: 0,
+          color: textMain, margin: 0,
         }}>{storeName}</h1>
 
         {tagline && (
           <p style={{
             fontFamily: "'Manrope', sans-serif",
-            fontWeight: 400, fontSize: '1.05rem', color: C.slateMuted,
+            fontWeight: 400, fontSize: '1.05rem', color: textMuted,
             letterSpacing: '0.01em', marginTop: 20, lineHeight: 1.65,
             maxWidth: 440,
           }}>{tagline}</p>
@@ -132,29 +125,6 @@ export function AtlasHero({
             e.currentTarget.style.transform = 'translateY(0)';
           }}
         >{ctaLabel}</a>
-
-        {/* Trust badges */}
-        <div style={{
-          display: 'flex', gap: 20, marginTop: 36,
-          flexWrap: 'wrap',
-          justifyContent: align === 'center' ? 'center' : align === 'right' ? 'flex-end' : 'flex-start',
-        }}>
-          {[
-            { icon: '⭐', label: '5.0 Rating' },
-            { icon: '📋', label: '200+ Projects' },
-            { icon: '✅', label: 'Verified' },
-          ].map(badge => (
-            <div key={badge.label} style={{
-              display: 'flex', alignItems: 'center', gap: 6,
-              fontSize: '0.72rem', color: C.slateMuted,
-              fontFamily: "'Manrope', sans-serif",
-              fontWeight: 500,
-            }}>
-              <span style={{ fontSize: '0.85rem' }}>{badge.icon}</span>
-              {badge.label}
-            </div>
-          ))}
-        </div>
       </div>
     </section>
   );

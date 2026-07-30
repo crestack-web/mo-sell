@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { getServerFirestore as getAdminDb, getServerStorage as getAdminStorage, FieldValue } from '@/lib/server-firestore';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
-import { getTokenCost, TOKEN_DOC_PATH, TOKEN_BALANCE_FIELD, ASK_MO_COMMISSION_RATE, ASK_MO_COMMISSION_FIELD } from '@/lib/ask-mo-tokens';
+import { getTokenCost, TOKEN_DOC_PATH, TOKEN_BALANCE_FIELD, ASK_MO_COMMISSION_RATE, ASK_MO_COMMISSION_FIELD, ensureFreeTokens } from '@/lib/ask-mo-tokens';
 
 const MODELS = ['gemini-2.5-flash', 'gemini-flash-latest', 'gemini-2.5-pro'];
 
@@ -745,9 +745,7 @@ CURRENT STORE CONFIG:
     const minCost = getTokenCost(hasMedia, false, false);
 
     const db2 = getAdminDb();
-    const cfgSnap = await db2.doc(TOKEN_DOC_PATH(businessId)).get();
-    const cfgData = cfgSnap.data() ?? {};
-    const currentBalance = (cfgData[TOKEN_BALANCE_FIELD] as number) ?? 0;
+    const currentBalance = await ensureFreeTokens(db2, businessId);
 
     if (currentBalance < minCost) {
       return NextResponse.json({

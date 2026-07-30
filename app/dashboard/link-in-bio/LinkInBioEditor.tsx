@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { initializeFirebase } from '@/lib/firebase';
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -40,6 +40,12 @@ const SOCIAL_OPTIONS: { key: SocialPlatform; label: string; icon: React.ReactNod
   { key: 'youtube', label: 'YouTube', icon: <Youtube size={18} /> },
 ];
 
+interface CustomLink {
+  id: string;
+  label: string;
+  url: string;
+}
+
 interface LinkBioConfig {
   avatarUrl: string | null;
   name: string;
@@ -49,6 +55,8 @@ interface LinkBioConfig {
   backgroundType: BgType;
   backgroundValue: string;
   productVisibility: Record<string, boolean>;
+  customLinks: CustomLink[];
+  productOrder: string[];
 }
 
 interface ProductItem extends ProductCardData {
@@ -77,6 +85,9 @@ export function LinkInBioEditor() {
   const [bgType, setBgType] = useState<BgType>('solid');
   const [bgValue, setBgValue] = useState('#0A0A0A');
   const [products, setProducts] = useState<ProductItem[]>([]);
+  const [customLinks, setCustomLinks] = useState<CustomLink[]>([]);
+  const [productOrder, setProductOrder] = useState<string[]>([]);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
 
@@ -92,6 +103,8 @@ export function LinkInBioEditor() {
       setDisplayType(saved.displayType ?? 'button');
       setBgType(saved.backgroundType ?? 'solid');
       setBgValue(saved.backgroundValue ?? '#0A0A0A');
+      setCustomLinks(saved.customLinks ?? []);
+      setProductOrder(saved.productOrder ?? []);
       if (saved.productVisibility) {
         setProducts(prev => prev.map(p => ({
           ...p,
@@ -112,6 +125,7 @@ export function LinkInBioEditor() {
           ...p,
           visible: saved?.productVisibility?.[p.id] ?? true,
         })));
+        if (saved?.productOrder) setProductOrder(saved.productOrder);
       })
       .catch(() => {});
   }, [user?.businessId, storeConfig?.storeSlug]);
@@ -140,6 +154,8 @@ export function LinkInBioEditor() {
         backgroundType: bgType,
         backgroundValue: bgValue,
         productVisibility,
+        customLinks,
+        productOrder,
       };
 
       const { firestore } = initializeFirebase();
@@ -163,10 +179,52 @@ export function LinkInBioEditor() {
     } finally {
       setSaving(false);
     }
-  }, [user?.businessId, avatarPreview, avatarFile, name, bio, socials, displayType, bgType, bgValue, products, refreshStoreConfig, showToast]);
+  }, [user?.businessId, avatarPreview, avatarFile, name, bio, socials, displayType, bgType, bgValue, products, customLinks, productOrder, refreshStoreConfig, showToast]);
 
   const toggleProductVisibility = useCallback((productId: string) => {
     setProducts(prev => prev.map(p => p.id === productId ? { ...p, visible: !p.visible } : p));
+    setDirty(true);
+  }, []);
+
+  const sortedProducts = useMemo(() => {
+    if (productOrder.length === 0) return products;
+    const ordered = productOrder.map(id => products.find(p => p.id === id)).filter(Boolean) as ProductItem[];
+    const remaining = products.filter(p => !productOrder.includes(p.id));
+    return [...ordered, ...remaining];
+  }, [products, productOrder]);
+
+  const handleDragStart = useCallback((index: number) => {
+    setDragIndex(index);
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (dragIndex === null || dragIndex === index) return;
+    const newOrder = [...productOrder];
+    const [moved] = newOrder.splice(dragIndex, 1);
+    newOrder.splice(index, 0, moved);
+    setProductOrder(newOrder);
+    setDragIndex(index);
+    setDirty(true);
+  }, [dragIndex, productOrder]);
+
+  const handleDragEnd = useCallback(() => {
+    setDragIndex(null);
+  }, []);
+
+  const addCustomLink = useCallback(() => {
+    const id = `custom_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    setCustomLinks(prev => [...prev, { id, label: '', url: '' }]);
+    setDirty(true);
+  }, []);
+
+  const updateCustomLink = useCallback((id: string, field: 'label' | 'url', value: string) => {
+    setCustomLinks(prev => prev.map(cl => cl.id === id ? { ...cl, [field]: value } : cl));
+    setDirty(true);
+  }, []);
+
+  const removeCustomLink = useCallback((id: string) => {
+    setCustomLinks(prev => prev.filter(cl => cl.id !== id));
     setDirty(true);
   }, []);
 
@@ -231,7 +289,7 @@ export function LinkInBioEditor() {
               )}
 
               <div className={styles.pProducts}>
-                {products.filter(p => p.visible).slice(0, 5).map(p => {
+                {sortedProducts.filter(p => p.visible).slice(0, 5).map(p => {
                   if (displayType === 'minimal') {
                     return (
                       <div key={p.id} className={styles.pMinimal}>
@@ -267,6 +325,32 @@ export function LinkInBioEditor() {
                       )}
                       <span className={styles.pButtonName}>{p.displayName}</span>
                       <span className={styles.pButtonPrice}>₦{p.price.toLocaleString()}</span>
+                    </div>
+                  );
+                })}
+                {customLinks.filter(cl => cl.label && cl.url).map(cl => {
+                  if (displayType === 'minimal') {
+                    return (
+                      <div key={cl.id} className={styles.pMinimal}>
+                        <span className={styles.pMinimalName}>{cl.label}</span>
+                      </div>
+                    );
+                  }
+                  if (displayType === 'callout') {
+                    return (
+                      <div key={cl.id} className={styles.pCallout}>
+                        <div className={styles.pCalloutInfo}>
+                          <p className={styles.pCalloutName}>{cl.label}</p>
+                        </div>
+                        <span className={styles.pCalloutBtn}>Open</span>
+                      </div>
+                    );
+                  }
+                  return (
+                    <div key={cl.id} className={styles.pButton} style={{
+                      background: storeConfig?.primaryColor || '#6366F1',
+                    }}>
+                      <span className={styles.pButtonName}>{cl.label}</span>
                     </div>
                   );
                 })}
@@ -364,12 +448,19 @@ export function LinkInBioEditor() {
                   ))}
                 </div>
               </div>
-              <p className={styles.tabDesc}>Show or hide products on your page.</p>
-              {products.length === 0 && (
+              <p className={styles.tabDesc}>Show, hide, or reorder products on your page.</p>
+              {sortedProducts.length === 0 && (
                 <p className={styles.emptyState}>No products yet. Add some from Products page.</p>
               )}
-              {products.map(p => (
-                <div key={p.id} className={styles.productRow}>
+              {sortedProducts.map((p, i) => (
+                <div
+                  key={p.id}
+                  className={[styles.productRow, dragIndex === i ? styles.dragging : ''].join(' ')}
+                  draggable
+                  onDragStart={() => handleDragStart(i)}
+                  onDragOver={e => handleDragOver(e, i)}
+                  onDragEnd={handleDragEnd}
+                >
                   <span className={styles.gripIcon}><GripVertical size={16} /></span>
                   {p.images?.[0] ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -388,6 +479,32 @@ export function LinkInBioEditor() {
                   </button>
                 </div>
               ))}
+              <div className={styles.customLinksSection}>
+                <p className={styles.tabDesc}>Add custom link buttons to your page.</p>
+                {customLinks.map(cl => (
+                  <div key={cl.id} className={styles.customLinkRow}>
+                    <span className={styles.gripIcon}><Link size={16} /></span>
+                    <input
+                      className={styles.fInput}
+                      placeholder="Label"
+                      value={cl.label}
+                      onChange={e => updateCustomLink(cl.id, 'label', e.target.value)}
+                    />
+                    <input
+                      className={styles.fInput}
+                      placeholder="https://..."
+                      value={cl.url}
+                      onChange={e => updateCustomLink(cl.id, 'url', e.target.value)}
+                    />
+                    <button className={styles.iconBtn} onClick={() => removeCustomLink(cl.id)}>
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                ))}
+                <button className={styles.addBtn} onClick={addCustomLink}>
+                  <Plus size={16} /> Add Custom Link
+                </button>
+              </div>
             </div>
           )}
 

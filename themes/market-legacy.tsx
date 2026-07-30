@@ -107,7 +107,7 @@ export function MarketCollectionCard({ collection, storeSlug }: ThemeCollectionC
   );
 }
 
-export function MarketHero({ storeName, tagline, logoUrl, primaryColor, secondaryColor, ctaLabel, ctaUrl, backgroundImage }: ThemeHeroProps) {
+export function MarketHero({ storeName, tagline, primaryColor, secondaryColor, ctaLabel, ctaUrl, backgroundImage }: ThemeHeroProps) {
   const bg = backgroundImage ? { backgroundImage: `url(${backgroundImage})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {};
   return (
     <section style={{
@@ -115,14 +115,6 @@ export function MarketHero({ storeName, tagline, logoUrl, primaryColor, secondar
       borderRadius: 18, padding: '40px 36px', color: '#fff', position: 'relative', overflow: 'hidden',
       ...bg,
     }}>
-      <div style={{ position: 'absolute', right: 32, bottom: -10, fontSize: '7rem', opacity: 0.15, pointerEvents: 'none' }}>🛒</div>
-      {logoUrl && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={logoUrl} alt={storeName} style={{ width: 52, height: 52, borderRadius: 12, objectFit: 'cover', marginBottom: 14 }} />
-      )}
-      <p style={{ fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.85)', marginBottom: 8 }}>
-        🛍️ Fresh arrivals daily
-      </p>
       <h1 style={{ color: '#fff', fontSize: 'clamp(1.8rem, 4.5vw, 2.8rem)', fontWeight: 900, lineHeight: 1.15, letterSpacing: '-0.03em' }}>
         {storeName}
       </h1>

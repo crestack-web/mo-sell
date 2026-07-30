@@ -233,7 +233,6 @@ export default async function StorefrontHomePage({
               <Hero key={section.id}
                 storeName={hs.heading || config.storeName}
                 tagline={hs.showTagline !== false ? (hs.subheading || config.tagline || null) : null}
-                logoUrl={config.logoUrl ?? null}
                 primaryColor={config.primaryColor ?? '#C9A84C'}
                 secondaryColor={config.secondaryColor ?? '#8B7355'}
                 ctaLabel={hs.ctaLabel || 'Shop Now'}
@@ -243,6 +242,10 @@ export default async function StorefrontHomePage({
                 buttonStyle={config.buttonStyle ?? 'pill'}
                 socialLinks={footerSettings?.socials}
                 businessCategory={config.businessCategory}
+                badgeText={hs.showBadge !== false ? (hs.badgeText || null) : null}
+                showBadge={hs.showBadge !== false}
+                bgColor={config.bgColor ?? null}
+                bodyTextColor={config.bodyTextColor ?? null}
               />
             );
           }

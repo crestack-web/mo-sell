@@ -538,6 +538,25 @@
   color: var(--sell-text-2, #64748b);
 }
 
+.dragging {
+  opacity: 0.4;
+}
+
+.customLinksSection {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+  padding-top: 16px;
+  border-top: 1px solid var(--sell-border, #e2e8f0);
+}
+
+.customLinkRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .emptyState {
   text-align: center;
   padding: 32px 16px;

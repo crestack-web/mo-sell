@@ -3,16 +3,19 @@
 import React from 'react';
 import type { ThemeHeroProps } from '../types';
 
-export function MarketHero({ storeName, tagline, logoUrl, ctaLabel = 'Shop Now', ctaUrl = '#products', backgroundImage, textAlign = 'left', buttonStyle }: ThemeHeroProps) {
+export function MarketHero({ storeName, tagline, ctaLabel = 'Shop Now', ctaUrl = '#products', backgroundImage, textAlign = 'left', buttonStyle, bgColor, bodyTextColor }: ThemeHeroProps) {
   const bgStyle = backgroundImage
     ? { backgroundImage: `url(${backgroundImage})`, backgroundSize: 'cover' as const, backgroundPosition: 'center' as const }
     : {};
+  const heroBg = bgColor || 'linear-gradient(135deg, #EA580C 0%, #F59E0B 100%)';
+  const textMain = bodyTextColor || '#FFFFFF';
+  const textMuted = bodyTextColor ? `${bodyTextColor}dd` : 'rgba(255,255,255,0.92)';
 
   return (
     <section style={{
       position: 'relative', padding: '80px 5%', overflow: 'hidden',
-      background: backgroundImage ? undefined : 'linear-gradient(135deg, #EA580C 0%, #F59E0B 100%)',
-      color: '#FFFFFF', ...bgStyle,
+      background: backgroundImage ? undefined : heroBg,
+      color: textMain, ...bgStyle,
     }}>
       {/* Dark overlay if using background image */}
       {backgroundImage && (
@@ -24,31 +27,19 @@ export function MarketHero({ storeName, tagline, logoUrl, ctaLabel = 'Shop Now',
       )}
 
       <div style={{ position: 'relative', zIndex: 1, maxWidth: 720, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 16 }}>
-        {logoUrl && (
-          <div style={{
-            background: '#FFFFFF', borderRadius: 12, padding: 6,
-            display: 'inline-flex', marginBottom: 8,
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-          }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={logoUrl} alt={storeName}
-              style={{ width: 52, height: 52, borderRadius: 8, objectFit: 'cover' }} />
-          </div>
-        )}
-
         <h1 style={{
           fontWeight: 900,
           fontSize: 'clamp(2.2rem, 5vw, 3.8rem)',
           letterSpacing: '-0.03em', lineHeight: 1.1,
-          color: '#FFFFFF', margin: 0,
-          textShadow: '0 2px 8px rgba(0,0,0,0.15)',
+          color: textMain, margin: 0,
+          textShadow: bgColor ? 'none' : '0 2px 8px rgba(0,0,0,0.15)',
         }}>
-          {'🛒 '}{storeName}
+          {storeName}
         </h1>
 
         {tagline && (
           <p style={{
-            fontWeight: 600, fontSize: '1.1rem', color: 'rgba(255,255,255,0.92)',
+            fontWeight: 600, fontSize: '1.1rem', color: textMuted,
             letterSpacing: '0.01em', lineHeight: 1.5,
             maxWidth: 520, margin: 0,
           }}>{tagline}</p>

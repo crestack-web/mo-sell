@@ -59,6 +59,10 @@ export interface ThemeHeroProps {
   textAlign?: 'left' | 'center' | 'right';
   buttonStyle?: 'pill' | 'square' | 'rounded';
   socialLinks?: ThemeHeroSocialLinks;
+  badgeText?: string | null;
+  showBadge?: boolean;
+  bgColor?: string | null;
+  bodyTextColor?: string | null;
 }
 
 export interface ThemeProductPageProps {

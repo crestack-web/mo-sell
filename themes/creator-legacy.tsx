@@ -98,7 +98,7 @@ export function CreatorCollectionCard({ collection, storeSlug }: ThemeCollection
   );
 }
 
-export function CreatorHero({ storeName, tagline, logoUrl, primaryColor, secondaryColor, ctaLabel, ctaUrl, backgroundImage }: ThemeHeroProps) {
+export function CreatorHero({ storeName, tagline, primaryColor, secondaryColor, ctaLabel, ctaUrl, backgroundImage }: ThemeHeroProps) {
   const bg = backgroundImage ? { backgroundImage: `url(${backgroundImage})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {};
   return (
     <section style={{
@@ -106,13 +106,6 @@ export function CreatorHero({ storeName, tagline, logoUrl, primaryColor, seconda
       padding: '60px 5%', display: 'flex', flexDirection: 'column', gap: 14,
       ...bg,
     }}>
-      {logoUrl && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={logoUrl} alt={storeName} style={{ width: 52, height: 52, borderRadius: 8, objectFit: 'cover', marginBottom: 8 }} />
-      )}
-      <p style={{ fontSize: '0.65rem', letterSpacing: '0.18em', textTransform: 'uppercase', color: primaryColor || '#22C55E', fontWeight: 700 }}>
-        Build once. Sell forever.
-      </p>
       <h1 style={{ fontFamily: '"Sora","Inter",sans-serif', color: '#F8FAFC', fontSize: 'clamp(2rem, 5vw, 3.2rem)', fontWeight: 800, lineHeight: 1.12, letterSpacing: '-0.03em' }}>
         {storeName}
       </h1>

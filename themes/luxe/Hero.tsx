@@ -3,15 +3,18 @@
 import React from 'react';
 import type { ThemeHeroProps } from '../types';
 
-export function LuxeHero({ storeName, tagline, logoUrl, ctaLabel = 'Shop Now', ctaUrl = '#products', backgroundImage, textAlign = 'left', buttonStyle }: ThemeHeroProps) {
+export function LuxeHero({ storeName, tagline, ctaLabel = 'Shop Now', ctaUrl = '#products', backgroundImage, textAlign = 'left', buttonStyle, badgeText, bgColor, bodyTextColor }: ThemeHeroProps) {
   const bgStyle = backgroundImage
     ? { backgroundImage: `url(${backgroundImage})`, backgroundSize: 'cover' as const, backgroundPosition: 'center' as const }
     : {};
+  const heroBg = bgColor || '#0A0A0A';
+  const textMain = bodyTextColor || '#F5F5F0';
+  const textMuted = bodyTextColor ? `${bodyTextColor}aa` : '#A89878';
 
   return (
     <section style={{
       position: 'relative', padding: '100px 5%', overflow: 'hidden',
-      background: '#0A0A0A', color: '#F5F5F0', ...bgStyle,
+      background: heroBg, color: textMain, ...bgStyle,
     }}>
       {/* Gold gradient overlay */}
       <div style={{
@@ -21,28 +24,24 @@ export function LuxeHero({ storeName, tagline, logoUrl, ctaLabel = 'Shop Now', c
       }} />
 
       <div style={{ position: 'relative', zIndex: 1, maxWidth: 680, display: 'flex', flexDirection: 'column', alignItems: textAlign === 'center' ? 'center' : textAlign === 'right' ? 'flex-end' : 'flex-start', textAlign }}>
-        {logoUrl && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={logoUrl} alt={storeName}
-            style={{ width: 64, height: 64, borderRadius: 4, objectFit: 'cover', marginBottom: 24 }} />
+        {badgeText && (
+          <p style={{
+            fontSize: '0.6rem', letterSpacing: '0.24em', textTransform: 'uppercase',
+            color: '#C9A84C', fontWeight: 500, marginBottom: 16,
+          }}>{badgeText}</p>
         )}
-
-        <p style={{
-          fontSize: '0.6rem', letterSpacing: '0.24em', textTransform: 'uppercase',
-          color: '#C9A84C', fontWeight: 500, marginBottom: 16,
-        }}>New Collection</p>
 
         <h1 style={{
           fontFamily: "'Playfair Display', Georgia, serif",
           fontStyle: 'italic', fontWeight: 400,
           fontSize: 'clamp(2.5rem, 6vw, 4.5rem)',
           letterSpacing: '-0.01em', lineHeight: 1.1,
-          color: '#F5F5F0', margin: 0,
+          color: textMain, margin: 0,
         }}>{storeName}</h1>
 
         {tagline && (
           <p style={{
-            fontWeight: 300, fontSize: '1.05rem', color: '#A89878',
+            fontWeight: 300, fontSize: '1.05rem', color: textMuted,
             letterSpacing: '0.04em', marginTop: 20, lineHeight: 1.6,
             maxWidth: 460,
           }}>{tagline}</p>
@@ -55,7 +54,7 @@ export function LuxeHero({ storeName, tagline, logoUrl, ctaLabel = 'Shop Now', c
           textDecoration: 'none', fontWeight: 500, transition: 'all 0.3s', width: 'fit-content',
           borderRadius: buttonStyle === 'pill' ? 100 : buttonStyle === 'square' ? 0 : 8,
         }}
-          onMouseEnter={e => { e.currentTarget.style.background = '#C9A84C'; e.currentTarget.style.color = '#0A0A0A'; }}
+          onMouseEnter={e => { e.currentTarget.style.background = '#C9A84C'; e.currentTarget.style.color = heroBg; }}
           onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#C9A84C'; }}
         >{ctaLabel}</a>
       </div>

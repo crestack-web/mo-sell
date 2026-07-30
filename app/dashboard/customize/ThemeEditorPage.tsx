@@ -131,6 +131,8 @@ function HeroSettings({ s, upd, isLinkStyle, isCreator }: { s: HeroSectionSettin
         <TF label="Heading" value={s.heading ?? ''} onChange={v => upd({ heading: v })} placeholder="Defaults to store name" />
         <TF label="Subheading" value={s.subheading ?? ''} onChange={v => upd({ subheading: v })} placeholder="Defaults to tagline" />
         <Toggle label="Show subheading" value={s.showTagline !== false} onChange={v => upd({ showTagline: v })} />
+        <TF label="Badge text" value={s.badgeText ?? ''} onChange={v => upd({ badgeText: v })} placeholder="e.g. New Collection" hint="Small decorative text shown above heading" />
+        <Toggle label="Show badge" value={s.showBadge !== false} onChange={v => upd({ showBadge: v })} hint="Show/hide the badge text above heading" />
         <TF label="Button text" value={s.ctaLabel ?? 'Shop Now'} onChange={v => upd({ ctaLabel: v })} />
         <TF label="Button link" value={s.ctaUrl ?? '#products'} onChange={v => upd({ ctaUrl: v })} />
         <SGroup label="STYLE" />

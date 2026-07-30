@@ -5,6 +5,12 @@ import { Instagram, Twitter, Youtube, Music2, MessageCircle } from 'lucide-react
 import type { ProductCardData } from '@/themes/types';
 import { ProductModal } from './ProductModal';
 
+interface CustomLink {
+  id: string;
+  label: string;
+  url: string;
+}
+
 interface LinkBioConfig {
   avatarUrl: string | null;
   name: string;
@@ -14,6 +20,8 @@ interface LinkBioConfig {
   backgroundType: 'solid' | 'gradient' | 'image' | 'pattern';
   backgroundValue: string;
   productVisibility: Record<string, boolean>;
+  customLinks?: CustomLink[];
+  productOrder?: string[];
 }
 
 interface LinkBioPageProps {
@@ -64,6 +72,8 @@ export function LinkBioPage({ config, products, linkBio }: LinkBioPageProps) {
     backgroundType: raw.backgroundType || ('solid' as const),
     backgroundValue: raw.backgroundValue || '#0A0A0A',
     productVisibility: raw.productVisibility ?? {},
+    customLinks: Array.isArray(raw.customLinks) ? raw.customLinks : [],
+    productOrder: Array.isArray(raw.productOrder) ? raw.productOrder : [],
   };
 
   const displayType = bio.displayType || 'button';
@@ -75,8 +85,14 @@ export function LinkBioPage({ config, products, linkBio }: LinkBioPageProps) {
   const textColor3 = isLightBg ? '#94a3b8' : 'rgba(255,255,255,0.4)';
 
   const visibleProducts = useMemo(() => {
-    return products.filter(p => bio.productVisibility?.[p.id] !== false);
-  }, [products, bio.productVisibility]);
+    const filtered = products.filter(p => bio.productVisibility?.[p.id] !== false);
+    if (bio.productOrder && bio.productOrder.length > 0) {
+      const ordered = bio.productOrder.map(id => filtered.find(p => p.id === id)).filter(Boolean) as typeof filtered;
+      const remaining = filtered.filter(p => !bio.productOrder!.includes(p.id));
+      return [...ordered, ...remaining];
+    }
+    return filtered;
+  }, [products, bio.productVisibility, bio.productOrder]);
 
   const bgStyle: React.CSSProperties = bgType === 'image' ? { backgroundColor: '#111' } :
     bgType === 'pattern' ? { backgroundColor: '#111' } :
@@ -262,6 +278,45 @@ export function LinkBioPage({ config, products, linkBio }: LinkBioPageProps) {
                     {config.currency === 'NGN' ? '₦' : '$'}{p.price.toLocaleString()}
                   </span>
                 </button>
+              );
+            })}
+            {bio.customLinks?.filter(cl => cl.label && cl.url).map(cl => {
+              const linkStyle: React.CSSProperties = displayType === 'minimal' ? {
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                width: '100%', padding: '10px 4px',
+                border: 'none', borderBottom: `1px solid ${isLightBg ? '#e2e8f0' : 'rgba(255,255,255,0.08)'}`,
+                background: 'transparent', cursor: 'pointer', textAlign: 'left',
+              } : displayType === 'callout' ? {
+                display: 'flex', alignItems: 'center', gap: 12,
+                width: '100%', padding: 12,
+                borderRadius: 16, border: 'none',
+                background: isLightBg ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.08)',
+                cursor: 'pointer', textAlign: 'left',
+                backdropFilter: isLightBg ? 'none' : 'blur(10px)',
+              } : {
+                display: 'flex', alignItems: 'center', gap: 10,
+                width: '100%', padding: '10px 16px',
+                borderRadius: 100, border: 'none',
+                background: isLightBg ? '#fff' : 'rgba(255,255,255,0.12)',
+                color: isLightBg ? '#0f172a' : '#fff',
+                cursor: 'pointer', textAlign: 'left',
+                boxShadow: isLightBg ? '0 2px 8px rgba(0,0,0,0.06)' : 'none',
+                transition: 'all 0.15s',
+              };
+
+              return (
+                <a key={cl.id} href={cl.url} target="_blank" rel="noopener noreferrer"
+                  style={linkStyle}
+                  onMouseEnter={e => { if (displayType !== 'minimal') e.currentTarget.style.transform = 'scale(1.02)'; }}
+                  onMouseLeave={e => { if (displayType !== 'minimal') e.currentTarget.style.transform = 'scale(1)'; }}
+                >
+                  <span style={{ flex: 1, fontSize: '0.85rem', fontWeight: 600 }}>{cl.label}</span>
+                  {displayType !== 'minimal' && (
+                    <span style={{ fontSize: '0.82rem', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                      Open ↗
+                    </span>
+                  )}
+                </a>
               );
             })}
           </div>

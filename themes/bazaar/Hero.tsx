@@ -5,16 +5,19 @@ import type { ThemeHeroProps } from '../types';
 
 const poppins = "'Poppins', sans-serif";
 
-export function BazaarHero({ storeName, tagline, logoUrl, ctaLabel = 'Shop Now', ctaUrl = '#products', backgroundImage, textAlign = 'left', buttonStyle }: ThemeHeroProps) {
+export function BazaarHero({ storeName, tagline, ctaLabel = 'Shop Now', ctaUrl = '#products', backgroundImage, textAlign = 'left', buttonStyle, bgColor, bodyTextColor }: ThemeHeroProps) {
   const bgStyle = backgroundImage
     ? { backgroundImage: `url(${backgroundImage})`, backgroundSize: 'cover' as const, backgroundPosition: 'center' as const }
     : {};
+  const heroBg = bgColor || 'linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 40%, #F0FDF4 100%)';
+  const textMain = bodyTextColor || '#064E3B';
+  const textMuted = bodyTextColor ? `${bodyTextColor}bb` : '#047857';
 
   return (
     <section style={{
       position: 'relative', padding: '72px 5%', overflow: 'hidden',
-      background: backgroundImage ? undefined : 'linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 40%, #F0FDF4 100%)',
-      color: '#064E3B', fontFamily: poppins, ...bgStyle,
+      background: backgroundImage ? undefined : heroBg,
+      color: textMain, fontFamily: poppins, ...bgStyle,
     }}>
       {backgroundImage && (
         <div style={{
@@ -46,24 +49,11 @@ export function BazaarHero({ storeName, tagline, logoUrl, ctaLabel = 'Shop Now',
         alignItems: textAlign === 'center' ? 'center' : textAlign === 'right' ? 'flex-end' : 'flex-start',
         gap: 14, textAlign,
       }}>
-        {logoUrl && (
-          <div style={{
-            background: '#FFFFFF', borderRadius: 14, padding: 6,
-            display: 'inline-flex', marginBottom: 6,
-            boxShadow: '0 4px 16px rgba(5,150,105,0.12)',
-            border: '2px solid #D1FAE5',
-          }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={logoUrl} alt={storeName}
-              style={{ width: 52, height: 52, borderRadius: 10, objectFit: 'cover' }} />
-          </div>
-        )}
-
         <h1 style={{
           fontWeight: 800,
           fontSize: 'clamp(2rem, 4.5vw, 3.4rem)',
           letterSpacing: '-0.03em', lineHeight: 1.1,
-          color: backgroundImage ? '#FFFFFF' : '#064E3B', margin: 0,
+          color: backgroundImage ? '#FFFFFF' : textMain, margin: 0,
         }}>
           {storeName}
         </h1>
@@ -71,7 +61,7 @@ export function BazaarHero({ storeName, tagline, logoUrl, ctaLabel = 'Shop Now',
         {tagline && (
           <p style={{
             fontWeight: 500, fontSize: '1.05rem',
-            color: backgroundImage ? 'rgba(255,255,255,0.92)' : '#047857',
+            color: backgroundImage ? 'rgba(255,255,255,0.92)' : textMuted,
             lineHeight: 1.55, maxWidth: 520, margin: 0,
           }}>{tagline}</p>
         )}
@@ -92,32 +82,6 @@ export function BazaarHero({ storeName, tagline, logoUrl, ctaLabel = 'Shop Now',
             onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = backgroundImage ? '0 6px 24px rgba(0,0,0,0.18)' : '0 6px 20px rgba(5,150,105,0.4)'; }}
             onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = backgroundImage ? '0 4px 16px rgba(0,0,0,0.12)' : '0 4px 14px rgba(5,150,105,0.3)'; }}
           >{ctaLabel}</a>
-        </div>
-
-        {/* Badges */}
-        <div style={{
-          display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 8,
-        }}>
-          <span style={{
-            display: 'inline-flex', alignItems: 'center', gap: 6,
-            padding: '7px 14px', borderRadius: 10,
-            background: backgroundImage ? 'rgba(255,255,255,0.15)' : 'rgba(5,150,105,0.08)',
-            fontSize: '0.78rem', fontWeight: 600,
-            color: backgroundImage ? '#FFFFFF' : '#047857',
-            backdropFilter: backgroundImage ? 'blur(4px)' : undefined,
-          }}>
-            📦 Free Delivery
-          </span>
-          <span style={{
-            display: 'inline-flex', alignItems: 'center', gap: 6,
-            padding: '7px 14px', borderRadius: 10,
-            background: backgroundImage ? 'rgba(255,255,255,0.15)' : 'rgba(249,115,22,0.08)',
-            fontSize: '0.78rem', fontWeight: 600,
-            color: backgroundImage ? '#FFFFFF' : '#C2410C',
-            backdropFilter: backgroundImage ? 'blur(4px)' : undefined,
-          }}>
-            💬 WhatsApp Us
-          </span>
         </div>
       </div>
     </section>

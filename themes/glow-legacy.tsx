@@ -105,19 +105,12 @@ export function GlowCollectionCard({ collection, storeSlug }: ThemeCollectionCar
   );
 }
 
-export function GlowHero({ storeName, tagline, logoUrl, primaryColor, secondaryColor, ctaLabel, ctaUrl, backgroundImage }: ThemeHeroProps) {
+export function GlowHero({ storeName, tagline, primaryColor, secondaryColor, ctaLabel, ctaUrl, backgroundImage }: ThemeHeroProps) {
   const bg = backgroundImage
     ? { backgroundImage: `url(${backgroundImage})`, backgroundSize: 'cover', backgroundPosition: 'center' }
     : { background: `linear-gradient(145deg, ${primaryColor || '#FAF5EF'} 0%, ${secondaryColor || '#F5E6D3'} 100%)` };
   return (
     <section style={{ borderRadius: 28, padding: '50px 40px', ...bg, position: 'relative' }}>
-      {logoUrl && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={logoUrl} alt={storeName} style={{ width: 48, height: 48, borderRadius: 14, objectFit: 'cover', marginBottom: 18 }} />
-      )}
-      <p style={{ fontSize: '0.7rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#92400E', fontWeight: 700, marginBottom: 10 }}>
-        ✦ Natural &amp; Handcrafted
-      </p>
       <h1 style={{ fontFamily: '"Cormorant Garamond","Playfair Display",serif', color: '#1C0A00', fontSize: 'clamp(1.8rem, 5vw, 3rem)', fontWeight: 700, lineHeight: 1.15, letterSpacing: '-0.02em' }}>
         {storeName}
       </h1>

@@ -110,7 +110,7 @@ export function LuxeCollectionCard({ collection, storeSlug }: ThemeCollectionCar
   );
 }
 
-export function LuxeHero({ storeName, tagline, logoUrl, primaryColor, ctaLabel, ctaUrl, backgroundImage }: ThemeHeroProps) {
+export function LuxeHero({ storeName, tagline, primaryColor, ctaLabel, ctaUrl, backgroundImage }: ThemeHeroProps) {
   const bg = backgroundImage ? { backgroundImage: `url(${backgroundImage})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {};
   return (
     <section style={{
@@ -118,13 +118,6 @@ export function LuxeHero({ storeName, tagline, logoUrl, primaryColor, ctaLabel, 
       borderBottom: '1px solid #2A2A2A', display: 'flex', flexDirection: 'column', gap: 14, ...bg,
     }}>
       <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(201,168,76,0.08) 0%, transparent 60%)', pointerEvents: 'none' }} />
-      {logoUrl && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={logoUrl} alt={storeName} style={{ width: 56, height: 56, borderRadius: 4, objectFit: 'cover', marginBottom: 8, position: 'relative' }} />
-      )}
-      <p style={{ fontSize: '0.65rem', letterSpacing: '0.22em', textTransform: 'uppercase', color: '#C9A84C', marginBottom: 8, fontWeight: 500, position: 'relative' }}>
-        New Collection
-      </p>
       <h1 style={{ fontFamily: '"Playfair Display", Georgia, serif', fontStyle: 'italic', fontSize: 'clamp(2.5rem, 6vw, 4.5rem)', fontWeight: 400, letterSpacing: '-0.01em', lineHeight: 1.1, color: '#F5F0E8', position: 'relative' }}>
         {storeName}
       </h1>
