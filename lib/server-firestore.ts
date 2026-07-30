@@ -1,5 +1,5 @@
 import { firebaseConfig } from '@/lib/firebase/config';
-import { isAdminInitialized, getAdminDb, getAdminStorage } from './firebase-admin';
+import { isAdminInitialized, getAdminDb, getAdminStorage, admin } from './firebase-admin';
 import { FieldValue as AdminFieldValue, Timestamp as AdminTimestamp } from 'firebase-admin/firestore';
 export { isAdminInitialized };
 
