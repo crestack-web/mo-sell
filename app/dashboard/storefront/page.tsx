@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { THEMES, getThemeType } from '@/themes/registry';
 import { useSell } from '@/context/SellContext';
@@ -147,10 +147,17 @@ const s = {
 
 export default function StorefrontPage() {
   const router = useRouter();
-  const { user, storeConfig, showToast } = useSell();
+  const { user, storeConfig, showToast, navigateTo } = useSell();
   const currentTheme = (storeConfig?.theme ?? 'luxe') as string;
 
-  const handleCustomize = async (themeId: string) => {
+  // Link-style themes go directly to the link-in-bio editor
+  useEffect(() => {
+    if (storeConfig && getThemeType(currentTheme) === 'link-style') {
+      navigateTo('link-in-bio');
+    }
+  }, [storeConfig, currentTheme, navigateTo]);
+
+  const handleCustomize = (themeId: string) => {
     const type = getThemeType(themeId);
     if (type === 'link-style') {
       router.push('/dashboard/link-in-bio');
@@ -159,8 +166,8 @@ export default function StorefrontPage() {
     }
   };
 
-  const handleApplyTheme = async (themeId: string) => {
-    if (!user?.businessId || themeId === currentTheme) return;
+  const handleApplyAndCustomize = async (themeId: string) => {
+    if (!user?.businessId) return;
     try {
       const { firestore } = initializeFirebase();
       await setDoc(
@@ -168,9 +175,9 @@ export default function StorefrontPage() {
         { theme: themeId, updatedAt: serverTimestamp() },
         { merge: true }
       );
-      showToast(`Switched to "${THEMES.find(t => t.id === themeId)?.name}"`, 'success');
+      handleCustomize(themeId);
     } catch {
-      showToast('Failed to switch theme', 'error');
+      showToast('Failed to apply theme', 'error');
     }
   };
 
@@ -242,20 +249,12 @@ export default function StorefrontPage() {
                       Customize
                     </button>
                   ) : (
-                    <>
-                      <button
-                        style={s.btnPrimary}
-                        onClick={() => handleApplyTheme(t.id)}
-                      >
-                        Use Theme
-                      </button>
-                      <button
-                        style={s.btnSecondary}
-                        onClick={() => handleCustomize(t.id)}
-                      >
-                        Preview & Customize
-                      </button>
-                    </>
+                    <button
+                      style={s.btnPrimary}
+                      onClick={() => handleApplyAndCustomize(t.id)}
+                    >
+                      Preview & Customize
+                    </button>
                   )}
                 </div>
               </div>
