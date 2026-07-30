@@ -23,6 +23,7 @@ interface Props {
   currency: string;
   shippingZones: ShippingZone[];
   pickupLocations: PickupLocation[];
+  whopEnabled?: boolean;
 }
 
 function fmt(n: number, currency: string) {
@@ -33,7 +34,7 @@ function fmt(n: number, currency: string) {
 type DeliveryOption = 'delivery' | 'pickup';
 
 export function CheckoutForm({
-  storeSlug, businessId, currency, shippingZones, pickupLocations,
+  storeSlug, businessId, currency, shippingZones, pickupLocations, whopEnabled,
 }: Props) {
   const { items, subtotal, clearCart } = useCart();
   const router = useRouter();
@@ -48,6 +49,7 @@ export function CheckoutForm({
   const [selectedZoneId, setSelectedZoneId] = useState(shippingZones[0]?.id ?? '');
   const [submitting,     setSubmitting]     = useState(false);
   const [error,          setError]          = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<'paystack' | 'whop'>(currency === 'NGN' ? 'paystack' : 'whop');
 
   const selectedZone = shippingZones.find(z => z.id === selectedZoneId);
   const shippingCost = deliveryOption === 'delivery' ? (selectedZone?.flatRate ?? 0) : 0;
@@ -80,50 +82,66 @@ export function CheckoutForm({
         lineTotal:   item.price * item.quantity,
       }));
 
-      const res = await fetch('/api/store/checkout/initiate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          storeSlug, businessId,
-          lineItems,
-          customerName:    name.trim(),
-          customerEmail:   email.trim(),
-          customerPhone:   phone.trim(),
-          deliveryOption,
-          shippingAddress: deliveryOption === 'delivery' ? address.trim() : null,
-          shippingZoneId:  deliveryOption === 'delivery' ? selectedZoneId : null,
-          shippingCost,
-          subtotal,
-          total,
-        }),
-      });
+      const baseBody = {
+        storeSlug, businessId,
+        lineItems,
+        customerName:    name.trim(),
+        customerEmail:   email.trim(),
+        customerPhone:   phone.trim(),
+        deliveryOption,
+        shippingAddress: deliveryOption === 'delivery' ? address.trim() : null,
+        shippingZoneId:  deliveryOption === 'delivery' ? selectedZoneId : null,
+        shippingCost,
+        subtotal,
+        total,
+      };
 
-      const data = await res.json() as { paystackUrl?: string; error?: string; sessionId?: string };
+      if (paymentMethod === 'whop' && whopEnabled) {
+        const res = await fetch('/api/store/checkout/initiate-whop', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(baseBody),
+        });
 
-      if (!res.ok || !data.paystackUrl) {
-        setError(data.error ?? 'Failed to initiate payment. Please try again.');
-        return;
+        const data = await res.json() as { sessionId?: string; planId?: string; returnUrl?: string; error?: string };
+
+        if (!res.ok || !data.planId) {
+          setError(data.error ?? 'Failed to initiate Whop payment.');
+          return;
+        }
+
+        sessionStorage.setItem(`mo_checkout_${storeSlug}`, data.sessionId ?? '');
+        clearCart();
+        window.location.href = `https://whop.com/checkout/${data.planId}?return_url=${encodeURIComponent(data.returnUrl ?? '')}`;
+      } else {
+        const res = await fetch('/api/store/checkout/initiate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(baseBody),
+        });
+
+        const data = await res.json() as { paystackUrl?: string; error?: string; sessionId?: string };
+
+        if (!res.ok || !data.paystackUrl) {
+          setError(data.error ?? 'Failed to initiate payment.');
+          return;
+        }
+
+        sessionStorage.setItem(`mo_checkout_${storeSlug}`, data.sessionId ?? '');
+        fetch('/api/store/analytics/event', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ eventType: 'checkout_initiated', storeSlug, businessId, pageType: 'checkout' }),
+        }).catch(() => {});
+        clearCart();
+        window.location.href = data.paystackUrl;
       }
-
-      // Store sessionId for the pending page
-      sessionStorage.setItem(`mo_checkout_${storeSlug}`, data.sessionId ?? '');
-
-      // Fire analytics
-      fetch('/api/store/analytics/event', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ eventType: 'checkout_initiated', storeSlug, businessId, pageType: 'checkout' }),
-      }).catch(() => {});
-
-      // Redirect to Paystack
-      clearCart();
-      window.location.href = data.paystackUrl;
     } catch {
       setError('Something went wrong. Please try again.');
     } finally {
       setSubmitting(false);
     }
-  }, [name, email, phone, address, deliveryOption, selectedZoneId, shippingCost, subtotal, total, items, storeSlug, businessId, clearCart]);
+  }, [name, email, phone, address, deliveryOption, selectedZoneId, shippingCost, subtotal, total, items, storeSlug, businessId, clearCart, paymentMethod, whopEnabled]);
 
   if (items.length === 0) {
     return (
@@ -279,6 +297,49 @@ export function CheckoutForm({
         </div>
       )}
 
+      {whopEnabled && (
+        <div style={cardStyle}>
+          <p style={sectionTitle}>4. Payment method</p>
+          <div style={{ display: 'flex', gap: 10 }}>
+            {currency === 'NGN' && (
+              <button
+                type="button"
+                onClick={() => setPaymentMethod('paystack')}
+                style={{
+                  flex: 1, padding: '12px', borderRadius: 8, cursor: 'pointer',
+                  border: `2px solid ${paymentMethod === 'paystack' ? 'var(--sf-primary)' : 'var(--sf-border)'}`,
+                  background: paymentMethod === 'paystack' ? 'rgba(14,165,233,0.06)' : 'var(--sf-bg)',
+                  fontWeight: 600, fontSize: '0.875rem',
+                  color: paymentMethod === 'paystack' ? 'var(--sf-primary)' : 'var(--sf-text-2)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                }}
+              >
+                💳 Paystack (Local — recommended)
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setPaymentMethod('whop')}
+              style={{
+                flex: 1, padding: '12px', borderRadius: 8, cursor: 'pointer',
+                border: `2px solid ${paymentMethod === 'whop' ? 'var(--sf-primary)' : 'var(--sf-border)'}`,
+                background: paymentMethod === 'whop' ? 'rgba(14,165,233,0.06)' : 'var(--sf-bg)',
+                fontWeight: 600, fontSize: '0.875rem',
+                color: paymentMethod === 'whop' ? 'var(--sf-primary)' : 'var(--sf-text-2)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              }}
+            >
+              🌍 Whop (International)
+            </button>
+          </div>
+          {paymentMethod === 'whop' && (
+            <p style={{ fontSize: '0.75rem', color: 'var(--sf-text-3)', margin: '8px 0 0' }}>
+              Pay with credit/debit card, Apple Pay, crypto, and more. Settlement: ~7 business days.
+            </p>
+          )}
+        </div>
+      )}
+
       <button
         type="submit"
         disabled={submitting}
@@ -299,7 +360,7 @@ export function CheckoutForm({
           </>
         ) : (
           <>
-            Pay {fmt(total, currency)} with Paystack
+            Pay {fmt(total, currency)} {paymentMethod === 'whop' ? 'with Whop' : 'with Paystack'}
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <line x1="5" y1="12" x2="19" y2="12"/>
               <polyline points="12 5 19 12 12 19"/>
@@ -309,7 +370,7 @@ export function CheckoutForm({
       </button>
 
       <p style={{ textAlign: 'center', fontSize: '0.75rem', color: 'var(--sf-text-3)' }}>
-        🔒 Secured by Paystack · Your payment info is never stored on this site
+        🔒 Secured by {paymentMethod === 'whop' ? 'Whop' : 'Paystack'} · Your payment info is never stored on this site
       </p>
 
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>

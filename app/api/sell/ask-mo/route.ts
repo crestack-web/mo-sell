@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { getServerFirestore as getAdminDb, getServerStorage as getAdminStorage } from '@/lib/server-firestore';
+import { getServerFirestore as getAdminDb, getServerStorage as getAdminStorage, FieldValue } from '@/lib/server-firestore';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+import { getTokenCost, TOKEN_DOC_PATH, TOKEN_BALANCE_FIELD, ASK_MO_COMMISSION_RATE, ASK_MO_COMMISSION_FIELD } from '@/lib/ask-mo-tokens';
 
 const MODELS = ['gemini-2.5-flash', 'gemini-flash-latest', 'gemini-2.5-pro'];
 
@@ -125,6 +126,12 @@ RULES FOR edit_product:
 - Set fields to null if the user doesn't want to change them
 - If editing pdfContent, include the COMPLETE updated pdfContent with ALL chapters
 - After editing, the PDF will be regenerated automatically
+
+RULES FOR TWEAKING A PROPOSED PRODUCT (no productId yet, pre-approval):
+- When the user asks to tweak/modify a proposed ebook that hasn't been approved yet, return a new new_product block with the COMPLETE updated pdfContent containing ALL chapters
+- Your text answer MUST be very short (1-2 sentences confirming the change)
+- NEVER include the full ebook chapters in your text answer — put all content in the new_product JSON block
+- The full new_product block replaces the old proposal entirely
 
 RULES FOR store_update:
 - Only include fields the user wants to change
@@ -522,6 +529,7 @@ async function generatePdf(
 
 function parseActionBlocks(raw: string): {
   answer: string;
+  raw: string;
   storeUpdate: Record<string, unknown> | null;
   newProduct: Record<string, unknown> | null;
   editProduct: Record<string, unknown> | null;
@@ -559,7 +567,7 @@ function parseActionBlocks(raw: string): {
     .replace(/```edit_product[\s\S]+?```/g, '')
     .trim();
 
-  return { answer, storeUpdate, newProduct, editProduct };
+  return { answer, raw, storeUpdate, newProduct, editProduct };
 }
 
 // ── Helper: generate + upload PDF ────────────────────────────────────────────
@@ -635,6 +643,8 @@ async function createProductInFirestore(
     deliveryNote: null,
     compareAtPrice: null,
     lowStockThreshold: 10,
+    createdByAskMo: true,
+    [ASK_MO_COMMISSION_FIELD]: ASK_MO_COMMISSION_RATE,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
@@ -730,11 +740,50 @@ CURRENT STORE CONFIG:
       }
     } catch { /* non-fatal */ }
 
+    // ── Token verification ──
+    const hasMedia = attachments.length > 0;
+    const minCost = getTokenCost(hasMedia, false, false);
+
+    const db2 = getAdminDb();
+    const cfgSnap = await db2.doc(TOKEN_DOC_PATH(businessId)).get();
+    const cfgData = cfgSnap.data() ?? {};
+    const currentBalance = (cfgData[TOKEN_BALANCE_FIELD] as number) ?? 0;
+
+    if (currentBalance < minCost) {
+      return NextResponse.json({
+        error: 'Insufficient tokens',
+        details: `You need at least ${minCost} tokens. Balance: ${currentBalance}. Purchase more tokens to continue using Ask MO.`,
+        tokenError: true,
+        balance: currentBalance,
+        required: minCost,
+      }, { status: 403 });
+    }
+
+    // ── AI call ──
     const fullPrompt = SELL_MO_SYSTEM_PROMPT + storeContext + productContext + collectionContext;
 
     const genAI = new GoogleGenerativeAI(apiKey);
     const raw = await callWithFallback(genAI, fullPrompt, conversationHistory, message, attachments);
     const { answer, storeUpdate, newProduct, editProduct } = parseActionBlocks(raw);
+
+    // ── Token deduction ──
+    const isEbookCreate = !!((newProduct as any)?.pdfContent?.chapters?.length);
+    const isEbookEdit = !!((editProduct as any)?.pdfContent?.chapters?.length);
+    const actualCost = getTokenCost(hasMedia, isEbookCreate, isEbookEdit);
+
+    if (currentBalance < actualCost) {
+      return NextResponse.json({
+        error: 'Insufficient tokens for ebook creation',
+        details: `Ebook actions cost ${actualCost} tokens. Your balance: ${currentBalance}. Purchase more tokens and try again.`,
+        tokenError: true,
+        balance: currentBalance,
+        required: actualCost,
+      }, { status: 403 });
+    }
+
+    await db2.doc(TOKEN_DOC_PATH(businessId)).set({
+      [TOKEN_BALANCE_FIELD]: FieldValue.increment(-actualCost),
+    }, { merge: true });
 
     // ── Product flow: proposals (not yet approved) ──
     // If the AI returns a newProduct with pdfContent, return it as a proposal
@@ -816,6 +865,7 @@ CURRENT STORE CONFIG:
 
     return NextResponse.json({
       answer,
+      raw,
       storeUpdate,
       newProduct: createdProduct,
       editProduct: editedProduct,

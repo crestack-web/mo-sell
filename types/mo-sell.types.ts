@@ -372,6 +372,8 @@ export interface IntegrationBridgeParams {
   businessId: string;
   sessionId: string;
   paystackData: PaystackTransactionData;
+  /** Settlement date ISO string (e.g. 7 days from now for Whop payments) */
+  settlementDate?: string;
 }
 
 export interface IntegrationBridgeResult {

@@ -93,6 +93,7 @@ export async function GET(
       customDomain:        data.customDomain ?? null,
       customDomainStatus:  data.customDomainStatus ?? 'pending',
       paystackPublicKey:   data.paystackPublicKey ?? '',
+      whopEnabled:         data.whopEnabled === true,
     };
 
     return NextResponse.json(publicConfig, {

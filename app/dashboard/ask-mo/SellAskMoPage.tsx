@@ -9,6 +9,12 @@ import styles from './SellAskMoPage.module.css';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
+interface TokenData {
+  balance: number;
+  costs: { chat: number; chatWithMedia: number; ebookCreate: number; ebookEdit: number };
+  packages: { label: string; tokens: number; price: number; popular?: boolean }[];
+}
+
 interface Attachment {
   id: string;
   type: 'image' | 'audio' | 'file';
@@ -107,6 +113,25 @@ export function SellAskMoPage() {
   const messagesRef = useRef<ChatMessage[]>([]);
   const historyRef = useRef<{ role: 'user' | 'model'; parts: { text: string }[] }[]>([]);
   const [previewEbook, setPreviewEbook] = useState<{ url: string; title: string } | null>(null);
+  const [tokenData, setTokenData] = useState<TokenData | null>(null);
+  const [showPurchaseModal, setShowPurchaseModal] = useState(false);
+  const [purchaseLoading, setPurchaseLoading] = useState(false);
+
+  // ── Fetch token data ──
+  const fetchTokenData = useCallback(async () => {
+    if (!user?.businessId) return;
+    try {
+      const res = await fetch(`/api/sell/ask-mo/tokens?businessId=${user.businessId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setTokenData(data);
+      }
+    } catch { /* non-fatal */ }
+  }, [user?.businessId]);
+
+  useEffect(() => {
+    fetchTokenData();
+  }, [fetchTokenData]);
 
   // Keep refs in sync
   messagesRef.current = messages;
@@ -379,6 +404,13 @@ export function SellAskMoPage() {
         return;
       }
 
+      // Check token balance
+      if (tokenData && tokenData.balance < (hasAttachments ? tokenData.costs.chatWithMedia : tokenData.costs.chat)) {
+        setShowPurchaseModal(true);
+        showToast('Insufficient tokens. Purchase more to continue.', 'info');
+        return;
+      }
+
       const messageText = text.trim();
       const currentAttachments = [...attachments];
       const userMsg: ChatMessage = { id: nextMsgId(), role: 'user', text: messageText, attachments: currentAttachments };
@@ -403,10 +435,23 @@ export function SellAskMoPage() {
         });
 
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || data.details || 'Failed to get response');
+        if (!res.ok) {
+          if (data.tokenError) {
+            setShowPurchaseModal(true);
+            throw new Error(data.details || 'Insufficient tokens');
+          }
+          throw new Error(data.error || data.details || 'Failed to get response');
+        }
+
+        // Refresh token balance
+        fetchTokenData();
 
         // proposedProduct = ebook content for inline review (not yet created)
         const productToShow = data.proposedProduct ?? data.newProduct ?? null;
+
+        // Use the raw response for conversation history so the AI retains
+        // full context (including JSON blocks) on follow-up turns
+        const historyText = data.raw || data.answer;
 
         const botMsg: ChatMessage = {
           id: nextMsgId(),
@@ -418,26 +463,39 @@ export function SellAskMoPage() {
           showPreview: !!(data.storeUpdate || productToShow || data.editProduct),
         };
 
-        // If an editProduct was returned for an existing product, find original and update
-        if (data.editProduct && data.editProduct.id) {
-          setMessages(prev => {
-            const updated = [...prev];
+        setMessages(prev => {
+          const updated = [...prev];
+
+          // If an editProduct was returned for an existing product, update the original card
+          if (data.editProduct && data.editProduct.id) {
             for (let i = updated.length - 1; i >= 0; i--) {
               if (updated[i].newProduct && (updated[i].newProduct as any).id === data.editProduct.id) {
                 updated[i] = { ...updated[i], newProduct: data.editProduct, showPreview: true };
                 break;
               }
             }
-            updated.push(botMsg);
-            return updated;
-          });
-        } else {
-          setMessages(prev => [...prev, botMsg]);
-        }
+          }
+
+          // If a proposedProduct came back (tweak to a pre-approval proposal),
+          // update the last message that had a proposal with pdfContent
+          if (data.proposedProduct) {
+            for (let i = updated.length - 1; i >= 0; i--) {
+              const existing = updated[i].newProduct as any;
+              if (existing?.pdfContent?.chapters?.length && !existing.digitalFileUrl) {
+                updated[i] = { ...updated[i], newProduct: data.proposedProduct, showPreview: true };
+                break;
+              }
+            }
+          }
+
+          updated.push(botMsg);
+          return updated;
+        });
+
         setConversationHistory(prev => [
           ...prev,
           userHistoryEntry,
-          { role: 'model', parts: [{ text: data.answer }] },
+          { role: 'model', parts: [{ text: historyText }] },
         ]);
       } catch (err) {
         const errMsg = err instanceof Error ? err.message : 'Something went wrong';
@@ -449,8 +507,46 @@ export function SellAskMoPage() {
         setLoading(false);
       }
     },
-    [loading, user, storeConfig, conversationHistory, attachments, showToast]
+    [loading, user, storeConfig, conversationHistory, attachments, showToast, tokenData, fetchTokenData]
   );
+
+  // ── Purchase tokens ────────────────────────────────────────────────────
+
+  const handlePurchase = useCallback(async (pkg: { label: string; tokens: number; price: number }) => {
+    if (!user?.businessId) return;
+    setPurchaseLoading(true);
+    try {
+      const res = await fetch('/api/sell/ask-mo/tokens/purchase', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          businessId: user.businessId,
+          package: pkg.label.toLowerCase(),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.authorizationUrl) throw new Error(data.error || 'Purchase failed');
+      window.location.href = data.authorizationUrl;
+    } catch (err) {
+      showToast(`Purchase failed: ${err instanceof Error ? err.message : 'Unknown error'}`, 'error');
+    } finally {
+      setPurchaseLoading(false);
+    }
+  }, [user?.businessId, showToast]);
+
+  const tokenCostLabel = useCallback(() => {
+    if (!tokenData) return '';
+    const hasMedia = attachments.length > 0;
+    const cost = hasMedia ? tokenData.costs.chatWithMedia : tokenData.costs.chat;
+    return `${cost} tokens`;
+  }, [tokenData, attachments]);
+
+  const isTokenShort = useCallback(() => {
+    if (!tokenData) return false;
+    const hasMedia = attachments.length > 0;
+    const needed = hasMedia ? tokenData.costs.chatWithMedia : tokenData.costs.chat;
+    return tokenData.balance < needed;
+  }, [tokenData, attachments]);
 
   // ── Apply store update ─────────────────────────────────────────────────
 
@@ -579,6 +675,14 @@ export function SellAskMoPage() {
             <span className={styles.headerName}>MO</span>
             <span className={styles.headerStatus}>AI Commerce Assistant</span>
           </div>
+          {tokenData && (
+            <div className={styles.tokenBadge} onClick={() => setShowPurchaseModal(true)} title={`${tokenData.balance} tokens remaining`}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"/><path d="M12 6v12"/><path d="M9 9h4a2 2 0 010 4H9"/>
+              </svg>
+              <span className={styles.tokenBalance}>{tokenData.balance}</span>
+            </div>
+          )}
           <div className={styles.headerActions}>
             <button
               className={styles.headerBtn}
@@ -890,9 +994,51 @@ export function SellAskMoPage() {
               </svg>
             </button>
           </div>
-          <p className={styles.inputHint}>MO can update your store and create products. Always review changes before publishing.</p>
+          <div className={styles.inputFooter}>
+            <p className={styles.inputHint}>MO can update your store and create products. Always review changes before publishing.</p>
+            {tokenData && (
+              <span className={styles.tokenCost} title={`Chat: ${tokenData.costs.chat} tokens, with media: ${tokenData.costs.chatWithMedia}, ebook: ${tokenData.costs.ebookCreate} | Balance: ${tokenData.balance}`}>
+                {attachments.length > 0 ? tokenData.costs.chatWithMedia : tokenData.costs.chat} tok
+              </span>
+            )}
+          </div>
         </div>
       </div>
+
+      {/* ── Purchase Tokens Modal ── */}
+      {showPurchaseModal && (
+        <>
+          <div className={styles.historyBackdrop} onClick={() => setShowPurchaseModal(false)} />
+          <div className={`${styles.historyPanel} ${styles.historyPanelOpen}`}>
+            <div className={styles.historyHeader}>
+              <span className={styles.historyTitle}>Buy Tokens</span>
+              <button className={styles.historyClose} onClick={() => setShowPurchaseModal(false)} aria-label="Close">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+            <div className={styles.historyList}>
+              {tokenData?.packages.map(pkg => (
+                <div key={pkg.label} className={`${styles.purchasePackage} ${pkg.popular ? styles.purchasePackagePopular : ''}`}>
+                  {pkg.popular && <div className={styles.purchasePackageBadge}>POPULAR</div>}
+                  <div className={styles.purchasePackageInfo}>
+                    <span className={styles.purchasePackageTokens}>{pkg.tokens.toLocaleString()} tokens</span>
+                    <span className={styles.purchasePackagePrice}>₦{pkg.price.toLocaleString()}</span>
+                  </div>
+                  <p className={styles.purchasePackageRate}>₦{(pkg.price / pkg.tokens).toFixed(2)}/token</p>
+                  <button
+                    className={styles.purchasePackageBtn}
+                    onClick={() => handlePurchase(pkg)}
+                    disabled={purchaseLoading}
+                  >
+                    {purchaseLoading ? 'Processing...' : 'Buy Now'}
+                  </button>
+                </div>
+              ))}
+              {!tokenData?.packages.length && <p className={styles.historyEmpty}>No packages available.</p>}
+            </div>
+          </div>
+        </>
+      )}
 
       {/* ── History Panel (after chat so z-index wins) ── */}
       {historyOpen && (

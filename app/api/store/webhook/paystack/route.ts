@@ -63,7 +63,29 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Missing reference' }, { status: 400 });
   }
 
-  // 3. Extract sessionId + businessId from Paystack metadata
+  // 3. Handle Ask MO token purchases
+  const paymentType = metadata?.payment_type as string | undefined;
+  if (paymentType === 'ask_mo_tokens') {
+    const bizId = metadata?.businessId as string | undefined;
+    const tokens = metadata?.tokens as number | undefined;
+
+    if (!bizId || !tokens || txn.status !== 'success') {
+      return NextResponse.json({ received: true });
+    }
+
+    try {
+      const db = getAdminDb();
+      await db.doc(`businesses/${bizId}/store/config`).set({
+        askMoTokenBalance: FieldValue.increment(tokens),
+        askMoTotalPurchased: FieldValue.increment(tokens),
+      }, { merge: true });
+      return NextResponse.json({ received: true });
+    } catch {
+      return NextResponse.json({ received: true, note: 'token_credit_pending' });
+    }
+  }
+
+  // 4. Extract sessionId + businessId from Paystack metadata
   //    (set when initiating checkout in /api/store/checkout/initiate)
   const sessionId  = metadata?.sessionId  as string | undefined;
   const businessId = metadata?.businessId as string | undefined;
@@ -75,7 +97,7 @@ export async function POST(req: NextRequest) {
   try {
     const db = getAdminDb();
 
-    // 4. Load and validate session
+    // 5. Load and validate session
     const sessionRef  = db
       .collection('businesses').doc(businessId)
       .collection('checkoutSessions').doc(sessionId);
@@ -87,30 +109,30 @@ export async function POST(req: NextRequest) {
 
     const session = sessionSnap.data() as CheckoutSession;
 
-    // 5. Idempotency — already processed by client polling
+    // 6. Idempotency — already processed by client polling
     if (session.status === 'completed') {
       return NextResponse.json({ received: true });
     }
 
-    // 6. Validate payment status from event
+    // 7. Validate payment status from event
     if (txn.status !== 'success') {
       return NextResponse.json({ received: true });
     }
 
-    // 7. Validate amount (kobo)
+    // 8. Validate amount (kobo)
     const expectedKobo = Math.round(session.total * 100);
     if (txn.amount !== expectedKobo) {
       return NextResponse.json({ error: 'Amount mismatch' }, { status: 400 });
     }
 
-    // 8. Check session hasn't expired
+    // 9. Check session hasn't expired
     const expiresAt = (session.expiresAt as { toDate?: () => Date } | undefined)?.toDate?.() ?? new Date(0);
     if (new Date() > expiresAt) {
       await sessionRef.update({ status: 'expired', updatedAt: FieldValue.serverTimestamp() });
       return NextResponse.json({ error: 'Session expired' }, { status: 410 });
     }
 
-    // 9. Run Integration Bridge (same as client-side confirm route)
+    // 10. Run Integration Bridge (same as client-side confirm route)
     await processConfirmedOrder({
       businessId,
       sessionId,
@@ -123,7 +145,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // 10. Mark session completed
+    // 11. Mark session completed
     await sessionRef.update({
       status:    'completed',
       updatedAt: FieldValue.serverTimestamp(),

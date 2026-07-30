@@ -74,7 +74,7 @@ async function getNextOrderNumber(db: ReturnType<typeof getServerFirestore>, bus
 export async function processConfirmedOrder(
   params: IntegrationBridgeParams
 ): Promise<IntegrationBridgeResult> {
-  const { businessId, sessionId, paystackData } = params;
+  const { businessId, sessionId, paystackData, settlementDate } = params;
   const db = getServerFirestore();
   const now = new Date();
   const timestamp = FieldValue.serverTimestamp();
@@ -138,6 +138,7 @@ export async function processConfirmedOrder(
       changedBy: 'system',
     }],
     integrationStatus: 'completed',
+    settlementDate: settlementDate ?? null,
     createdAt: timestamp,
     updatedAt: timestamp,
   });
@@ -297,9 +298,45 @@ export async function processConfirmedOrder(
       currency:         config.currency ?? 'NGN',
       status:           'pending',
       payoutRequestId:  null,
+      settlementDate:   settlementDate ?? null,
       createdAt:        timestamp,
       updatedAt:        timestamp,
     });
+  }
+
+  // ── Write 9: Ask MO commission (20% on AI-generated ebook sales) ────────────
+  const ASK_MO_COMMISSION_RATE = 0.20;
+  for (const item of session.lineItems) {
+    if (!item.productId) continue;
+    const prodSnap = await db
+      .collection('businesses').doc(businessId)
+      .collection('storeProducts').doc(item.productId)
+      .get();
+    if (!prodSnap.exists) continue;
+    const prodData = prodSnap.data()!;
+    if (prodData.createdByAskMo && prodData.askMoCommissionRate) {
+      const askMoAmount = Math.round(item.lineTotal * ASK_MO_COMMISSION_RATE * 100) / 100;
+      const askMoRef = db
+        .collection('businesses').doc(businessId)
+        .collection('storeEarnings').doc();
+      batch.set(askMoRef, {
+        orderId,
+        orderNumber,
+        customerName: session.customerName,
+        grossAmount: item.lineTotal,
+        commissionRate: ASK_MO_COMMISSION_RATE,
+        commissionAmount: askMoAmount,
+        netAmount: 0,
+        type: 'ask_mo_commission',
+        productId: item.productId,
+        productName: item.displayName,
+        currency: config?.currency ?? 'NGN',
+        status: 'pending',
+        payoutRequestId: null,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      });
+    }
   }
 
   // ── Commit all writes atomically ───────────────────────────────────────────

@@ -72,6 +72,7 @@ export default async function CheckoutPage({
         currency={config.currency}
         shippingZones={shippingZones as any[]}
         pickupLocations={pickupLocations}
+        whopEnabled={config.whopEnabled === true}
       />
     </div>
   );
