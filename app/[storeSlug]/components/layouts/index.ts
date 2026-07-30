@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Instagram, Twitter, Youtube, Music2, MessageCircle } from 'lucide-react';
 import type { ProductCardData } from '@/themes/types';
 
@@ -260,7 +260,7 @@ export function AtlasLayout(p: LayoutProps) {
 /* ─── 7. spark ─── Tabbed products by category */
 export function SparkLayout(p: LayoutProps) {
   const { config, bio, visibleProducts, isLightBg, textColor, textColor2, textColor3, onProductClick } = p;
-  const [tab, setTab] = React.useState('all');
+  const [tab, setTab] = useState('all');
   const categories = [...new Set(visibleProducts.map(p => p.category).filter(Boolean))];
   const filtered = tab === 'all' ? visibleProducts : visibleProducts.filter(p => p.category === tab);
   return (

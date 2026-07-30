@@ -391,6 +391,7 @@ export default async function StorefrontHomePage({
       {/* Link-style: always render LinkBioPage (handles empty products gracefully) */}
       {isLinkStyle ? (
         <LinkBioPage
+          theme={theme}
           config={{
             storeSlug,
             storeName: config.storeName,
