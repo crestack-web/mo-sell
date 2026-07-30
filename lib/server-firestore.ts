@@ -20,15 +20,50 @@ function ensureCompat() {
       compatDb = compatApp.firestore();
       compatStorage = compatApp.storage();
     } catch (e) {
-      console.error('Compat Firebase SDK initialization failed:', e);
+      console.error('[ensureCompat] Compat Firebase SDK initialization failed:', e);
     }
   }
   return { db: compatDb, storage: compatStorage };
 }
 
+/**
+ * Lazily re-attempt Firebase Admin SDK initialization.
+ * The top-level init in firebase-admin.ts may silently fail (e.g. env not yet
+ * loaded in some Next.js runtimes); this retries once when first needed.
+ */
+let _lazyAdminTried = false;
+function ensureAdmin(): boolean {
+  if (isAdminInitialized()) return true;
+  if (_lazyAdminTried) return false;
+  _lazyAdminTried = true;
+  try {
+    // Re-trigger import side-effects (already cached by Node, safe to call)
+    const admin = require('firebase-admin');
+    const projectId     = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+    const clientEmail   = process.env.FIREBASE_ADMIN_CLIENT_EMAIL;
+    const privateKeyRaw = process.env.FIREBASE_ADMIN_PRIVATE_KEY;
+    if (!projectId || !clientEmail || !privateKeyRaw) return false;
+
+    const privateKey = privateKeyRaw.replace(/\\n/g, '\n');
+    const storageBucket = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
+    if (admin.apps.length === 0) {
+      admin.initializeApp({
+        credential: admin.credential.cert({ projectId, clientEmail, privateKey }),
+        ...(storageBucket ? { storageBucket } : {}),
+      });
+    }
+    return true;
+  } catch (e) {
+    console.error('[ensureAdmin] Lazy admin init failed:', e);
+    return false;
+  }
+}
+
 export function getServerFirestore(): any {
+  // Attempt lazy re-init if top-level init failed
+  ensureAdmin();
   if (isAdminInitialized()) {
-    try { return getAdminDb(); } catch (e) { console.error('Admin DB init failed:', e); }
+    try { return getAdminDb(); } catch (e) { console.error('[getServerFirestore] Admin DB get failed:', e); }
   }
   const compat = ensureCompat();
   if (!compat.db) {

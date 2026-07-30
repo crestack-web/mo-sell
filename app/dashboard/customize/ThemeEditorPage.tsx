@@ -5,7 +5,7 @@ import { Monitor, Tablet, Smartphone, Undo2, Redo2, Settings, ChevronRight, Chev
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { initializeFirebase } from '@/lib/firebase';
 import { useSell } from '@/context/SellContext';
-import { THEMES, isCreatorTheme, getThemeType } from '@/themes/registry';
+import { isCreatorTheme, getThemeType } from '@/themes/registry';
 import { StorefrontCanvas } from '@/components/StorefrontCanvas';
 import { CartProvider } from '@/app/[storeSlug]/context/CartContext';
 import type {
@@ -314,7 +314,7 @@ function FooterSettings({ s, upd }: { s: FooterSectionSettings; upd: (p: Partial
 }
 
 export function ThemeEditorPage() {
-  const { user, storeConfig, refreshStoreConfig, showToast } = useSell();
+  const { user, storeConfig, refreshStoreConfig, showToast, navigateTo } = useSell();
 
   const [sections,  setSections]  = useState<StoreSection[]>([]);
   const [theme,     setTheme]     = useState<StorefrontTheme>('luxe');
@@ -425,6 +425,14 @@ export function ThemeEditorPage() {
     setDirty(false);
     undoStack.current = []; redoStack.current = [];
   }, [storeConfig]);
+
+  // If this is a link-style theme, redirect to the link-in-bio editor
+  useEffect(() => {
+    if (isLinkStyle) {
+      showToast('Switch to the Link-in-Bio editor for link-style themes', 'info');
+      navigateTo('link-in-bio');
+    }
+  }, [isLinkStyle, navigateTo, showToast]);
 
   useEffect(() => {
     if (!user?.businessId) return;
@@ -573,7 +581,6 @@ export function ThemeEditorPage() {
       <div className={styles.topbar}>
         <div className={styles.topbarLeft}>
           <span className={styles.topbarTitle}>Customize</span>
-          <span className={styles.themePill}>{THEMES.find(t => t.id === theme)?.name ?? theme}</span>
           {storeConfig?.storeSlug && (
             <a href={`/${storeConfig.storeSlug}`} target="_blank" rel="noopener noreferrer" className={styles.liveBadge}>
               <span className={styles.liveDot} />Live

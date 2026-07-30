@@ -67,7 +67,7 @@ export async function sendPortfolioRequestToCreator(data: PortfolioRequestData) 
           <tr><td style="padding:8px;border:1px solid #e2e8f0;font-weight:600;">Deposit Paid</td><td style="padding:8px;border:1px solid #e2e8f0;">${depositDisplay}</td></tr>
           ${data.deadline ? `<tr><td style="padding:8px;border:1px solid #e2e8f0;font-weight:600;">Deadline</td><td style="padding:8px;border:1px solid #e2e8f0;">${data.deadline}</td></tr>` : ''}
         </table>
-        <a href="${process.env.PUBLIC_APP_URL ?? 'http://localhost:3000'}/dashboard/content-hub" style="display:inline-block;padding:12px 24px;background:#0EA5E9;color:#fff;border-radius:8px;text-decoration:none;font-weight:700;">View in Dashboard</a>
+        <a href="${process.env.NEXT_PUBLIC_APP_URL ?? 'https://mo-sell.store'}/dashboard/content-hub" style="display:inline-block;padding:12px 24px;background:#0EA5E9;color:#fff;border-radius:8px;text-decoration:none;font-weight:700;">View in Dashboard</a>
         <p style="margin-top:16px;color:#64748b;font-size:0.85rem;">MO-Sell UGC Marketplace</p>
       </div>
     `,

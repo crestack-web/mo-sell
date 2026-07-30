@@ -594,3 +594,110 @@
   border-color: var(--sell-text-2, #64748b);
   color: var(--sell-text, #0f172a);
 }
+
+@media (max-width: 900px) {
+  .page {
+    flex-direction: column;
+    padding: 12px;
+    gap: 12px;
+    height: auto;
+    min-height: 100%;
+  }
+
+  .previewCol {
+    width: 100%;
+    overflow: hidden;
+  }
+
+  .phoneFrame {
+    width: 280px;
+    height: 540px;
+    margin: 0 auto;
+  }
+
+  .phoneContent {
+    padding: 24px 16px 20px;
+  }
+
+  .editorCol {
+    min-height: 0;
+  }
+
+  .editorContent {
+    padding: 16px;
+  }
+
+  .saveRow {
+    padding: 12px 16px;
+  }
+}
+
+@media (max-width: 500px) {
+  .phoneFrame {
+    width: 220px;
+    height: 420px;
+    border-radius: 28px;
+    padding: 8px;
+  }
+
+  .phoneScreen {
+    border-radius: 22px;
+  }
+
+  .phoneContent {
+    padding: 16px 10px 12px;
+  }
+
+  .pAvatar {
+    width: 64px;
+    height: 64px;
+    margin-bottom: 8px;
+  }
+
+  .pName {
+    font-size: 1rem;
+  }
+
+  .pBio {
+    font-size: 0.75rem;
+    margin-bottom: 10px;
+  }
+
+  .pSocials {
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .pSocialLink {
+    width: 32px;
+    height: 32px;
+  }
+
+  .pProducts {
+    gap: 6px;
+  }
+
+  .pButton {
+    padding: 6px 10px;
+    font-size: 0.75rem;
+  }
+
+  .pButtonThumb {
+    width: 24px;
+    height: 24px;
+  }
+
+  .pCallout {
+    padding: 6px 8px;
+    gap: 8px;
+  }
+
+  .pCalloutImg {
+    width: 40px;
+    height: 40px;
+  }
+
+  .pMinimal {
+    padding: 4px 8px;
+  }
+}

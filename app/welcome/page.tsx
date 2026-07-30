@@ -605,7 +605,7 @@ export default function SellWelcomePage() {
             </div>
             <div className="sw-features-grid">
               <FeatureCard icon="🤖" title="AI Store Setup" desc="MO builds your entire store — name, theme, products, and collections — from a single conversation." />
-              <FeatureCard icon="💳" title="Paystack Built-in" desc="Accept cards, bank transfers, and USSD. Funds settle directly to your bank. No third-party setup." />
+              <FeatureCard icon="💳" title="Local & Global Payments" desc="Paystack for local Nigerian payments (cards, transfers, USSD) + Whop for international customers. Both built-in." />
               <FeatureCard icon="📦" title="Inventory Sync" desc="Physical, digital, or service — every sale automatically updates your stock and fulfilment status." />
               <FeatureCard icon="📊" title="Real-time Analytics" desc="See visitors, conversions, top products, and revenue trends at a glance on your dashboard." />
               <FeatureCard icon="🚚" title="Shipping & Delivery" desc="Flat-rate, free, or pickup — set shipping rules per region. Digital products deliver instantly." />

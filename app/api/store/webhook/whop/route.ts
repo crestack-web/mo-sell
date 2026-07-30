@@ -39,9 +39,11 @@ export async function POST(req: NextRequest) {
         }
 
         const total = session.total as number;
+        const totalCents = Math.round(total * 100);
         const paymentAmount = payment.amount as number;
 
-        if (paymentAmount < total) {
+        // payment.amount is in cents (USD), session.total is in dollars
+        if (paymentAmount < totalCents) {
           return new Response('Payment amount insufficient', { status: 200 });
         }
 
@@ -53,7 +55,7 @@ export async function POST(req: NextRequest) {
           paystackData: {
             reference: payment.id,
             status: 'success',
-            amount: Math.round(paymentAmount * 100),
+            amount: paymentAmount,
             currency: payment.currency ?? 'usd',
             metadata: {
               ...metadata,

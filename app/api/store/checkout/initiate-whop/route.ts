@@ -69,12 +69,12 @@ export async function POST(req: NextRequest) {
     });
 
     // Create Whop checkout configuration
-    const baseUrl = process.env.PUBLIC_APP_URL ?? 'http://localhost:3000';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://mo-sell.store';
 
     const checkoutConfig = await whopClient.checkoutConfigurations.create({
       account_id: whopCompanyId,
       plan: {
-        initial_price: total,
+        initial_price: Math.round(total * 100),
         plan_type: 'one_time',
         currency: 'usd',
       },

@@ -29,7 +29,7 @@ async function sendOrderConfirmationEmail(params: {
 }): Promise<void> {
   // Uses the existing sendgrid pattern in src/services/email/
   try {
-    await fetch(`${process.env.PUBLIC_APP_URL ?? 'http://localhost:3000'}/api/email/order-confirmation`, {
+    await fetch(`${process.env.NEXT_PUBLIC_APP_URL ?? 'https://mo-sell.store'}/api/email/order-confirmation`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(params),
@@ -47,7 +47,7 @@ async function sendNewOrderEmail(params: {
   storeName: string;
 }): Promise<void> {
   try {
-    await fetch(`${process.env.PUBLIC_APP_URL ?? 'http://localhost:3000'}/api/email/new-order`, {
+    await fetch(`${process.env.NEXT_PUBLIC_APP_URL ?? 'https://mo-sell.store'}/api/email/new-order`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(params),
@@ -100,7 +100,7 @@ export async function processConfirmedOrder(
   const storeLinkBase =
     config?.customDomainStatus === 'verified' && config?.customDomain
       ? `https://${config.customDomain}`
-      : `${process.env.PUBLIC_APP_URL ?? 'http://localhost:3000'}/${config?.storeSlug ?? ''}`;
+      : `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://mo-sell.store'}/${config?.storeSlug ?? ''}`;
 
   // 3. Derive order total from Paystack (source of truth: kobo → NGN)
   const verifiedTotal = paystackData.amount / 100;

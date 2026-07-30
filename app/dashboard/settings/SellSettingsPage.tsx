@@ -5,7 +5,7 @@ import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { initializeFirebase } from '@/lib/firebase';
 import { useSell } from '@/context/SellContext';
-import { THEMES } from '@/themes/registry';
+import { THEMES, getThemeType } from '@/themes/registry';
 import type { StorefrontTheme } from '@/types/mo-sell.types';
 import { StorefrontCanvas } from '@/components/StorefrontCanvas';
 import styles from './SellSettingsPage.module.css';
@@ -602,7 +602,7 @@ export function SellSettingsPage() {
             </div>
             <button
               className={`${styles.btn} ${styles.btnSecondary}`}
-              onClick={() => navigateTo('theme-editor')}
+              onClick={() => navigateTo(getThemeType(theme) === 'link-style' ? 'link-in-bio' : 'theme-editor')}
               style={{ marginLeft: 'auto' }}
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}>
