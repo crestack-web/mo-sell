@@ -268,6 +268,7 @@ export function LinkInBioEditor() {
         <div className={styles.phoneFrame}>
           <div className={styles.phoneScreen} style={{
             background: bgType === 'image' ? '#111' : bgType === 'gradient' ? bgValue : bgValue,
+            ...themeVars,
           }}>
             {bgType === 'image' && bgValue && (
               // eslint-disable-next-line @next/next/no-img-element
@@ -523,6 +524,25 @@ export function LinkInBioEditor() {
           {tab === 'design' && (
             <div className={styles.tabContent}>
               <div className={styles.field}>
+                <label className={styles.fLabel}>Theme</label>
+                <div className={styles.themeGrid}>
+                  {THEMES.filter(t => t.type === 'link-style').map(t => {
+                    const isActive = localTheme === t.id;
+                    return (
+                      <button
+                        key={t.id}
+                        className={[styles.themeOption, isActive ? styles.themeOptionActive : ''].join(' ')}
+                        onClick={() => handleThemeChange(t.id)}
+                      >
+                        <span className={styles.themeSwatch} style={{ background: t.previewAccent }} />
+                        <span className={styles.themeOptName}>{t.name}</span>
+                        {isActive && <span className={styles.themeCheck}>✓</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <div className={styles.field}>
                 <label className={styles.fLabel}>Background Type</label>
                 <div className={styles.displayOptions}>
                   {(['solid', 'gradient', 'image', 'pattern'] as BgType[]).map(b => (
@@ -577,4 +597,26 @@ export function LinkInBioEditor() {
         </div>
 
         <div className={styles.saveRow}>
-       
+          <button
+            className={styles.saveBtn}
+            onClick={handleSave}
+            disabled={saving || !dirty}
+          >
+            {saving ? 'Saving...' : 'Save Changes'}
+          </button>
+          <button
+            className={styles.viewBtn}
+            onClick={() => {
+              if (storeConfig?.storeSlug) {
+                window.open(`/${storeConfig.storeSlug}`, '_blank');
+              }
+            }}
+          >
+            <Eye size={16} /> View Page
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+        
