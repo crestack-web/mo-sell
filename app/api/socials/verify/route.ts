@@ -4,7 +4,7 @@ const TIKTOK_OEMBED = 'https://www.tiktok.com/oembed?url=';
 const IG_OEMBED = 'https://graph.facebook.com/v25.0/instagram_oembed?url=';
 const MEDIA_SEGMENTS = ['p', 'reel', 'tv', 'stories', 'explore'];
 
-const STATS_ACTOR = 'automation-lab/social-media-stats-checker';
+const STATS_ACTOR = 'automation-lab~social-media-stats-checker';
 
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36';
 
