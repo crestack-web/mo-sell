@@ -215,6 +215,12 @@ export function UGCMarketplacePage() {
     marginBottom: 0,
   };
 
+  const howStepStyle: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: 12,
+  };
+
   const filtersStyle: React.CSSProperties = {
     display: 'flex',
     flexWrap: 'wrap',
@@ -299,8 +305,62 @@ export function UGCMarketplacePage() {
       <div style={innerStyle}>
         {/* Header */}
         <div style={headerStyle}>
+          <img
+            src="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1785078071/mosell_gpzl2q.png"
+            alt="MO Sell"
+            style={{ height: 40, width: 'auto', objectFit: 'contain', marginBottom: 16, display: 'block' }}
+          />
           <h1 style={titleStyle}>Hire UGC Creators</h1>
           <p style={subtitleStyle}>Find the perfect creator for your brand</p>
+        </div>
+
+        {/* How it works */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          gap: 16,
+          marginBottom: 40,
+          padding: 20,
+          background: '#F0F9FF',
+          borderRadius: 16,
+          border: '1px solid #E0F2FE',
+        }}>
+          <div style={howStepStyle}>
+            <Search size={20} color="#0EA5E9" />
+            <div>
+              <p style={{ fontSize: 14, fontWeight: 700, color: '#0C4A6E', margin: '0 0 4px' }}>Browse creators</p>
+              <p style={{ fontSize: 13, color: '#0E7490', margin: 0, lineHeight: 1.45 }}>
+                Find creators whose style fits your brand
+              </p>
+            </div>
+          </div>
+          <div style={howStepStyle}>
+            <Clock size={20} color="#0EA5E9" />
+            <div>
+              <p style={{ fontSize: 14, fontWeight: 700, color: '#0C4A6E', margin: '0 0 4px' }}>Send a brief</p>
+              <p style={{ fontSize: 13, color: '#0E7490', margin: 0, lineHeight: 1.45 }}>
+                Share your product, ideas and deadline
+              </p>
+            </div>
+          </div>
+          <div style={howStepStyle}>
+            <Play size={20} color="#0EA5E9" />
+            <div>
+              <p style={{ fontSize: 14, fontWeight: 700, color: '#0C4A6E', margin: '0 0 4px' }}>Approve videos</p>
+              <p style={{ fontSize: 13, color: '#0E7490', margin: 0, lineHeight: 1.45 }}>
+                Review clips before anything is posted
+              </p>
+            </div>
+          </div>
+          <div style={howStepStyle}>
+            <Star size={20} color="#0EA5E9" />
+            <div>
+              <p style={{ fontSize: 14, fontWeight: 700, color: '#0C4A6E', margin: '0 0 4px' }}>Post &amp; grow</p>
+              <p style={{ fontSize: 13, color: '#0E7490', margin: 0, lineHeight: 1.45 }}>
+                Publish authentic content that sells
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* Filters */}
