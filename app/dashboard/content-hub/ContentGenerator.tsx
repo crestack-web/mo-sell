@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Lightbulb, Video, Copy, Sparkles, Check, X, AlertCircle, RefreshCw } from 'lucide-react';
+import { Lightbulb, Video, Copy, Sparkles, Check, X, AlertCircle, RefreshCw, CalendarClock } from 'lucide-react';
 import styles from './ContentHub.module.css';
 
 interface Product {
@@ -18,6 +18,8 @@ interface Idea {
   format: string;
   cta: string;
   platforms: string[];
+  bestDay?: string;
+  bestTime?: string;
 }
 
 interface Script {
@@ -47,9 +49,11 @@ interface Props {
   product: Product;
   onClose: () => void;
   currency: string;
+  audienceContext?: string;
+  onScheduleIdea?: (idea: Idea, product: Product) => void;
 }
 
-export function ContentGenerator({ product, onClose, currency }: Props) {
+export function ContentGenerator({ product, onClose, currency, audienceContext, onScheduleIdea }: Props) {
   const [activeTab, setActiveTab] = useState<'ideas' | 'scripts' | 'tips'>('ideas');
   const [doneIdeas, setDoneIdeas] = useState<Set<number>>(new Set());
   const [copied, setCopied] = useState(false);
@@ -77,6 +81,7 @@ export function ContentGenerator({ product, onClose, currency }: Props) {
           price: product.price,
           category: product.category,
           productType: product.productType,
+          audienceContext,
         }),
       });
       const json: ApiResponse = await res.json();
@@ -139,6 +144,12 @@ export function ContentGenerator({ product, onClose, currency }: Props) {
       </div>
 
       <div className={styles.tabContent}>
+        {(data as any)?.audienceNote && !loading && !error && (
+          <div className={styles.audienceNote}>
+            <Sparkles className={styles.audienceNoteIcon} size={15} />
+            <span className={styles.audienceNoteText}>{(data as any).audienceNote}</span>
+          </div>
+        )}
         {loading ? (
           <div className={styles.generating}>
             <Sparkles className={styles.spin} size={28} />
@@ -175,6 +186,9 @@ export function ContentGenerator({ product, onClose, currency }: Props) {
                       Best for: {idea.platforms.map(p => (
                         <span key={p} className={styles.platformIcon}>{PLATFORM_ICONS[p] || p}</span>
                       ))}
+                      {idea.bestDay && idea.bestTime && (
+                        <span className={styles.ideaTime}><CalendarClock size={12} /> {idea.bestDay} · {idea.bestTime}</span>
+                      )}
                     </div>
                     <div className={styles.ideaActions}>
                       <button
@@ -184,6 +198,12 @@ export function ContentGenerator({ product, onClose, currency }: Props) {
                         <Check size={12} />
                         {doneIdeas.has(i) ? 'Done' : 'Mark as Done'}
                       </button>
+                      {onScheduleIdea && (
+                        <button className={styles.scheduleBtn} onClick={() => onScheduleIdea(idea, product)}>
+                          <CalendarClock size={12} />
+                          Schedule
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}

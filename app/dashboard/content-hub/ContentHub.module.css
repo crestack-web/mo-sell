@@ -378,6 +378,57 @@
   color: #fff;
 }
 
+.scheduleBtn {
+  background: var(--sell-primary-lt);
+  border: 1px solid transparent;
+  border-radius: var(--sell-radius-sm);
+  padding: 4px 10px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--sell-primary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s;
+}
+
+.scheduleBtn:hover {
+  border-color: var(--sell-primary);
+}
+
+.ideaTime {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--sell-accent);
+  margin-left: 8px;
+}
+
+.audienceNote {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  background: var(--sell-primary-lt);
+  border: 1px solid var(--sell-primary);
+  border-radius: var(--sell-radius-sm);
+  padding: 10px 12px;
+  margin-bottom: 12px;
+}
+
+.audienceNoteIcon {
+  color: var(--sell-primary);
+  flex-shrink: 0;
+}
+
+.audienceNoteText {
+  font-size: 0.78rem;
+  color: var(--sell-text-1);
+  line-height: 1.5;
+}
+
 /* Script block */
 .scriptBlock {
   background: var(--sell-bg);
@@ -519,7 +570,7 @@
   color: var(--sell-primary);
 }
 
-/* UGC tab — mobile responsiveness */
+/* UGC tab ï¿½ mobile responsiveness */
 .ugcSocialRow {
   display: flex;
   gap: 8px;

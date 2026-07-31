@@ -1,12 +1,12 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { collection, getDocs, addDoc, doc, getDoc, setDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, writeBatch } from 'firebase/firestore';
+import { collection, getDocs, addDoc, doc, getDoc, setDoc, updateDoc, deleteDoc, query, where, orderBy, limit, serverTimestamp, writeBatch } from 'firebase/firestore';
 import {
   Lightbulb, Calendar, TrendingUp, Megaphone, BarChart3, Users,
   Copy, Check, Bell, BellOff, Eye, EyeOff, BadgeCheck,
   Sparkles, Package, X, Plus, Star, Camera, Instagram, Music2, Youtube, Twitter, Trash2, Upload,
-
+  ChevronLeft, ChevronRight, CalendarClock, Send, CheckCircle2, Target,
 } from 'lucide-react';
 import { initializeFirebase } from '@/lib/firebase';
 import { useSell } from '@/context/SellContext';
@@ -233,6 +233,39 @@ interface UGCOrder {
   dueDate: string;
 }
 
+interface CalendarPost {
+  id: string;
+  title: string;
+  platform: string;
+  productId?: string;
+  productName?: string;
+  date: string;
+  time?: string;
+  notes?: string;
+  status: 'scheduled' | 'posted';
+  postedUrl?: string;
+  createdAt: number;
+}
+
+interface SocialProfile {
+  platform: string;
+  url: string;
+  followerCount?: number;
+  followingCount?: number;
+  postsCount?: number;
+  likesCount?: number;
+  verified?: boolean;
+  verifiedAt?: string;
+}
+
+const PLATFORMS: { key: string; label: string; icon: string }[] = [
+  { key: 'instagram', label: 'Instagram', icon: '📷' },
+  { key: 'tiktok', label: 'TikTok', icon: '🎵' },
+  { key: 'youtube', label: 'YouTube', icon: '▶️' },
+  { key: 'twitter', label: 'X (Twitter)', icon: '🐦' },
+  { key: 'facebook', label: 'Facebook', icon: '👍' },
+];
+
 const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 /* ─── Component ─────────────────────────────────────────── */
@@ -248,6 +281,28 @@ export function ContentHub() {
   const [reminderOn, setReminderOn] = useState(true);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [campaignLoading, setCampaignLoading] = useState(false);
+
+  const [calendarPosts, setCalendarPosts] = useState<CalendarPost[]>([]);
+  const [calendarLoading, setCalendarLoading] = useState(false);
+  const [calMonth, setCalMonth] = useState(() => new Date());
+  const [addFormOpen, setAddFormOpen] = useState(false);
+  const [addForm, setAddForm] = useState<{ title: string; platform: string; date: string; time: string; productId: string; notes: string }>({
+    title: '', platform: 'instagram', date: '', time: '12:00', productId: '', notes: '',
+  });
+
+  const [socialProfiles, setSocialProfiles] = useState<Record<string, SocialProfile>>({});
+  const [socialProfileLoading, setSocialProfileLoading] = useState<Record<string, boolean>>({});
+  const [newSocialUrl, setNewSocialUrl] = useState('');
+  const [newSocialPlatform, setNewSocialPlatform] = useState('instagram');
+  const [showAddProfile, setShowAddProfile] = useState(false);
+
+  const [analyticsEvents, setAnalyticsEvents] = useState<any[]>([]);
+  const [analyticsOrders, setAnalyticsOrders] = useState<any[]>([]);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+
+  const [moRecommendations, setMoRecommendations] = useState<any>(null);
+  const [recommending, setRecommending] = useState(false);
+  const [recommendError, setRecommendError] = useState('');
 
   const [ugcView, setUgcView] = useState<'apply' | 'dashboard'>('apply');
   const [niches, setNiches] = useState<string[]>([]);
@@ -329,6 +384,64 @@ export function ContentHub() {
 
   useEffect(() => { loadProducts(); }, [loadProducts]);
   useEffect(() => { loadCampaigns(); }, [loadCampaigns]);
+
+  const loadCalendarPosts = useCallback(async () => {
+    if (!user?.businessId) return;
+    setCalendarLoading(true);
+    try {
+      const { firestore } = initializeFirebase();
+      const snap = await getDocs(collection(firestore, 'businesses', user.businessId, 'contentCalendar'));
+      const posts = snap.docs.map(d => ({ id: d.id, ...d.data() } as CalendarPost));
+      posts.sort((a, b) => (a.date + (a.time || '')) < (b.date + (b.time || '')) ? -1 : 1);
+      setCalendarPosts(posts);
+    } catch (err) {
+      console.error('[ContentHub] Load calendar error:', err);
+    } finally {
+      setCalendarLoading(false);
+    }
+  }, [user?.businessId]);
+
+  const loadSocialProfiles = useCallback(async () => {
+    if (!user?.businessId) return;
+    try {
+      const { firestore } = initializeFirebase();
+      const snap = await getDocs(collection(firestore, 'businesses', user.businessId, 'socialProfiles'));
+      const profiles: Record<string, SocialProfile> = {};
+      snap.docs.forEach(d => {
+        const p = d.data() as SocialProfile;
+        profiles[p.platform] = p;
+      });
+      setSocialProfiles(profiles);
+    } catch (err) {
+      console.error('[ContentHub] Load social profiles error:', err);
+    }
+  }, [user?.businessId]);
+
+  const loadAnalytics = useCallback(async () => {
+    if (!user?.businessId) return;
+    setAnalyticsLoading(true);
+    try {
+      const { firestore } = initializeFirebase();
+      const biz = user.businessId;
+      const evSnap = await getDocs(
+        query(collection(firestore, 'businesses', biz, 'storeAnalytics'), orderBy('timestamp', 'desc'), limit(500))
+      );
+      setAnalyticsEvents(evSnap.docs.map(d => d.data() as any));
+      const ordersSnap = await getDocs(collection(firestore, 'businesses', biz, 'storeOrders'));
+      setAnalyticsOrders(ordersSnap.docs.map(d => ({
+        ...d.data(),
+        createdAt: d.data().createdAt?.toDate?.() ?? new Date(),
+      })));
+    } catch (err) {
+      console.error('[ContentHub] Load analytics error:', err);
+    } finally {
+      setAnalyticsLoading(false);
+    }
+  }, [user?.businessId]);
+
+  useEffect(() => { loadCalendarPosts(); }, [loadCalendarPosts]);
+  useEffect(() => { loadSocialProfiles(); }, [loadSocialProfiles]);
+  useEffect(() => { loadAnalytics(); }, [loadAnalytics]);
 
   const loadUgcData = useCallback(async () => {
     if (!user?.id) return;
@@ -554,6 +667,244 @@ export function ContentHub() {
     }
   };
 
+  const toDateInput = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+  const nextWeekdayDate = (dayName?: string) => {
+    const target = dayName ? daysOfWeek.indexOf(dayName.charAt(0).toUpperCase() + dayName.slice(1)) : -1;
+    const d = new Date();
+    if (target >= 0) {
+      const current = (d.getDay() + 6) % 7;
+      let diff = target - current;
+      if (diff <= 0) diff += 7;
+      d.setDate(d.getDate() + diff);
+    }
+    return toDateInput(d);
+  };
+
+  const parseBestTime = (bestTime?: string) => {
+    if (!bestTime) return '12:00';
+    const m = bestTime.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
+    if (!m) return '12:00';
+    let h = parseInt(m[1], 10);
+    const min = m[2] ? parseInt(m[2], 10) : 0;
+    const ap = (m[3] || '').toLowerCase();
+    if (ap === 'pm' && h < 12) h += 12;
+    if (ap === 'am' && h === 12) h = 0;
+    return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+  };
+
+  const handleScheduleIdea = (idea: any, product?: any) => {
+    const platform = (idea.platforms?.[0] || 'instagram') as string;
+    setAddForm({
+      title: idea.hook || '',
+      platform: PLATFORMS.some(p => p.key === platform) ? platform : 'instagram',
+      date: nextWeekdayDate(idea.bestDay),
+      time: parseBestTime(idea.bestTime),
+      productId: product?.id || '',
+      notes: [idea.format, idea.cta].filter(Boolean).join(' — '),
+    });
+    setAddFormOpen(true);
+    setActiveTab('calendar');
+  };
+
+  const handleAddCalendarPost = async () => {
+    if (!user?.businessId) return;
+    if (!addForm.title.trim() || !addForm.date) {
+      showToast('Add a title and pick a date', 'error');
+      return;
+    }
+    try {
+      const { firestore } = initializeFirebase();
+      const product = products.find(p => p.id === addForm.productId);
+      const post: any = {
+        title: addForm.title.trim(),
+        platform: addForm.platform,
+        date: addForm.date,
+        time: addForm.time || '12:00',
+        productId: addForm.productId || null,
+        productName: product?.displayName || null,
+        notes: addForm.notes || '',
+        status: 'scheduled',
+        postedUrl: '',
+        createdAt: Date.now(),
+      };
+      const ref = await addDoc(collection(firestore, 'businesses', user.businessId, 'contentCalendar'), post);
+      setCalendarPosts(prev => [...prev, { id: ref.id, ...post }]);
+      setAddFormOpen(false);
+      setAddForm({ title: '', platform: 'instagram', date: '', time: '12:00', productId: '', notes: '' });
+      showToast('Post scheduled', 'success');
+    } catch {
+      showToast('Failed to schedule post', 'error');
+    }
+  };
+
+  const handleTogglePostStatus = async (post: CalendarPost) => {
+    if (!user?.businessId) return;
+    const next = post.status === 'scheduled' ? 'posted' : 'scheduled';
+    try {
+      const { firestore } = initializeFirebase();
+      await setDoc(doc(firestore, 'businesses', user.businessId, 'contentCalendar', post.id), { status: next }, { merge: true });
+      setCalendarPosts(prev => prev.map(p => p.id === post.id ? { ...p, status: next } : p));
+    } catch {
+      showToast('Failed to update post', 'error');
+    }
+  };
+
+  const handleDeletePost = async (postId: string) => {
+    if (!user?.businessId) return;
+    if (!window.confirm('Delete this scheduled post?')) return;
+    try {
+      const { firestore } = initializeFirebase();
+      await deleteDoc(doc(firestore, 'businesses', user.businessId, 'contentCalendar', postId));
+      setCalendarPosts(prev => prev.filter(p => p.id !== postId));
+      showToast('Post deleted', 'info');
+    } catch {
+      showToast('Failed to delete post', 'error');
+    }
+  };
+
+  const handleAddSocialProfile = async () => {
+    if (!user?.businessId) return;
+    const url = newSocialUrl.trim();
+    if (!url) {
+      showToast('Paste your profile URL', 'error');
+      return;
+    }
+    const key = newSocialPlatform;
+    try {
+      const { firestore } = initializeFirebase();
+      await setDoc(doc(firestore, 'businesses', user.businessId, 'socialProfiles', key), {
+        platform: key, url, updatedAt: Date.now(),
+      }, { merge: true });
+      setSocialProfiles(prev => ({ ...prev, [key]: { ...(prev[key] || {}), platform: key, url } as SocialProfile }));
+      setNewSocialUrl('');
+      setShowAddProfile(false);
+      showToast('Profile added', 'success');
+      handleVerifyProfile(key, url);
+    } catch {
+      showToast('Failed to save profile', 'error');
+    }
+  };
+
+  const handleVerifyProfile = async (key: string, url: string) => {
+    if (!user?.businessId || !url) return;
+    setSocialProfileLoading(prev => ({ ...prev, [key]: true }));
+    try {
+      const res = await fetch('/api/socials/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ platform: key, url: url.trim() }),
+      });
+      const data = await res.json();
+      if (res.ok && data.ok && typeof data.followerCount === 'number' && data.followerCount > 0) {
+        const updated: SocialProfile = {
+          ...(socialProfiles[key] || { platform: key, url: url.trim() }),
+          platform: key, url: url.trim(),
+          followerCount: data.followerCount,
+          followingCount: data.followingCount ?? 0,
+          postsCount: data.postsCount ?? 0,
+          likesCount: data.likesCount ?? 0,
+          verified: data.accountVerified === true,
+          verifiedAt: new Date().toISOString(),
+        };
+        const { firestore } = initializeFirebase();
+        await setDoc(doc(firestore, 'businesses', user.businessId, 'socialProfiles', key), updated, { merge: true });
+        setSocialProfiles(prev => ({ ...prev, [key]: updated }));
+        showToast(`${key === 'tiktok' ? 'TikTok' : 'Instagram'} verified — ${formatCount(data.followerCount)} followers`, 'success');
+      } else if (res.ok && data.ok) {
+        showToast('Account verified (existence check)', 'success');
+      } else {
+        showToast(data.error || 'Could not verify this account', 'error');
+      }
+    } catch {
+      showToast('Verification failed', 'error');
+    } finally {
+      setSocialProfileLoading(prev => ({ ...prev, [key]: false }));
+    }
+  };
+
+  const handleRemoveSocialProfile = async (key: string) => {
+    if (!user?.businessId) return;
+    if (!window.confirm('Remove this social profile?')) return;
+    try {
+      const { firestore } = initializeFirebase();
+      await deleteDoc(doc(firestore, 'businesses', user.businessId, 'socialProfiles', key));
+      setSocialProfiles(prev => { const n = { ...prev }; delete n[key]; return n; });
+      showToast('Profile removed', 'info');
+    } catch {
+      showToast('Failed to remove profile', 'error');
+    }
+  };
+
+  const buildAudienceContext = () => {
+    const parts = [
+      storeConfig?.storeName ? `Store: ${storeConfig.storeName}` : '',
+      storeConfig?.businessCategory ? `Category: ${storeConfig.businessCategory}` : '',
+      storeConfig?.tagline ? `Tagline: ${storeConfig.tagline}` : '',
+      products.length ? `Catalog: ${products.map(p => p.displayName).join(', ')}` : '',
+    ].filter(Boolean);
+    return parts.join('. ');
+  };
+
+  const topProductsFromOrders = () => {
+    const map: Record<string, { name: string; units: number }> = {};
+    analyticsOrders.forEach((o: any) => {
+      if (o.paymentStatus !== 'paid') return;
+      (o.lineItems || []).forEach((it: any) => {
+        if (!map[it.displayName]) map[it.displayName] = { name: it.displayName, units: 0 };
+        map[it.displayName].units += it.quantity || 1;
+      });
+    });
+    return Object.values(map).sort((a, b) => b.units - a.units)[0];
+  };
+
+  const handleRecommendForAudience = async () => {
+    setRecommending(true);
+    setRecommendError('');
+    setMoRecommendations(null);
+    try {
+      const top = topProductsFromOrders();
+      const insights = [
+        buildAudienceContext(),
+        top ? `Best-selling product: ${top.name} (${top.units} units sold)` : '',
+        `Content calendar: ${calendarPosts.filter(p => p.status === 'scheduled').length} scheduled, ${calendarPosts.filter(p => p.status === 'posted').length} published`,
+      ].filter(Boolean).join('. ');
+      const res = await fetch('/api/content/generate-ideas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          displayName: top?.name || products[0]?.displayName || 'your product',
+          description: top ? 'Your best-selling product' : (products[0]?.description || ''),
+          price: products.find(p => p.displayName === top?.name)?.price ?? products[0]?.price,
+          category: storeConfig?.businessCategory || '',
+          productType: 'physical',
+          audienceContext: insights,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to generate recommendations');
+      setMoRecommendations(data);
+    } catch (e) {
+      setRecommendError(e instanceof Error ? e.message : 'Failed to generate recommendations');
+    } finally {
+      setRecommending(false);
+    }
+  };
+
+  const analyticsCutoff = new Date();
+  analyticsCutoff.setDate(analyticsCutoff.getDate() - 30);
+  const paidOrders = analyticsOrders.filter((o: any) => o.createdAt >= analyticsCutoff && o.paymentStatus === 'paid');
+  const totalRevenue = paidOrders.reduce((sum, o) => sum + (o.total ?? 0), 0);
+  const totalOrders = paidOrders.length;
+  const pageViews = analyticsEvents.filter(e => e.eventType === 'page_view').length;
+  const addToCarts = analyticsEvents.filter(e => e.eventType === 'add_to_cart').length;
+  const checkoutInitiated = analyticsEvents.filter(e => e.eventType === 'checkout_initiated').length;
+  const conversionRate = checkoutInitiated > 0 ? ((totalOrders / checkoutInitiated) * 100).toFixed(1) : '—';
+  const scheduledCount = calendarPosts.filter(p => p.status === 'scheduled').length;
+  const postedCount = calendarPosts.filter(p => p.status === 'posted').length;
+  const upcomingPosts = calendarPosts.filter(p => p.status === 'scheduled' && p.date >= toDateInput(new Date())).slice(0, 5);
+  const profileCount = Object.keys(socialProfiles).filter(k => socialProfiles[k]?.url).length;
+
   const handleAvatarUpload = async (): Promise<string | null> => {
     if (!avatarFile) return avatarPreview;
     try {
@@ -778,6 +1129,8 @@ export function ContentHub() {
                   product={selectedProduct}
                   onClose={() => setSelectedProduct(null)}
                   currency={currency}
+                  audienceContext={buildAudienceContext()}
+                  onScheduleIdea={handleScheduleIdea}
                 />
               )}
             </div>
@@ -792,57 +1145,203 @@ export function ContentHub() {
             <div style={s.cardHeader}>
               <div>
                 <p style={s.cardTitle}>Content Calendar</p>
-                <p style={s.cardSub}>Plan and schedule your content posts</p>
+                <p style={s.cardSub}>Schedule ideas from the Ideas tab, then mark posts as published to track your social postings</p>
               </div>
-              <button
-                onClick={() => setReminderOn(!reminderOn)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 'var(--sell-radius-sm)',
-                  border: '1px solid var(--sell-border)', background: 'var(--sell-surface)', cursor: 'pointer',
-                  fontSize: '0.78rem', fontWeight: 600, color: reminderOn ? 'var(--sell-primary)' : 'var(--sell-text-3)',
-                }}
-              >
-                {reminderOn ? <Bell size={14} /> : <BellOff size={14} />}
-                {reminderOn ? 'Reminders On' : 'Reminders Off'}
-              </button>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 2, border: '1px solid var(--sell-border)', borderRadius: 'var(--sell-radius-sm)', padding: '4px 6px' }}>
+                  <button
+                    onClick={() => setCalMonth(new Date(calMonth.getFullYear(), calMonth.getMonth() - 1, 1))}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--sell-text-2)', display: 'flex', padding: 2 }}
+                    title="Previous month"
+                  >
+                    <ChevronLeft size={16} />
+                  </button>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--sell-text-1)', minWidth: 120, textAlign: 'center' }}>
+                    {calMonth.toLocaleString('en-US', { month: 'long', year: 'numeric' })}
+                  </span>
+                  <button
+                    onClick={() => setCalMonth(new Date(calMonth.getFullYear(), calMonth.getMonth() + 1, 1))}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--sell-text-2)', display: 'flex', padding: 2 }}
+                    title="Next month"
+                  >
+                    <ChevronRight size={16} />
+                  </button>
+                </div>
+                <button
+                  onClick={() => { setAddFormOpen(true); if (!addForm.date) setAddForm(prev => ({ ...prev, date: toDateInput(new Date()) })); }}
+                  style={s.btnPrimary}
+                >
+                  <Plus size={14} />
+                  Schedule Post
+                </button>
+                <button
+                  onClick={() => setReminderOn(!reminderOn)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 'var(--sell-radius-sm)',
+                    border: '1px solid var(--sell-border)', background: 'var(--sell-surface)', cursor: 'pointer',
+                    fontSize: '0.78rem', fontWeight: 600, color: reminderOn ? 'var(--sell-primary)' : 'var(--sell-text-3)',
+                  }}
+                  title="Picks up pending posts in Ask MO"
+                >
+                  {reminderOn ? <Bell size={14} /> : <BellOff size={14} />}
+                  {reminderOn ? 'Reminders On' : 'Reminders Off'}
+                </button>
+              </div>
             </div>
             <div style={s.cardBody}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 8 }}>
-                {daysOfWeek.map((day, idx) => (
-                  <div key={day} style={{ textAlign: 'center', fontWeight: 600, fontSize: '0.78rem', color: 'var(--sell-text-3)', padding: '6px 0' }}>
-                    {day}
+              {/* Add post form */}
+              {addFormOpen && (
+                <div style={{ border: '1px solid var(--sell-primary)', borderRadius: 'var(--sell-radius-sm)', padding: 16, background: 'var(--sell-primary-lt)', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <p style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--sell-text-1)' }}>
+                    <CalendarClock size={14} style={{ verticalAlign: -2, marginRight: 6 }} />Schedule a post
+                  </p>
+                  <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 10 }}>
+                    <input
+                      style={s.formInput}
+                      placeholder="Post title / idea (e.g. 'Unboxing hook reel')"
+                      value={addForm.title}
+                      onChange={e => setAddForm(prev => ({ ...prev, title: e.target.value }))}
+                    />
+                    <select
+                      style={s.formInput}
+                      value={addForm.platform}
+                      onChange={e => setAddForm(prev => ({ ...prev, platform: e.target.value }))}
+                    >
+                      {PLATFORMS.map(p => <option key={p.key} value={p.key}>{p.icon} {p.label}</option>)}
+                    </select>
+                    <input
+                      style={s.formInput}
+                      type="date"
+                      value={addForm.date}
+                      onChange={e => setAddForm(prev => ({ ...prev, date: e.target.value }))}
+                    />
                   </div>
-                ))}
-                {Array.from({ length: 7 }, (_, i) => {
-                  const d = new Date();
-                  const startOfWeek = new Date(d);
-                  startOfWeek.setDate(d.getDate() - d.getDay() + 1);
-                  const day = new Date(startOfWeek);
-                  day.setDate(startOfWeek.getDate() + i);
-                  return day.getDate();
-                }).map((dateNum, idx) => (
-                  <div
-                    key={idx}
-                    style={{
-                      border: '1px solid var(--sell-border)',
-                      borderRadius: 'var(--sell-radius-sm)',
-                      background: 'var(--sell-bg)',
-                      padding: 8,
-                      minHeight: 100,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 4,
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--sell-text-1)' }}>{dateNum}</span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, fontSize: '0.72rem', color: 'var(--sell-text-3)' }}>
-                      No posts scheduled
-                    </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 2fr', gap: 10 }}>
+                    <input
+                      style={s.formInput}
+                      type="time"
+                      value={addForm.time}
+                      onChange={e => setAddForm(prev => ({ ...prev, time: e.target.value }))}
+                    />
+                    <select
+                      style={s.formInput}
+                      value={addForm.productId}
+                      onChange={e => setAddForm(prev => ({ ...prev, productId: e.target.value }))}
+                    >
+                      <option value="">No product</option>
+                      {products.map(p => <option key={p.id} value={p.id}>{p.displayName}</option>)}
+                    </select>
+                    <input
+                      style={s.formInput}
+                      placeholder="Notes (format, CTA, script ref…)"
+                      value={addForm.notes}
+                      onChange={e => setAddForm(prev => ({ ...prev, notes: e.target.value }))}
+                    />
                   </div>
-                ))}
-              </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button style={s.btnPrimary} onClick={handleAddCalendarPost}>
+                      <Send size={13} />
+                      Save to Calendar
+                    </button>
+                    <button style={s.btnGhost} onClick={() => setAddFormOpen(false)}>Cancel</button>
+                  </div>
+                </div>
+              )}
+
+              {/* Month grid */}
+              {calendarLoading ? (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 32, color: 'var(--sell-text-3)', fontSize: '0.85rem', gap: 8 }}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ width: 18, height: 18, animation: 'spin 0.7s linear infinite' }}>
+                    <path d="M21 12a9 9 0 11-6.219-8.56"/>
+                  </svg>
+                  Loading calendar…
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 8 }}>
+                  {daysOfWeek.map(day => (
+                    <div key={day} style={{ textAlign: 'center', fontWeight: 600, fontSize: '0.78rem', color: 'var(--sell-text-3)', padding: '6px 0' }}>
+                      {day}
+                    </div>
+                  ))}
+                  {(() => {
+                    const monthStart = new Date(calMonth.getFullYear(), calMonth.getMonth(), 1);
+                    const firstWeekday = (monthStart.getDay() + 6) % 7;
+                    const daysInMonth = new Date(calMonth.getFullYear(), calMonth.getMonth() + 1, 0).getDate();
+                    const cells: (Date | null)[] = [
+                      ...Array.from({ length: firstWeekday }, () => null),
+                      ...Array.from({ length: daysInMonth }, (_, i) => new Date(calMonth.getFullYear(), calMonth.getMonth(), i + 1)),
+                    ];
+                    const todayKey = toDateInput(new Date());
+                    return cells.map((d, idx) => {
+                      if (!d) return <div key={idx} />;
+                      const key = toDateInput(d);
+                      const posts = calendarPosts.filter(p => p.date === key);
+                      const isToday = key === todayKey;
+                      return (
+                        <div
+                          key={idx}
+                          style={{
+                            border: `1px solid ${isToday ? 'var(--sell-primary)' : 'var(--sell-border)'}`,
+                            borderRadius: 'var(--sell-radius-sm)',
+                            background: 'var(--sell-bg)',
+                            padding: 6,
+                            minHeight: 96,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: 4,
+                            overflow: 'hidden',
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: isToday ? 'var(--sell-primary)' : 'var(--sell-text-1)' }}>{d.getDate()}</span>
+                            <button
+                              onClick={() => { setAddForm(prev => ({ ...prev, date: key })); setAddFormOpen(true); }}
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--sell-text-3)', display: 'flex', padding: 1 }}
+                              title="Add a post on this day"
+                            >
+                              <Plus size={12} />
+                            </button>
+                          </div>
+                          {posts.slice(0, 3).map(p => {
+                            const icon = PLATFORMS.find(pl => pl.key === p.platform)?.icon || '•';
+                            return (
+                              <div key={p.id} style={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                                <button
+                                  onClick={() => handleTogglePostStatus(p)}
+                                  title={(p.status === 'posted' ? 'Posted — click to mark scheduled' : 'Click to mark as posted') + (p.notes ? `\n${p.notes}` : '')}
+                                  style={{
+                                    display: 'flex', alignItems: 'center', gap: 3, fontSize: '0.6rem', textAlign: 'left',
+                                    padding: '2px 6px', borderRadius: 6, border: '1px solid', cursor: 'pointer', flex: 1, minWidth: 0,
+                                    background: p.status === 'posted' ? 'var(--sell-green-bg)' : 'var(--sell-surface-2)',
+                                    borderColor: p.status === 'posted' ? 'var(--sell-green)' : 'var(--sell-border)',
+                                    color: 'var(--sell-text-1)',
+                                  }}
+                                >
+                                  <span>{icon}</span>
+                                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textDecoration: p.status === 'posted' ? 'line-through' : 'none' }}>
+                                    {p.title}
+                                  </span>
+                                  {p.status === 'posted' && <CheckCircle2 size={10} color="var(--sell-green)" />}
+                                </button>
+                                <button
+                                  onClick={() => handleDeletePost(p.id)}
+                                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--sell-text-3)', fontSize: '0.6rem', padding: 1 }}
+                                  title="Delete post"
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            );
+                          })}
+                          {posts.length > 3 && (
+                            <span style={{ fontSize: '0.6rem', color: 'var(--sell-text-3)' }}>+{posts.length - 3} more</span>
+                          )}
+                        </div>
+                      );
+                    });
+                  })()}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -949,15 +1448,222 @@ export function ContentHub() {
             <div style={s.cardHeader}>
               <div>
                 <p style={s.cardTitle}>Content Analytics</p>
-                <p style={s.cardSub}>Track how your content performs</p>
+                <p style={s.cardSub}>Real store performance, verified social growth, and MO's audience-driven recommendations</p>
               </div>
             </div>
             <div style={s.cardBody}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, padding: '40px 20px', color: 'var(--sell-text-3)', textAlign: 'center' }}>
-                <BarChart3 size={40} style={{ opacity: 0.3 }} />
-                <p style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--sell-text-2)' }}>No analytics data yet</p>
-                <p style={{ fontSize: '0.85rem', maxWidth: 340 }}>Analytics for views, clicks, and sales from your content will show here once you start publishing and getting engagement.</p>
-              </div>
+              {analyticsLoading ? (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 32, color: 'var(--sell-text-3)', fontSize: '0.85rem', gap: 8 }}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ width: 18, height: 18, animation: 'spin 0.7s linear infinite' }}>
+                    <path d="M21 12a9 9 0 11-6.219-8.56"/>
+                  </svg>
+                  Loading analytics…
+                </div>
+              ) : (
+                <>
+                  {/* KPI row */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10 }}>
+                    {[
+                      { label: 'Revenue (30d)', value: `${currency === 'NGN' ? '₦' : ''}${formatCount(totalRevenue)}`, sub: `${totalOrders} paid orders` },
+                      { label: 'Store views', value: formatCount(pageViews) || '0', sub: 'Last 30 days' },
+                      { label: 'Add to cart', value: formatCount(addToCarts) || '0', sub: 'Last 30 days' },
+                      { label: 'Conversion', value: conversionRate === '—' ? '—' : `${conversionRate}%`, sub: 'Checkout → order' },
+                      { label: 'Posted vs Planned', value: `${postedCount}/${scheduledCount + postedCount}`, sub: 'Social calendar' },
+                    ].map(k => (
+                      <div key={k.label} style={{ border: '1px solid var(--sell-border)', borderRadius: 'var(--sell-radius-sm)', padding: '12px 14px', background: 'var(--sell-bg)' }}>
+                        <p style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--sell-text-3)', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: 4 }}>{k.label}</p>
+                        <p style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--sell-text-1)' }}>{k.value}</p>
+                        <p style={{ fontSize: '0.72rem', color: 'var(--sell-text-3)' }}>{k.sub}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Social + calendar stats */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16 }}>
+                    {/* Social analytics */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      <p style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--sell-text-1)' }}>Social Growth <span style={{ fontWeight: 400, color: 'var(--sell-text-3)' }}>— real follower counts, verified</span></p>
+                      {profileCount === 0 ? (
+                        <div style={{ border: '1px dashed var(--sell-border)', borderRadius: 'var(--sell-radius-sm)', padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                          <p style={{ fontSize: '0.78rem', color: 'var(--sell-text-3)', margin: 0 }}>Add your public social profiles so MO can pull live follower counts and verify them.</p>
+                          <div style={{ display: 'flex', gap: 8 }}>
+                            <select style={{ ...s.formInput, flex: 'none', width: 130 }} value={newSocialPlatform} onChange={e => setNewSocialPlatform(e.target.value)}>
+                              {PLATFORMS.map(p => <option key={p.key} value={p.key}>{p.label}</option>)}
+                            </select>
+                            <input
+                              style={{ ...s.formInput, flex: 1 }}
+                              placeholder="Profile URL (e.g. https://tiktok.com/@you)"
+                              value={newSocialUrl}
+                              onChange={e => setNewSocialUrl(e.target.value)}
+                            />
+                            <button style={s.btnPrimary} onClick={handleAddSocialProfile} disabled={!newSocialUrl.trim() || socialProfileLoading[newSocialPlatform]}>
+                              {socialProfileLoading[newSocialPlatform] ? (
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ width: 13, height: 13, animation: 'spin 0.7s linear infinite' }}><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>
+                              ) : <Check size={13} />}
+                              {socialProfileLoading[newSocialPlatform] ? 'Verifying…' : 'Add & Verify'}
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          {PLATFORMS.filter(p => socialProfiles[p.key]?.url).map(({ key, label, icon }) => {
+                            const sp = socialProfiles[key];
+                            return (
+                              <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 10, border: '1px solid var(--sell-border)', borderRadius: 'var(--sell-radius-sm)', padding: '8px 12px', background: 'var(--sell-bg)' }}>
+                                <span style={{ fontSize: '1rem' }}>{icon}</span>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--sell-text-1)' }}>{label}</span>
+                                    {sp.followerCount ? <BadgeCheck size={13} color="var(--sell-green)" /> : null}
+                                  </div>
+                                  <p style={{ fontSize: '0.72rem', color: 'var(--sell-text-3)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                    {sp.followerCount ? `${formatCount(sp.followerCount)} followers` : 'Not yet verified'}
+                                    {sp.verifiedAt ? ` · verified ${new Date(sp.verifiedAt).toLocaleDateString()}` : ''}
+                                  </p>
+                                </div>
+                                {(key === 'tiktok' || key === 'instagram') && (
+                                  <button
+                                    style={{ ...s.btnGhost, fontSize: '0.68rem', padding: '4px 9px' }}
+                                    disabled={socialProfileLoading[key]}
+                                    onClick={() => handleVerifyProfile(key, sp.url)}
+                                  >
+                                    {socialProfileLoading[key] ? '…' : 'Re-verify'}
+                                  </button>
+                                )}
+                                <button
+                                  onClick={() => handleRemoveSocialProfile(key)}
+                                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--sell-text-3)', display: 'flex', padding: 2 }}
+                                  title="Remove profile"
+                                >
+                                  <Trash2 size={13} />
+                                </button>
+                              </div>
+                            );
+                          })}
+                          <button style={{ ...s.btnGhost, alignSelf: 'flex-start', fontSize: '0.75rem', padding: '6px 12px' }} onClick={() => setShowAddProfile(true)}>
+                            <Plus size={12} /> Add another profile
+                          </button>
+                          {showAddProfile && (
+                            <div style={{ display: 'flex', gap: 8 }}>
+                              <select style={{ ...s.formInput, flex: 'none', width: 130 }} value={newSocialPlatform} onChange={e => setNewSocialPlatform(e.target.value)}>
+                                {PLATFORMS.map(p => <option key={p.key} value={p.key}>{p.label}</option>)}
+                              </select>
+                              <input
+                                style={{ ...s.formInput, flex: 1 }}
+                                placeholder="Profile URL"
+                                value={newSocialUrl}
+                                onChange={e => setNewSocialUrl(e.target.value)}
+                              />
+                              <button style={s.btnPrimary} onClick={handleAddSocialProfile} disabled={!newSocialUrl.trim()}>
+                                Add
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Calendar / posting stats */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      <p style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--sell-text-1)' }}>Posting Tracker <span style={{ fontWeight: 400, color: 'var(--sell-text-3)' }}>— from your calendar</span></p>
+                      {calendarPosts.length === 0 ? (
+                        <div style={{ border: '1px dashed var(--sell-border)', borderRadius: 'var(--sell-radius-sm)', padding: 14 }}>
+                          <p style={{ fontSize: '0.78rem', color: 'var(--sell-text-3)', margin: 0 }}>
+                            No posts scheduled yet. Generate ideas on the Ideas tab and add them to the Calendar to start tracking.
+                          </p>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          <div style={{ display: 'flex', gap: 8 }}>
+                            <div style={{ flex: 1, border: '1px solid var(--sell-border)', borderRadius: 'var(--sell-radius-sm)', padding: '8px 12px', background: 'var(--sell-bg)', textAlign: 'center' }}>
+                              <p style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--sell-primary)', margin: 0 }}>{scheduledCount}</p>
+                              <p style={{ fontSize: '0.7rem', color: 'var(--sell-text-3)', margin: 0 }}>Scheduled</p>
+                            </div>
+                            <div style={{ flex: 1, border: '1px solid var(--sell-border)', borderRadius: 'var(--sell-radius-sm)', padding: '8px 12px', background: 'var(--sell-bg)', textAlign: 'center' }}>
+                              <p style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--sell-green)', margin: 0 }}>{postedCount}</p>
+                              <p style={{ fontSize: '0.7rem', color: 'var(--sell-text-3)', margin: 0 }}>Published</p>
+                            </div>
+                          </div>
+                          {upcomingPosts.length > 0 && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                              <p style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--sell-text-3)', margin: 0 }}>Upcoming</p>
+                              {upcomingPosts.map(p => (
+                                <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.75rem', color: 'var(--sell-text-2)' }}>
+                                  <span style={{ flexShrink: 0 }}>{PLATFORMS.find(pl => pl.key === p.platform)?.icon || '•'}</span>
+                                  <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.title}</span>
+                                  <span style={{ flexShrink: 0, color: 'var(--sell-text-3)' }}>{p.date}</span>
+                                  <button
+                                    onClick={() => handleTogglePostStatus(p)}
+                                    style={{ ...s.btnGhost, fontSize: '0.62rem', padding: '3px 8px', color: 'var(--sell-green)' }}
+                                    title="Mark as posted"
+                                  >
+                                    <CheckCircle2 size={11} /> Post
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* MO Recommendations */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                      <div>
+                        <p style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--sell-text-1)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <Target size={15} color="var(--sell-accent)" /> MO Recommends for Your Audience
+                        </p>
+                        <p style={{ fontSize: '0.72rem', color: 'var(--sell-text-3)', margin: 0, maxWidth: 460 }}>
+                          Ideas generated for {storeConfig?.businessCategory || 'your store'} and your best-selling product — schedule them straight to the calendar.
+                        </p>
+                      </div>
+                      <button style={s.btnPrimary} onClick={handleRecommendForAudience} disabled={recommending}>
+                        {recommending ? (
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ width: 13, height: 13, animation: 'spin 0.7s linear infinite' }}><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>
+                        ) : <Sparkles size={13} />}
+                        {recommending ? 'MO is thinking…' : 'Generate Recommendations'}
+                      </button>
+                    </div>
+                    {recommendError && (
+                      <div style={{ border: '1px solid var(--sell-red, #EF4444)', borderRadius: 'var(--sell-radius-sm)', padding: 10, fontSize: '0.78rem', color: 'var(--sell-red, #EF4444)' }}>
+                        {recommendError}
+                      </div>
+                    )}
+                    {moRecommendations && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        {moRecommendations.audienceNote && (
+                          <div style={{ display: 'flex', gap: 8, background: 'var(--sell-primary-lt)', border: '1px solid var(--sell-primary)', borderRadius: 'var(--sell-radius-sm)', padding: '10px 12px' }}>
+                            <Sparkles size={15} color="var(--sell-primary)" style={{ flexShrink: 0, marginTop: 1 }} />
+                            <p style={{ fontSize: '0.78rem', color: 'var(--sell-text-1)', margin: 0 }}>{moRecommendations.audienceNote}</p>
+                          </div>
+                        )}
+                        {(moRecommendations.ideas || []).map((idea: any, i: number) => (
+                          <div key={i} style={{ border: '1px solid var(--sell-border)', borderRadius: 'var(--sell-radius-sm)', padding: '10px 14px', background: 'var(--sell-bg)' }}>
+                            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
+                              <div style={{ minWidth: 0 }}>
+                                <p style={{ fontSize: '0.84rem', fontWeight: 700, color: 'var(--sell-text-1)', margin: 0 }}>{idea.hook}</p>
+                                <p style={{ fontSize: '0.74rem', color: 'var(--sell-text-2)', marginTop: 3, marginBottom: 0 }}>
+                                  {idea.format}
+                                  {idea.bestDay && idea.bestTime ? ` · Best: ${idea.bestDay}, ${idea.bestTime}` : ''}
+                                  {idea.cta ? ` · CTA: ${idea.cta}` : ''}
+                                </p>
+                              </div>
+                              <button
+                                style={{ ...s.btnGhost, flexShrink: 0, fontSize: '0.68rem', padding: '4px 10px' }}
+                                onClick={() => handleScheduleIdea(idea)}
+                              >
+                                <CalendarClock size={12} /> Schedule
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
           </div>
         )}

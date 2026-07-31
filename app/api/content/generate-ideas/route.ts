@@ -3,17 +3,20 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const SYSTEM_PROMPT = `You are MO, an AI content strategist for African e-commerce merchants.
 
-Given a product description, generate compelling content marketing ideas tailored to the Nigerian/African market.
+You are given a product PLUS a business/audience profile (store name, category, tagline, and the full product catalog). Your ideas must be UNIQUELY tailored to this specific audience — never generic.
 
 Respond with valid JSON only — no markdown, no code fences:
 
 {
+  "audienceNote": "one sentence describing who this store's audience is and what kind of content resonates with them",
   "ideas": [
     {
-      "hook": "attention-grabbing hook for the post (1 sentence, make it specific to this product)",
+      "hook": "attention-grabbing hook for the post (1 sentence, specific to this product AND this store's audience)",
       "format": "content format (e.g. '15s TikTok/Reel', 'Carousel (5 slides)', 'Story with poll')",
       "cta": "call-to-action (e.g. 'Shop now via link in bio')",
-      "platforms": ["tiktok", "ig"]
+      "platforms": ["tiktok", "ig"],
+      "bestDay": "best weekday to post (e.g. 'Saturday')",
+      "bestTime": "best time to post in WAT (e.g. '6pm WAT')"
     }
   ],
   "scripts": [
@@ -31,7 +34,7 @@ Respond with valid JSON only — no markdown, no code fences:
   ]
 }
 
-Generate exactly 5 ideas, 2 scripts, and 4 tips. Make hooks specific to the product — reference its name, category, price point, and target audience. Never use generic placeholders like "[product]" or "[audience]".`;
+Generate exactly 5 ideas, 2 scripts, and 4 tips. Make hooks specific to the product AND the audience — reference the store's niche, price point, audience pain points, and other products in the catalog when relevant. Never use generic placeholders like "[product]" or "[audience]". Suggest realistic best days/times for the Nigerian/African social audience.`;
 
 export async function POST(req: NextRequest) {
   try {
@@ -42,7 +45,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
     }
 
-    const { displayName, description, price, category, productType } = body;
+    const {
+      displayName, description, price, category, productType,
+      storeName, businessCategory, tagline, storeSlug, productCount, catalogSummary, audienceHint, audienceContext,
+    } = body;
     if (!displayName) {
       return NextResponse.json({ error: 'displayName required' }, { status: 400 });
     }
@@ -63,8 +69,19 @@ export async function POST(req: NextRequest) {
       productType ? `Type: ${productType}` : '',
     ].filter(Boolean).join('\n');
 
+    const audienceInfo = [
+      storeName ? `Store name: ${storeName}` : '',
+      storeSlug ? `Store URL: ${storeSlug}` : '',
+      businessCategory ? `Business category: ${businessCategory}` : '',
+      tagline ? `Tagline: ${tagline}` : '',
+      audienceHint ? `Audience/context from user: ${audienceHint}` : '',
+      audienceContext ? `Audience & store context: ${audienceContext}` : '',
+      productCount ? `Total products in catalog: ${productCount}` : '',
+      catalogSummary ? `Other products in catalog: ${catalogSummary}` : '',
+    ].filter(Boolean).join('\n');
+
     const result = await model.generateContent({
-      contents: [{ role: 'user', parts: [{ text: `${SYSTEM_PROMPT}\n\nGenerate content ideas for this product:\n${productInfo}` }] }],
+      contents: [{ role: 'user', parts: [{ text: `${SYSTEM_PROMPT}\n\nGenerate content ideas for this product:\n${productInfo}\n\nAudience & store context:\n${audienceInfo || '(none provided — still make reasonable audience assumptions from the product)'}` }] }],
       generationConfig: { temperature: 0.8, maxOutputTokens: 4096 },
     });
 
