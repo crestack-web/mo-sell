@@ -243,7 +243,7 @@ export function PortfolioPage({ username }: PortfolioPageProps) {
       {/* Trust Badge */}
       <div style={s.trustBar}>
         <Shield size={14} color="#059669" />
-        <span>Pay securely with Paystack. 50% deposit to start, balance on delivery.</span>
+        <span>Secure escrow: pay 50% to start — the creator is only paid after you approve the watermarked sample and clear the balance. The original video is then released.</span>
       </div>
 
       {/* Sticky CTA */}

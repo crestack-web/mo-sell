@@ -24,6 +24,7 @@ export function UGCRequestModal({ open, onClose, creatorId, creatorName, price30
   const [productName, setProductName] = useState('');
   const [productUrl, setProductUrl] = useState('');
   const [brief, setBrief] = useState('');
+  const [deliverables, setDeliverables] = useState('');
   const [letCreatorScript, setLetCreatorScript] = useState(false);
   const [videoLength, setVideoLength] = useState<'30s' | '60s'>('30s');
   const [deadline, setDeadline] = useState('');
@@ -40,6 +41,7 @@ export function UGCRequestModal({ open, onClose, creatorId, creatorName, price30
       setProductName('');
       setProductUrl('');
       setBrief('');
+      setDeliverables('');
       setLetCreatorScript(false);
       setVideoLength('30s');
       setDeadline('');
@@ -53,8 +55,8 @@ export function UGCRequestModal({ open, onClose, creatorId, creatorName, price30
   const depositAmount = Math.round(effectivePrice * 0.5);
 
   const handleSubmit = useCallback(async () => {
-    if (!guestName.trim() || !guestEmail.trim() || !productName.trim() || !brief.trim()) {
-      setError('Please fill in name, email, product name, and brief');
+    if (!guestName.trim() || !guestEmail.trim() || !productName.trim() || !brief.trim() || !deliverables.trim()) {
+      setError('Please fill in name, email, product name, brief, and deliverables');
       return;
     }
     if (!guestEmail.includes('@')) {
@@ -70,6 +72,7 @@ export function UGCRequestModal({ open, onClose, creatorId, creatorName, price30
         productName: productName.trim(),
         productUrl: productUrl.trim() || null,
         brief: brief.trim(),
+        deliverables: deliverables.trim(),
         scriptByCreator: letCreatorScript,
         videoLength,
         deadline: deadline || null,
@@ -119,7 +122,7 @@ export function UGCRequestModal({ open, onClose, creatorId, creatorName, price30
       setError('Network error. Please try again.');
       setSubmitting(false);
     }
-  }, [guestName, guestEmail, guestCompany, productName, productUrl, brief, letCreatorScript, videoLength, deadline, creatorId, bidAmount]);
+  }, [guestName, guestEmail, guestCompany, productName, productUrl, brief, deliverables, letCreatorScript, videoLength, deadline, creatorId, bidAmount]);
 
   if (!open) return null;
 
@@ -215,6 +218,23 @@ export function UGCRequestModal({ open, onClose, creatorId, creatorName, price30
             <p style={{ fontSize: 13, color: '#6B7280', margin: '0 0 20px' }}>
               Fill in your details and what you need
             </p>
+
+            {/* How payment & approval works */}
+            <div style={{
+              background: '#F0F9FF', border: '1px solid #BAE6FD', borderRadius: 12,
+              padding: '14px 16px', marginBottom: 20,
+            }}>
+              <p style={{ margin: '0 0 10px', fontSize: 13, fontWeight: 700, color: '#0369A1' }}>
+                How payment &amp; approval works
+              </p>
+              <ol style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, color: '#0C4A6E', lineHeight: 1.8 }}>
+                <li>Pay a <strong>50% deposit</strong> — it is held securely in escrow. The creator is <strong>not paid yet</strong>.</li>
+                <li>The creator sends you a <strong>watermarked sample</strong> of the video for review.</li>
+                <li>You approve it if you are satisfied (or request changes).</li>
+                <li>You pay the remaining <strong>50% balance</strong>.</li>
+                <li>The <strong>original, full-quality video</strong> is released to you — the creator is only paid once you have approved.</li>
+              </ol>
+            </div>
 
             {/* Price selector */}
             <div style={{
@@ -337,6 +357,19 @@ export function UGCRequestModal({ open, onClose, creatorId, creatorName, price30
                   placeholder="Describe your brand, product, and the type of content you want..."
                   value={brief} onChange={(e) => setBrief(e.target.value)}
                   rows={4} disabled={submitting}
+                  onFocus={(e) => { e.currentTarget.style.borderColor = '#0EA5E9'; }}
+                  onBlur={(e) => { e.currentTarget.style.borderColor = '#E5E7EB'; }}
+                />
+              </div>
+
+              {/* Deliverables */}
+              <div style={{ marginBottom: 12 }}>
+                <label style={label}>Deliverables *</label>
+                <textarea
+                  style={{ ...input, resize: 'vertical', minHeight: 70, lineHeight: 1.5 }}
+                  placeholder="Specify what you need: e.g. 1x 30s video with script, raw footage, thumbnails..."
+                  value={deliverables} onChange={(e) => setDeliverables(e.target.value)}
+                  rows={3} disabled={submitting}
                   onFocus={(e) => { e.currentTarget.style.borderColor = '#0EA5E9'; }}
                   onBlur={(e) => { e.currentTarget.style.borderColor = '#E5E7EB'; }}
                 />
