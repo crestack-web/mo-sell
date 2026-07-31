@@ -183,7 +183,7 @@ export default async function StorefrontHomePage({
   }).sort((a, b) => a.order - b.order);
 
   // Link-style: pure 1-page scroll — skip all storefront sections
-  const LINK_SKIP_TYPES = new Set<StoreSection['type']>(['header', 'collections', 'about', 'testimonials', 'instagram', 'newsletter', 'announcement', 'hero', 'featured']);
+  const LINK_SKIP_TYPES = new Set<StoreSection['type']>(['header', 'collections', 'about', 'testimonials', 'instagram', 'newsletter', 'announcement', 'hero', 'featured', 'footer']);
 
   // Fetch data for enabled sections
   const needFeatured    = sections.some(s => s.type === 'featured'    && s.enabled);
