@@ -23,6 +23,7 @@ interface CreatorData {
   socialLinks?: Record<string, string>;
   socialVerified?: Record<string, string>;
   followerCounts?: Record<string, number>;
+  socialStats?: Record<string, { followerCount?: number; followingCount?: number; likesCount?: number; postsCount?: number; verified?: boolean; verifiedAt?: string }>;
   portfolioImages?: string[];
   contactEmail?: string;
 }
@@ -162,7 +163,9 @@ export function PortfolioPage({ username }: PortfolioPageProps) {
                     <Icon size={14} color="#0EA5E9" />
                     <span>{label}</span>
                     {creator.socialVerified?.[key] === 'verified' && <BadgeCheck size={12} color="#059669" />}
-                    {creator.followerCounts?.[key] ? (
+                    {creator.socialStats?.[key]?.followerCount ? (
+                      <span style={s.followerCount}>{creator.socialStats![key].followerCount!.toLocaleString()} followers</span>
+                    ) : creator.followerCounts?.[key] ? (
                       <span style={s.followerCount}>{creator.followerCounts![key].toLocaleString()} followers</span>
                     ) : null}
                     <ExternalLink size={10} color="#9CA3AF" />

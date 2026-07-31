@@ -264,6 +264,7 @@ export function ContentHub() {
   const [followerCounts, setFollowerCounts] = useState<Record<string, number>>({});
   const [socialVerified, setSocialVerified] = useState<Record<string, string>>({});
   const [socialVerifyError, setSocialVerifyError] = useState<Record<string, string>>({});
+  const [socialStats, setSocialStats] = useState<Record<string, { followerCount?: number; followingCount?: number; likesCount?: number; postsCount?: number; verified?: boolean; verifiedAt?: string }>>({});
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [portfolioImages, setPortfolioImages] = useState<string[]>([]);
@@ -347,6 +348,7 @@ export function ContentHub() {
         setSocialLinks(data.socialLinks || {});
         setFollowerCounts(data.followerCounts || {});
         setSocialVerified(data.socialVerified || {});
+        setSocialStats(data.socialStats || {});
         setAvatarPreview(data.avatarUrl || null);
         setPortfolioImages(data.portfolioImages || []);
         setContactEmail(data.contactEmail || '');
@@ -499,6 +501,13 @@ export function ContentHub() {
     setSampleVideos(prev => prev.filter((_, i) => i !== idx));
   };
 
+  const formatCount = (n?: number) => {
+    if (typeof n !== 'number' || isNaN(n)) return '';
+    if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
+    if (n >= 1_000) return `${(n / 1_000).toFixed(1).replace(/\.0$/, '')}K`;
+    return String(n);
+  };
+
   const handleVerifySocial = async (key: string, url: string) => {
     if (!url.trim()) {
       showToast('Enter a social URL first', 'error');
@@ -515,8 +524,24 @@ export function ContentHub() {
       const data = await res.json();
       if (res.ok && data.ok) {
         setSocialVerified(prev => ({ ...prev, [key]: 'verified' }));
-        showToast(`${key === 'tiktok' ? 'TikTok' : 'Instagram'} account verified`, 'success');
-      } else if (data.code === 'profile_unverifiable') {
+        if (typeof data.followerCount === 'number' && data.followerCount > 0) {
+          setFollowerCounts(prev => ({ ...prev, [key]: data.followerCount }));
+          setSocialStats(prev => ({
+            ...prev,
+            [key]: {
+              followerCount: data.followerCount,
+              followingCount: data.followingCount ?? 0,
+              likesCount: data.likesCount ?? 0,
+              postsCount: data.postsCount ?? 0,
+              verified: data.accountVerified === true,
+              verifiedAt: new Date().toISOString(),
+            },
+          }));
+          showToast(`${key === 'tiktok' ? 'TikTok' : 'Instagram'} verified — ${formatCount(data.followerCount)} followers`, 'success');
+        } else {
+          showToast(`${key === 'tiktok' ? 'TikTok' : 'Instagram'} account verified`, 'success');
+        }
+      } else if (data.code === 'profile_unverifiable' || data.code === 'instagram_cookie_required') {
         setSocialVerified(prev => ({ ...prev, [key]: 'unverifiable' }));
         setSocialVerifyError(prev => ({ ...prev, [key]: data.error || '' }));
       } else {
@@ -579,6 +604,7 @@ export function ContentHub() {
         socialLinks,
         followerCounts,
         socialVerified,
+        socialStats,
         portfolioImages: portfolioImages.filter(Boolean),
         contactEmail: contactEmail || user.email || '',
         createdAt: serverTimestamp(),
@@ -1147,11 +1173,16 @@ export function ContentHub() {
                             {socialVerifyError[key] && (
                               <span style={{ fontSize: '0.64rem', color: 'var(--sell-red, #EF4444)', maxWidth: 180 }}>{socialVerifyError[key]}</span>
                             )}
+                            {socialVerified[key] === 'verified' && socialStats[key]?.followerCount ? (
+                              <span style={{ fontSize: '0.64rem', color: 'var(--sell-green)', maxWidth: 180, whiteSpace: 'nowrap' }}>
+                                {formatCount(socialStats[key].followerCount)} followers confirmed
+                              </span>
+                            ) : null}
                           </div>
                         )}
                       </div>
                     )))}
-                    <p style={{ fontSize: '0.72rem', color: 'var(--sell-text-3)', margin: 0 }}>Enter your public social profile URLs and approximate follower counts. TikTok accounts and Instagram post/reel links can be auto-verified; Instagram profiles are self-reported.</p>
+                    <p style={{ fontSize: '0.72rem', color: 'var(--sell-text-3)', margin: 0 }}>Paste your public profile URL and press Verify. TikTok and Instagram are checked live via Apify and the real follower count is filled in; YouTube and X are self-reported. Instagram post/reel links fall back to a no-key existence check.</p>
                   </div>
 
                   {/* Portfolio Images */}
