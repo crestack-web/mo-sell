@@ -351,7 +351,7 @@ export default async function StorefrontHomePage({
           }
 
           case 'footer': {
-            const fs = s.settings as FooterSectionSettings;
+            const fs = (s as FooterSectionSettings) ?? {};
             const socialEntries = fs.socials ? Object.entries(fs.socials).filter(([, v]) => v) as [string, string][] : [];
             return (
               <footer key={section.id} className="sf-footer">

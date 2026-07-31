@@ -144,13 +144,6 @@ export function LinkInBioEditor() {
           ...p,
           visible: saved?.productVisibility?.[p.id] ?? true,
         })));
-        setProductDisplayTypes(prev => {
-          const defaults: Record<string, DisplayType> = { ...prev };
-          (data.products ?? []).forEach((p: ProductCardData) => {
-            if (!(p.id in defaults)) defaults[p.id] = saved?.displayType ?? 'button';
-          });
-          return defaults;
-        });
         if (saved?.productOrder) setProductOrder(saved.productOrder);
       })
       .catch(() => {});
@@ -231,9 +224,20 @@ export function LinkInBioEditor() {
   }, []);
 
   const setProductDisplayType = useCallback((productId: string, type: DisplayType) => {
-    setProductDisplayTypes(prev => ({ ...prev, [productId]: type }));
+    setProductDisplayTypes(prev => {
+      if (prev[productId] === type) {
+        const next = { ...prev };
+        delete next[productId];
+        return next;
+      }
+      return { ...prev, [productId]: type };
+    });
     setDirty(true);
   }, []);
+
+  const effectiveProductDisplayType = useCallback((productId: string): DisplayType => {
+    return productDisplayTypes[productId] ?? displayType;
+  }, [productDisplayTypes, displayType]);
 
   const sortedProducts = useMemo(() => {
     if (productOrder.length === 0) return products;
@@ -468,16 +472,19 @@ export function LinkInBioEditor() {
                     {p.visible ? <Eye size={16} /> : <EyeOff size={16} />}
                   </button>
                   <div className={styles.productDisplayPicker}>
-                    {(['button', 'callout', 'minimal'] as DisplayType[]).map(d => (
-                      <button
-                        key={d}
-                        className={[styles.productDisplayOpt, productDisplayTypes[p.id] === d ? styles.productDisplayOptActive : ''].join(' ')}
-                        onClick={() => setProductDisplayType(p.id, d)}
-                        title={`${d.charAt(0).toUpperCase() + d.slice(1)} display`}
-                      >
-                        {d.charAt(0).toUpperCase() + d.slice(1)}
-                      </button>
-                    ))}
+                    {(['button', 'callout', 'minimal'] as DisplayType[]).map(d => {
+                      const active = effectiveProductDisplayType(p.id) === d;
+                      return (
+                        <button
+                          key={d}
+                          className={[styles.productDisplayOpt, active ? styles.productDisplayOptActive : ''].join(' ')}
+                          onClick={() => setProductDisplayType(p.id, d)}
+                          title={`${active ? 'Use default' : d.charAt(0).toUpperCase() + d.slice(1) + ' display'}${productDisplayTypes[p.id] ? '' : ' (default)'}`}
+                        >
+                          {d.charAt(0).toUpperCase() + d.slice(1)}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               ))}
