@@ -13,6 +13,8 @@ export interface ProductCardData {
   stock: number;
   productType: 'physical' | 'digital' | 'service';
   description?: string;
+  rating?: number;
+  reviewCount?: number;
 }
 
 export interface CollectionData {

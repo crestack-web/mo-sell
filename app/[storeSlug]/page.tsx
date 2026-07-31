@@ -98,6 +98,8 @@ async function getProducts(businessId: string, filter?: { featured?: boolean }) 
         stock: data.stock ?? 0,
         productType: data.productType ?? 'physical',
         description: data.description ?? '',
+        rating: typeof data.rating === 'number' ? data.rating : undefined,
+        reviewCount: typeof data.reviewCount === 'number' ? data.reviewCount : undefined,
       } as ProductCardData;
     });
   } catch { return []; }

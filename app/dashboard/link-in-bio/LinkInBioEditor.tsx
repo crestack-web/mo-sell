@@ -58,6 +58,7 @@ interface LinkBioConfig {
   backgroundType: BgType;
   backgroundValue: string;
   productVisibility: Record<string, boolean>;
+  productDisplayTypes?: Record<string, DisplayType>;
   customLinks: CustomLink[];
   productOrder: string[];
 }
@@ -88,6 +89,7 @@ export function LinkInBioEditor() {
   const [bgType, setBgType] = useState<BgType>('solid');
   const [bgValue, setBgValue] = useState('#0A0A0A');
   const [products, setProducts] = useState<ProductItem[]>([]);
+  const [productDisplayTypes, setProductDisplayTypes] = useState<Record<string, DisplayType>>({});
   const [customLinks, setCustomLinks] = useState<CustomLink[]>([]);
   const [productOrder, setProductOrder] = useState<string[]>([]);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
@@ -119,6 +121,9 @@ export function LinkInBioEditor() {
       setBgValue(saved.backgroundValue ?? '#0A0A0A');
       setCustomLinks(saved.customLinks ?? []);
       setProductOrder(saved.productOrder ?? []);
+      if (saved.productDisplayTypes) {
+        setProductDisplayTypes(saved.productDisplayTypes);
+      }
       if (saved.productVisibility) {
         setProducts(prev => prev.map(p => ({
           ...p,
@@ -139,6 +144,13 @@ export function LinkInBioEditor() {
           ...p,
           visible: saved?.productVisibility?.[p.id] ?? true,
         })));
+        setProductDisplayTypes(prev => {
+          const defaults: Record<string, DisplayType> = { ...prev };
+          (data.products ?? []).forEach((p: ProductCardData) => {
+            if (!(p.id in defaults)) defaults[p.id] = saved?.displayType ?? 'button';
+          });
+          return defaults;
+        });
         if (saved?.productOrder) setProductOrder(saved.productOrder);
       })
       .catch(() => {});
@@ -168,6 +180,7 @@ export function LinkInBioEditor() {
         backgroundType: bgType,
         backgroundValue: bgValue,
         productVisibility,
+        productDisplayTypes,
         customLinks,
         productOrder,
       };
@@ -193,7 +206,7 @@ export function LinkInBioEditor() {
     } finally {
       setSaving(false);
     }
-  }, [user?.businessId, avatarPreview, avatarFile, name, bio, socials, displayType, bgType, bgValue, products, customLinks, productOrder, refreshStoreConfig, showToast]);
+  }, [user?.businessId, avatarPreview, avatarFile, name, bio, socials, displayType, bgType, bgValue, products, productDisplayTypes, customLinks, productOrder, refreshStoreConfig, showToast]);
 
   const handleThemeChange = useCallback(async (themeId: string) => {
     setLocalTheme(themeId as StorefrontTheme);
@@ -214,6 +227,11 @@ export function LinkInBioEditor() {
 
   const toggleProductVisibility = useCallback((productId: string) => {
     setProducts(prev => prev.map(p => p.id === productId ? { ...p, visible: !p.visible } : p));
+    setDirty(true);
+  }, []);
+
+  const setProductDisplayType = useCallback((productId: string, type: DisplayType) => {
+    setProductDisplayTypes(prev => ({ ...prev, [productId]: type }));
     setDirty(true);
   }, []);
 
@@ -319,6 +337,7 @@ export function LinkInBioEditor() {
                   displayType,
                   backgroundType: bgType,
                   backgroundValue: bgValue,
+                  productDisplayTypes,
                   customLinks,
                 }}
                 visibleProducts={sortedProducts.filter(p => p.visible).slice(0, 5)}
@@ -406,7 +425,7 @@ export function LinkInBioEditor() {
           {tab === 'products' && (
             <div className={styles.tabContent}>
               <div className={styles.field}>
-                <label className={styles.fLabel}>Display Type</label>
+                <label className={styles.fLabel}>Default Display Type <span className={styles.fHint}>Applied to products without their own setting</span></label>
                 <div className={styles.displayOptions}>
                   {(['button', 'callout', 'minimal'] as DisplayType[]).map(d => (
                     <button
@@ -448,6 +467,18 @@ export function LinkInBioEditor() {
                   <button className={styles.iconBtn} onClick={() => toggleProductVisibility(p.id)}>
                     {p.visible ? <Eye size={16} /> : <EyeOff size={16} />}
                   </button>
+                  <div className={styles.productDisplayPicker}>
+                    {(['button', 'callout', 'minimal'] as DisplayType[]).map(d => (
+                      <button
+                        key={d}
+                        className={[styles.productDisplayOpt, productDisplayTypes[p.id] === d ? styles.productDisplayOptActive : ''].join(' ')}
+                        onClick={() => setProductDisplayType(p.id, d)}
+                        title={`${d.charAt(0).toUpperCase() + d.slice(1)} display`}
+                      >
+                        {d.charAt(0).toUpperCase() + d.slice(1)}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               ))}
               <div className={styles.customLinksSection}>

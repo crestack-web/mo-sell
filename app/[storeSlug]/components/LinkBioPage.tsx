@@ -15,6 +15,7 @@ interface LinkBioConfig {
   backgroundType: 'solid' | 'gradient' | 'image' | 'pattern';
   backgroundValue: string;
   productVisibility: Record<string, boolean>;
+  productDisplayTypes?: Record<string, 'button' | 'callout' | 'minimal'>;
   customLinks?: CustomLink[];
   productOrder?: string[];
 }
@@ -52,6 +53,7 @@ export function LinkBioPage({ theme, config, products, linkBio }: LinkBioPagePro
     backgroundType: raw.backgroundType || ('solid' as const),
     backgroundValue: raw.backgroundValue || '#0A0A0A',
     productVisibility: raw.productVisibility ?? {},
+    productDisplayTypes: raw.productDisplayTypes ?? {},
     customLinks: Array.isArray(raw.customLinks) ? raw.customLinks : [],
     productOrder: Array.isArray(raw.productOrder) ? raw.productOrder : [],
   };

@@ -20,6 +20,7 @@ export interface LayoutProps {
     backgroundType: 'solid' | 'gradient' | 'image' | 'pattern';
     backgroundValue: string;
     customLinks: CustomLink[];
+    productDisplayTypes?: Record<string, 'button' | 'callout' | 'minimal'>;
   };
   visibleProducts: (ProductCardData & { description?: string; digitalFileUrl?: string | null })[];
   isLightBg: boolean; textColor: string; textColor2: string; textColor3: string;
@@ -427,11 +428,30 @@ export function AbbyLayout(p: LayoutProps) {
 }
 
 /* ─── Shared product list component ─── */
+
+function getProductDisplayType(bio: LayoutProps['bio'], productId: string): 'button' | 'callout' | 'minimal' {
+  return bio.productDisplayTypes?.[productId] ?? bio.displayType ?? 'button';
+}
+
+function StarRating({ rating, textColor2 }: { rating: number; textColor2: string }) {
+  const rounded = Math.max(0, Math.min(5, Math.round(rating)));
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+      <span style={{ color: '#F59E0B', fontSize: '0.85rem', letterSpacing: '1px', lineHeight: 1 }}>
+        {'★'.repeat(rounded)}{'☆'.repeat(5 - rounded)}
+      </span>
+      <span style={{ fontSize: '0.75rem', fontWeight: 600, color: textColor2 }}>{rating.toFixed(1)}</span>
+    </span>
+  );
+}
+
 function ProductList({ config, bio, visibleProducts, isLightBg, textColor, textColor2, onProductClick }: Pick<LayoutProps, 'config' | 'bio' | 'visibleProducts' | 'isLightBg' | 'textColor' | 'textColor2' | 'onProductClick'>) {
   return (
-    <div style={{ width: '100%', maxWidth: 420, display: 'flex', flexDirection: 'column', gap: 10 }}>
+    <div style={{ width: '100%', maxWidth: 440, display: 'flex', flexDirection: 'column', gap: 12 }}>
       {visibleProducts.map(p => {
-        if (bio.displayType === 'minimal') {
+        const type = getProductDisplayType(bio, p.id);
+
+        if (type === 'minimal') {
           return (
             <button key={p.id} onClick={() => onProductClick(p)}
               style={{
@@ -446,29 +466,58 @@ function ProductList({ config, bio, visibleProducts, isLightBg, textColor, textC
             </button>
           );
         }
-        if (bio.displayType === 'callout') {
+
+        if (type === 'callout') {
           return (
-            <button key={p.id} onClick={() => onProductClick(p)}
+            <div key={p.id}
               style={{
-                display: 'flex', alignItems: 'center', gap: 12,
-                width: '100%', padding: 12, borderRadius: 16, border: 'none',
-                background: isLightBg ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.08)',
-                cursor: 'pointer', textAlign: 'left', backdropFilter: isLightBg ? 'none' : 'blur(10px)',
+                width: '100%', overflow: 'hidden', borderRadius: 20, textAlign: 'left',
+                border: `1px solid ${isLightBg ? '#e2e8f0' : 'rgba(255,255,255,0.12)'}`,
+                background: isLightBg ? '#fff' : 'rgba(255,255,255,0.07)',
+                boxShadow: isLightBg ? '0 4px 20px rgba(0,0,0,0.06)' : '0 4px 20px rgba(0,0,0,0.18)',
+                backdropFilter: isLightBg ? 'none' : 'blur(12px)',
               }}
             >
               {p.images?.[0] ? (
-                <img src={p.images[0]} alt={p.displayName} style={{ width: 60, height: 60, borderRadius: 10, objectFit: 'cover' }} />
+                <img src={p.images[0]} alt={p.displayName} style={{ width: '100%', height: 170, objectFit: 'cover', display: 'block' }} />
               ) : (
-                <div style={{ width: 60, height: 60, borderRadius: 10, background: `${config.primaryColor}33` }} />
+                <div style={{ width: '100%', height: 170, background: `linear-gradient(135deg, ${config.primaryColor}44, ${config.secondaryColor}44)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2.2rem' }}>📦</div>
               )}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ margin: 0, fontSize: '0.88rem', fontWeight: 700, color: textColor, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.displayName}</p>
-                <p style={{ margin: '2px 0 0', fontSize: '0.8rem', color: textColor2 }}>{fmtPrice(p.price, config.currency)}</p>
+              <div style={{ padding: '16px 18px 18px' }}>
+                <p style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: textColor, letterSpacing: '-0.01em' }}>{p.displayName}</p>
+                {typeof p.rating === 'number' && p.rating > 0 && (
+                  <div style={{ marginTop: 7 }}>
+                    <StarRating rating={p.rating} textColor2={textColor2} />
+                    {typeof p.reviewCount === 'number' && p.reviewCount > 0 && (
+                      <span style={{ marginLeft: 5, fontSize: '0.75rem', color: textColor2 }}>({p.reviewCount})</span>
+                    )}
+                  </div>
+                )}
+                {p.description && (
+                  <p style={{
+                    margin: '8px 0 0', fontSize: '0.85rem', color: textColor2, lineHeight: 1.5,
+                    display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                  }}>{p.description}</p>
+                )}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 14, gap: 10 }}>
+                  <span style={{ fontSize: '1.1rem', fontWeight: 800, color: textColor, whiteSpace: 'nowrap' }}>{fmtPrice(p.price, config.currency)}</span>
+                  <button onClick={() => onProductClick(p)}
+                    style={{
+                      padding: '9px 18px', borderRadius: 100, border: 'none', cursor: 'pointer',
+                      background: config.primaryColor, color: '#fff', fontSize: '0.8rem', fontWeight: 700, whiteSpace: 'nowrap',
+                      transition: 'opacity 0.15s',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.opacity = '0.9'; }}
+                    onMouseLeave={e => { e.currentTarget.style.opacity = '1'; }}
+                  >
+                    View Product
+                  </button>
+                </div>
               </div>
-              <span style={{ padding: '6px 14px', borderRadius: 20, background: config.primaryColor, color: '#fff', fontSize: '0.72rem', fontWeight: 700, whiteSpace: 'nowrap' }}>Buy Now</span>
-            </button>
+            </div>
           );
         }
+
         return (
           <button key={p.id} onClick={() => onProductClick(p)}
             style={{
