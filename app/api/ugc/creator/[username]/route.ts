@@ -30,11 +30,16 @@ export async function GET(
       .get();
     const videos = videoSnap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
 
-    const orderSnap = await db.collection('ugcOrders')
-      .where('creatorId', '==', creator.userId)
-      .where('status', '==', 'COMPLETED')
-      .get();
-    const completedCount = orderSnap.size;
+    let completedCount = 0;
+    try {
+      const orderSnap = await db.collection('ugcOrders')
+        .where('creatorId', '==', creator.userId)
+        .where('status', '==', 'COMPLETED')
+        .get();
+      completedCount = orderSnap.size;
+    } catch (e) {
+      console.error('[ugc/creator] orders count unavailable, defaulting to 0:', e);
+    }
 
     return NextResponse.json({
       creator: {

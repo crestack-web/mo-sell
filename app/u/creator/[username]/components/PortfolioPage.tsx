@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Star, Clock, Play, Check, Shield, ChevronRight, Loader2, User as UserIcon, AlertTriangle, Package, Instagram, Music2, Youtube, Twitter, ExternalLink, Mail } from 'lucide-react';
+import { Star, Clock, Play, Check, Shield, ChevronRight, Loader2, User as UserIcon, AlertTriangle, Package, Instagram, Music2, Youtube, Twitter, ExternalLink, Mail, X } from 'lucide-react';
 import { UGCRequestModal } from './UGCRequestModal';
+import { getVideoThumbnail, getVideoEmbedUrl, isDirectVideo } from '@/lib/youtube';
 
 interface CreatorData {
   id: string;
@@ -16,7 +17,7 @@ interface CreatorData {
   price60s: number;
   deliveryDays: number;
   bio?: string;
-  sampleVideos: { id: string; url: string; thumbnailUrl?: string }[];
+  sampleVideos: { id: string; url: string; thumbnailUrl?: string; thumbnail?: string | null }[];
   completedOrders: number;
   avatarUrl?: string;
   socialLinks?: Record<string, string>;
@@ -41,6 +42,7 @@ export function PortfolioPage({ username }: PortfolioPageProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const [selectedVideo, setSelectedVideo] = useState<{ url: string } | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -189,19 +191,31 @@ export function PortfolioPage({ username }: PortfolioPageProps) {
         <h2 style={s.sectionTitle}>{creator.portfolioImages?.length ? 'Videos' : 'Portfolio'}</h2>
         {creator.sampleVideos && creator.sampleVideos.length > 0 ? (
           <div style={s.grid}>
-            {creator.sampleVideos.map((video) => (
-              <div key={video.id} style={s.videoCard}>
-                <div style={s.videoThumb}>
-                  {video.thumbnailUrl ? (
-                    <img src={video.thumbnailUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  ) : (
-                    <div style={s.videoPlaceholder}>
-                      <Play size={20} color="#6B7280" />
+            {creator.sampleVideos.map((video) => {
+              const thumb = getVideoThumbnail(video);
+              return (
+                <div key={video.id} style={{ ...s.videoCard, cursor: 'pointer' }} onClick={() => setSelectedVideo({ url: video.url })}>
+                  <div style={s.videoThumb}>
+                    {thumb ? (
+                      <img
+                        src={thumb}
+                        alt=""
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        loading="lazy"
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                      />
+                    ) : (
+                      <div style={s.videoPlaceholder}>
+                        <Play size={20} color="#6B7280" />
+                      </div>
+                    )}
+                    <div style={s.videoPlay}>
+                      <Play size={18} color="#FFFFFF" fill="#FFFFFF" style={{ marginLeft: 2 }} />
                     </div>
-                  )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div style={s.emptyPortfolio}>
@@ -249,6 +263,76 @@ export function PortfolioPage({ username }: PortfolioPageProps) {
         price60s={creator.price60s}
         deliveryDays={creator.deliveryDays}
       />
+
+      {/* Video Lightbox */}
+      {selectedVideo && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, zIndex: 200,
+            background: 'rgba(0,0,0,0.8)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
+          }}
+          onClick={() => setSelectedVideo(null)}
+        >
+          <button
+            onClick={() => setSelectedVideo(null)}
+            aria-label="Close video"
+            style={{
+              position: 'absolute', top: 16, right: 16,
+              background: 'rgba(255,255,255,0.15)', border: 'none', cursor: 'pointer',
+              padding: 10, borderRadius: '50%', display: 'flex',
+              color: '#FFFFFF', zIndex: 2,
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.3)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.15)'; }}
+          >
+            <X size={20} />
+          </button>
+          {(() => {
+            const embed = getVideoEmbedUrl(selectedVideo.url);
+            if (embed) {
+              return (
+                <div
+                  style={{
+                    width: '100%', maxWidth: 420, aspectRatio: '9 / 16', maxHeight: '90dvh',
+                    background: '#000', borderRadius: 16, overflow: 'hidden',
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <iframe
+                    src={embed}
+                    title="Video preview"
+                    style={{ width: '100%', height: '100%', border: 'none' }}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                </div>
+              );
+            }
+            if (isDirectVideo(selectedVideo.url)) {
+              return (
+                <video
+                  src={selectedVideo.url}
+                  controls
+                  autoPlay
+                  style={{
+                    width: '100%', maxWidth: 420, aspectRatio: '9 / 16', maxHeight: '90dvh',
+                    background: '#000', borderRadius: 16,
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                />
+              );
+            }
+            return (
+              <div style={{ color: '#FFFFFF', fontSize: 14 }} onClick={(e) => e.stopPropagation()}>
+                <a href={selectedVideo.url} target="_blank" rel="noopener noreferrer" style={{ color: '#0EA5E9', fontWeight: 600 }}>
+                  Open video
+                </a>
+              </div>
+            );
+          })()}
+        </div>
+      )}
     </div>
   );
 }
@@ -437,6 +521,19 @@ const s: Record<string, React.CSSProperties> = {
     justifyContent: 'center',
     background: 'linear-gradient(135deg, #1E293B, #334155)',
     overflow: 'hidden',
+    position: 'relative',
+  },
+  videoPlay: {
+    position: 'absolute',
+    width: 44,
+    height: 44,
+    borderRadius: '50%',
+    background: 'rgba(0,0,0,0.55)',
+    backdropFilter: 'blur(4px)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    border: '1px solid rgba(255,255,255,0.3)',
   },
   videoPlaceholder: {
     display: 'flex',

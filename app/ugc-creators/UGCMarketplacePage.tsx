@@ -6,11 +6,14 @@ import { onAuthStateChanged } from 'firebase/auth';
 import type { User } from 'firebase/auth';
 import { initializeFirebase } from '@/lib/firebase';
 import { Star, Clock, Play, Filter, Search, X, Loader2, User as UserIcon, ChevronRight } from 'lucide-react';
+import { getVideoThumbnail, getVideoEmbedUrl, isDirectVideo } from '@/lib/youtube';
 
 interface Creator {
   id: string;
   userId: string;
   name: string;
+  displayName?: string;
+  username: string;
   avatarUrl?: string;
   niches: string[];
   price30s: number;
@@ -20,7 +23,7 @@ interface Creator {
   deliveryDays: number;
   rating: number;
   totalOrders: number;
-  sampleVideos: { id: string; thumbnailUrl?: string; url: string }[];
+  sampleVideos: { id: string; thumbnailUrl?: string; thumbnail?: string | null; url: string }[];
 }
 
 type SortOption = 'rating' | 'price' | 'orders';
@@ -68,6 +71,7 @@ export function UGCMarketplacePage() {
   const [priceMax, setPriceMax] = useState('');
   const [sort, setSort] = useState<SortOption>('rating');
   const [selectedCreator, setSelectedCreator] = useState<Creator | null>(null);
+  const [selectedVideo, setSelectedVideo] = useState<{ url: string } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -407,11 +411,21 @@ export function UGCMarketplacePage() {
                 }}
               >
                 {/* Card Top - Avatar + Info */}
-                <div style={{ padding: '20px 20px 12px', display: 'flex', alignItems: 'center', gap: 14 }}>
+                <div
+                  onClick={() => {
+                    if (creator.username) router.push(`/u/creator/${encodeURIComponent(creator.username)}`);
+                  }}
+                  style={{
+                    padding: '20px 20px 12px', display: 'flex', alignItems: 'center', gap: 14,
+                    cursor: creator.username ? 'pointer' : 'default',
+                  }}
+                  onMouseEnter={(e) => { if (creator.username) e.currentTarget.style.background = '#F9FAFB'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                >
                   {creator.avatarUrl ? (
                     <img
                       src={creator.avatarUrl}
-                      alt={creator.name}
+                      alt={creator.displayName ?? creator.name}
                       style={{
                         width: avatarSize, height: avatarSize, borderRadius: '50%',
                         objectFit: 'cover', flexShrink: 0,
@@ -433,9 +447,14 @@ export function UGCMarketplacePage() {
                       color: '#111827', whiteSpace: 'nowrap', overflow: 'hidden',
                       textOverflow: 'ellipsis',
                     }}>
-                      {creator.name}
+                      {creator.displayName ?? creator.name ?? 'Creator'}
                     </h3>
-                    <RatingStars rating={creator.rating} />
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                      <RatingStars rating={creator.rating} />
+                      <span style={{ fontSize: 12, color: '#0EA5E9', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                        View Profile {'\u2192'}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
@@ -480,28 +499,45 @@ export function UGCMarketplacePage() {
 
                 {/* Sample Videos */}
                 <div style={{ padding: '12px 20px', display: 'flex', gap: 8 }}>
-                  {(creator.sampleVideos ?? []).slice(0, 3).map((video, idx) => (
-                    <div
-                      key={video.id || idx}
-                      style={{
-                        flex: 1, aspectRatio: '9 / 16', maxWidth: '33%',
-                        borderRadius: 8, background: 'linear-gradient(135deg, #1E293B, #334155)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        position: 'relative', overflow: 'hidden',
-                        cursor: 'pointer',
-                      }}
-                      onClick={() => window.open(video.url, '_blank')}
-                    >
-                      <div style={{
-                        width: 32, height: 32, borderRadius: '50%',
-                        background: 'rgba(255,255,255,0.2)',
-                        backdropFilter: 'blur(4px)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      }}>
-                        <Play size={14} color="#FFFFFF" fill="#FFFFFF" style={{ marginLeft: 2 }} />
+                  {(creator.sampleVideos ?? []).slice(0, 3).map((video, idx) => {
+                    const thumb = getVideoThumbnail(video);
+                    return (
+                      <div
+                        key={video.id || idx}
+                        style={{
+                          flex: 1, aspectRatio: '9 / 16', maxWidth: '33%',
+                          borderRadius: 8, background: 'linear-gradient(135deg, #1E293B, #334155)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          position: 'relative', overflow: 'hidden',
+                          cursor: 'pointer',
+                        }}
+                        onClick={() => setSelectedVideo({ url: video.url })}
+                      >
+                        {thumb ? (
+                          <img
+                            src={thumb}
+                            alt=""
+                            style={{
+                              position: 'absolute', inset: 0, width: '100%', height: '100%',
+                              objectFit: 'cover',
+                            }}
+                            loading="lazy"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                          />
+                        ) : null}
+                        <div style={{
+                          width: 32, height: 32, borderRadius: '50%',
+                          background: 'rgba(0,0,0,0.55)',
+                          backdropFilter: 'blur(4px)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          position: 'relative', zIndex: 1,
+                          border: '1px solid rgba(255,255,255,0.3)',
+                        }}>
+                          <Play size={14} color="#FFFFFF" fill="#FFFFFF" style={{ marginLeft: 2 }} />
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 {/* Request Button */}
@@ -732,6 +768,76 @@ export function UGCMarketplacePage() {
               </form>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Video Lightbox */}
+      {selectedVideo && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, zIndex: 1000,
+            background: 'rgba(0,0,0,0.8)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
+          }}
+          onClick={() => setSelectedVideo(null)}
+        >
+          <button
+            onClick={() => setSelectedVideo(null)}
+            aria-label="Close video"
+            style={{
+              position: 'absolute', top: 16, right: 16,
+              background: 'rgba(255,255,255,0.15)', border: 'none', cursor: 'pointer',
+              padding: 10, borderRadius: '50%', display: 'flex',
+              color: '#FFFFFF', zIndex: 2,
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.3)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.15)'; }}
+          >
+            <X size={20} />
+          </button>
+          {(() => {
+            const embed = getVideoEmbedUrl(selectedVideo.url);
+            if (embed) {
+              return (
+                <div
+                  style={{
+                    width: '100%', maxWidth: 420, aspectRatio: '9 / 16', maxHeight: '90dvh',
+                    background: '#000', borderRadius: 16, overflow: 'hidden',
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <iframe
+                    src={embed}
+                    title="Video preview"
+                    style={{ width: '100%', height: '100%', border: 'none' }}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                </div>
+              );
+            }
+            if (isDirectVideo(selectedVideo.url)) {
+              return (
+                <video
+                  src={selectedVideo.url}
+                  controls
+                  autoPlay
+                  style={{
+                    width: '100%', maxWidth: 420, aspectRatio: '9 / 16', maxHeight: '90dvh',
+                    background: '#000', borderRadius: 16,
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                />
+              );
+            }
+            return (
+              <div style={{ color: '#FFFFFF', fontSize: 14 }} onClick={(e) => e.stopPropagation()}>
+                <a href={selectedVideo.url} target="_blank" rel="noopener noreferrer" style={{ color: '#0EA5E9', fontWeight: 600 }}>
+                  Open video
+                </a>
+              </div>
+            );
+          })()}
         </div>
       )}
     </div>
