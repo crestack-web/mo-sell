@@ -7,6 +7,43 @@ import type { User } from 'firebase/auth';
 import { initializeFirebase } from '@/lib/firebase';
 import { Star, Clock, Play, Filter, Search, X, Loader2, User as UserIcon, ChevronRight } from 'lucide-react';
 import { getVideoThumbnail, getVideoEmbedUrl, isDirectVideo } from '@/lib/youtube';
+const TikTokIcon = ({ size = 14, color = 'currentColor' }: { size?: number; color?: string }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill={color} style={{ display: 'inline-block', verticalAlign: 'middle' }}>
+    <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z" />
+  </svg>
+);
+
+const XIcon = ({ size = 14, color = 'currentColor' }: { size?: number; color?: string }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill={color} style={{ display: 'inline-block', verticalAlign: 'middle' }}>
+    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.259 5.63 5.905-5.63zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+  </svg>
+);
+
+const InstagramIconCustom = ({ size = 14, color = 'currentColor' }: { size?: number; color?: string }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline-block', verticalAlign: 'middle' }}>
+    <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
+    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+    <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+  </svg>
+);
+
+const YouTubeIconCustom = ({ size = 14, color = 'currentColor' }: { size?: number; color?: string }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline-block', verticalAlign: 'middle' }}>
+    <path d="M2.5 17a24.12 24.12 0 0 1 0-10 2 2 0 0 1 1.4-1.4 49.56 49.56 0 0 1 16.2 0A2 2 0 0 1 21.5 7a24.12 24.12 0 0 1 0 10 2 2 0 0 1-1.4 1.4 49.55 49.55 0 0 1-16.2 0A2 2 0 0 1 2.5 17z" />
+    <path d="m10 15 5-3-5-3z" />
+  </svg>
+);
+
+const formatFollowerCount = (num: number): string => {
+  if (num >= 1000000) {
+    return (num / 1000000).toFixed(num % 1000000 === 0 ? 0 : 1) + 'M';
+  }
+  if (num >= 1000) {
+    return (num / 1000).toFixed(num % 1000 === 0 ? 0 : 1) + 'K';
+  }
+  return num.toString();
+};
+
 
 interface Creator {
   id: string;
@@ -24,6 +61,10 @@ interface Creator {
   rating: number;
   totalOrders: number;
   sampleVideos: { id: string; thumbnailUrl?: string; thumbnail?: string | null; url: string }[];
+  socialLinks?: Record<string, string>;
+  socialVerified?: Record<string, string>;
+  followerCounts?: Record<string, number>;
+  socialStats?: Record<string, { followerCount?: number; followingCount?: number; likesCount?: number; postsCount?: number; verified?: boolean; verifiedAt?: string }>;
 }
 
 type SortOption = 'rating' | 'price' | 'orders';
@@ -533,6 +574,69 @@ export function UGCMarketplacePage() {
                     </span>
                   ))}
                 </div>
+                  {/* Social links row */}
+                  {creator.socialLinks && Object.keys(creator.socialLinks).some(k => creator.socialLinks![k]) && (
+                    <div style={{ padding: '0 20px 12px', display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+                      {([
+                        ['instagram', 'Instagram', InstagramIconCustom, '#E1306C'],
+                        ['tiktok', 'TikTok', TikTokIcon, '#000000'],
+                        ['youtube', 'YouTube', YouTubeIconCustom, '#FF0000'],
+                        ['twitter', 'X', XIcon, '#000000'],
+                      ] as [string, string, React.FC<{ size?: number; color?: string }>, string][]).map(([key, label, Icon, brandColor]) => {
+                        const url = creator.socialLinks![key];
+                        if (!url) return null;
+                        
+                        const count = creator.socialStats?.[key]?.followerCount ?? creator.followerCounts?.[key];
+                        const isVerified = creator.socialVerified?.[key] === 'verified';
+
+                        return (
+                          <a
+                            key={key}
+                            href={url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 4,
+                              padding: '4px 10px',
+                              borderRadius: 100,
+                              border: '1px solid #E5E7EB',
+                              background: '#FFFFFF',
+                              fontSize: 11,
+                              fontWeight: 600,
+                              color: '#374151',
+                              textDecoration: 'none',
+                              cursor: 'pointer',
+                              transition: 'all 0.15s',
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.boxShadow = '0 2px 6px rgba(0,0,0,0.06)';
+                              e.currentTarget.style.borderColor = brandColor;
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.boxShadow = 'none';
+                              e.currentTarget.style.borderColor = '#E5E7EB';
+                            }}
+                          >
+                            <Icon size={12} color={brandColor} />
+                            <span style={{ fontSize: 11 }}>{label}</span>
+                            {isVerified && (
+                              <svg width="11" height="11" viewBox="0 0 24 24" fill="#059669" style={{ display: 'inline-block', verticalAlign: 'middle' }}>
+                                <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                              </svg>
+                            )}
+                            {count ? (
+                              <span style={{ fontSize: 10, color: '#6B7280', fontWeight: 500 }}>
+                                ({formatFollowerCount(count)})
+                              </span>
+                            ) : null}
+                          </a>
+                        );
+                      })}
+                    </div>
+                  )}
 
                 {/* Price + Delivery */}
                 <div style={{
