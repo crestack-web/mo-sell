@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { collection, getDocs, addDoc, doc, getDoc, setDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, writeBatch } from 'firebase/firestore';
 import {
   Lightbulb, Calendar, TrendingUp, Megaphone, BarChart3, Users,
-  Copy, Check, Bell, BellOff, Eye, EyeOff,
+  Copy, Check, Bell, BellOff, Eye, EyeOff, BadgeCheck,
   Sparkles, Package, X, Plus, Star, Camera, Instagram, Music2, Youtube, Twitter, Trash2, Upload,
 
 } from 'lucide-react';
@@ -262,6 +262,8 @@ export function ContentHub() {
   const [linkCopied, setLinkCopied] = useState(false);
   const [socialLinks, setSocialLinks] = useState<Record<string, string>>({});
   const [followerCounts, setFollowerCounts] = useState<Record<string, number>>({});
+  const [socialVerified, setSocialVerified] = useState<Record<string, string>>({});
+  const [socialVerifyError, setSocialVerifyError] = useState<Record<string, string>>({});
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [portfolioImages, setPortfolioImages] = useState<string[]>([]);
@@ -344,6 +346,7 @@ export function ContentHub() {
         setUgcUsername(data.username || '');
         setSocialLinks(data.socialLinks || {});
         setFollowerCounts(data.followerCounts || {});
+        setSocialVerified(data.socialVerified || {});
         setAvatarPreview(data.avatarUrl || null);
         setPortfolioImages(data.portfolioImages || []);
         setContactEmail(data.contactEmail || '');
@@ -496,6 +499,36 @@ export function ContentHub() {
     setSampleVideos(prev => prev.filter((_, i) => i !== idx));
   };
 
+  const handleVerifySocial = async (key: string, url: string) => {
+    if (!url.trim()) {
+      showToast('Enter a social URL first', 'error');
+      return;
+    }
+    setSocialVerified(prev => ({ ...prev, [key]: 'checking' }));
+    setSocialVerifyError(prev => ({ ...prev, [key]: '' }));
+    try {
+      const res = await fetch('/api/socials/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ platform: key, url: url.trim() }),
+      });
+      const data = await res.json();
+      if (res.ok && data.ok) {
+        setSocialVerified(prev => ({ ...prev, [key]: 'verified' }));
+        showToast(`${key === 'tiktok' ? 'TikTok' : 'Instagram'} account verified`, 'success');
+      } else if (data.code === 'profile_unverifiable') {
+        setSocialVerified(prev => ({ ...prev, [key]: 'unverifiable' }));
+        setSocialVerifyError(prev => ({ ...prev, [key]: data.error || '' }));
+      } else {
+        setSocialVerified(prev => ({ ...prev, [key]: 'failed' }));
+        setSocialVerifyError(prev => ({ ...prev, [key]: data.error || 'Could not verify' }));
+      }
+    } catch {
+      setSocialVerified(prev => ({ ...prev, [key]: 'failed' }));
+      setSocialVerifyError(prev => ({ ...prev, [key]: 'Verification failed' }));
+    }
+  };
+
   const handleAvatarUpload = async (): Promise<string | null> => {
     if (!avatarFile) return avatarPreview;
     try {
@@ -545,6 +578,7 @@ export function ContentHub() {
         totalEarnings: 0,
         socialLinks,
         followerCounts,
+        socialVerified,
         portfolioImages: portfolioImages.filter(Boolean),
         contactEmail: contactEmail || user.email || '',
         createdAt: serverTimestamp(),
@@ -1086,9 +1120,38 @@ export function ContentHub() {
                           onChange={e => setFollowerCounts(prev => ({ ...prev, [key]: Number(e.target.value) || 0 }))}
                           placeholder="Followers"
                         />
+                        {(key === 'tiktok' || key === 'instagram') && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 3, flexShrink: 0 }}>
+                            <button
+                              style={{
+                                ...s.btnGhost, fontSize: '0.68rem', padding: '5px 10px', whiteSpace: 'nowrap',
+                                ...(socialVerified[key] === 'verified' ? { borderColor: 'var(--sell-green)', color: 'var(--sell-green)' } : {}),
+                              }}
+                              onClick={() => handleVerifySocial(key, socialLinks[key] || '')}
+                              disabled={socialVerified[key] === 'checking'}
+                              title={`Check that this ${label} account exists`}
+                            >
+                              {socialVerified[key] === 'checking' ? (
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ width: 11, height: 11, animation: 'spin 0.7s linear infinite' }}>
+                                  <path d="M21 12a9 9 0 11-6.219-8.56"/>
+                                </svg>
+                              ) : socialVerified[key] === 'verified' ? <BadgeCheck size={12} /> : <Check size={12} />}
+                              {socialVerified[key] === 'verified'
+                                ? 'Verified'
+                                : socialVerified[key] === 'unverifiable'
+                                  ? 'Self-reported'
+                                  : socialVerified[key] === 'failed'
+                                    ? 'Retry'
+                                    : 'Verify'}
+                            </button>
+                            {socialVerifyError[key] && (
+                              <span style={{ fontSize: '0.64rem', color: 'var(--sell-red, #EF4444)', maxWidth: 180 }}>{socialVerifyError[key]}</span>
+                            )}
+                          </div>
+                        )}
                       </div>
                     )))}
-                    <p style={{ fontSize: '0.72rem', color: 'var(--sell-text-3)', margin: 0 }}>Enter your public social profile URLs and approximate follower counts.</p>
+                    <p style={{ fontSize: '0.72rem', color: 'var(--sell-text-3)', margin: 0 }}>Enter your public social profile URLs and approximate follower counts. TikTok accounts and Instagram post/reel links can be auto-verified; Instagram profiles are self-reported.</p>
                   </div>
 
                   {/* Portfolio Images */}

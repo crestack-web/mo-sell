@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Star, Clock, Play, Check, Shield, ChevronRight, Loader2, User as UserIcon, AlertTriangle, Package, Instagram, Music2, Youtube, Twitter, ExternalLink, Mail, X } from 'lucide-react';
+import { Star, Clock, Play, Check, Shield, ChevronRight, Loader2, User as UserIcon, AlertTriangle, Package, Instagram, Music2, Youtube, Twitter, ExternalLink, Mail, X, BadgeCheck } from 'lucide-react';
 import { UGCRequestModal } from './UGCRequestModal';
 import { getVideoThumbnail, getVideoEmbedUrl, isDirectVideo } from '@/lib/youtube';
 
@@ -21,6 +21,7 @@ interface CreatorData {
   completedOrders: number;
   avatarUrl?: string;
   socialLinks?: Record<string, string>;
+  socialVerified?: Record<string, string>;
   followerCounts?: Record<string, number>;
   portfolioImages?: string[];
   contactEmail?: string;
@@ -160,6 +161,7 @@ export function PortfolioPage({ username }: PortfolioPageProps) {
                   <a key={key} href={url} target="_blank" rel="noopener noreferrer" style={s.socialPill}>
                     <Icon size={14} color="#0EA5E9" />
                     <span>{label}</span>
+                    {creator.socialVerified?.[key] === 'verified' && <BadgeCheck size={12} color="#059669" />}
                     {creator.followerCounts?.[key] ? (
                       <span style={s.followerCount}>{creator.followerCounts![key].toLocaleString()} followers</span>
                     ) : null}
