@@ -62,6 +62,7 @@ export async function POST(req: NextRequest) {
     date?: string;
     startTime?: string;
     endTime?: string;
+    time?: string;
     notes?: string;
   };
   try {
@@ -71,10 +72,14 @@ export async function POST(req: NextRequest) {
   }
 
   const {
-    businessId, storeSlug, productId, productName,
+    businessId, storeSlug, productId,
     customerName, customerEmail, customerPhone,
-    date, startTime, endTime, notes,
+    date, notes,
   } = body;
+
+  const productName = body.productName || 'Service Booking';
+  const startTime = body.startTime || body.time || '';
+  const endTime = body.endTime || body.startTime || body.time || '';
 
   if (
     !businessId || !storeSlug || !productId || !productName ||

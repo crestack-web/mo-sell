@@ -3,14 +3,14 @@ import { getServerFirestore as getAdminDb, FieldValue } from '@/lib/server-fires
 import { processConfirmedOrder } from '@/lib/services/mo-sell-integration-bridge';
 
 export async function POST(req: NextRequest) {
-  let body: { storeSlug: string; productId: string; paystackReference: string; customerEmail: string };
+  let body: { storeSlug: string; productId: string; paystackReference: string; customerEmail: string; customerName?: string; customerPhone?: string; bookingId?: string };
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const { storeSlug, productId, paystackReference, customerEmail } = body;
+  const { storeSlug, productId, paystackReference, customerEmail, customerName, customerPhone, bookingId } = body;
   if (!storeSlug || !productId || !paystackReference || !customerEmail) {
     return NextResponse.json({ error: 'storeSlug, productId, paystackReference, customerEmail required' }, { status: 400 });
   }
@@ -111,9 +111,9 @@ export async function POST(req: NextRequest) {
       storeSlug,
       businessId,
       lineItems: [lineItem],
-      customerName: customerEmail.split('@')[0],
+      customerName: customerName || customerEmail.split('@')[0],
       customerEmail,
-      customerPhone: '',
+      customerPhone: customerPhone || '',
       deliveryOption: product.productType === 'digital' ? 'delivery' : 'delivery',
       shippingAddress: null,
       shippingZoneId: null,
@@ -124,6 +124,7 @@ export async function POST(req: NextRequest) {
       status: 'payment_confirmed',
       expiresAt,
       createdAt: FieldValue.serverTimestamp(),
+      ...(bookingId ? { metadata: { bookingId } } : {}),
     });
 
     // 6. Run Integration Bridge
@@ -135,11 +136,28 @@ export async function POST(req: NextRequest) {
         status: txn.status,
         amount: txn.amount,
         currency: txn.currency,
-        metadata: { productId: product.id, storeSlug, source: 'link-in-bio' },
+        metadata: { productId: product.id, storeSlug, source: 'link-in-bio', ...(bookingId ? { bookingId } : {}) },
       },
     });
 
-    return NextResponse.json({ orderId: bridgeResult.orderId });
+    const orderId = bridgeResult.orderId;
+
+    if (bookingId) {
+      try {
+        await db
+          .collection('businesses').doc(businessId)
+          .collection('storeBookings').doc(bookingId)
+          .update({
+            status: 'confirmed',
+            orderId: orderId || null,
+            updatedAt: FieldValue.serverTimestamp(),
+          });
+      } catch (err) {
+        console.error('[confirm] Failed to update booking status:', err);
+      }
+    }
+
+    return NextResponse.json({ orderId });
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Internal server error';
     return NextResponse.json({ error: msg }, { status: 500 });
