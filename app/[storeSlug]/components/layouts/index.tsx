@@ -27,9 +27,11 @@ export interface LayoutProps {
 }
 
 const SOCIAL_ICONS: Record<string, React.ReactNode> = {
-  instagram: <Instagram size={20} />, twitter: <Twitter size={20} />,
-  youtube: <Youtube size={20} />, tiktok: <Music2 size={20} />,
-  whatsapp: <MessageCircle size={20} />,
+  instagram: React.createElement(Instagram, { size: 20 }),
+  twitter: React.createElement(Twitter, { size: 20 }),
+  youtube: React.createElement(Youtube, { size: 20 }),
+  tiktok: React.createElement(Music2, { size: 20 }),
+  whatsapp: React.createElement(MessageCircle, { size: 20 }),
 };
 
 function fmtPrice(price: number, currency: string) {
