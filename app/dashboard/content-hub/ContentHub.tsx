@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { collection, getDocs, addDoc, doc, getDoc, setDoc, query, where, orderBy, serverTimestamp, writeBatch } from 'firebase/firestore';
+import { collection, getDocs, addDoc, doc, getDoc, setDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, writeBatch } from 'firebase/firestore';
 import {
   Lightbulb, Calendar, TrendingUp, Megaphone, BarChart3, Users,
-  Copy, Check, Bell, BellOff,
+  Copy, Check, Bell, BellOff, Eye, EyeOff,
   Sparkles, Package, X, Plus, Star, Camera, Instagram, Music2, Youtube, Twitter, Trash2, Upload,
 
 } from 'lucide-react';
@@ -358,7 +358,8 @@ export function ContentHub() {
         query(collection(firestore, 'ugcVideos'), where('creatorId', '==', user.id))
       );
       const vids = videosSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
-      setSampleVideos(vids.length > 0 ? vids.map((v: any) => v.url) : ['', '', '']);
+      const urls = vids.map((v: any) => v.url);
+      setSampleVideos(urls.length > 0 ? [...urls, ...Array(Math.max(0, 3 - urls.length)).fill('')] : ['', '', '']);
     } catch (err) {
       console.error('[ContentHub] Load UGC data error:', err);
     } finally {
@@ -491,6 +492,10 @@ export function ContentHub() {
     setSampleVideos(prev => [...prev, '']);
   };
 
+  const handleRemoveVideoUrl = (idx: number) => {
+    setSampleVideos(prev => prev.filter((_, i) => i !== idx));
+  };
+
   const handleAvatarUpload = async (): Promise<string | null> => {
     if (!avatarFile) return avatarPreview;
     try {
@@ -547,17 +552,21 @@ export function ContentHub() {
       };
       await setDoc(doc(firestore, 'ugcCreators', user.id), creator);
       const videos = sampleVideos.filter(Boolean);
-      if (videos.length > 0) {
-        const batch = writeBatch(firestore);
-        for (const url of videos.slice(0, 5)) {
-          const ref = doc(collection(firestore, 'ugcVideos'));
-          batch.set(ref, {
-            creatorId: user.id, url, thumbnail: null, duration: 15,
-            hasWatermark: true, title: null, createdAt: serverTimestamp(),
-          });
-        }
-        await batch.commit();
+      const batch = writeBatch(firestore);
+      const existingVideos = await getDocs(
+        query(collection(firestore, 'ugcVideos'), where('creatorId', '==', user.id), where('hasWatermark', '==', true))
+      );
+      existingVideos.docs.forEach(d => {
+        batch.delete(doc(firestore, 'ugcVideos', d.id));
+      });
+      for (const url of videos) {
+        const ref = doc(collection(firestore, 'ugcVideos'));
+        batch.set(ref, {
+          creatorId: user.id, url, thumbnail: null, duration: 15,
+          hasWatermark: true, title: null, createdAt: serverTimestamp(),
+        });
       }
+      await batch.commit();
       showToast(ugcProfile ? 'Profile updated!' : 'Profile saved! You\'re now listed as a creator.', 'success');
       setUgcView('dashboard');
       await loadUgcData();
@@ -565,6 +574,56 @@ export function ContentHub() {
       showToast('Failed to save profile', 'error');
     } finally {
       setSavingUgc(false);
+    }
+  };
+
+  const [ugcActionLoading, setUgcActionLoading] = useState<string | null>(null);
+
+  const handleToggleUgcVisibility = async () => {
+    if (!user?.id || !ugcProfile) return;
+    const next = ugcProfile.isActive === false;
+    if (!window.confirm(next
+      ? 'Make your profile public? Brands will be able to find and hire you again.'
+      : 'Hide your profile? Brands will no longer see you in the marketplace.')) return;
+    setUgcActionLoading('visibility');
+    try {
+      const { firestore } = initializeFirebase();
+      await updateDoc(doc(firestore, 'ugcCreators', user.id), {
+        isActive: next,
+        updatedAt: serverTimestamp(),
+      });
+      showToast(next ? 'Profile is now public' : 'Profile hidden', 'success');
+      await loadUgcData();
+    } catch {
+      showToast('Failed to update profile', 'error');
+    } finally {
+      setUgcActionLoading(null);
+    }
+  };
+
+  const handleDeleteUgcProfile = async () => {
+    if (!user?.id || !ugcProfile) return;
+    if (!window.confirm('Delete your creator profile permanently? Your listing and sample videos will be removed. This cannot be undone.')) return;
+    setUgcActionLoading('delete');
+    try {
+      const { firestore } = initializeFirebase();
+      const batch = writeBatch(firestore);
+      const videosSnap = await getDocs(
+        query(collection(firestore, 'ugcVideos'), where('creatorId', '==', user.id), where('hasWatermark', '==', true))
+      );
+      videosSnap.docs.forEach(d => {
+        batch.delete(doc(firestore, 'ugcVideos', d.id));
+      });
+      batch.delete(doc(firestore, 'ugcCreators', user.id));
+      await batch.commit();
+      setUgcProfile(null);
+      setUgcView('apply');
+      setSampleVideos(['', '', '']);
+      showToast('Profile deleted', 'success');
+    } catch {
+      showToast('Failed to delete profile', 'error');
+    } finally {
+      setUgcActionLoading(null);
     }
   };
 
@@ -921,15 +980,23 @@ export function ContentHub() {
 
                   {/* Sample Videos */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-                    <label style={s.formLabel}>Sample Videos (URLs)</label>
+                    <label style={s.formLabel}>Sample Videos (URLs) <span style={{ fontWeight: 400, color: 'var(--sell-text-3)' }}>(3 by default, add more if you like)</span></label>
                     {sampleVideos.map((url, idx) => (
-                      <input
-                        key={idx}
-                        style={s.formInput}
-                        value={url}
-                        onChange={e => handleVideoUrlChange(idx, e.target.value)}
-                        placeholder={`Video URL ${idx + 1}`}
-                      />
+                      <div key={idx} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                        <input
+                          style={s.formInput}
+                          value={url}
+                          onChange={e => handleVideoUrlChange(idx, e.target.value)}
+                          placeholder={`Video URL ${idx + 1}`}
+                        />
+                        <button
+                          style={{ ...s.btnGhost, padding: '6px 8px', fontSize: '0.72rem', color: 'var(--sell-red, #EF4444)', flexShrink: 0 }}
+                          onClick={() => handleRemoveVideoUrl(idx)}
+                          title="Remove video"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
                     ))}
                     <button style={{ ...s.btnGhost, alignSelf: 'flex-start', fontSize: '0.75rem', padding: '6px 12px' }} onClick={handleAddVideoUrl}>
                       <Plus size={12} />
@@ -1097,6 +1164,53 @@ export function ContentHub() {
                         {linkCopied ? 'Copied!' : 'Copy Portfolio Link'}
                       </button>
                     </div>
+                  )}
+
+                  {/* Visibility + Delete Controls */}
+                  {ugcProfile && (
+                    <>
+                      {ugcProfile.isActive === false && (
+                        <div style={{ padding: '10px 14px', border: '1px solid #FDE68A', borderRadius: 'var(--sell-radius-sm)', background: '#FFFBEB', fontSize: '0.78rem', color: '#92400E', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <EyeOff size={13} />
+                            Your profile is hidden from the marketplace.
+                          </span>
+                          <button
+                            onClick={handleToggleUgcVisibility}
+                            disabled={ugcActionLoading === 'visibility'}
+                            style={{ ...s.btnSecondary, fontSize: '0.72rem', padding: '5px 10px' }}
+                          >
+                            Make Public
+                          </button>
+                        </div>
+                      )}
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        <button
+                          onClick={handleToggleUgcVisibility}
+                          disabled={ugcActionLoading === 'visibility'}
+                          style={{ ...s.btnGhost, fontSize: '0.75rem', padding: '7px 12px' }}
+                        >
+                          {ugcActionLoading === 'visibility' ? (
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ width: 12, height: 12, animation: 'spin 0.7s linear infinite' }}>
+                              <path d="M21 12a9 9 0 11-6.219-8.56"/>
+                            </svg>
+                          ) : ugcProfile.isActive === false ? <Eye size={12} /> : <EyeOff size={12} />}
+                          {ugcProfile.isActive === false ? 'Make Public' : 'Hide Profile'}
+                        </button>
+                        <button
+                          onClick={handleDeleteUgcProfile}
+                          disabled={ugcActionLoading === 'delete'}
+                          style={{ ...s.btnGhost, fontSize: '0.75rem', padding: '7px 12px', color: 'var(--sell-red, #EF4444)', borderColor: 'rgba(239,68,68,0.4)' }}
+                        >
+                          {ugcActionLoading === 'delete' ? (
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ width: 12, height: 12, animation: 'spin 0.7s linear infinite' }}>
+                              <path d="M21 12a9 9 0 11-6.219-8.56"/>
+                            </svg>
+                          ) : <Trash2 size={12} />}
+                          Delete Profile
+                        </button>
+                      </div>
+                    </>
                   )}
 
                   {/* Earnings Summary */}
