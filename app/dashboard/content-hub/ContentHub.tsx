@@ -94,6 +94,7 @@ const s = {
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 12,
+    flexWrap: 'wrap' as const,
   },
   cardTitle: {
     fontFamily: 'var(--sell-font-display)',
@@ -903,7 +904,7 @@ export function ContentHub() {
                   </div>
 
                   {/* Pricing */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12 }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                       <label style={s.formLabel}>Price (30s video) *</label>
                       <input style={s.formInput} type="number" value={price30s} onChange={e => setPrice30s(e.target.value)} placeholder={`0 ${currency}`} />
@@ -998,18 +999,20 @@ export function ContentHub() {
                         ['twitter', 'X (Twitter)', Twitter],
                       ] as [string, string, React.FC<{ size?: number }>][]
                     ).map(([key, label, Icon]) => (
-                      <div key={key} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <div key={key} className={generatorStyles.ugcSocialRow} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 120, fontSize: '0.82rem', color: 'var(--sell-text-2)' }}>
                           <Icon size={16} />
                           <span>{label}</span>
                         </div>
                         <input
+                          className={generatorStyles.ugcSocialUrl}
                           style={{ ...s.formInput, flex: 1 }}
                           value={socialLinks[key] || ''}
                           onChange={e => setSocialLinks(prev => ({ ...prev, [key]: e.target.value }))}
                           placeholder={`${label} URL (optional)`}
                         />
                         <input
+                          className={generatorStyles.ugcSocialFollowers}
                           style={{ ...s.formInput, width: 100, flex: 'none' }}
                           type="number"
                           value={followerCounts[key] || ''}
@@ -1070,7 +1073,7 @@ export function ContentHub() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                   {/* Profile Summary */}
                   {ugcProfile && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '14px 16px', border: '1px solid var(--sell-border)', borderRadius: 'var(--sell-radius-sm)', background: 'var(--sell-bg)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '14px 16px', border: '1px solid var(--sell-border)', borderRadius: 'var(--sell-radius-sm)', background: 'var(--sell-bg)', flexWrap: 'wrap' }}>
                       <div style={{ width: 48, height: 48, borderRadius: '50%', overflow: 'hidden', background: 'var(--sell-primary-lt)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', fontWeight: 700, color: 'var(--sell-primary)', flexShrink: 0, backgroundImage: ugcProfile?.avatarUrl ? `url(${ugcProfile.avatarUrl})` : undefined, backgroundSize: 'cover', backgroundPosition: 'center' }}>
                         {!ugcProfile?.avatarUrl && (user?.name?.charAt(0).toUpperCase() || '?')}
                       </div>
@@ -1098,16 +1101,16 @@ export function ContentHub() {
 
                   {/* Earnings Summary */}
                   {ugcOrders.length > 0 && (
-                    <div style={{ display: 'flex', gap: 16 }}>
-                      <div style={{ flex: 1, padding: '14px 16px', border: '1px solid var(--sell-border)', borderRadius: 'var(--sell-radius-sm)', background: 'var(--sell-bg)', textAlign: 'center' }}>
+                    <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+                      <div style={{ flex: 1, minWidth: 150, padding: '14px 16px', border: '1px solid var(--sell-border)', borderRadius: 'var(--sell-radius-sm)', background: 'var(--sell-bg)', textAlign: 'center' }}>
                         <p style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--sell-text-3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Requests</p>
                         <p style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--sell-primary)' }}>{ugcRequests.length}</p>
                       </div>
-                      <div style={{ flex: 1, padding: '14px 16px', border: '1px solid var(--sell-border)', borderRadius: 'var(--sell-radius-sm)', background: 'var(--sell-bg)', textAlign: 'center' }}>
+                      <div style={{ flex: 1, minWidth: 150, padding: '14px 16px', border: '1px solid var(--sell-border)', borderRadius: 'var(--sell-radius-sm)', background: 'var(--sell-bg)', textAlign: 'center' }}>
                         <p style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--sell-text-3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Active Orders</p>
                         <p style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--sell-accent)' }}>{ugcOrders.filter(o => o.status === 'active').length}</p>
                       </div>
-                      <div style={{ flex: 1, padding: '14px 16px', border: '1px solid var(--sell-border)', borderRadius: 'var(--sell-radius-sm)', background: 'var(--sell-bg)', textAlign: 'center' }}>
+                      <div style={{ flex: 1, minWidth: 150, padding: '14px 16px', border: '1px solid var(--sell-border)', borderRadius: 'var(--sell-radius-sm)', background: 'var(--sell-bg)', textAlign: 'center' }}>
                         <p style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--sell-text-3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Total Earnings</p>
                         <p style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--sell-green)' }}>{currency} {ugcOrders.reduce((sum, o) => sum + (o.status === 'completed' ? o.amount : 0), 0).toLocaleString()}</p>
                       </div>
@@ -1118,6 +1121,7 @@ export function ContentHub() {
                   {ugcRequests.length > 0 && (
                     <div>
                       <p style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--sell-text-2)', marginBottom: 8 }}>Incoming Requests</p>
+                      <div style={{ overflowX: 'auto' }}>
                       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
                         <thead>
                           <tr style={{ borderBottom: '1px solid var(--sell-border)' }}>
@@ -1191,6 +1195,7 @@ export function ContentHub() {
                           })}
                         </tbody>
                       </table>
+                      </div>
                     </div>
                   )}
 
@@ -1198,6 +1203,7 @@ export function ContentHub() {
                   {ugcOrders.filter(o => o.status === 'active' || o.status === 'completed').length > 0 && (
                     <div>
                       <p style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--sell-text-2)', marginBottom: 8 }}>Active Orders</p>
+                      <div style={{ overflowX: 'auto' }}>
                       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
                         <thead>
                           <tr style={{ borderBottom: '1px solid var(--sell-border)' }}>
@@ -1226,6 +1232,7 @@ export function ContentHub() {
                           ))}
                         </tbody>
                       </table>
+                      </div>
                     </div>
                   )}
 

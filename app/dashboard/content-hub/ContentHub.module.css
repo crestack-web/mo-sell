@@ -518,3 +518,29 @@
   border-color: var(--sell-primary);
   color: var(--sell-primary);
 }
+
+/* UGC tab — mobile responsiveness */
+.ugcSocialRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+@media (max-width: 620px) {
+  .ugcSocialRow {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+  .ugcSocialRow > div {
+    min-width: 0 !important;
+  }
+  .ugcSocialUrl {
+    flex: none !important;
+    min-height: 40px;
+  }
+  .ugcSocialFollowers {
+    width: 100% !important;
+    flex: none !important;
+  }
+}
+
