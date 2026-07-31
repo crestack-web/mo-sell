@@ -14,7 +14,7 @@ export interface LayoutProps {
     paystackPublicKey: string;
   };
   bio: {
-    avatarUrl: string | null; name: string; bio: string;
+    avatarUrl: string | null | undefined; name: string; bio: string;
     socials: { platform: string; url: string }[];
     displayType: 'button' | 'callout' | 'minimal';
     backgroundType: 'solid' | 'gradient' | 'image' | 'pattern';
@@ -38,6 +38,8 @@ function fmtPrice(price: number, currency: string) {
   const sym = currency === 'NGN' ? '\u20A6' : '$';
   return sym + price.toLocaleString();
 }
+
+/* eslint-disable @next/next/no-img-element */
 
 function Avatar({ bio, config, isLightBg }: { bio: LayoutProps['bio']; config: LayoutProps['config']; isLightBg: boolean }) {
   const size = 96;

@@ -9,7 +9,7 @@ export interface CustomLink {
 }
 
 export interface LinkBioConfig {
-  avatarUrl: string | null;
+  avatarUrl: string | null | undefined;
   name: string;
   bio: string;
   socials: { platform: string; url: string }[];
@@ -35,7 +35,7 @@ export interface LayoutProps {
     paystackPublicKey: string;
   };
   bio: {
-    avatarUrl: string | null;
+    avatarUrl: string | null | undefined;
     name: string;
     bio: string;
     socials: { platform: string; url: string }[];

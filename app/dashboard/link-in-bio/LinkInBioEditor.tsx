@@ -8,6 +8,7 @@ import { useSell } from '@/context/SellContext';
 import { THEMES, getThemeType } from '@/themes/registry';
 import { getThemeCssVars } from '@/components/StorefrontCanvas';
 import type { StorefrontTheme } from '@/types/mo-sell.types';
+import { getLinkBioLayout } from '@/app/[storeSlug]/components/layouts';
 import { useRouter } from 'next/navigation';
 import {
   Instagram, Twitter, Youtube, Music2, MessageCircle, Globe,
@@ -275,15 +276,16 @@ export function LinkInBioEditor() {
     setDirty(true);
   }, []);
 
-  const previewBg = bgType === 'gradient' ? bgValue :
-    bgType === 'solid' ? bgValue :
-    bgType === 'image' ? `url(${bgValue}) center/cover` :
-    bgValue;
-
   const [themeDefPrimary, themeDefSecondary] = THEME_DEFAULT_COLORS[localTheme] ?? ['#6366F1', '#4F46E5'];
   const themePrimary = storeConfig?.primaryColor ?? themeDefPrimary;
   const themeSecondary = storeConfig?.secondaryColor ?? themeDefSecondary;
-  const themeVars = getThemeCssVars(localTheme, themePrimary, themeSecondary);
+
+  const isLightBg = bgType === 'solid' && (bgValue === '#F9FAFB' || bgValue === '#FFF7ED' || bgValue === '#ECFDF5' || bgValue === '#F0F9FF');
+  const textColor = isLightBg ? '#0f172a' : '#fff';
+  const textColor2 = isLightBg ? '#64748b' : 'rgba(255,255,255,0.7)';
+  const textColor3 = isLightBg ? '#94a3b8' : 'rgba(255,255,255,0.4)';
+
+  const Layout = getLinkBioLayout(localTheme);
 
   return (
     <div className={styles.page}>
@@ -291,108 +293,41 @@ export function LinkInBioEditor() {
         <div className={styles.phoneFrame}>
           <div className={styles.phoneScreen} style={{
             background: bgType === 'image' ? '#111' : bgType === 'gradient' ? bgValue : bgValue,
-            ...themeVars,
           }}>
             {bgType === 'image' && bgValue && (
-              // eslint-disable-next-line @next/next/no-img-element
               <img src={bgValue} alt="" className={styles.bgImg} />
             )}
             <div className={styles.phoneContent}>
-              <div className={styles.pAvatar}>
-                {avatarPreview ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={avatarPreview} alt="" className={styles.pAvatarImg} />
-                ) : (
-                  <div className={styles.pAvatarPlaceholder}>
-                    {(name || 'Y').charAt(0).toUpperCase()}
-                  </div>
-                )}
-              </div>
-              <h1 className={styles.pName}>{name || 'Your Name'}</h1>
-              <p className={styles.pBio}>{bio || 'Your bio goes here'}</p>
-
-              {socials.length > 0 && (
-                <div className={styles.pSocials}>
-                  {socials.map((s, i) => {
-                    const opt = SOCIAL_OPTIONS.find(o => o.key === s.platform);
-                    return (
-                      <a key={i} href={s.url || '#'} target="_blank" rel="noopener noreferrer" className={styles.pSocialLink}>
-                        {opt?.icon}
-                      </a>
-                    );
-                  })}
-                </div>
-              )}
-
-              <div className={styles.pProducts}>
-                {sortedProducts.filter(p => p.visible).slice(0, 5).map(p => {
-                  if (displayType === 'minimal') {
-                    return (
-                      <div key={p.id} className={styles.pMinimal}>
-                        <span className={styles.pMinimalName}>{p.displayName}</span>
-                        <span className={styles.pMinimalPrice}>
-                          ₦{p.price.toLocaleString()}
-                        </span>
-                      </div>
-                    );
-                  }
-                  if (displayType === 'callout') {
-                    return (
-                      <div key={p.id} className={styles.pCallout}>
-                        {p.images?.[0] && (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={p.images[0]} alt="" className={styles.pCalloutImg} />
-                        )}
-                        <div className={styles.pCalloutInfo}>
-                          <p className={styles.pCalloutName}>{p.displayName}</p>
-                          <p className={styles.pCalloutPrice}>₦{p.price.toLocaleString()}</p>
-                        </div>
-                        <span className={styles.pCalloutBtn}>Buy Now</span>
-                      </div>
-                    );
-                  }
-                  return (
-                    <div key={p.id} className={styles.pButton} style={{
-                      background: storeConfig?.primaryColor || '#6366F1',
-                    }}>
-                      {p.images?.[0] && (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={p.images[0]} alt="" className={styles.pButtonThumb} />
-                      )}
-                      <span className={styles.pButtonName}>{p.displayName}</span>
-                      <span className={styles.pButtonPrice}>₦{p.price.toLocaleString()}</span>
-                    </div>
-                  );
-                })}
-                {customLinks.filter(cl => cl.label && cl.url).map(cl => {
-                  if (displayType === 'minimal') {
-                    return (
-                      <div key={cl.id} className={styles.pMinimal}>
-                        <span className={styles.pMinimalName}>{cl.label}</span>
-                      </div>
-                    );
-                  }
-                  if (displayType === 'callout') {
-                    return (
-                      <div key={cl.id} className={styles.pCallout}>
-                        <div className={styles.pCalloutInfo}>
-                          <p className={styles.pCalloutName}>{cl.label}</p>
-                        </div>
-                        <span className={styles.pCalloutBtn}>Open</span>
-                      </div>
-                    );
-                  }
-                  return (
-                    <div key={cl.id} className={styles.pButton} style={{
-                      background: storeConfig?.primaryColor || '#6366F1',
-                    }}>
-                      <span className={styles.pButtonName}>{cl.label}</span>
-                    </div>
-                  );
-                })}
-              </div>
-
-              <p className={styles.pFooter}>Powered by MO Sell</p>
+              <Layout
+                config={{
+                  storeSlug: storeConfig?.storeSlug ?? '',
+                  storeName: storeConfig?.storeName ?? '',
+                  logoUrl: storeConfig?.logoUrl ?? null,
+                  primaryColor: themePrimary,
+                  secondaryColor: themeSecondary,
+                  currency: storeConfig?.currency ?? 'NGN',
+                  tagline: storeConfig?.tagline ?? null,
+                  contactEmail: storeConfig?.contactEmail ?? '',
+                  contactPhone: storeConfig?.contactPhone ?? '',
+                  paystackPublicKey: (storeConfig as any)?.paystackPublicKey ?? '',
+                }}
+                bio={{
+                  avatarUrl: avatarPreview,
+                  name,
+                  bio,
+                  socials,
+                  displayType,
+                  backgroundType: bgType,
+                  backgroundValue: bgValue,
+                  customLinks,
+                }}
+                visibleProducts={sortedProducts.filter(p => p.visible).slice(0, 5)}
+                isLightBg={isLightBg}
+                textColor={textColor}
+                textColor2={textColor2}
+                textColor3={textColor3}
+                onProductClick={() => {}}
+              />
             </div>
           </div>
         </div>
