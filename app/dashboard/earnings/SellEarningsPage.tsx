@@ -209,6 +209,24 @@ export function SellEarningsPage() {
       const promoted = await promoteEarnings(biz, rawEarnings);
       setEarnings(promoted);
 
+      // Fire-and-forget analytics: record earnings page view
+      try {
+        if (storeConfig?.storeSlug) {
+          fetch('/api/store/analytics/event', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              eventType: 'page_view',
+              storeSlug: storeConfig.storeSlug,
+              businessId: biz,
+              pageType: 'earnings',
+            }),
+          }).catch(() => {});
+        }
+      } catch (err) {
+        // silent
+      }
+
       // Payout requests
       const pSnap = await getDocs(
         query(collection(firestore, 'businesses', biz, 'payoutRequests'), orderBy('createdAt', 'desc'))
