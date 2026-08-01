@@ -211,6 +211,52 @@ export function PortfolioPage({ username }: PortfolioPageProps) {
               }))}
             </div>
           )}
+
+          {/* Detailed Social Stats */}
+          {creator.socialStats && Object.entries(creator.socialStats).some(([_, stat]) => stat && stat.followerCount) && (
+            <div style={{
+              display: 'flex',
+              gap: 12,
+              flexWrap: 'wrap',
+              justifyContent: 'center',
+              marginTop: 16,
+              width: '100%',
+              maxWidth: 550,
+            }}>
+              {Object.entries(creator.socialStats).map(([key, stat]) => {
+                if (!stat || !stat.followerCount) return null;
+                const platformLabel = key === 'instagram' ? 'Instagram' : key === 'tiktok' ? 'TikTok' : key === 'youtube' ? 'YouTube' : 'X (Twitter)';
+                return (
+                  <div key={key} style={{
+                    background: '#F9FAFB',
+                    border: '1px solid #E5E7EB',
+                    borderRadius: 12,
+                    padding: '12px 16px',
+                    minWidth: 150,
+                    textAlign: 'center',
+                    flex: '1 1 150px',
+                  }}>
+                    <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                      <span>{platformLabel}</span>
+                      <BadgeCheck size={14} color="#059669" />
+                    </div>
+                    <div style={{ fontSize: 18, fontWeight: 800, color: '#111827' }}>
+                      {stat.followerCount.toLocaleString()}
+                    </div>
+                    <div style={{ fontSize: 11, color: '#6B7280', marginTop: 2 }}>
+                      Followers
+                    </div>
+                    {((stat.postsCount ?? 0) > 0 || (stat.likesCount ?? 0) > 0) && (
+                      <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 6, paddingTop: 6, borderTop: '1px solid #F3F4F6', fontSize: 10, color: '#4B5563' }}>
+                        {(stat.postsCount ?? 0) > 0 && <span><strong>{stat.postsCount}</strong> posts</span>}
+                        {(stat.likesCount ?? 0) > 0 && <span><strong>{formatFollowerCount(stat.likesCount ?? 0)}</strong> likes</span>}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 

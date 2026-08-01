@@ -319,7 +319,7 @@ export function ContentHub() {
   const [followerCounts, setFollowerCounts] = useState<Record<string, number>>({});
   const [socialVerified, setSocialVerified] = useState<Record<string, string>>({});
   const [socialVerifyError, setSocialVerifyError] = useState<Record<string, string>>({});
-  const [socialStats, setSocialStats] = useState<Record<string, { followerCount?: number; followingCount?: number; likesCount?: number; postsCount?: number; verified?: boolean; verifiedAt?: string }>>({});
+  const [socialStats, setSocialStats] = useState<Record<string, { name?: string; followerCount?: number; followingCount?: number; likesCount?: number; postsCount?: number; verified?: boolean; verifiedAt?: string }>>({});
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [portfolioImages, setPortfolioImages] = useState<string[]>([]);
@@ -642,6 +642,7 @@ export function ContentHub() {
           setSocialStats(prev => ({
             ...prev,
             [key]: {
+              name: data.name || '',
               followerCount: data.followerCount,
               followingCount: data.followingCount ?? 0,
               likesCount: data.likesCount ?? 0,
@@ -1832,7 +1833,8 @@ export function ContentHub() {
                         ['twitter', 'X (Twitter)', Twitter],
                       ] as [string, string, React.FC<{ size?: number }>][]
                     ).map(([key, label, Icon]) => (
-                      <div key={key} className={generatorStyles.ugcSocialRow} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <div key={key} style={{ display: 'flex', flexDirection: 'column', gap: 6, width: '100%' }}>
+                        <div className={generatorStyles.ugcSocialRow} style={{ display: 'flex', gap: 8, alignItems: 'center', width: '100%' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 120, fontSize: '0.82rem', color: 'var(--sell-text-2)' }}>
                           <Icon size={16} />
                           <span>{label}</span>
@@ -1843,14 +1845,6 @@ export function ContentHub() {
                           value={socialLinks[key] || ''}
                           onChange={e => setSocialLinks(prev => ({ ...prev, [key]: e.target.value }))}
                           placeholder={`${label} URL (optional)`}
-                        />
-                        <input
-                          className={generatorStyles.ugcSocialFollowers}
-                          style={{ ...s.formInput, width: 100, flex: 'none' }}
-                          type="number"
-                          value={followerCounts[key] || ''}
-                          onChange={e => setFollowerCounts(prev => ({ ...prev, [key]: Number(e.target.value) || 0 }))}
-                          placeholder="Followers"
                         />
                         {(key === 'tiktok' || key === 'instagram') && (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 3, flexShrink: 0 }}>
@@ -1879,15 +1873,63 @@ export function ContentHub() {
                             {socialVerifyError[key] && (
                               <span style={{ fontSize: '0.64rem', color: 'var(--sell-red, #EF4444)', maxWidth: 180 }}>{socialVerifyError[key]}</span>
                             )}
-                            {socialVerified[key] === 'verified' && socialStats[key]?.followerCount ? (
-                              <span style={{ fontSize: '0.64rem', color: 'var(--sell-green)', maxWidth: 180, whiteSpace: 'nowrap' }}>
-                                {formatCount(socialStats[key].followerCount)} followers confirmed
-                              </span>
-                            ) : null}
                           </div>
                         )}
                       </div>
-                    )))}
+                      {/* Verified Social Profile details and summary */}
+                      {socialVerified[key] === 'verified' && socialStats[key] ? (
+                        <div style={{
+                          background: 'rgba(5, 150, 105, 0.04)',
+                          border: '1px solid rgba(5, 150, 105, 0.15)',
+                          borderRadius: '12px',
+                          padding: '12px 14px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '6px',
+                          width: '100%',
+                          boxSizing: 'border-box',
+                          marginTop: '2px',
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(5, 150, 105, 0.08)', paddingBottom: '6px', marginBottom: '2px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <BadgeCheck size={14} color="var(--sell-green)" />
+                              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--sell-green)' }}>Verified Profile Details</span>
+                            </div>
+                            {socialStats[key].verified && (
+                              <span style={{ background: '#3B82F6', color: '#fff', fontSize: '0.58rem', fontWeight: 700, padding: '2px 8px', borderRadius: '100px' }}>
+                                  Official Badge ✓
+                              </span>
+                            )}
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                            {socialStats[key]?.name && (
+                              <div style={{ fontSize: '0.78rem', color: 'var(--sell-text-2)', fontWeight: 600 }}>
+                                Name: <span style={{ color: 'var(--sell-text-1)', fontWeight: 700 }}>{socialStats[key]?.name}</span>
+                              </div>
+                            )}
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', marginTop: '2px' }}>
+                              <div style={{ fontSize: '0.75rem', color: 'var(--sell-text-2)' }}>
+                                <strong>Followers:</strong> {formatCount(socialStats[key].followerCount || 0)}
+                              </div>
+                              <div style={{ fontSize: '0.75rem', color: 'var(--sell-text-2)' }}>
+                                <strong>Following:</strong> {formatCount(socialStats[key].followingCount || 0)}
+                              </div>
+                              {(socialStats[key]?.postsCount ?? 0) > 0 && (
+                                <div style={{ fontSize: '0.75rem', color: 'var(--sell-text-2)' }}>
+                                  <strong>Posts:</strong> {formatCount(socialStats[key]?.postsCount ?? 0)}
+                                </div>
+                              )}
+                              {(socialStats[key]?.likesCount ?? 0) > 0 && (
+                                <div style={{ fontSize: '0.75rem', color: 'var(--sell-text-2)' }}>
+                                  <strong>Likes:</strong> {formatCount(socialStats[key]?.likesCount ?? 0)}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  )))}
                     <p style={{ fontSize: '0.72rem', color: 'var(--sell-text-3)', margin: 0 }}>Paste your public profile URL and press Verify. TikTok and Instagram are checked live via Apify and the real follower count is filled in; YouTube and X are self-reported. Instagram post/reel links fall back to a no-key existence check.</p>
                   </div>
 
