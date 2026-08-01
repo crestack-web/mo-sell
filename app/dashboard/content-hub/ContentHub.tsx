@@ -1044,7 +1044,7 @@ export function ContentHub() {
       {/* Header */}
       <div>
         <h2 style={s.heading}>Content Hub</h2>
-        <p style={s.sub}>Your Growth OS \u2014 ideas, scheduling, trends, campaigns, analytics, and UGC marketplace</p>
+        <p style={s.sub}>Create, schedule, and analyze your content across all platforms</p>
       </div>
 
       {/* ─── Tabs ─── */}
