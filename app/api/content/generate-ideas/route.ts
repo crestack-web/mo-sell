@@ -96,6 +96,7 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     console.error('[generate-ideas] Error:', err);
     const msg = err instanceof Error ? err.message : 'Internal server error';
-    return NextResponse.json({ error: msg || 'Internal server error' }, { status: 500 });
+    const isGeminiError = msg.includes('GoogleGenerativeAI') || msg.includes('generativelanguage.googleapis.com');
+    return NextResponse.json({ error: isGeminiError ? 'Content generation is temporarily unavailable. Please try again later.' : (msg || 'Internal server error') }, { status: 500 });
   }
 }
