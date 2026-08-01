@@ -67,7 +67,7 @@ export function ProductModal({ product, storeSlug, currency, primaryColor, payst
     try {
       const activeKey = paystackPublicKey || process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || '';
       if (!activeKey) {
-        setError('Payment not configured');
+        setError('Payment is not configured for this store. Please contact the store owner or try again later.');
         setProcessing(false);
         return;
       }
