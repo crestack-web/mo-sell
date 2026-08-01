@@ -95,9 +95,10 @@ export async function POST(req: NextRequest) {
     }
 
     // 3. Initialise Paystack transaction
-    // Use seller's own key if configured, otherwise fall back to Busmo's
+    // If store has verified bank account, use Busmo's keys (managed payments)
+    // Otherwise, allow using their own keys if configured
     let paystackSecretKey = process.env.PAYSTACK_SECRET_KEY;
-    if (storeConfig?.useOwnPaystack && storeConfig?.paystackSecretKey) {
+    if (!hasPayoutBank && storeConfig?.useOwnPaystack && storeConfig?.paystackSecretKey) {
       paystackSecretKey = storeConfig.paystackSecretKey;
     }
 
