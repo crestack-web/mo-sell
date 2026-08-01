@@ -10,6 +10,11 @@ const jakarta = Plus_Jakarta_Sans({
 export const metadata: Metadata = {
   title: "MO Sell - Your Store, Powered by AI",
   description: "Build, manage, and grow your online store with MO's AI-powered platform.",
+  icons: {
+    icon: [{ url: '/favicon.png', type: 'image/png' }],
+    apple: '/favicon.png',
+    shortcut: '/favicon.png',
+  },
 };
 
 export default function RootLayout({
@@ -20,7 +25,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${jakarta.variable} h-full antialiased`}>
       <head>
-        <link rel="icon" href="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1785078071/mosell_gpzl2q.png" type="image/png" />
+        <link rel="icon" href="/favicon.png" type="image/png" />
       </head>
       <body className="min-h-full flex flex-col" style={{ fontFamily: 'var(--font-jakarta), sans-serif' }}>
         {children}
