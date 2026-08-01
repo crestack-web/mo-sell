@@ -23,6 +23,7 @@ interface Props {
   currency: string;
   shippingZones: ShippingZone[];
   pickupLocations: PickupLocation[];
+  preferredPaymentMethod?: 'paystack' | 'whop';
   whopEnabled?: boolean;
 }
 
@@ -34,7 +35,7 @@ function fmt(n: number, currency: string) {
 type DeliveryOption = 'delivery' | 'pickup';
 
 export function CheckoutForm({
-  storeSlug, businessId, currency, shippingZones, pickupLocations, whopEnabled,
+  storeSlug, businessId, currency, shippingZones, pickupLocations, preferredPaymentMethod, whopEnabled,
 }: Props) {
   const { items, subtotal, clearCart } = useCart();
   const router = useRouter();
@@ -49,7 +50,7 @@ export function CheckoutForm({
   const [selectedZoneId, setSelectedZoneId] = useState(shippingZones[0]?.id ?? '');
   const [submitting,     setSubmitting]     = useState(false);
   const [error,          setError]          = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<'paystack' | 'whop'>(currency === 'NGN' ? 'paystack' : 'whop');
+  const [paymentMethod, setPaymentMethod] = useState<'paystack' | 'whop'>(preferredPaymentMethod ?? (currency === 'NGN' ? 'paystack' : 'whop'));
 
   const selectedZone = shippingZones.find(z => z.id === selectedZoneId);
   const shippingCost = deliveryOption === 'delivery' ? (selectedZone?.flatRate ?? 0) : 0;
@@ -109,7 +110,7 @@ export function CheckoutForm({
         total,
       };
 
-      if (paymentMethod === 'whop' && whopEnabled) {
+      if (paymentMethod === 'whop') {
         const res = await fetch('/api/store/checkout/initiate-whop', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -315,7 +316,7 @@ export function CheckoutForm({
         </div>
       )}
 
-      {whopEnabled && (
+      {(whopEnabled || preferredPaymentMethod === 'whop') && (
         <div style={cardStyle}>
           <p style={sectionTitle}>4. Payment method</p>
           <div style={{ display: 'flex', gap: 10 }}>

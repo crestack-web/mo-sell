@@ -3,6 +3,21 @@ import { notFound } from 'next/navigation';
 import { getServerFirestore as getAdminDb } from '@/lib/server-firestore';
 import { CheckoutForm } from './CheckoutForm';
 
+function getPreferredPaymentMethod(config: Record<string, any>): 'paystack' | 'whop' {
+  const currency = (config.currency ?? 'NGN').toString().toUpperCase();
+  const hasVerifiedPayoutAccount = Boolean(
+    config.payoutBankName?.toString().trim() &&
+    config.payoutAccountName?.toString().trim() &&
+    config.payoutAccountNumber?.toString().trim()
+  );
+
+  if (currency === 'NGN' && (hasVerifiedPayoutAccount || config.paystackPublicKey || config.useOwnPaystack)) {
+    return 'paystack';
+  }
+
+  return 'whop';
+}
+
 async function getStoreConfig(storeSlug: string) {
   try {
     const db = getAdminDb();
@@ -72,7 +87,8 @@ export default async function CheckoutPage({
         currency={config.currency}
         shippingZones={shippingZones as any[]}
         pickupLocations={pickupLocations}
-        whopEnabled={config.whopEnabled === true}
+        preferredPaymentMethod={getPreferredPaymentMethod(config)}
+        whopEnabled={config.whopEnabled === true || getPreferredPaymentMethod(config) === 'whop'}
       />
     </div>
   );
