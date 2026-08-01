@@ -11,6 +11,22 @@ export const TOKEN_COSTS = {
   ebookEdit: 300,
 } as const;
 
+export function shouldBlockAskMoRequest(balance: number, requiredCost: number): boolean {
+  return false;
+}
+
+export function getTokenSpendPlan(balance: number, requiredCost: number) {
+  const safeBalance = Math.max(0, balance);
+  const amountToDeduct = Math.min(requiredCost, safeBalance);
+  const nextBalance = Math.max(0, safeBalance - amountToDeduct);
+
+  return {
+    amountToDeduct,
+    nextBalance,
+    shouldPromptForPurchase: nextBalance === 0 && safeBalance > 0,
+  };
+}
+
 // ─── Monthly Free Allowance (per plan) ────────────────────────────────────────
 
 export const PLAN_ALLOWANCES: Record<string, number> = {

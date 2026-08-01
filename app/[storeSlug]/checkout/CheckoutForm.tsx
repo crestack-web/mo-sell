@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useCart } from '../context/CartContext';
 import { useRouter } from 'next/navigation';
 
@@ -54,6 +54,19 @@ export function CheckoutForm({
   const selectedZone = shippingZones.find(z => z.id === selectedZoneId);
   const shippingCost = deliveryOption === 'delivery' ? (selectedZone?.flatRate ?? 0) : 0;
   const total = subtotal + shippingCost;
+
+  useEffect(() => {
+    fetch('/api/store/analytics/event', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        eventType: 'page_view',
+        storeSlug,
+        businessId,
+        pageType: 'checkout',
+      }),
+    }).catch(() => {});
+  }, [storeSlug, businessId]);
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -111,6 +124,11 @@ export function CheckoutForm({
         }
 
         sessionStorage.setItem(`mo_checkout_${storeSlug}`, data.sessionId ?? '');
+        fetch('/api/store/analytics/event', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ eventType: 'checkout_initiated', storeSlug, businessId, pageType: 'checkout' }),
+        }).catch(() => {});
         clearCart();
         window.location.href = `https://whop.com/checkout/${data.planId}?return_url=${encodeURIComponent(data.returnUrl ?? '')}`;
       } else {

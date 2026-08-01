@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { getServerFirestore as getAdminDb, getServerStorage as getAdminStorage, FieldValue } from '@/lib/server-firestore';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
-import { getTokenCost, TOKEN_DOC_PATH, TOKEN_BALANCE_FIELD, ASK_MO_COMMISSION_RATE, ASK_MO_COMMISSION_FIELD, ensureFreeTokens } from '@/lib/ask-mo-tokens';
+import { ASK_MO_COMMISSION_RATE, ASK_MO_COMMISSION_FIELD, getTokenCost, TOKEN_DOC_PATH, TOKEN_BALANCE_FIELD, ensureFreeTokens, getTokenSpendPlan } from '@/lib/ask-mo-tokens';
 
 const MODELS = ['gemini-2.5-flash', 'gemini-flash-latest', 'gemini-2.5-pro'];
 
@@ -740,31 +740,6 @@ CURRENT STORE CONFIG:
       }
     } catch { /* non-fatal */ }
 
-    // ── Token verification ──
-    const hasMedia = attachments.length > 0;
-    let currentBalance = 0;
-    let db2: any = null;
-    try {
-      const minCost = getTokenCost(hasMedia, false, false);
-
-      db2 = getAdminDb();
-      currentBalance = await ensureFreeTokens(db2, businessId);
-
-      if (currentBalance < minCost) {
-        return NextResponse.json({
-          error: 'Insufficient tokens',
-          details: `You need at least ${minCost} tokens. Balance: ${currentBalance}.`,
-          tokenError: true,
-          balance: currentBalance,
-          required: minCost,
-        }, { status: 403 });
-      }
-    } catch (tokenErr) {
-      const tokenMsg = tokenErr instanceof Error ? tokenErr.message : String(tokenErr);
-      console.error('[AskMo] Token error (non-fatal, proceeding):', tokenMsg);
-      // If token system is unavailable, let the user proceed
-    }
-
     // ── AI call ──
     const fullPrompt = SELL_MO_SYSTEM_PROMPT + storeContext + productContext + collectionContext;
 
@@ -772,25 +747,30 @@ CURRENT STORE CONFIG:
     const raw = await callWithFallback(genAI, fullPrompt, conversationHistory, message, attachments);
     const { answer, storeUpdate, newProduct, editProduct } = parseActionBlocks(raw);
 
-    // ── Token deduction ──
+    // Ask MO stays available, but each request uses the free allowance first and prompts for purchase when it is exhausted.
+    const hasMedia = attachments.length > 0;
     const isEbookCreate = !!((newProduct as any)?.pdfContent?.chapters?.length);
     const isEbookEdit = !!((editProduct as any)?.pdfContent?.chapters?.length);
-    const actualCost = getTokenCost(hasMedia, isEbookCreate, isEbookEdit);
+    const tokenCost = getTokenCost(hasMedia, isEbookCreate, isEbookEdit);
 
-    if (currentBalance < actualCost) {
-      return NextResponse.json({
-        error: 'Insufficient tokens for ebook creation',
-        details: `Ebook actions cost ${actualCost} tokens. Your balance: ${currentBalance}.`,
-        tokenError: true,
-        balance: currentBalance,
-        required: actualCost,
-      }, { status: 403 });
-    }
+    let currentBalance = 0;
+    let purchaseRequired = false;
+    let balanceAfterDeduction = 0;
+    try {
+      const db2 = getAdminDb();
+      currentBalance = await ensureFreeTokens(db2, businessId);
+      const spendPlan = getTokenSpendPlan(currentBalance, tokenCost);
+      balanceAfterDeduction = spendPlan.nextBalance;
+      purchaseRequired = spendPlan.shouldPromptForPurchase;
 
-    if (db2) {
-      await db2.doc(TOKEN_DOC_PATH(businessId)).set({
-        [TOKEN_BALANCE_FIELD]: FieldValue.increment(-actualCost),
-      }, { merge: true });
+      if (spendPlan.amountToDeduct > 0) {
+        await db2.doc(TOKEN_DOC_PATH(businessId)).set({
+          [TOKEN_BALANCE_FIELD]: FieldValue.increment(-spendPlan.amountToDeduct),
+        }, { merge: true });
+      }
+    } catch (tokenErr) {
+      const tokenMsg = tokenErr instanceof Error ? tokenErr.message : String(tokenErr);
+      console.error('[AskMo] Token update error (non-fatal):', tokenMsg);
     }
 
     // ── Product flow: proposals (not yet approved) ──
@@ -878,6 +858,9 @@ CURRENT STORE CONFIG:
       newProduct: createdProduct,
       editProduct: editedProduct,
       proposedProduct,
+      balance: balanceAfterDeduction,
+      purchaseRequired,
+      tokenCost,
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
