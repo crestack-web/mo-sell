@@ -402,12 +402,6 @@ export function SellAskMoPage() {
         return;
       }
 
-      // Check token balance
-      if (tokenData && tokenData.balance < (hasAttachments ? tokenData.costs.chatWithMedia : tokenData.costs.chat)) {
-        showToast('You have run out of tokens.', 'info');
-        return;
-      }
-
       const messageText = text.trim();
       const currentAttachments = [...attachments];
       const userMsg: ChatMessage = { id: nextMsgId(), role: 'user', text: messageText, attachments: currentAttachments };
@@ -433,10 +427,11 @@ export function SellAskMoPage() {
 
         const data = await res.json();
         if (!res.ok) {
-          if (data.tokenError) {
-            throw new Error(data.details || 'Insufficient tokens');
-          }
           throw new Error(data.error || data.details || 'Failed to get response');
+        }
+
+        if (data.purchaseRequired) {
+          showToast('You’ve used your 2,000 free Ask MO tokens. Purchase more to continue.', 'info');
         }
 
         // Refresh token balance
