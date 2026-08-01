@@ -86,18 +86,20 @@ export async function POST(req: NextRequest) {
       createdAt: FieldValue.serverTimestamp(),
     });
 
-    // 2. Initialise Paystack transaction
+    // 2. Verify store has bank account set up for payouts
+    const cfgSnap = await db.collection('businesses').doc(businessId).collection('store').doc('config').get();
+    const storeConfig = cfgSnap.exists ? cfgSnap.data() : null;
+    const hasPayoutBank = storeConfig?.payoutAccountName && storeConfig?.payoutAccountNumber && storeConfig?.payoutBankCode;
+    if (!hasPayoutBank) {
+      return NextResponse.json({ error: 'Store owner has not configured payout bank account. Payments are disabled.' }, { status: 503 });
+    }
+
+    // 3. Initialise Paystack transaction
     // Use seller's own key if configured, otherwise fall back to Busmo's
     let paystackSecretKey = process.env.PAYSTACK_SECRET_KEY;
-    try {
-      const cfgSnap = await db.collection('businesses').doc(businessId).collection('store').doc('config').get();
-      if (cfgSnap.exists) {
-        const cfg = cfgSnap.data();
-        if (cfg?.useOwnPaystack && cfg?.paystackSecretKey) {
-          paystackSecretKey = cfg.paystackSecretKey;
-        }
-      }
-    } catch { /* fall back to Busmo key */ }
+    if (storeConfig?.useOwnPaystack && storeConfig?.paystackSecretKey) {
+      paystackSecretKey = storeConfig.paystackSecretKey;
+    }
 
     if (!paystackSecretKey) {
       return NextResponse.json({ error: 'Payment service not configured' }, { status: 500 });

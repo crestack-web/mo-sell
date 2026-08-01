@@ -49,6 +49,14 @@ export async function POST(req: NextRequest) {
   try {
     const db = getAdminDb();
 
+    // Verify store has bank account set up for payouts
+    const cfgSnap = await db.collection('businesses').doc(businessId).collection('store').doc('config').get();
+    const storeConfig = cfgSnap.exists ? cfgSnap.data() : null;
+    const hasPayoutBank = storeConfig?.payoutAccountName && storeConfig?.payoutAccountNumber && storeConfig?.payoutBankCode;
+    if (!hasPayoutBank) {
+      return NextResponse.json({ error: 'Store owner has not configured payout bank account. Payments are disabled.' }, { status: 503 });
+    }
+
     // Create CheckoutSession (status: pending)
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
     const sessionRef = db
