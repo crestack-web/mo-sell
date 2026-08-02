@@ -662,8 +662,7 @@ export function SellSettingsPage() {
           <button
             className={`${styles.btn} ${styles.btnDanger}`}
             onClick={async () => {
-              const { auth } = initializeFirebase();
-              await signOut(auth);
+              await signOut();
               window.location.href = '/login';
             }}
             style={{ alignSelf: 'flex-start' }}

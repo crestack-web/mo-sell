@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { getDatabase } from '@/lib/database/adapter';
 import { getStorage } from '@/lib/storage/adapter';
-import { initializeFirebase } from '@/lib/firebase';
 import { useSell } from '@/context/SellContext';
 import styles from './SellCollectionsPage.module.css';
 

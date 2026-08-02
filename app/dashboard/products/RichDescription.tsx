@@ -7,7 +7,6 @@ import ImageExtension from '@tiptap/extension-image';
 import LinkExtension from '@tiptap/extension-link';
 import UnderlineExtension from '@tiptap/extension-underline';
 import Placeholder from '@tiptap/extension-placeholder';
-import { initializeFirebase } from '@/lib/firebase';
 import YoutubeExtension from '@tiptap/extension-youtube';
 import {
   Bold, Italic, Underline, Heading1, Heading2, List, ListOrdered,
