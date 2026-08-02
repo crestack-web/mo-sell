@@ -600,7 +600,7 @@ export default function SellWelcomePage() {
                 Everything you need to sell online
               </div>
               <p className="sw-section-sub" style={{ color:C.text2, fontSize:16, marginTop:10, maxWidth:520, margin:'10px auto 0' }}>
-                MO Sell is built into your Busmo dashboard — no separate account, no plugins, no complexity.
+                MO Sell makes it easy to launch your online store — no plugins, no complexity.
               </p>
             </div>
             <div className="sw-features-grid">
@@ -648,69 +648,23 @@ export default function SellWelcomePage() {
                 Simple, transparent pricing
               </div>
               <p className="sw-section-sub" style={{ color:C.text2, fontSize:16, marginTop:10, maxWidth:520, margin:'10px auto 0' }}>
-                Busmo users get 3 months free. Everyone else pays $1 for 3 months. Then $10/month for all.
+                Get started for just $1 for 3 months. Then $10/month.
               </p>
             </div>
 
-            {/* Two pricing cards */}
-            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(280px,1fr))', gap:20, marginBottom:64 }}>
-
-              {/* Busmo users */}
+            {/* Single pricing card */}
+            <div style={{ display:'flex', justifyContent:'center', marginBottom:64 }}>
               <div style={{
                 background:C.surface, borderRadius:20, padding:'32px 28px',
                 border:`2px solid ${C.primary}`,
                 boxShadow:'0 8px 32px rgba(14,165,233,0.12)',
-                display:'flex', flexDirection:'column', gap:16, position:'relative',
-              }}>
-                <div style={{
-                  position:'absolute', top:-12, left:'50%', transform:'translateX(-50%)',
-                  background:`linear-gradient(135deg, ${C.primary}, ${C.accent})`,
-                  color:'white', fontSize:11, fontWeight:800, padding:'5px 14px',
-                  borderRadius:100, letterSpacing:'0.06em', textTransform:'uppercase',
-                }}>Busmo Users</div>
-                <div style={{ textAlign:'center', marginTop:8 }}>
-                  <div style={{ fontFamily:FONT_DISPLAY, fontWeight:800, fontSize:14, color:C.text3, letterSpacing:'0.04em' }}>FIRST 3 MONTHS</div>
-                  <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'center', gap:4, marginTop:4 }}>
-                    <span style={{ fontFamily:FONT_DISPLAY, fontWeight:800, fontSize:56, color:C.primary, lineHeight:1, letterSpacing:'-0.04em' }}>Free</span>
-                  </div>
-                  <div style={{ fontSize:13, color:C.text3, marginTop:4 }}>Then $10/month</div>
-                </div>
-                <div style={{ height:1, background:C.border }} />
-                {[
-                  'AI store builder',
-                  'Unlimited products',
-                  'Paystack payments',
-                  '10 premium themes',
-                  'Custom domain',
-                  'Analytics',
-                ].map((f, i) => (
-                  <div key={i} style={{ display:'flex', alignItems:'center', gap:8, fontSize:13, color:C.text2 }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={C.green} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink:0 }}>
-                      <polyline points="20 6 9 17 4 12"/>
-                    </svg>
-                    {f}
-                  </div>
-                ))}
-                <a href="/login" style={{
-                  display:'flex', alignItems:'center', justifyContent:'center', gap:6,
-                  padding:'12px 24px', borderRadius:10, textDecoration:'none',
-                  background:C.surface, color:C.primary, border:`1.5px solid ${C.primary}`,
-                  fontFamily:FONT_DISPLAY, fontWeight:700, fontSize:14, marginTop:8,
-                }}>Log in to MO Sell →</a>
-              </div>
-
-              {/* Everyone else */}
-              <div style={{
-                background:C.surface, borderRadius:20, padding:'32px 28px',
-                border:`1px solid ${C.border}`,
-                boxShadow:'0 2px 12px rgba(14,88,140,0.06)',
-                display:'flex', flexDirection:'column', gap:16,
+                display:'flex', flexDirection:'column', gap:16, width:'100%', maxWidth:400,
               }}>
                 <div style={{ textAlign:'center' }}>
                   <div style={{ fontFamily:FONT_DISPLAY, fontWeight:800, fontSize:14, color:C.text3, letterSpacing:'0.04em' }}>FIRST 3 MONTHS</div>
                   <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'center', gap:4, marginTop:4 }}>
                     <span style={{ fontFamily:FONT_DISPLAY, fontWeight:400, fontSize:24, color:C.text3, lineHeight:1.2, marginTop:4 }}>$</span>
-                    <span style={{ fontFamily:FONT_DISPLAY, fontWeight:800, fontSize:56, color:C.text1, lineHeight:1, letterSpacing:'-0.04em' }}>1</span>
+                    <span style={{ fontFamily:FONT_DISPLAY, fontWeight:800, fontSize:56, color:C.primary, lineHeight:1, letterSpacing:'-0.04em' }}>1</span>
                   </div>
                   <div style={{ fontSize:13, color:C.text3, marginTop:4 }}>Then $10/month</div>
                 </div>
@@ -959,7 +913,7 @@ export default function SellWelcomePage() {
             <div style={{ display:'flex', flexDirection:'column', gap:28 }}>
               <Step n={1} title="Tell MO what you sell" desc="Describe your business, products, or skills. MO understands fashion, food, digital products, courses, services — anything." />
               <Step n={2} title="MO builds your store" desc="Your storefront, product pages with descriptions, collections, pricing, and payments are all set up automatically." />
-              <Step n={3} title="Share and start selling" desc="Your store goes live instantly. Share the link, accept payments, and manage orders from your Busmo dashboard." />
+              <Step n={3} title="Share and start selling" desc="Your store goes live instantly. Share the link, accept payments, and manage orders from your dashboard." />
             </div>
           </div>
         </section>
@@ -1071,9 +1025,9 @@ export default function SellWelcomePage() {
             <div style={{ display:'flex', alignItems:'center', gap:8 }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1785078071/mosell_gpzl2q.png" alt="MO Sell" style={{ height: 28, width: 'auto', objectFit: 'contain' }} />
-              <span style={{ fontFamily:FONT_DISPLAY, fontWeight:700, fontSize:14, color:C.text2 }}>MO Sell by Busmo</span>
+              <span style={{ fontFamily:FONT_DISPLAY, fontWeight:700, fontSize:14, color:C.text2 }}>MO Sell</span>
             </div>
-            <p style={{ fontSize:12, color:C.text3 }}>© {new Date().getFullYear()} Busmo · Built for African commerce</p>
+            <p style={{ fontSize:12, color:C.text3 }}>© {new Date().getFullYear()} MO Sell · Built for African commerce</p>
             <div style={{ display:'flex', gap:20 }}>
               <a href="/welcome" style={{ fontSize:13, color:C.text3, textDecoration:'none' }}>Home</a>
               <a href="/pricing" style={{ fontSize:13, color:C.text3, textDecoration:'none' }}>Pricing</a>

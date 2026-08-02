@@ -29,30 +29,7 @@ export function SellAuthGuard({ children }: Props) {
           return;
         }
 
-        // Busmo users (have businessId) get 3 months free
-        if (userData.businessId) {
-          // Auto-activate free 3-month trial for Busmo users
-          if (!userData.moSellSubscription) {
-            setHasAccess(true); // First time — allow access, subscribe page will activate
-            setSubscriptionChecked(true);
-            return;
-          }
-          const moSellSub = userData.moSellSubscription;
-          if (moSellSub.status === 'active') {
-            const endDate = moSellSub.endDate?.toDate?.() ?? new Date(moSellSub.endDate);
-            if (endDate > new Date()) {
-              setHasAccess(true);
-              setSubscriptionChecked(true);
-              return;
-            }
-          }
-          // Busmo user with expired subscription — still allow (they'll see subscribe page)
-          setHasAccess(false);
-          setSubscriptionChecked(true);
-          return;
-        }
-
-        // Non-Busmo users need active moSellSubscription
+        // All users need active moSellSubscription
         const moSellSub = userData.moSellSubscription;
         if (moSellSub?.status === 'active') {
           const endDate = moSellSub.endDate?.toDate?.() ?? new Date(moSellSub.endDate);
