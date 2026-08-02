@@ -456,23 +456,24 @@ function ProductSlideOver({ product, onClose, onSaved, businessId, currency, sto
     }
     setSaving(true);
     try {
-      const { firestore, storage } = initializeFirebase();
+      const { firestore } = initializeFirebase();
+      const { getStorage } = await import('@/lib/storage/adapter');
+      const storage = getStorage();
       let finalImageUrl = form.imageUrl;
       let finalDigitalFileUrl = form.digitalFileUrl;
       let finalDigitalFileName = form.digitalFileName;
 
       if (imageFile) {
-        const imgRef = storageRef(storage, `storeProducts/${businessId}/${Date.now()}_${imageFile.name}`);
-        await uploadBytes(imgRef, imageFile);
-        finalImageUrl = await getDownloadURL(imgRef);
+        const path = `storeProducts/${businessId}/${Date.now()}_${imageFile.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+        finalImageUrl = await storage.upload(imageFile, path);
       }
 
       const allImages: string[] = finalImageUrl ? [finalImageUrl] : [];
       for (let i = 0; i < additionalImageFiles.length; i++) {
         const file = additionalImageFiles[i];
-        const ref = storageRef(storage, `storeProducts/${businessId}/${Date.now()}_${i}_${file.name}`);
-        await uploadBytes(ref, file);
-        allImages.push(await getDownloadURL(ref));
+        const path = `storeProducts/${businessId}/${Date.now()}_${i}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+        const url = await storage.upload(file, path);
+        allImages.push(url);
       }
       for (const url of additionalImages) {
         if (!allImages.includes(url)) allImages.push(url);
@@ -483,9 +484,8 @@ function ProductSlideOver({ product, onClose, onSaved, businessId, currency, sto
         setUploadingDigital(true);
         for (let i = 0; i < digitalFiles.length; i++) {
           const df = digitalFiles[i];
-          const digitalRef = storageRef(storage, `digitalProducts/${businessId}/${Date.now()}_${i}_${df.name}`);
-          await uploadBytes(digitalRef, df);
-          const url = await getDownloadURL(digitalRef);
+          const path = `digitalProducts/${businessId}/${Date.now()}_${i}_${df.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+          const url = await storage.upload(df, path);
           uploadedDigitalFiles.push({ url, name: df.name });
         }
         if (uploadedDigitalFiles.length > 0) {

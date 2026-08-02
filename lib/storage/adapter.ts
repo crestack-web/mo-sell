@@ -6,9 +6,8 @@
  */
 
 export interface StorageAdapter {
-  upload(file: Buffer, key: string, contentType: string): Promise<string>;
-  delete(key: string): Promise<void>;
-  getUrl(key: string): string;
+  upload(file: File, path: string): Promise<string>;
+  delete(path: string): Promise<void>;
 }
 
 /**
@@ -18,10 +17,38 @@ export function getStorage(): StorageAdapter {
   const provider = process.env.STORAGE_PROVIDER || 'firebase';
   
   if (provider === 'r2') {
-    const { R2StorageAdapter } = require('./r2-adapter');
     return new R2StorageAdapter();
   }
   
-  const { FirebaseStorageAdapter } = require('./firebase-adapter');
   return new FirebaseStorageAdapter();
+}
+
+// R2 Storage Adapter
+export class R2StorageAdapter implements StorageAdapter {
+  async upload(file: File, path: string): Promise<string> {
+    const { uploadFile } = await import('./r2-adapter');
+    return await uploadFile(file, path);
+  }
+
+  async delete(path: string): Promise<void> {
+    const { deleteFile } = await import('./r2-adapter');
+    return await deleteFile(path);
+  }
+}
+
+// Firebase Storage Adapter
+export class FirebaseStorageAdapter implements StorageAdapter {
+  async upload(file: File, path: string): Promise<string> {
+    // Convert File to Buffer
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    
+    const { uploadToFirebaseStorage } = await import('./firebase-adapter');
+    return await uploadToFirebaseStorage(buffer, path, file.type);
+  }
+
+  async delete(path: string): Promise<void> {
+    const { deleteFromFirebaseStorage } = await import('./firebase-adapter');
+    return await deleteFromFirebaseStorage(path);
+  }
 }
