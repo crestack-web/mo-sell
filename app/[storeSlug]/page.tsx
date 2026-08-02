@@ -6,7 +6,6 @@ import { CreatorProductTabs } from './creator-product-tabs';
 import { EmailSignup } from './components/EmailSignup';
 import { LinkProductStack } from './LinkProductStack';
 import { LinkBioPage } from './components/LinkBioPage';
-import { ThemeSwitcher } from './components/ThemeSwitcher';
 import type {
   StorefrontTheme, StoreSection,
   HeroSectionSettings, CollectionsSectionSettings,
@@ -157,20 +156,14 @@ function ThemeProductGrid({ products, storeSlug, currency, columns, emptyMessage
 
 export default async function StorefrontHomePage({
   params,
-  searchParams,
 }: {
   params: Promise<{ storeSlug: string }>;
-  searchParams?: Promise<{ theme?: string }>;
 }) {
   const { storeSlug } = await params;
-  const resolvedSearchParams = searchParams ? await searchParams : {};
   const config = await getStoreConfig(storeSlug);
   if (!config) notFound();
 
-  // Allow theme override via URL query param for preview
-  const themeParam = resolvedSearchParams.theme;
-  const validThemes = ['luxe', 'glow', 'market', 'creator', 'link', 'pulse', 'vault', 'atlas', 'spark', 'bazaar', 'abby'];
-  const theme: StorefrontTheme = themeParam && validThemes.includes(themeParam) ? themeParam as StorefrontTheme : (config.theme ?? 'luxe');
+  const theme: StorefrontTheme = config.theme ?? 'luxe';
   const themeType = getThemeType(theme);
   const isLinkStyle = themeType === 'link-style';
 
@@ -396,9 +389,6 @@ export default async function StorefrontHomePage({
             return null;
         }
       })}
-
-      {/* Theme Switcher - allows previewing different themes */}
-      <ThemeSwitcher currentTheme={theme} storeSlug={storeSlug} />
 
       {/* Link-style: always render LinkBioPage (handles empty products gracefully) */}
       {isLinkStyle ? (
