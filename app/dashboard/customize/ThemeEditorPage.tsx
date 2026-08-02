@@ -629,20 +629,14 @@ export function ThemeEditorPage() {
         <div className={styles.topbarLeft}>
           <button
             onClick={() => router.push('/dashboard/storefront')}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 6,
-              padding: '6px 12px', borderRadius: 'var(--sell-radius-sm)',
-              border: '1px solid var(--sell-border)', background: 'var(--sell-surface)',
-              color: 'var(--sell-text-1)', fontSize: '0.82rem', fontWeight: 600,
-              cursor: 'pointer', marginRight: 8,
-            }}
+            className={styles.iconBtn}
             title="Switch to a different theme"
+            aria-label="Switch theme"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
               <line x1="9" y1="3" x2="9" y2="21"></line>
             </svg>
-            Switch Theme
           </button>
           <span className={styles.topbarTitle}>Customize</span>
           {storeConfig?.storeSlug && (
