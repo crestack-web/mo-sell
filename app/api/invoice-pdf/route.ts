@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
     // Generate PDF (simplified - in production use pdfkit or similar)
     const pdfContent = generateInvoicePDF(order);
 
-    return new NextResponse(pdfContent, {
+    return new NextResponse(pdfContent as unknown as BodyInit, {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename=invoice-${order.order_number}.pdf`,
