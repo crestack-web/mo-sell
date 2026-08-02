@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { xai } from 'xai-sdk';
+
+const MODEL = process.env.AI_MODEL || 'grok-4';
 
 const SUPPORT_SYSTEM_PROMPT = `
 You are MO — the AI support agent for MO Sell by Busmo, Africa's business operating system.
@@ -34,32 +36,36 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 });
     }
 
-    const apiKey = process.env.GOOGLE_GENAI_API_KEY;
-    if (!apiKey || apiKey === 'your-google-ai-api-key') {
+    const apiKey = process.env.GROK_API_KEY;
+    if (!apiKey) {
       return NextResponse.json(
         { error: 'AI service not configured' },
         { status: 503 }
       );
     }
 
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
-      systemInstruction: SUPPORT_SYSTEM_PROMPT,
-    });
+    const client = new xai.Client({ apiKey });
 
-    const chat = model.startChat({
-      history: conversationHistory.map((h: { role: string; parts: { text: string }[] }) => ({
-        role: h.role,
-        parts: h.parts,
+    // Convert conversation history to Grok format
+    const messages = [
+      { role: 'system' as const, content: SUPPORT_SYSTEM_PROMPT },
+      ...conversationHistory.map((h: { role: string; parts: { text: string }[] }) => ({
+        role: h.role === 'model' ? 'assistant' : 'user',
+        content: h.parts[0]?.text || '',
       })),
-      generationConfig: { temperature: 0.7, maxOutputTokens: 1024 },
+      { role: 'user' as const, content: message },
+    ];
+
+    const response = await client.chat.completions.create({
+      model: MODEL,
+      messages,
+      temperature: 0.7,
+      max_tokens: 1024,
     });
 
-    const result = await chat.sendMessage(message);
-    const text = result.response.text();
+    const text = response.choices[0]?.message?.content || '';
 
-    return NextResponse.json({ answer: text });
+    return NextResponse.json({ answer: text, provider: 'grok' });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error('[SupportChat] Error:', msg);

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { xai } from 'xai-sdk';
 
 const SYSTEM_PROMPT = `You are MO, an AI content strategist for African e-commerce merchants.
 
@@ -53,13 +53,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'displayName required' }, { status: 400 });
     }
 
-    const apiKey = process.env.GOOGLE_GENAI_API_KEY;
+    const apiKey = process.env.GROK_API_KEY;
     if (!apiKey) {
       return NextResponse.json({ error: 'AI service not configured' }, { status: 503 });
     }
 
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const client = new xai.Client({ apiKey });
+    const model = process.env.AI_MODEL || 'grok-4';
 
     const productInfo = [
       `Product: ${displayName}`,
@@ -80,23 +80,29 @@ export async function POST(req: NextRequest) {
       catalogSummary ? `Other products in catalog: ${catalogSummary}` : '',
     ].filter(Boolean).join('\n');
 
-    const result = await model.generateContent({
-      contents: [{ role: 'user', parts: [{ text: `${SYSTEM_PROMPT}\n\nGenerate content ideas for this product:\n${productInfo}\n\nAudience & store context:\n${audienceInfo || '(none provided — still make reasonable audience assumptions from the product)'}` }] }],
-      generationConfig: { temperature: 0.8, maxOutputTokens: 4096 },
+    const userMessage = `${SYSTEM_PROMPT}\n\nGenerate content ideas for this product:\n${productInfo}\n\nAudience & store context:\n${audienceInfo || '(none provided — still make reasonable audience assumptions from the product)'}`;
+
+    const response = await client.chat.completions.create({
+      model,
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'user', content: userMessage },
+      ],
+      temperature: 0.8,
+      max_tokens: 4096,
     });
 
-    const text = result.response.text().trim();
+    const text = response.choices[0]?.message?.content || '';
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       throw new Error('AI response was not valid JSON');
     }
 
     const data = JSON.parse(jsonMatch[0]);
-    return NextResponse.json(data);
+    return NextResponse.json({ ...data, provider: 'grok' });
   } catch (err) {
     console.error('[generate-ideas] Error:', err);
     const msg = err instanceof Error ? err.message : 'Internal server error';
-    const isGeminiError = msg.includes('GoogleGenerativeAI') || msg.includes('generativelanguage.googleapis.com');
-    return NextResponse.json({ error: isGeminiError ? 'Content generation is temporarily unavailable. Please try again later.' : (msg || 'Internal server error') }, { status: 500 });
+    return NextResponse.json({ error: msg || 'Internal server error' }, { status: 500 });
   }
 }
