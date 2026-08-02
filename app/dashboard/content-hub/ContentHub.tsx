@@ -343,7 +343,7 @@ export function ContentHub() {
     setProductsLoading(true);
     try {
       const db = getDatabase();
-      const snap = await db.collection(`businesses/${user.businessId}/storeProducts`).get();
+      const snap = await db.collection(`businesses/${user.businessId}/storeProducts`).limit(1000).get();
       const items = snap.docs.map(d => ({
         id: d.id,
         displayName: d.data().displayName ?? '',
@@ -367,7 +367,7 @@ export function ContentHub() {
     setCampaignLoading(true);
     try {
       const db = getDatabase();
-      const snap = await db.collection(`businesses/${user.businessId}/campaigns`).get();
+      const snap = await db.collection(`businesses/${user.businessId}/campaigns`).limit(100).get();
       const items = snap.docs.map(d => ({ id: d.id, ...d.data() } as Campaign));
       setCampaigns(items);
     } catch (err) {
@@ -385,7 +385,7 @@ export function ContentHub() {
     setCalendarLoading(true);
     try {
       const db = getDatabase();
-      const snap = await db.collection(`businesses/${user.businessId}/contentCalendar`).get();
+      const snap = await db.collection(`businesses/${user.businessId}/contentCalendar`).limit(100).get();
       const posts = snap.docs.map(d => ({ id: d.id, ...d.data() } as CalendarPost));
       posts.sort((a, b) => (a.date + (a.time || '')) < (b.date + (b.time || '')) ? -1 : 1);
       setCalendarPosts(posts);
@@ -400,7 +400,7 @@ export function ContentHub() {
     if (!user?.businessId) return;
     try {
       const db = getDatabase();
-      const snap = await db.collection(`businesses/${user.businessId}/socialProfiles`).get();
+      const snap = await db.collection(`businesses/${user.businessId}/socialProfiles`).limit(10).get();
       const profiles: Record<string, SocialProfile> = {};
       snap.docs.forEach(d => {
         const p = d.data() as SocialProfile;
@@ -420,7 +420,7 @@ export function ContentHub() {
       const biz = user.businessId;
       const evSnap = await db.collection(`businesses/${biz}/storeAnalytics`).limit(500).get();
       setAnalyticsEvents(evSnap.docs.map(d => d.data() as any));
-      const ordersSnap = await db.collection(`businesses/${biz}/storeOrders`).get();
+      const ordersSnap = await db.collection(`businesses/${biz}/storeOrders`).limit(1000).get();
       setAnalyticsOrders(ordersSnap.docs.map(d => ({
         ...d.data(),
         createdAt: new Date(d.data().createdAt || Date.now()),

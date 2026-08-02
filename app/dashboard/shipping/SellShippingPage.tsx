@@ -237,7 +237,7 @@ export function SellShippingPage() {
     if (!user?.businessId) return;
     try {
       const db = getDatabase();
-      const snap = await db.collection(`businesses/${user.businessId}/storeShippingZones`).get();
+      const snap = await db.collection(`businesses/${user.businessId}/storeShippingZones`).limit(100).get();
       const items = snap.docs.map(d => ({
         id: d.id, ...d.data(),
         regions: d.data().regions ?? [],

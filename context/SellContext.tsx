@@ -325,7 +325,7 @@ export function SellProvider({ children }: { children: ReactNode }) {
       }, 0);
 
       // Product count
-      const productsSnap = await db.collection(`businesses/${biz}/storeProducts`).get();
+      const productsSnap = await db.collection(`businesses/${biz}/storeProducts`).limit(1000).get();
       const totalProducts = productsSnap.docs.length;
 
       setQuickStats({ pendingOrders, monthlyRevenue, totalProducts });

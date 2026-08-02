@@ -51,7 +51,7 @@ export function SellAnalyticsPage() {
       const biz = user.businessId;
 
       // Orders
-      const ordersSnap = await db.collection(`businesses/${biz}/storeOrders`).get();
+      const ordersSnap = await db.collection(`businesses/${biz}/storeOrders`).limit(1000).get();
       const orderList = ordersSnap.docs.map(d => ({
         ...d.data(),
         createdAt: new Date(d.data().createdAt || Date.now()),

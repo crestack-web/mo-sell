@@ -196,7 +196,7 @@ export function SellEarningsPage() {
       const biz = user.businessId;
 
       // Earnings
-      const eSnap = await db.collection(`businesses/${biz}/storeEarnings`).get();
+      const eSnap = await db.collection(`businesses/${biz}/storeEarnings`).limit(1000).get();
       const rawEarnings: Earning[] = eSnap.docs.map(d => ({
         id: d.id,
         ...(d.data() as Omit<Earning, 'id' | 'createdAt'>),
@@ -224,7 +224,7 @@ export function SellEarningsPage() {
       }
 
       // Payout requests
-      const pSnap = await db.collection(`businesses/${biz}/payoutRequests`).get();
+      const pSnap = await db.collection(`businesses/${biz}/payoutRequests`).limit(100).get();
       setPayouts(pSnap.docs.map(d => ({
         id: d.id,
         ...(d.data() as Omit<PayoutRequest, 'id' | 'createdAt' | 'processedAt'>),
