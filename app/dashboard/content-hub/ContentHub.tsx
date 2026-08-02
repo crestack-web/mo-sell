@@ -1,14 +1,13 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { collection, getDocs, addDoc, doc, getDoc, setDoc, updateDoc, deleteDoc, query, where, orderBy, limit, serverTimestamp, writeBatch } from 'firebase/firestore';
+import { getDatabase } from '@/lib/database/adapter';
 import {
   Lightbulb, Calendar, TrendingUp, Megaphone, BarChart3, Users,
   Copy, Check, Bell, BellOff, Eye, EyeOff, BadgeCheck,
   Sparkles, Package, X, Plus, Star, Camera, Instagram, Music2, Youtube, Twitter, Trash2, Upload,
   ChevronLeft, ChevronRight, CalendarClock, Send, CheckCircle2, Target,
 } from 'lucide-react';
-import { initializeFirebase } from '@/lib/firebase';
 import { useSell } from '@/context/SellContext';
 import { ContentGenerator } from './ContentGenerator';
 import { ProductContentCard } from './ProductContentCard';

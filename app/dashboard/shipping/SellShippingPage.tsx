@@ -1,8 +1,7 @@
 ﻿'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { collection, getDocs, doc, addDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
-import { initializeFirebase } from '@/lib/firebase';
+import { getDatabase } from '@/lib/database/adapter';
 import { useSell } from '@/context/SellContext';
 import styles from './SellShippingPage.module.css';
 
@@ -66,19 +65,20 @@ function ZoneSlideOver({ zone, onClose, onSaved, businessId, currency }: ZoneSli
     if (isNaN(rate) || rate < 0) { showToast('Flat rate must be 0 or more', 'error'); return; }
     setSaving(true);
     try {
-      const { firestore } = initializeFirebase();
+      const db = getDatabase();
       const payload = {
         zoneName: form.zoneName.trim(),
         regions: form.regions.split(',').map(r => r.trim()).filter(Boolean),
         flatRate: rate,
         estimatedDeliveryDays: parseInt(form.estimatedDeliveryDays) || 3,
-        updatedAt: serverTimestamp(),
+        updatedAt: new Date().toISOString(),
       };
-      const colRef = collection(firestore, 'businesses', businessId, 'storeShippingZones');
+      const colRef = db.collection(`businesses/${businessId}/storeShippingZones`);
       if (zone) {
-        await updateDoc(doc(colRef, zone.id), payload);
+        await db.doc(`businesses/${businessId}/storeShippingZones/${zone.id}`).update(payload);
       } else {
-        await addDoc(colRef, { ...payload, createdAt: serverTimestamp() });
+        const newRef = await colRef.add({ ...payload, createdAt: new Date().toISOString() });
+        zone = { id: newRef.id, ...payload, createdAt: new Date().toISOString() };
       }
       onSaved();
     } catch (err) {
@@ -236,15 +236,13 @@ export function SellShippingPage() {
   const load = useCallback(async () => {
     if (!user?.businessId) return;
     try {
-      const { firestore } = initializeFirebase();
-      const snap = await getDocs(
-        collection(firestore, 'businesses', user.businessId, 'storeShippingZones')
-      );
+      const db = getDatabase();
+      const snap = await db.collection(`businesses/${user.businessId}/storeShippingZones`).get();
       const items = snap.docs.map(d => ({
         id: d.id, ...d.data(),
         regions: d.data().regions ?? [],
-        createdAt: d.data().createdAt?.toDate?.() ?? new Date(),
-        updatedAt: d.data().updatedAt?.toDate?.() ?? new Date(),
+        createdAt: new Date(d.data().createdAt || Date.now()),
+        updatedAt: new Date(d.data().updatedAt || Date.now()),
       })) as ShippingZone[];
       items.sort((a, b) => a.zoneName.localeCompare(b.zoneName));
       setZones(items);
@@ -259,8 +257,8 @@ export function SellShippingPage() {
     if (!confirm(`Delete zone "${zone.zoneName}"?`)) return;
     setDeleting(zone.id);
     try {
-      const { firestore } = initializeFirebase();
-      await deleteDoc(doc(collection(firestore, 'businesses', user!.businessId, 'storeShippingZones'), zone.id));
+      const db = getDatabase();
+      await db.doc(`businesses/${user!.businessId}/storeShippingZones/${zone.id}`).delete();
       setZones(prev => prev.filter(z => z.id !== zone.id));
       showToast('Zone deleted', 'info');
     } catch { showToast('Failed to delete zone', 'error'); }
@@ -271,11 +269,9 @@ export function SellShippingPage() {
     if (!user?.businessId) return;
     setSavingPickup(true);
     try {
-      const { firestore } = initializeFirebase();
-      const { doc: fbDoc, setDoc } = await import('firebase/firestore');
-      await setDoc(
-        fbDoc(firestore, 'businesses', user.businessId, 'store', 'config'),
-        { pickupLocations: locs, updatedAt: serverTimestamp() },
+      const db = getDatabase();
+      await db.doc(`businesses/${user.businessId}/store/config`).set(
+        { pickupLocations: locs, updatedAt: new Date().toISOString() },
         { merge: true }
       );
       await refreshStoreConfig();

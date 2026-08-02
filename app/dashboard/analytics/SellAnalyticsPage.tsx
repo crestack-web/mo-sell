@@ -1,8 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { collection, getDocs, query, where, orderBy, limit } from 'firebase/firestore';
-import { initializeFirebase } from '@/lib/firebase';
+import { getDatabase } from '@/lib/database/adapter';
 import { useSell } from '@/context/SellContext';
 import { getStorePublicUrl } from '@/lib/store-url';
 import styles from './SellAnalyticsPage.module.css';
@@ -48,22 +47,19 @@ export function SellAnalyticsPage() {
     if (!user?.businessId) return;
     setLoading(true);
     try {
-      const { firestore } = initializeFirebase();
+      const db = getDatabase();
       const biz = user.businessId;
 
       // Orders
-      const ordersSnap = await getDocs(collection(firestore, 'businesses', biz, 'storeOrders'));
+      const ordersSnap = await db.collection(`businesses/${biz}/storeOrders`).get();
       const orderList = ordersSnap.docs.map(d => ({
         ...d.data(),
-        createdAt: d.data().createdAt?.toDate?.() ?? new Date(),
+        createdAt: new Date(d.data().createdAt || Date.now()),
       })) as OrderData[];
       setOrders(orderList);
 
       // Analytics events (last 500)
-      const evSnap = await getDocs(
-        query(collection(firestore, 'businesses', biz, 'storeAnalytics'),
-          orderBy('timestamp', 'desc'), limit(500))
-      );
+      const evSnap = await db.collection(`businesses/${biz}/storeAnalytics`).limit(500).get();
       setEvents(evSnap.docs.map(d => d.data() as AnalyticsEvent));
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
