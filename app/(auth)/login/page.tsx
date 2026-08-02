@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import { supabaseClient } from '@/lib/supabase-client';
 import { signInWithPassword, signOut } from '@/lib/auth';
 
+export const dynamic = 'force-dynamic';
+
 // ── Tokens ────────────────────────────────────────────────────────────────────
 const C = {
   primary: '#0EA5E9', accent: '#6366F1', bg: '#F0F9FF',

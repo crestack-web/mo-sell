@@ -4,6 +4,8 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSell } from '@/context/SellContext';
 import styles from './SellBookingsPage.module.css';
 
+export const dynamic = 'force-dynamic';
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type BookingStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled';

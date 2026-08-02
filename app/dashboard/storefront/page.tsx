@@ -7,6 +7,8 @@ import { useSell } from '@/context/SellContext';
 import type { SellPageId } from '@/context/SellContext';
 import { getDatabase } from '@/lib/database/adapter';
 
+export const dynamic = 'force-dynamic';
+
 const s = {
   page: {
     display: 'flex',
