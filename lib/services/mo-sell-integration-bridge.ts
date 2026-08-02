@@ -26,6 +26,8 @@ async function sendOrderConfirmationEmail(params: {
   total: number;
   storeName: string;
   orderUrl: string;
+  storeSlug: string;
+  businessId: string;
 }): Promise<void> {
   // Uses the existing sendgrid pattern in src/services/email/
   try {
@@ -362,6 +364,8 @@ export async function processConfirmedOrder(
     total:         verifiedTotal,
     storeName,
     orderUrl,
+    storeSlug:     config?.storeSlug ?? '',
+    businessId,
   }).catch(console.error);
 
   if (config?.contactEmail) {
