@@ -119,10 +119,10 @@ export async function POST(request: NextRequest) {
     const client = new Client({ apiKey });
 
     // Convert conversation history to Grok format
-    const messages = [
+    const messages: { role: 'system' | 'user' | 'assistant'; content: string }[] = [
       { role: 'system' as const, content: WIZARD_SYSTEM_PROMPT + inventoryContext },
       ...conversationHistory.map((h) => ({
-        role: h.role === 'model' ? 'assistant' : 'user',
+        role: (h.role === 'model' ? 'assistant' : 'user') as 'user' | 'assistant',
         content: h.parts[0]?.text || '',
       })),
       { role: 'user' as const, content: message },
