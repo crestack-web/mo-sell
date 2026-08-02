@@ -311,6 +311,25 @@ export function LinkInBioEditor() {
 
   return (
     <div className={styles.page}>
+      {/* Header with back button */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+        <div>
+          <h2 className={styles.editorTitle}>Link-in-Bio Editor</h2>
+          <p className={styles.editorSubtitle}>Customize your link-style storefront</p>
+        </div>
+        <button
+          onClick={() => router.push('/dashboard/storefront')}
+          className={styles.switchThemeBtn}
+          title="Switch to a different theme type"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="9" y1="3" x2="9" y2="21"></line>
+          </svg>
+          Switch Theme
+        </button>
+      </div>
+
       <div className={styles.previewCol}>
         <div className={styles.phoneFrame}>
           <div className={styles.phoneScreen} style={{
@@ -612,6 +631,39 @@ export function LinkInBioEditor() {
           </button>
         </div>
       </div>
+
+      <style>{`
+        .${styles.editorTitle} {
+          font-family: var(--sell-font-display);
+          font-size: 1.25rem;
+          font-weight: 700;
+          color: var(--sell-text-1);
+          margin: 0;
+        }
+        .${styles.editorSubtitle} {
+          font-size: 0.8rem;
+          color: var(--sell-text-3);
+          margin: 2px 0 0;
+        }
+        .${styles.switchThemeBtn} {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 8px 14px;
+          border-radius: var(--sell-radius-sm);
+          border: 1px solid var(--sell-border);
+          background: var(--sell-surface);
+          color: var(--sell-text-1);
+          font-size: 0.82rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.15s;
+        }
+        .${styles.switchThemeBtn}:hover {
+          background: var(--sell-primary-lt);
+          borderColor: var(--sell-primary);
+        }
+      `}</style>
     </div>
   );
 }
