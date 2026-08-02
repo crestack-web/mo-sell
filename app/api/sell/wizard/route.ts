@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerFirestore as getAdminDb } from '@/lib/server-firestore';
-import { xai } from 'xai-sdk';
+import { Client } from 'xai-sdk';
 
 const MODEL = process.env.AI_MODEL || 'grok-4';
 
@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const client = new xai.Client({ apiKey });
+    const client = new Client({ apiKey });
 
     // Convert conversation history to Grok format
     const messages = [

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { xai } from 'xai-sdk';
+import { Client } from 'xai-sdk';
 
 const MODEL = process.env.AI_MODEL || 'grok-4';
 
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'AI service not configured' }, { status: 503 });
     }
 
-    const client = new xai.Client({ apiKey });
+    const client = new Client({ apiKey });
 
     const context = [
       `Product: ${productName}`,

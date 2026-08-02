@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { xai } from 'xai-sdk';
+import { Client } from 'xai-sdk';
 import { getServerFirestore as getAdminDb, getServerStorage as getAdminStorage, FieldValue } from '@/lib/server-firestore';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import { ASK_MO_COMMISSION_RATE, ASK_MO_COMMISSION_FIELD, getTokenCost, TOKEN_DOC_PATH, TOKEN_BALANCE_FIELD, ensureFreeTokens, getTokenSpendPlan } from '@/lib/ask-mo-tokens';
@@ -157,13 +157,13 @@ interface AttachmentData {
 }
 
 async function callGrok(
-  client: xai.Client,
+  client: Client,
   systemPrompt: string,
   history: { role: 'user' | 'assistant'; content: string }[],
   message: string,
   attachments?: AttachmentData[],
 ): Promise<string> {
-  const messages: { role: 'user' | 'assistant'; content: string }[] = [
+  const messages: { role: 'system' | 'user' | 'assistant'; content: string }[] = [
     { role: 'system', content: systemPrompt },
     ...history,
     { role: 'user', content: message },
@@ -193,7 +193,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'AI service not configured' }, { status: 503 });
     }
 
-    const client = new xai.Client({ apiKey });
+    const client = new Client({ apiKey });
 
     const body = await req.json();
     const {
@@ -213,7 +213,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Convert conversation history from Gemini format to Grok format
-    const grokHistory = conversationHistory.map(h => ({
+    const grokHistory: { role: 'user' | 'assistant'; content: string }[] = conversationHistory.map(h => ({
       role: h.role === 'model' ? 'assistant' : 'user',
       content: h.parts[0]?.text || '',
     }));

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { xai } from 'xai-sdk';
+import { Client } from 'xai-sdk';
 
 const SYSTEM_PROMPT = `You are MO, an AI content strategist for African e-commerce merchants.
 
@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'AI service not configured' }, { status: 503 });
     }
 
-    const client = new xai.Client({ apiKey });
+    const client = new Client({ apiKey });
     const model = process.env.AI_MODEL || 'grok-4';
 
     const productInfo = [
