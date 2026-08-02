@@ -79,7 +79,7 @@ export interface BatchAdapter {
 
 // Factory function
 export function getDatabase(): DatabaseAdapter {
-  const provider = process.env.DATABASE_PROVIDER || 'firestore';
+  const provider = process.env.DATABASE_PROVIDER || 'supabase';
   
   if (provider === 'supabase') {
     // Dynamic import to avoid loading Supabase when using Firestore
@@ -87,7 +87,7 @@ export function getDatabase(): DatabaseAdapter {
     return new SupabaseAdapter();
   }
   
-  // Default to Firestore
-  const { FirestoreAdapter } = require('./postgresql-adapter');
-  return new FirestoreAdapter();
+  // Default to Supabase (Firestore deprecated for client-side usage)
+  const { SupabaseAdapter } = require('./postgresql-adapter');
+  return new SupabaseAdapter();
 }
