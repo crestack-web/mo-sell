@@ -1,9 +1,8 @@
 ﻿'use client';
 
 import React, { useState, useEffect, useCallback, useRef, useMemo, ChangeEvent } from 'react';
-import { collection, getDocs, doc, addDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
-import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { initializeFirebase } from '@/lib/firebase';
+import { getDatabase } from '@/lib/database/adapter';
+import { getStorage } from '@/lib/storage/adapter';
 import { useSell } from '@/context/SellContext';
 import { EbookPreviewModal } from '@/app/store-components/EbookPreviewModal';
 import { ContentIdeasModal } from '@/components/ContentIdeasModal';
@@ -321,10 +320,10 @@ function ProductSlideOver({ product, onClose, onSaved, businessId, currency, sto
   // Load inventory for import
   const loadInventory = useCallback(async () => {
     try {
-      const { firestore } = initializeFirebase();
-      const snap = await getDocs(
-        collection(firestore, 'businesses', businessId, 'storeProducts')
-      );
+      const db = getDatabase();
+      const snap = await db.collection('storeProducts')
+        .where('businessId', '==', businessId)
+        .get();
       const items = snap.docs.map(d => ({
         id: d.id,
         name: d.data().name ?? '',
@@ -332,7 +331,7 @@ function ProductSlideOver({ product, onClose, onSaved, businessId, currency, sto
         stock: d.data().stock ?? 0,
         category: d.data().category ?? '',
         description: d.data().description,
-        imageUrl: d.data().imageUrl,
+        imageUrl: d.data().images?.[0],
       })) as InventoryProduct[];
       setInventoryProducts(items);
     } catch { /* non-fatal */ }
@@ -456,8 +455,7 @@ function ProductSlideOver({ product, onClose, onSaved, businessId, currency, sto
     }
     setSaving(true);
     try {
-      const { firestore } = initializeFirebase();
-      const { getStorage } = await import('@/lib/storage/adapter');
+      const db = getDatabase();
       const storage = getStorage();
       let finalImageUrl = form.imageUrl;
       let finalDigitalFileUrl = form.digitalFileUrl;
@@ -517,7 +515,7 @@ function ProductSlideOver({ product, onClose, onSaved, businessId, currency, sto
         deliveryNote: form.productType === 'service' ? form.deliveryNote.trim() || null : null,
         lowStockThreshold: parseInt(form.lowStockThreshold) || 5,
         variants: form.productType === 'physical' && variants.length > 0 ? variants : null,
-        updatedAt: serverTimestamp(),
+        updatedAt: new Date().toISOString(),
       };
 
       // Add digital subtype and specific fields
@@ -571,13 +569,17 @@ function ProductSlideOver({ product, onClose, onSaved, businessId, currency, sto
         payload.bufferTime = parseInt(form.bufferTime) || 15;
       }
 
-      const colRef = collection(firestore, 'businesses', businessId, 'storeProducts');
+      const colRef = db.collection('storeProducts');
       if (product) {
-        await updateDoc(doc(colRef, product.id), payload);
+        await db.doc(`storeProducts/${product.id}`).update(payload);
         showToast('Product updated successfully', 'success');
       } else {
-        const newDocRef = await addDoc(colRef, { ...payload, createdAt: serverTimestamp() });
-        await updateDoc(newDocRef, { productId: newDocRef.id });
+        const newDocRef = await db.collection('storeProducts').add({
+          ...payload,
+          businessId,
+          createdAt: new Date().toISOString(),
+        });
+        await db.doc(`storeProducts/${newDocRef.id}`).update({ productId: newDocRef.id });
         showToast('Product added successfully', 'success');
       }
       onSaved();
@@ -1280,15 +1282,15 @@ export function SellProductsPage() {
   const loadProducts = useCallback(async () => {
     if (!user?.businessId) return;
     try {
-      const { firestore } = initializeFirebase();
-      const snap = await getDocs(
-        collection(firestore, 'businesses', user.businessId, 'storeProducts')
-      );
+      const db = getDatabase();
+      const snap = await db.collection('storeProducts')
+        .where('businessId', '==', user.businessId)
+        .get();
       const items = snap.docs.map(d => ({
         id: d.id,
         ...d.data(),
-        createdAt: d.data().createdAt?.toDate?.() ?? new Date(),
-        updatedAt: d.data().updatedAt?.toDate?.() ?? new Date(),
+        createdAt: d.data().createdAt ? new Date(d.data().createdAt) : new Date(),
+        updatedAt: d.data().updatedAt ? new Date(d.data().updatedAt) : new Date(),
       })) as StoreProduct[];
       items.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
       setProducts(items);
@@ -1339,11 +1341,11 @@ export function SellProductsPage() {
     e.stopPropagation();
     if (!user?.businessId) return;
     try {
-      const { firestore } = initializeFirebase();
-      await updateDoc(
-        doc(collection(firestore, 'businesses', user.businessId, 'storeProducts'), product.id),
-        { available: !product.available, updatedAt: serverTimestamp() }
-      );
+      const db = getDatabase();
+      await db.doc(`storeProducts/${product.id}`).update({
+        available: !product.available,
+        updatedAt: new Date().toISOString(),
+      });
       setProducts(prev => prev.map(p => p.id === product.id ? { ...p, available: !p.available } : p));
       showToast(product.available ? 'Product hidden from store' : 'Product now visible', 'success');
     } catch {
@@ -1357,8 +1359,8 @@ export function SellProductsPage() {
     if (!confirm(`Remove "${product.displayName}" from your store?`)) return;
     setDeleting(product.id);
     try {
-      const { firestore } = initializeFirebase();
-      await deleteDoc(doc(collection(firestore, 'businesses', user!.businessId, 'storeProducts'), product.id));
+      const db = getDatabase();
+      await db.doc(`storeProducts/${product.id}`).delete();
       setProducts(prev => prev.filter(p => p.id !== product.id));
       showToast('Product removed', 'info');
       refreshQuickStats();
@@ -1374,12 +1376,12 @@ export function SellProductsPage() {
     if (!user?.businessId || selected.size === 0) return;
     setBulkBusy(true);
     try {
-      const { firestore } = initializeFirebase();
+      const db = getDatabase();
       await Promise.all([...selected].map(id =>
-        updateDoc(
-          doc(collection(firestore, 'businesses', user.businessId, 'storeProducts'), id),
-          { available, updatedAt: serverTimestamp() }
-        )
+        db.doc(`storeProducts/${id}`).update({
+          available,
+          updatedAt: new Date().toISOString(),
+        })
       ));
       setProducts(prev => prev.map(p => selected.has(p.id) ? { ...p, available } : p));
       setSelected(new Set());
@@ -1397,9 +1399,9 @@ export function SellProductsPage() {
     if (!confirm(`Remove ${selected.size} products from your store?`)) return;
     setBulkBusy(true);
     try {
-      const { firestore } = initializeFirebase();
+      const db = getDatabase();
       await Promise.all([...selected].map(id =>
-        deleteDoc(doc(collection(firestore, 'businesses', user.businessId, 'storeProducts'), id))
+        db.doc(`storeProducts/${id}`).delete()
       ));
       setProducts(prev => prev.filter(p => !selected.has(p.id)));
       setSelected(new Set());
