@@ -5,6 +5,8 @@ import { initializeFirebase } from '@/lib/firebase';
 import { collection, query, where, orderBy, onSnapshot, doc, updateDoc, Timestamp } from 'firebase/firestore';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 
+export const dynamic = 'force-dynamic';
+
 interface UGCOrder {
   id: string;
   brandId: string;
