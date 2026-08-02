@@ -2,9 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { initializeFirebase } from '@/lib/firebase';
-import { getAuth, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { getFirestore, doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { supabaseClient } from '@/lib/supabase-client';
+import { getDatabase } from '@/lib/database/adapter';
 import { THEMES } from '@/themes/registry';
 import { convertFromUsd } from '@/lib/currency';
 import posthog from 'posthog-js';
@@ -165,27 +164,35 @@ export default function SellSignupPage() {
     setLoading(true);
     setError('');
     try {
-      const { auth, firestore } = initializeFirebase();
-      const cred = await createUserWithEmailAndPassword(auth, email, password);
-      await updateProfile(cred.user, { displayName: fullName });
+      const { data, error } = await supabaseClient.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+          },
+        },
+      });
+      if (error) throw error;
 
-      const uid_val = cred.user.uid;
+      const uid_val = data.user?.id || '';
       const businessIdVal = `biz_${uid_val.slice(0, 12)}`;
 
-      await setDoc(doc(firestore, 'users', uid_val), {
+      const db = getDatabase();
+      await db.doc(`users/${uid_val}`).set({
         displayName: fullName,
         email: email,
         businessId: businessIdVal,
         plan: 'starter',
         moSellAccess: true,
-        createdAt: serverTimestamp(),
+        createdAt: new Date().toISOString(),
       });
 
-      await setDoc(doc(firestore, 'businesses', businessIdVal), {
+      await db.doc(`businesses/${businessIdVal}`).set({
         ownerUserId: uid_val,
         businessName: businessName || `${fullName}'s Business`,
         businessType: businessType,
-        createdAt: serverTimestamp(),
+        createdAt: new Date().toISOString(),
       });
 
       setUserId(uid_val);
@@ -205,11 +212,11 @@ export default function SellSignupPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      const { firestore } = initializeFirebase();
-      await setDoc(doc(firestore, 'businesses', businessId), {
+      const db = getDatabase();
+      await db.doc(`businesses/${businessId}`).set({
         businessName,
         businessType,
-        updatedAt: serverTimestamp(),
+        updatedAt: new Date().toISOString(),
       }, { merge: true });
 
       posthog.capture('sell_signup_completed', { step: 2, businessType });
@@ -227,7 +234,7 @@ export default function SellSignupPage() {
     setLoading(true);
     setError('');
     try {
-      const { firestore } = initializeFirebase();
+      const db = getDatabase();
       const q1 = answers.q1!;
       const q7 = answers.q7!;
       const storeSlug = slugify(businessName);
@@ -270,10 +277,10 @@ export default function SellSignupPage() {
       };
 
       // Save pending store data to user doc for the success page to pick up
-      await setDoc(doc(firestore, 'users', userId), {
+      await db.doc(`users/${userId}`).set({
         pendingStore,
         onboardingComplete: false,
-        updatedAt: serverTimestamp(),
+        updatedAt: new Date().toISOString(),
       }, { merge: true });
 
       posthog.capture('sell_onboarding_answers_saved', {
@@ -298,8 +305,7 @@ export default function SellSignupPage() {
     setIsProcessingPayment(true);
     setError('');
     try {
-      const { auth } = initializeFirebase();
-      const currentUser = auth.currentUser;
+      const { data: { user: currentUser } } = await supabaseClient.auth.getUser();
       if (!currentUser) throw new Error('Not authenticated');
 
       const response = await fetch('https://us-central1-bizassistant2-62305643-adad7.cloudfunctions.net/initializePayment', {
@@ -307,7 +313,7 @@ export default function SellSignupPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           plan: 'sell-starter',
-          userId: currentUser.uid,
+          userId: currentUser.id,
           email: currentUser.email,
           amount: convertFromUsd(1, 'NG'),
           currency: 'NGN',
@@ -316,7 +322,7 @@ export default function SellSignupPage() {
           metadata: {
             plan: 'sell-starter',
             billing: 'trial',
-            userId: currentUser.uid,
+            userId: currentUser.id,
             product: 'mo-sell',
           },
         }),

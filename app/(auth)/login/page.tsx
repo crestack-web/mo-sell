@@ -1,13 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { initializeFirebase } from '@/lib/firebase';
-import {
-  signInWithEmailAndPassword,
-  GoogleAuthProvider,
-  signInWithPopup,
-  sendPasswordResetEmail,
-} from 'firebase/auth';
+import { supabaseClient } from '@/lib/supabase-client';
+import { signInWithPassword, signOut } from '@/lib/auth';
 
 // ── Tokens ────────────────────────────────────────────────────────────────────
 const C = {
@@ -79,7 +74,6 @@ function Field({ label, id, type = 'text', value, onChange, placeholder, autoCom
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function SellLoginPage() {
-  const [tab, setTab]           = useState<'email' | 'google'>('email');
   const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading]   = useState(false);
@@ -95,17 +89,18 @@ export default function SellLoginPage() {
   async function handleEmailLogin() {
     setLoading(true); setError('');
     try {
-      const { auth } = initializeFirebase();
-      await signInWithEmailAndPassword(auth, email, password);
+      const { data, error } = await supabaseClient.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (error) throw error;
       goToDashboard();
     } catch (err: any) {
       const code = err?.code ?? '';
-      if (['auth/invalid-credential','auth/user-not-found','auth/wrong-password'].includes(code)) {
+      if (code === 'Invalid login credentials') {
         setError('Invalid email or password.');
-      } else if (code === 'auth/too-many-requests') {
+      } else if (code === 'Too many requests') {
         setError('Too many attempts. Try again later.');
-      } else if (code === 'auth/user-disabled') {
-        setError('This account has been disabled.');
       } else {
         setError('Login failed. Please try again.');
       }
@@ -115,14 +110,17 @@ export default function SellLoginPage() {
   async function handleGoogleLogin() {
     setLoading(true); setError('');
     try {
-      const { auth } = initializeFirebase();
-      const provider = new GoogleAuthProvider();
-      provider.setCustomParameters({ prompt: 'select_account' });
-      await signInWithPopup(auth, provider);
-      goToDashboard();
+      const { data, error } = await supabaseClient.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+      if (error) throw error;
+      // OAuth will redirect to callback page
     } catch (err: any) {
       const code = err?.code ?? '';
-      if (!['auth/popup-closed-by-user','auth/cancelled-popup-request'].includes(code)) {
+      if (!['popup_closed','cancelled'].includes(code)) {
         setError('Google sign-in failed. Please try again.');
       }
     } finally { setLoading(false); }
@@ -131,8 +129,10 @@ export default function SellLoginPage() {
   async function handleForgotPassword() {
     if (!email) { setError('Enter your email first, then click forgot password.'); return; }
     try {
-      const { auth } = initializeFirebase();
-      await sendPasswordResetEmail(auth, email);
+      const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/reset-password`,
+      });
+      if (error) throw error;
       setResetSent(true); setError('');
     } catch {
       setError('Could not send reset email. Check the address and try again.');
@@ -177,21 +177,6 @@ export default function SellLoginPage() {
               </p>
             </div>
 
-            {/* Tab switcher */}
-            <div style={{ display: 'flex', background: '#F0F9FF', borderRadius: 12, padding: 4, gap: 4 }}>
-              {(['email', 'google'] as const).map(t => (
-                <button key={t} onClick={() => { setTab(t); setError(''); setResetSent(false); }} style={{
-                  flex: 1, padding: '9px 12px', borderRadius: 9, border: 'none', cursor: 'pointer',
-                  fontSize: 13, fontWeight: 700, fontFamily: FONT_BODY, transition: 'all 0.18s ease',
-                  background: tab === t ? 'white' : 'transparent',
-                  color: tab === t ? C.primary : C.text2,
-                  boxShadow: tab === t ? '0 1px 4px rgba(14,165,233,0.15)' : 'none',
-                }}>
-                  {t === 'email' ? 'Email & Password' : 'Continue with Google'}
-                </button>
-              ))}
-            </div>
-
             {/* Error */}
             {error && (
               <p style={{ fontSize: 13, color: C.red, background: C.redBg, padding: '10px 14px', borderRadius: 9, margin: 0 }}>
@@ -206,26 +191,24 @@ export default function SellLoginPage() {
               </p>
             )}
 
-            {/* Email tab */}
-            {tab === 'email' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                <Field label="Email address" id="sl-email" type="email" value={email}
-                  onChange={setEmail} placeholder="you@example.com" autoComplete="email" disabled={loading} />
-                <Field label="Password" id="sl-password" type="password" value={password}
-                  onChange={setPassword} placeholder="Your password" autoComplete="current-password" disabled={loading} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <Field label="Email address" id="sl-email" type="email" value={email}
+                onChange={setEmail} placeholder="you@example.com" autoComplete="email" disabled={loading} />
+              <Field label="Password" id="sl-password" type="password" value={password}
+                onChange={setPassword} placeholder="Your password" autoComplete="current-password" disabled={loading} />
 
-                <div style={{ textAlign: 'right', marginTop: -6 }}>
-                  <button onClick={handleForgotPassword} disabled={loading} style={{
-                    background: 'none', border: 'none', cursor: 'pointer',
-                    fontSize: 13, color: C.primary, fontWeight: 600, fontFamily: FONT_BODY, padding: 0,
-                  }}>
-                    Forgot password?
-                  </button>
-                </div>
+              <div style={{ textAlign: 'right', marginTop: -6 }}>
+                <button onClick={handleForgotPassword} disabled={loading} style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  fontSize: 13, color: C.primary, fontWeight: 600, fontFamily: FONT_BODY, padding: 0,
+                }}>
+                  Forgot password?
+                </button>
+              </div>
 
-                <button onClick={handleEmailLogin} disabled={!emailValid || loading} style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                  padding: '13px 24px', borderRadius: 12, border: 'none', fontFamily: FONT_DISPLAY,
+              <button onClick={handleEmailLogin} disabled={!emailValid || loading} style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                padding: '13px 24px', borderRadius: 12, border: 'none', fontFamily: FONT_DISPLAY,
                   fontSize: 15, fontWeight: 700, cursor: !emailValid || loading ? 'not-allowed' : 'pointer',
                   background: !emailValid || loading
                     ? '#BAE6FD'
@@ -258,8 +241,7 @@ export default function SellLoginPage() {
                   onMouseEnter={e => { if (!loading) { (e.currentTarget as HTMLButtonElement).style.borderColor = C.primary; } }}
                   onMouseLeave={e => { if (!loading) { (e.currentTarget as HTMLButtonElement).style.borderColor = C.border; } }}
                 >
-                  <GoogleMark />
-                  {loading ? 'Signing in…' : 'Continue with Google'}
+                  {loading ? 'Signing in…' : 'Sign in'}
                 </button>
               </div>
             )}

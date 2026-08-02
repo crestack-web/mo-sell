@@ -1,10 +1,9 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef, ChangeEvent } from 'react';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { signOut } from 'firebase/auth';
-import { initializeFirebase } from '@/lib/firebase';
+import { getDatabase } from '@/lib/database/adapter';
+import { getStorage } from '@/lib/storage/adapter';
+import { signOut } from '@/lib/auth';
 import { useSell } from '@/context/SellContext';
 
 import styles from './SellSettingsPage.module.css';
@@ -59,9 +58,9 @@ export function SellSettingsPage() {
     setLoadingEarnings(true);
     (async () => {
       try {
-        const { firestore } = initializeFirebase();
+        const db = getDatabase();
         const { collection, getDocs, query, orderBy } = await import('firebase/firestore');
-        const snap = await getDocs(query(collection(firestore, 'businesses', user.businessId, 'storeEarnings'), orderBy('createdAt', 'desc')));
+        const snap = await getDocs(query(collection(db as any, 'businesses', user.businessId, 'storeEarnings'), orderBy('createdAt', 'desc')));
         const earnings = snap.docs.map(d => ({ ...d.data() as any, createdAt: d.data().createdAt?.toDate?.() ?? new Date() }));
         if (cancelled) return;
         setEarningsStats({
@@ -150,61 +149,54 @@ export function SellSettingsPage() {
     if (!user?.businessId || !storeName.trim()) return;
     setSaving(true);
     try {
-      const { firestore } = initializeFirebase();
+      const db = getDatabase();
       let finalLogoUrl = logoUrl;
 
       if (imageFile) {
-        const { storage } = initializeFirebase();
-        const imgRef = storageRef(storage, `stores/${user.businessId}/logo_${Date.now()}`);
-        await uploadBytes(imgRef, imageFile);
-        finalLogoUrl = await getDownloadURL(imgRef);
+        const storage = getStorage();
+        const path = `stores/${user.businessId}/logo_${Date.now()}_${imageFile.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+        finalLogoUrl = await storage.upload(imageFile, path);
       }
 
       const finalSlug = slugify(storeSlug || storeName);
 
-      await setDoc(
-        doc(firestore, 'businesses', user.businessId, 'store', 'config'),
-        {
-          ...(storeConfig ?? {}),
-          storeName: storeName.trim(),
-          storeSlug: finalSlug,
-          primaryColor, secondaryColor,
-          currency, contactEmail, contactPhone,
-          paystackPublicKey,
-          managedPayments: true,
-          payoutBankName: payoutBankName.trim(),
-          payoutBankCode: payoutBankCode.trim(),
-          payoutAccountNumber: payoutAccountNumber.trim(),
-          payoutAccountName: payoutAccountName.trim(),
-          useOwnPaystack,
-          paystackSecretKey: useOwnPaystack ? paystackSecretKey.trim() : null,
-          logoUrl: finalLogoUrl,
-          customDomain: customDomain.trim() || null,
-          customDomainStatus: (() => {
-            const savedDomain = (storeConfig as any)?.customDomain ?? '';
-            const newDomain   = customDomain.trim();
-            // If domain was cleared or changed, reset to pending
-            if (!newDomain || newDomain !== savedDomain) return 'pending';
-            // Domain unchanged â€” keep existing status
-            return (storeConfig as any)?.customDomainStatus ?? 'pending';
-          })(),
-          customDomainVerifiedAt: (() => {
-            const savedDomain = (storeConfig as any)?.customDomain ?? '';
-            const newDomain   = customDomain.trim();
-            if (!newDomain || newDomain !== savedDomain) return null;
-            return (storeConfig as any)?.customDomainVerifiedAt ?? null;
-          })(),
-          updatedAt: serverTimestamp(),
-          createdAt: (storeConfig as any)?.createdAt ?? serverTimestamp(),
-        },
-        { merge: true }
-      );
+      await db.collection('businesses').doc(user.businessId).set({
+        storeName: storeName.trim(),
+        storeSlug: finalSlug,
+        primaryColor, secondaryColor,
+        currency, contactEmail, contactPhone,
+        paystackPublicKey,
+        managedPayments: true,
+        payoutBankName: payoutBankName.trim(),
+        payoutBankCode: payoutBankCode.trim(),
+        payoutAccountNumber: payoutAccountNumber.trim(),
+        payoutAccountName: payoutAccountName.trim(),
+        useOwnPaystack,
+        paystackSecretKey: useOwnPaystack ? paystackSecretKey.trim() : null,
+        logoUrl: finalLogoUrl,
+        customDomain: customDomain.trim() || null,
+        customDomainStatus: (() => {
+          const savedDomain = (storeConfig as any)?.customDomain ?? '';
+          const newDomain   = customDomain.trim();
+          if (!newDomain || newDomain !== savedDomain) return 'pending';
+          return (storeConfig as any)?.customDomainStatus ?? 'pending';
+        })(),
+        customDomainVerifiedAt: (() => {
+          const savedDomain = (storeConfig as any)?.customDomain ?? '';
+          const newDomain   = customDomain.trim();
+          if (!newDomain || newDomain !== savedDomain) return null;
+          return (storeConfig as any)?.customDomainVerifiedAt ?? null;
+        })(),
+        updatedAt: new Date().toISOString(),
+        createdAt: (storeConfig as any)?.createdAt ?? new Date().toISOString(),
+      }, { merge: true });
 
-      // Keep storeIndex in sync for O(1) slug  businessId lookup
-      await setDoc(
-        doc(firestore, 'storeIndex', finalSlug),
-        { businessId: user.businessId, storeName: storeName.trim(), updatedAt: serverTimestamp() }
-      );
+      // Keep storeIndex in sync for O(1) slug -> businessId lookup
+      await db.collection('storeIndex').doc(finalSlug).set({
+        businessId: user.businessId,
+        storeName: storeName.trim(),
+        updatedAt: new Date().toISOString(),
+      }, { merge: true });
 
       await refreshStoreConfig();
       setImageFile(null);
@@ -219,7 +211,7 @@ export function SellSettingsPage() {
   const handleVerifyDomain = useCallback(async () => {
     if (!customDomain.trim() || !user?.businessId) return;
 
-    // Guard: domain in the input must match what's saved in Firestore
+    // Guard: domain in the input must match what's saved in database
     if (customDomain.trim() !== (storeConfig?.customDomain ?? '')) {
       showToast('Save your settings first before verifying the domain', 'error');
       return;
@@ -243,11 +235,11 @@ export function SellSettingsPage() {
       showToast(
         data.verified
           ? 'Domain verified!'
-          : 'CNAME not found yet â€” DNS can take up to 48 hours',
+          : 'CNAME not found yet — DNS can take up to 48 hours',
         data.verified ? 'success' : 'error',
       );
     } catch {
-      showToast('Verification failed â€” please try again', 'error');
+      showToast('Verification failed — please try again', 'error');
     } finally {
       setVerifying(false);
     }
@@ -256,11 +248,18 @@ export function SellSettingsPage() {
   const handlePublish = useCallback(async (status: 'active' | 'paused' | 'draft') => {
     if (!user?.businessId) return;
     try {
-      const { firestore } = initializeFirebase();
+      const db = getDatabase();
       const slug = storeConfig?.storeSlug;
-      await setDoc(doc(firestore, 'businesses', user.businessId, 'store', 'config'), { status, updatedAt: serverTimestamp() }, { merge: true });
+      await db.collection('businesses').doc(user.businessId).set({
+        status,
+        updatedAt: new Date().toISOString(),
+      }, { merge: true });
       if (slug && status === 'active') {
-        await setDoc(doc(firestore, 'storeIndex', slug), { businessId: user.businessId, storeName: storeConfig?.storeName ?? '', updatedAt: serverTimestamp() });
+        await db.collection('storeIndex').doc(slug).set({
+          businessId: user.businessId,
+          storeName: storeConfig?.storeName ?? '',
+          updatedAt: new Date().toISOString(),
+        }, { merge: true });
       }
       await refreshStoreConfig();
       showToast(status === 'active' ? 'Store is now live!' : status === 'paused' ? 'Store paused' : 'Store set to draft', 'success');
@@ -280,8 +279,8 @@ export function SellSettingsPage() {
     customDomain             ? styles.domainPending  : styles.domainNone;
 
   const domainStatusLabel =
-    domStatus === 'verified' ? 'âœ“ Verified' :
-    domStatus === 'failed'   ? 'âœ— Failed'   :
+    domStatus === 'verified' ? '✓ Verified' :
+    domStatus === 'failed'   ? '✗ Failed'   :
     customDomain             ? 'Pending DNS' : 'Not set';
 
   return (
@@ -335,7 +334,7 @@ export function SellSettingsPage() {
                 Upload logo
               </button>
               {imagePreview && <button className={`${styles.btn} ${styles.btnGhost}`} style={{ fontSize: '0.78rem', padding: '7px 12px' }} onClick={() => { setImagePreview(null); setImageFile(null); setLogoUrl(null); mark(); }}>Remove</button>}
-              <p style={{ fontSize: '0.72rem', color: 'var(--sell-text-3)' }}>PNG, JPG, WebP Â· max 5MB</p>
+              <p style={{ fontSize: '0.72rem', color: 'var(--sell-text-3)' }}>PNG, JPG, WebP · max 5MB</p>
             </div>
             <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" style={{ display: 'none' }} onChange={handleImageChange} />
           </div>
@@ -368,7 +367,7 @@ export function SellSettingsPage() {
                 <input type="color" value={primaryColor} onChange={e => { setPrimary(e.target.value); mark(); }} className={styles.colorSwatch} style={{ background: primaryColor }} />
                 <input className={styles.colorInput} value={primaryColor} onChange={e => { setPrimary(e.target.value); mark(); }} placeholder="#0EA5E9" />
               </div>
-              <div className={styles.colorPreview} style={{ background: primaryColor }}>Buttons &amp; links</div>
+              <div className={styles.colorPreview} style={{ background: primaryColor }}>Buttons & links</div>
             </div>
             <div className={styles.colorGroup}>
               <label className={styles.formLabel}>Accent color</label>
@@ -376,7 +375,7 @@ export function SellSettingsPage() {
                 <input type="color" value={secondaryColor} onChange={e => { setSecondary(e.target.value); mark(); }} className={styles.colorSwatch} style={{ background: secondaryColor }} />
                 <input className={styles.colorInput} value={secondaryColor} onChange={e => { setSecondary(e.target.value); mark(); }} placeholder="#6366F1" />
               </div>
-              <div className={styles.colorPreview} style={{ background: secondaryColor }}>Accents &amp; badges</div>
+              <div className={styles.colorPreview} style={{ background: secondaryColor }}>Accents & badges</div>
             </div>
           </div>
         </div>
@@ -384,7 +383,7 @@ export function SellSettingsPage() {
 
       {/* Contact & currency */}
       <div className={styles.card}>
-        <div className={styles.cardHeader}><div><p className={styles.cardTitle}>Contact &amp; currency</p><p className={styles.cardSub}>Shown on order confirmation emails and receipts</p></div></div>
+        <div className={styles.cardHeader}><div><p className={styles.cardTitle}>Contact & currency</p><p className={styles.cardSub}>Shown on order confirmation emails and receipts</p></div></div>
         <div className={styles.cardBody}>
           <div className={styles.formRow}>
             <div className={styles.formGroup}>
@@ -405,7 +404,7 @@ export function SellSettingsPage() {
         </div>
       </div>
 
-      {/* â”€â”€ Payments â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* Payments */}
       <div className={styles.card}>
         <div className={styles.cardHeader}>
           <div>
@@ -426,7 +425,7 @@ export function SellSettingsPage() {
             <div>
               <p style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--sell-primary)', marginBottom: 3 }}>Busmo collects payments for you</p>
               <p style={{ fontSize: '0.78rem', color: 'var(--sell-text-2)', lineHeight: 1.5 }}>
-                All payments are processed through Busmo&apos;s secure Paystack account. A <strong>5% commission</strong> is deducted per sale. Your net earnings appear in the Earnings dashboard and you can request a payout anytime.
+                All payments are processed through Busmo's secure Paystack account. A <strong>5% commission</strong> is deducted per sale. Your net earnings appear in the Earnings dashboard and you can request a payout anytime.
               </p>
             </div>
           </div>
@@ -494,7 +493,7 @@ export function SellSettingsPage() {
               style={payoutAccountName ? { background: 'var(--sell-surface-2, #f0fdf4)', borderColor: '#16a34a' } : {}}
             />
             {payoutAccountName && (
-              <p style={{ fontSize: '0.7rem', color: '#16a34a', marginTop: 3, fontWeight: 600 }}>âœ“ Account verified</p>
+              <p style={{ fontSize: '0.7rem', color: '#16a34a', marginTop: 3, fontWeight: 600 }}>✓ Account verified</p>
             )}
           </div>
 
@@ -543,17 +542,17 @@ export function SellSettingsPage() {
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}>
                   <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
                 </svg>
-                View full Earnings &amp; Payouts
+                View full Earnings & Payouts
               </button>
             </div>
           )}
 
-          {/* â”€â”€ Advanced: Own Paystack Key â”€â”€ */}
+          {/* Advanced: Own Paystack Key */}
           <div style={{ marginTop: 20, borderTop: '1px solid var(--sell-border)', paddingTop: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: useOwnPaystack ? 10 : 0 }}>
               <div>
                 <p style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--sell-text-2)' }}>Use your own Paystack account</p>
-                <p style={{ fontSize: '0.72rem', color: 'var(--sell-text-3)', marginTop: 2 }}>Advanced â€” connect your Paystack to collect payments directly</p>
+                <p style={{ fontSize: '0.72rem', color: 'var(--sell-text-3)', marginTop: 2 }}>Advanced — connect your Paystack to collect payments directly</p>
               </div>
               <button
                 type="button"
@@ -585,17 +584,17 @@ export function SellSettingsPage() {
                     <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
                   </svg>
                   <p style={{ fontSize: '0.72rem', color: 'var(--sell-text-2)', lineHeight: 1.5 }}>
-                    When enabled, payments go directly to your Paystack account. Busmo&apos;s 5% commission will be invoiced separately. You&apos;ll need to configure your own webhook URL in your Paystack dashboard.
+                    When enabled, payments go directly to your Paystack account. Busmo's 5% commission will be invoiced separately. You'll need to configure your own webhook URL in your Paystack dashboard.
                   </p>
                 </div>
                 <div className={styles.formGroup}>
                   <label className={styles.formLabel}>Paystack Secret Key</label>
-                  <input className={styles.formInput} type="password" value={paystackSecretKey} onChange={e => { setPaystackSecretKey(e.target.value); mark(); }} placeholder="sk_live_â€¦" />
-                  <p className={styles.formHint}>Found in your Paystack dashboard under Settings  API Keys. This is stored securely and only used for your transactions.</p>
+                  <input className={styles.formInput} type="password" value={paystackSecretKey} onChange={e => { setPaystackSecretKey(e.target.value); mark(); }} placeholder="sk_live_…" />
+                  <p className={styles.formHint}>Found in your Paystack dashboard under Settings → API Keys. This is stored securely and only used for your transactions.</p>
                 </div>
                 <div className={styles.formGroup}>
                   <label className={styles.formLabel}>Paystack Public Key</label>
-                  <input className={styles.formInput} value={paystackPublicKey} onChange={e => { setPaystackKey(e.target.value); mark(); }} placeholder="pk_live_â€¦" />
+                  <input className={styles.formInput} value={paystackPublicKey} onChange={e => { setPaystackKey(e.target.value); mark(); }} placeholder="pk_live_…" />
                 </div>
               </>
             )}
@@ -619,7 +618,7 @@ export function SellSettingsPage() {
           <div className={styles.formGroup}>
             <label className={styles.formLabel}>Domain name</label>
             <input className={styles.formInput} value={customDomain} onChange={e => { setCustomDomain(e.target.value.toLowerCase().trim()); mark(); }} placeholder="shop.yourbrand.com" />
-            <p className={styles.formHint}>Enter your domain without https:// â€” e.g. shop.yourbrand.com</p>
+            <p className={styles.formHint}>Enter your domain without https:// — e.g. shop.yourbrand.com</p>
           </div>
           {customDomain && (
             <div className={styles.dnsInstructions}>
@@ -633,14 +632,14 @@ export function SellSettingsPage() {
           {customDomain && (
             <button className={`${styles.btn} ${styles.btnSecondary}`} onClick={handleVerifyDomain} disabled={verifying} style={{ alignSelf: 'flex-start' }}>
               {verifying
-                ? <><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ animation: 'spin 0.7s linear infinite' }}><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>Verifyingâ€¦</>
+                ? <><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ animation: 'spin 0.7s linear infinite' }}><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>Verifying…</>
                 : <><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Verify domain</>}
             </button>
           )}
         </div>
       </div>
 
-      {/* â”€â”€ Theme Display â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* Theme Display */}
 
 
       {/* Save bar */}
@@ -648,12 +647,12 @@ export function SellSettingsPage() {
         <span className={styles.saveBarMsg}>{dirty ? 'You have unsaved changes' : 'All changes saved'}</span>
         <button className={`${styles.btn} ${styles.btnPrimary}`} onClick={handleSave} disabled={saving || !dirty || !storeName.trim()}>
           {saving
-            ? <><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ animation: 'spin 0.7s linear infinite' }}><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>Savingâ€¦</>
+            ? <><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ animation: 'spin 0.7s linear infinite' }}><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>Saving…</>
             : <><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>Save settings</>}
         </button>
       </div>
 
-      {/* ── Logout ── */}
+      {/* Logout */}
       <div className={styles.card} style={{ borderColor: 'var(--sell-danger-border, rgba(239,68,68,0.2))' }}>
         <div className={styles.cardHeader}>
           <div className={styles.cardTitle}>Logout</div>
@@ -663,8 +662,7 @@ export function SellSettingsPage() {
           <button
             className={`${styles.btn} ${styles.btnDanger}`}
             onClick={async () => {
-              const { auth } = initializeFirebase();
-              await signOut(auth);
+              await signOut();
               window.location.href = '/login';
             }}
             style={{ alignSelf: 'flex-start' }}
@@ -678,4 +676,3 @@ export function SellSettingsPage() {
     </div>
   );
 }
-

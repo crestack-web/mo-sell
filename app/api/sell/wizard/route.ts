@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerFirestore as getAdminDb } from '@/lib/server-firestore';
+import { xai } from 'xai-sdk';
 
-const WIZARD_MODELS = ['gemini-2.5-flash', 'gemini-flash-latest', 'gemini-2.5-pro'];
+const MODEL = process.env.AI_MODEL || 'grok-4';
 
 const WIZARD_SYSTEM_PROMPT = `
 You are MO — the AI commerce architect inside Busmo, Africa's business operating system.
@@ -72,78 +73,6 @@ RULES FOR JSON:
 - The merchant can ask to change any field — update ONLY that field next time
 `;
 
-async function callGemini(
-  apiKey: string,
-  modelName: string,
-  systemPrompt: string,
-  history: { role: 'user' | 'model'; parts: [{ text: string }] }[],
-  message: string,
-): Promise<string> {
-  const contents = [
-    ...history.map(h => ({
-      role: h.role === 'model' ? 'model' : 'user',
-      parts: [{ text: h.parts[0].text }],
-    })),
-    { role: 'user', parts: [{ text: message }] },
-  ];
-
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        system_instruction: { parts: [{ text: systemPrompt }] },
-        contents,
-        generationConfig: {
-          temperature: 0.8,
-          maxOutputTokens: 2048,
-        },
-      }),
-    }
-  );
-
-  if (!res.ok) {
-    const errBody = await res.text();
-    throw new Error(`Gemini ${modelName} returned ${res.status}: ${errBody.slice(0, 200)}`);
-  }
-
-  const data = await res.json() as {
-    candidates?: { content?: { parts?: { text?: string }[] } }[];
-    error?: { message?: string };
-  };
-
-  if (data.error) {
-    throw new Error(data.error.message ?? 'Unknown Gemini error');
-  }
-
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!text) {
-    throw new Error('Gemini returned empty response');
-  }
-
-  return text;
-}
-
-async function callWithFallback(
-  apiKey: string,
-  systemPrompt: string,
-  history: { role: 'user' | 'model'; parts: [{ text: string }] }[],
-  message: string,
-): Promise<string> {
-  const errors: string[] = [];
-  for (const modelName of WIZARD_MODELS) {
-    try {
-      return await callGemini(apiKey, modelName, systemPrompt, history, message);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      errors.push(`${modelName}: ${msg}`);
-      continue;
-    }
-  }
-  throw new Error(`All models failed — ${errors.join(' | ')}`);
-}
-
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -179,20 +108,34 @@ export async function POST(request: NextRequest) {
       } catch { /* non-fatal */ }
     }
 
-    const apiKey = process.env.GOOGLE_GENAI_API_KEY;
-    if (!apiKey || apiKey === 'your-google-ai-api-key') {
+    const apiKey = process.env.GROK_API_KEY;
+    if (!apiKey) {
       return NextResponse.json(
-        { error: 'AI service not configured', details: 'GOOGLE_GENAI_API_KEY is missing.' },
+        { error: 'AI service not configured' },
         { status: 503 }
       );
     }
 
-    const raw = await callWithFallback(
-      apiKey,
-      WIZARD_SYSTEM_PROMPT + inventoryContext,
-      conversationHistory,
-      message,
-    );
+    const client = new xai.Client({ apiKey });
+
+    // Convert conversation history to Grok format
+    const messages = [
+      { role: 'system' as const, content: WIZARD_SYSTEM_PROMPT + inventoryContext },
+      ...conversationHistory.map((h) => ({
+        role: h.role === 'model' ? 'assistant' : 'user',
+        content: h.parts[0]?.text || '',
+      })),
+      { role: 'user' as const, content: message },
+    ];
+
+    const response = await client.chat.completions.create({
+      model: MODEL,
+      messages,
+      temperature: 0.8,
+      max_tokens: 2048,
+    });
+
+    const raw = response.choices[0]?.message?.content || '';
 
     const jsonMatch = raw.match(/```json\n([\s\S]+?)\n```/);
     let suggestions = null;
@@ -205,7 +148,7 @@ export async function POST(request: NextRequest) {
 
     const answer = raw.replace(/```json[\s\S]+?```/g, '').trim();
 
-    return NextResponse.json({ answer, suggestions });
+    return NextResponse.json({ answer, suggestions, provider: 'grok' });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     const isKeyError = msg.includes('API_KEY') || msg.includes('quota') || msg.includes('permission');

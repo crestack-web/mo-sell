@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Monitor, Tablet, Smartphone, Undo2, Redo2, ChevronLeft } from 'lucide-react';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { initializeFirebase } from '@/lib/firebase';
+import { getDatabase } from '@/lib/database/adapter';
 import { useSell } from '@/context/SellContext';
+import { useRouter } from 'next/navigation';
 import { isCreatorTheme, getThemeType, THEMES } from '@/themes/registry';
 import { StorefrontCanvas } from '@/components/StorefrontCanvas';
 import { CartProvider } from '@/app/[storeSlug]/context/CartContext';
@@ -316,6 +316,7 @@ function FooterSettings({ s, upd }: { s: FooterSectionSettings; upd: (p: Partial
 }
 
 export function ThemeEditorPage() {
+  const router = useRouter();
   const { user, storeConfig, refreshStoreConfig, showToast, navigateTo } = useSell();
 
   const [sections,  setSections]  = useState<StoreSection[]>([]);
@@ -545,10 +546,9 @@ export function ThemeEditorPage() {
     if (!user?.businessId || themeId === theme) return;
     setThemeApplying(themeId);
     try {
-      const { firestore } = initializeFirebase();
-      await setDoc(
-        doc(firestore, 'businesses', user.businessId, 'store', 'config'),
-        { theme: themeId, updatedAt: serverTimestamp() },
+      const db = getDatabase();
+      await db.doc(`businesses/${user.businessId}/store/config`).set(
+        { theme: themeId, updatedAt: new Date().toISOString() },
         { merge: true }
       );
       setTheme(themeId as StorefrontTheme);
@@ -566,14 +566,13 @@ export function ThemeEditorPage() {
     if (!user?.businessId || !storeConfig) return;
     setApplying(true);
     try {
-      const { firestore } = initializeFirebase();
+      const db = getDatabase();
       const slug = storeConfig.storeSlug;
-      await setDoc(
-        doc(firestore, 'businesses', user.businessId, 'store', 'config'),
-        { ...storeConfig, theme, primaryColor: primary, secondaryColor: secondary, fontFamily: fontFamily || null, buttonStyle, bodyTextColor: bodyTextColor || null, bgColor: bgColor || null, sections: sections.map(s => ({ ...s })), storeSlug: slug, status: 'active', updatedAt: serverTimestamp() },
+      await db.doc(`businesses/${user.businessId}/store/config`).set(
+        { ...storeConfig, theme, primaryColor: primary, secondaryColor: secondary, fontFamily: fontFamily || null, buttonStyle, bodyTextColor: bodyTextColor || null, bgColor: bgColor || null, sections: sections.map(s => ({ ...s })), storeSlug: slug, status: 'active', updatedAt: new Date().toISOString() },
         { merge: true }
       );
-      if (slug) await setDoc(doc(firestore, 'storeIndex', slug), { businessId: user.businessId, storeName: storeConfig.storeName, updatedAt: serverTimestamp() });
+      if (slug) await db.doc(`storeIndex/${slug}`).set({ businessId: user.businessId, storeName: storeConfig.storeName, updatedAt: new Date().toISOString() });
       await refreshStoreConfig();
       setDirty(false);
       showToast('Theme published to your store!', 'success');
@@ -625,6 +624,17 @@ export function ThemeEditorPage() {
       {/* ── Topbar ── */}
       <div className={styles.topbar}>
         <div className={styles.topbarLeft}>
+          <button
+            onClick={() => router.push('/dashboard/storefront')}
+            className={styles.iconBtn}
+            title="Switch to a different theme"
+            aria-label="Switch theme"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="9" y1="3" x2="9" y2="21"></line>
+            </svg>
+          </button>
           <span className={styles.topbarTitle}>Customize</span>
           {storeConfig?.storeSlug && (
             <a href={`/${storeConfig.storeSlug}`} target="_blank" rel="noopener noreferrer" className={styles.liveBadge}>

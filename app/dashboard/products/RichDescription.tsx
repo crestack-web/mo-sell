@@ -7,7 +7,6 @@ import ImageExtension from '@tiptap/extension-image';
 import LinkExtension from '@tiptap/extension-link';
 import UnderlineExtension from '@tiptap/extension-underline';
 import Placeholder from '@tiptap/extension-placeholder';
-import { initializeFirebase } from '@/lib/firebase';
 import YoutubeExtension from '@tiptap/extension-youtube';
 import {
   Bold, Italic, Underline, Heading1, Heading2, List, ListOrdered,
@@ -79,14 +78,13 @@ export function RichDescription({ value, onChange, placeholder }: RichDescriptio
     if (file.size > 5 * 1024 * 1024) return;
     setUploading(true);
     try {
-      const { getStorage, ref, uploadBytes, getDownloadURL } = await import('firebase/storage');
+      const { getStorage } = await import('@/lib/storage/adapter');
       const storage = getStorage();
-      const imgRef = ref(storage, `product-descriptions/${Date.now()}_${file.name}`);
-      await uploadBytes(imgRef, file);
-      const url = await getDownloadURL(imgRef);
+      const path = `product-descriptions/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+      const url = await storage.upload(file, path);
       editor.chain().focus().setImage({ src: url }).run();
-    } catch {
-      // silently fail
+    } catch (error) {
+      console.error('Image upload failed:', error);
     } finally {
       setUploading(false);
     }

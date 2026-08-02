@@ -2,9 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { initializeFirebase } from '@/lib/firebase';
-import { getAuth, onAuthStateChanged } from 'firebase/auth';
-import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { supabaseClient } from '@/lib/supabase-client';
+import { getDatabase } from '@/lib/database/adapter';
 import { convertFromUsd } from '@/lib/currency';
 import posthog from 'posthog-js';
 
@@ -37,25 +36,36 @@ export default function SellSubscribePage() {
   const [loading, setLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState('');
+  const [isBusmoUser, setIsBusmoUser] = useState(false);
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    const { auth } = initializeFirebase();
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (!firebaseUser) {
+    const checkAuth = async () => {
+      const { data: { user: supabaseUser } } = await supabaseClient.auth.getUser();
+      if (!supabaseUser) {
         router.replace('/sell-login');
         return;
       }
-      setUser(firebaseUser);
+      setUser(supabaseUser);
 
-      // Check if user has existing active subscription
-      const { firestore } = initializeFirebase();
-      const userDoc = await getDoc(doc(firestore, 'users', firebaseUser.uid));
-      const userData = userDoc.data();
+      // Check if Busmo user
+      const db = getDatabase();
+      const userDoc = await db.doc(`users/${supabaseUser.id}`).get();
+      const userData = userDoc.exists ? userDoc.data() : {};
+      setIsBusmoUser(!!userData?.businessId);
 
-      // If user has active subscription, redirect to dashboard
-      if (userData?.moSellSubscription?.status === 'active') {
-        const endDate = userData.moSellSubscription.endDate?.toDate?.() ?? new Date(userData.moSellSubscription.endDate);
+      // If Busmo user with existing active subscription, redirect to dashboard
+      if (userData?.businessId && userData?.moSellSubscription?.status === 'active') {
+        const endDate = new Date(userData.moSellSubscription.endDate);
+        if (endDate > new Date()) {
+          router.replace('/dashboard');
+          return;
+        }
+      }
+
+      // If non-Busmo user with active subscription, redirect
+      if (!userData?.businessId && userData?.moSellSubscription?.status === 'active') {
+        const endDate = new Date(userData.moSellSubscription.endDate);
         if (endDate > new Date()) {
           router.replace('/dashboard');
           return;
@@ -63,48 +73,73 @@ export default function SellSubscribePage() {
       }
 
       setLoading(false);
-    });
-    return () => unsubscribe();
+    };
+
+    checkAuth();
   }, [router]);
 
   const handleGetStarted = async () => {
     setIsProcessing(true);
     setError('');
     try {
-      const { auth, firestore } = initializeFirebase();
-      const currentUser = auth.currentUser;
+      const { data: { user: currentUser } } = await supabaseClient.auth.getUser();
       if (!currentUser) {
         router.replace('/sell-login');
         return;
       }
 
-      // All users pay $1 via Paystack
-      const response = await fetch('https://us-central1-bizassistant2-62305643-adad7.cloudfunctions.net/initializePayment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          plan: 'sell-starter',
-          userId: currentUser.uid,
-          email: currentUser.email,
-          amount: convertFromUsd(1, 'NG'), // $1 → NGN at live rate
-          currency: 'NGN',
-          billing: 'trial',
-          callback_url: `${window.location.origin}/subscribe/success`,
-          metadata: {
-            plan: 'sell-starter',
-            billing: 'trial',
-            userId: currentUser.uid,
-            product: 'mo-sell',
-          },
-        }),
-      });
+      if (isBusmoUser) {
+        // Busmo users get 3 months free
+        const trialEnd = new Date();
+        trialEnd.setMonth(trialEnd.getMonth() + 3);
 
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Failed to initialize payment');
-      if (data.data?.authorization_url) {
-        window.location.href = data.data.authorization_url;
+        const db = getDatabase();
+        await db.doc(`users/${currentUser.id}`).set({
+          moSellSubscription: {
+            status: 'active',
+            plan: 'sell-starter',
+            type: 'busmo-free-trial',
+            activatedAt: new Date().toISOString(),
+            endDate: trialEnd.toISOString(),
+          },
+        }, { merge: true });
+
+        posthog.capture('sell_subscription_started', {
+          plan: 'sell-starter',
+          billing_cycle: 'busmo-free-trial',
+          amount: 0,
+        });
+
+        router.replace('/dashboard');
       } else {
-        throw new Error('No checkout URL returned');
+        // Non-Busmo users pay $1 via Paystack
+        const response = await fetch('https://us-central1-bizassistant2-62305643-adad7.cloudfunctions.net/initializePayment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            plan: 'sell-starter',
+            userId: currentUser.id,
+            email: currentUser.email,
+            amount: convertFromUsd(1, 'NG'), // $1 → NGN at live rate
+            currency: 'NGN',
+            billing: 'trial',
+            callback_url: `${window.location.origin}/subscribe/success`,
+            metadata: {
+              plan: 'sell-starter',
+              billing: 'trial',
+              userId: currentUser.id,
+              product: 'mo-sell',
+            },
+          }),
+        });
+
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Failed to initialize payment');
+        if (data.data?.authorization_url) {
+          window.location.href = data.data.authorization_url;
+        } else {
+          throw new Error('No checkout URL returned');
+        }
       }
     } catch (err: any) {
       console.error('MO Sell subscription error:', err);
@@ -140,7 +175,9 @@ export default function SellSubscribePage() {
             Start Selling with MO
           </h1>
           <p style={{ color: C.text2, maxWidth: 400, margin: '0 auto' }}>
-            Get full access for just $1 for 3 months. Then $10/month.
+            {isBusmoUser
+              ? 'As a Busmo user, you get 3 months free — no payment needed.'
+              : 'Get full access for just $1 for 3 months. Then $10/month.'}
           </p>
         </div>
 
@@ -153,18 +190,18 @@ export default function SellSubscribePage() {
           <div className="flex items-center justify-between mb-4">
             <div>
               <span className="inline-block px-3 py-1 rounded-full text-xs font-bold text-white" style={{ background: C.green }}>
-                 LIMITED OFFER
+                {isBusmoUser ? '🎉 BUSMO PERK' : '🎯 LIMITED OFFER'}
               </span>
               <h2 className="text-xl font-bold mt-2" style={{ color: C.text1, fontFamily: FONT_DISPLAY }}>
-                $1 for 3 Months
+                {isBusmoUser ? 'Free for 3 Months' : '$1 for 3 Months'}
               </h2>
             </div>
             <div className="text-right">
               <div className="text-3xl font-bold" style={{ color: C.green, fontFamily: FONT_DISPLAY }}>
-                $1
+                {isBusmoUser ? '$0' : '$1'}
               </div>
               <div className="text-xs" style={{ color: C.text3 }}>
-                total for 3 months
+                {isBusmoUser ? 'total for 3 months' : 'total for 3 months'}
               </div>
             </div>
           </div>
@@ -211,18 +248,18 @@ export default function SellSubscribePage() {
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ animation: 'spin 0.7s linear infinite' }}>
                 <path d="M21 12a9 9 0 11-6.219-8.56" />
               </svg>
-              Redirecting to Paystack...
+              {isBusmoUser ? 'Activating your free access...' : 'Redirecting to Paystack...'}
             </span>
           ) : (
-            'Start for $1 →'
+            isBusmoUser ? 'Start Free →' : 'Start for $1 →'
           )}
         </button>
 
         {/* Trust */}
         <div className="mt-8 grid grid-cols-3 gap-4">
           <div className="text-center">
-            <div className="text-2xl mb-2">🔒</div>
-            <div className="text-xs" style={{ color: C.text3 }}>Secure Payment</div>
+            <div className="text-2xl mb-2">{isBusmoUser ? '🎁' : '🔒'}</div>
+            <div className="text-xs" style={{ color: C.text3 }}>{isBusmoUser ? 'Free for 3 Months' : 'Secure Payment'}</div>
           </div>
           <div className="text-center">
             <div className="text-2xl mb-2">✓</div>

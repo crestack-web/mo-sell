@@ -2,9 +2,8 @@
 
 import React, { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { initializeFirebase } from '@/lib/firebase';
-import { getAuth, onAuthStateChanged } from 'firebase/auth';
-import { getFirestore, doc, getDoc, setDoc, deleteField, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { supabaseClient } from '@/lib/supabase-client';
+import { getDatabase } from '@/lib/database/adapter';
 
 const C = {
   primary: '#0EA5E9', bg: '#F0F9FF', surface: '#FFFFFF',
@@ -44,33 +43,33 @@ function SellSubscribeSuccessContent() {
         }
 
         // Update user's MO Sell subscription status
-        const { auth, firestore } = initializeFirebase();
-        const user = auth.currentUser;
+        const { data: { user: supabaseUser } } = await supabaseClient.auth.getUser();
+        const db = getDatabase();
 
         let hasPendingStore = false;
 
-        if (user) {
-          await updateDoc(doc(firestore, 'users', user.uid), {
+        if (supabaseUser) {
+          await db.doc(`users/${supabaseUser.id}`).update({
             moSellSubscription: {
               status: 'active',
               plan: 'sell-starter',
-              startDate: new Date(),
-              endDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), // 3 months
+              startDate: new Date().toISOString(),
+              endDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(), // 3 months
               reference,
             },
-            updatedAt: new Date(),
+            updatedAt: new Date().toISOString(),
           });
 
           // Check for pending store data from signup flow
-          const userSnap = await getDoc(doc(firestore, 'users', user.uid));
-          const userData = userSnap.data();
+          const userSnap = await db.doc(`users/${supabaseUser.id}`).get();
+          const userData = userSnap.exists ? userSnap.data() : {};
           const pendingStore = userData?.pendingStore;
 
           if (pendingStore) {
             hasPendingStore = true;
             const { businessId } = userData;
-            const businessSnap = await getDoc(doc(firestore, 'businesses', businessId));
-            const businessData = businessSnap.data();
+            const businessSnap = await db.doc(`businesses/${businessId}`).get();
+            const businessData = businessSnap.exists ? businessSnap.data() : {};
             const businessName = pendingStore.storeName || businessData?.businessName || 'My Store';
 
             // Create store config from pending data
@@ -82,7 +81,7 @@ function SellSubscribeSuccessContent() {
               secondaryColor: pendingStore.secondaryColor,
               businessCategory: pendingStore.businessCategory,
               currency: pendingStore.currency || 'NGN',
-              contactEmail: user.email || '',
+              contactEmail: supabaseUser.email || '',
               contactPhone: '',
               status: 'draft',
               theme: pendingStore.theme,
@@ -96,14 +95,14 @@ function SellSubscribeSuccessContent() {
               customDomainVerifiedAt: null,
               domainPurchaseRecord: null,
               onboardingAnswers: pendingStore.onboardingAnswers || {},
-              createdAt: serverTimestamp(),
-              updatedAt: serverTimestamp(),
-              paidAt: new Date(),
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+              paidAt: new Date().toISOString(),
             };
 
-            await setDoc(doc(firestore, 'businesses', businessId, 'store', 'config'), configData);
-            await setDoc(doc(firestore, 'storeIndex', pendingStore.storeSlug), {
-              businessId, storeName: businessName, updatedAt: serverTimestamp(),
+            await db.doc(`businesses/${businessId}/store/config`).set(configData);
+            await db.doc(`storeIndex/${pendingStore.storeSlug}`).set({
+              businessId, storeName: businessName, updatedAt: new Date().toISOString(),
             });
 
             // Create placeholder products
@@ -135,7 +134,7 @@ function SellSubscribeSuccessContent() {
 
             for (const p of products) {
               const productId = `prod_${Math.random().toString(36).slice(2, 10)}`;
-              await setDoc(doc(firestore, 'businesses', businessId, 'storeProducts', productId), {
+              await db.doc(`businesses/${businessId}/storeProducts/${productId}`).set({
                 id: productId,
                 title: p.title,
                 description: p.desc,
@@ -149,16 +148,16 @@ function SellSubscribeSuccessContent() {
                 stock: null,
                 variants: [],
                 isSubscription: false,
-                createdAt: serverTimestamp(),
-                updatedAt: serverTimestamp(),
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
               });
             }
 
             // Clear pending store data
-            await updateDoc(doc(firestore, 'users', user.uid), {
-              pendingStore: deleteField(),
-              onboardingComplete: true,
-            });
+            const updatedUserData = { ...userData };
+            delete updatedUserData.pendingStore;
+            updatedUserData.onboardingComplete = true;
+            await db.doc(`users/${supabaseUser.id}`).set(updatedUserData);
           }
         }
 

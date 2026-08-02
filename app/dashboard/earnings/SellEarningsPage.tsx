@@ -1,8 +1,7 @@
 ﻿'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { collection, getDocs, getDoc, query, orderBy, where, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { initializeFirebase } from '@/lib/firebase';
+import { getDatabase } from '@/lib/database/adapter';
 import { useSell } from '@/context/SellContext';
 import styles from './SellEarningsPage.module.css';
 
@@ -174,16 +173,15 @@ export function SellEarningsPage() {
 
   // Promote pending -> available after 24 h (client-side convenience update)
   const promoteEarnings = useCallback(async (biz: string, items: Earning[]) => {
-    const { firestore } = initializeFirebase();
+    const db = getDatabase();
     const now = Date.now();
     const toPromote = items.filter(e =>
       e.status === 'pending' &&
       now - e.createdAt.getTime() >= 24 * 60 * 60 * 1000
     );
     for (const e of toPromote) {
-      await updateDoc(
-        doc(firestore, 'businesses', biz, 'storeEarnings', e.id),
-        { status: 'available', updatedAt: serverTimestamp() }
+      await db.doc(`businesses/${biz}/storeEarnings/${e.id}`).update(
+        { status: 'available', updatedAt: new Date().toISOString() }
       );
       e.status = 'available';
     }
@@ -194,17 +192,15 @@ export function SellEarningsPage() {
     if (!user?.businessId) { setLoading(false); return; }
     setLoading(true);
     try {
-      const { firestore } = initializeFirebase();
+      const db = getDatabase();
       const biz = user.businessId;
 
       // Earnings
-      const eSnap = await getDocs(
-        query(collection(firestore, 'businesses', biz, 'storeEarnings'), orderBy('createdAt', 'desc'))
-      );
+      const eSnap = await db.collection(`businesses/${biz}/storeEarnings`).get();
       const rawEarnings: Earning[] = eSnap.docs.map(d => ({
         id: d.id,
         ...(d.data() as Omit<Earning, 'id' | 'createdAt'>),
-        createdAt: d.data().createdAt?.toDate?.() ?? new Date(),
+        createdAt: new Date(d.data().createdAt || Date.now()),
       }));
       const promoted = await promoteEarnings(biz, rawEarnings);
       setEarnings(promoted);
@@ -228,14 +224,12 @@ export function SellEarningsPage() {
       }
 
       // Payout requests
-      const pSnap = await getDocs(
-        query(collection(firestore, 'businesses', biz, 'payoutRequests'), orderBy('createdAt', 'desc'))
-      );
+      const pSnap = await db.collection(`businesses/${biz}/payoutRequests`).get();
       setPayouts(pSnap.docs.map(d => ({
         id: d.id,
         ...(d.data() as Omit<PayoutRequest, 'id' | 'createdAt' | 'processedAt'>),
-        createdAt:   d.data().createdAt?.toDate?.() ?? new Date(),
-        processedAt: d.data().processedAt?.toDate?.() ?? null,
+        createdAt:   new Date(d.data().createdAt || Date.now()),
+        processedAt: d.data().processedAt ? new Date(d.data().processedAt) : null,
       })));
     } catch (err) {
       console.error('[SellEarningsPage] load error:', err);
@@ -252,17 +246,15 @@ export function SellEarningsPage() {
     if (!user?.id) { setUgcLoading(false); return; }
     setUgcLoading(true);
     try {
-      const { firestore } = initializeFirebase();
-      const profileSnap = await getDoc(doc(firestore, 'ugcCreators', user.id));
-      const has = profileSnap.exists();
+      const db = getDatabase();
+      const profileSnap = await db.doc(`ugcCreators/${user.id}`).get();
+      const has = profileSnap.exists;
       setHasUgcProfile(has);
       if (!has) { setUgcOrders([]); setUgcLoading(false); return; }
 
-      const snap = await getDocs(
-        query(collection(firestore, 'ugcOrders'), where('creatorId', '==', user.id))
-      );
+      const snap = await db.collection('ugcOrders').where('creatorId', '==', user.id).get();
       const orders: UgcEarningOrder[] = snap.docs.map(d => {
-        const data = d.data() as any;
+        const data = d.data();
         return {
           id: d.id,
           productName: data.productName ?? 'UGC order',

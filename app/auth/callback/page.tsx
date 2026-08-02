@@ -1,73 +1,41 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { initializeFirebase } from '@/lib/firebase';
-import { getAuth, signInWithCustomToken } from 'firebase/auth';
-import { Suspense } from 'react';
+import React, { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { supabaseClient } from '@/lib/supabase-client';
 
-function AuthCallbackContent() {
+export default function AuthCallbackPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const token = searchParams.get('token');
-    const uid = searchParams.get('uid');
+    const handleAuthCallback = async () => {
+      const { data, error } = await supabaseClient.auth.getSession();
+      
+      if (error) {
+        console.error('Auth callback error:', error);
+        router.replace('/sell-login?error=oauth_failed');
+        return;
+      }
 
-    if (!token || !uid) {
-      setError('Invalid auth link. Please try logging in again.');
-      return;
-    }
-
-    const firebase = initializeFirebase();
-    const auth = getAuth(firebase.firebaseApp);
-
-    signInWithCustomToken(auth, token)
-      .then(() => {
+      if (data.session) {
+        // Successfully authenticated
         router.replace('/dashboard');
-      })
-      .catch((err) => {
-        console.error('Auth failed:', err);
-        setError('Authentication failed. Please try again.');
-      });
-  }, [searchParams, router]);
+      } else {
+        // No session, redirect to login
+        router.replace('/sell-login');
+      }
+    };
 
-  if (error) {
-    return (
-      <div style={{
-        minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: '#F0F9FF', fontFamily: 'Plus Jakarta Sans, sans-serif',
-      }}>
-        <div style={{ textAlign: 'center' }}>
-          <p style={{ color: '#EF4444', fontSize: '1rem', marginBottom: 16 }}>{error}</p>
-          <a href="/login" style={{ color: '#0EA5E9', textDecoration: 'underline' }}>Go to Login</a>
-        </div>
-      </div>
-    );
-  }
+    handleAuthCallback();
+  }, [router]);
 
   return (
-    <div style={{
-      minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: '#F0F9FF', fontFamily: 'Plus Jakarta Sans, sans-serif',
-    }}>
-      <p style={{ color: '#3D5A7A', fontSize: '0.875rem' }}>Signing you in...</p>
+    <div className="min-h-screen flex items-center justify-center" style={{ background: '#F0F9FF' }}>
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-16 w-16 border-b-4 mx-auto mb-6" style={{ borderColor: '#0EA5E9' }} />
+        <h2 className="text-xl font-semibold mb-2" style={{ color: '#0C1A2E' }}>Signing you in...</h2>
+        <p style={{ color: '#3D5A7A' }}>Please wait</p>
+      </div>
     </div>
-  );
-}
-
-export default function AuthCallback() {
-  return (
-    <Suspense fallback={
-      <div style={{
-        minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: '#F0F9FF',
-      }}>
-        <p style={{ color: '#3D5A7A', fontSize: '0.875rem' }}>Loading...</p>
-      </div>
-    }>
-      <AuthCallbackContent />
-    </Suspense>
   );
 }

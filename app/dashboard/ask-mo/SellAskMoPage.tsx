@@ -2,8 +2,7 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useSell } from '@/context/SellContext';
-import { doc, updateDoc, getDoc, setDoc, deleteDoc, collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
-import { initializeFirebase } from '@/lib/firebase';
+import { getDatabase } from '@/lib/database/adapter';
 import { EbookPreviewModal } from '@/app/store-components/EbookPreviewModal';
 import styles from './SellAskMoPage.module.css';
 
@@ -81,8 +80,8 @@ function timeAgo(ts: number): string {
 }
 
 function getConvCollection(userId: string) {
-  const { firestore } = initializeFirebase();
-  return collection(firestore, 'businesses', userId, 'aiConversations');
+  const db = getDatabase();
+  return db.collection(`businesses/${userId}/aiConversations`);
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -225,9 +224,9 @@ export function SellAskMoPage() {
 
     (async () => {
       try {
-        const convRef = doc(getConvCollection(user.businessId!), 'active');
-        const snap = await getDoc(convRef);
-        if (snap.exists()) {
+        const convRef = getConvCollection(user.businessId!).doc('active');
+        const snap = await convRef.get();
+        if (snap.exists) {
           const data = snap.data();
           if (data.messages?.length) {
             setMessages(data.messages);
@@ -247,11 +246,11 @@ export function SellAskMoPage() {
     async (msgs: ChatMessage[], hist: { role: 'user' | 'model'; parts: { text: string }[] }[]) => {
       if (!user?.businessId || msgs.length === 0) return;
       try {
-        const convRef = doc(getConvCollection(user.businessId), 'active');
-        await setDoc(convRef, {
+        const convRef = getConvCollection(user.businessId).doc('active');
+        await convRef.set({
           messages: msgs,
           conversationHistory: hist,
-          updatedAt: Date.now(),
+          updatedAt: new Date().toISOString(),
         }, { merge: true });
       } catch (e) { console.error('Ask MO save failed:', e); }
     },
@@ -291,14 +290,9 @@ export function SellAskMoPage() {
     if (!user?.businessId) return;
     setHistoryLoading(true);
     try {
-      const q = query(
-        getConvCollection(user.businessId),
-        orderBy('updatedAt', 'desc'),
-        limit(50)
-      );
-      const snap = await getDocs(q);
+      const snap = await getConvCollection(user.businessId).limit(50).get();
       const list: Conversation[] = [];
-      snap.forEach(d => {
+      snap.docs.forEach(d => {
         if (d.id === 'active') return;
         const data = d.data();
         list.push({
@@ -326,8 +320,8 @@ export function SellAskMoPage() {
       try {
         // Save current as history first
         if (messagesRef.current.length > 0) {
-          const currentRef = doc(getConvCollection(user.businessId), 'current-' + Date.now());
-          await setDoc(currentRef, {
+          const currentRef = getConvCollection(user.businessId).doc('current-' + Date.now());
+          await currentRef.set({
             messages: messagesRef.current,
             conversationHistory: historyRef.current,
             preview: messagesRef.current.find(m => m.role === 'user')?.text?.slice(0, 60) ?? '',
@@ -336,8 +330,8 @@ export function SellAskMoPage() {
           });
         }
 
-        const snap = await getDoc(doc(getConvCollection(user.businessId), convId));
-        if (snap.exists()) {
+        const snap = await getConvCollection(user.businessId).doc(convId).get();
+        if (snap.exists) {
           const data = snap.data();
           setMessages(data.messages ?? []);
           setConversationHistory(data.conversationHistory ?? []);
@@ -357,8 +351,8 @@ export function SellAskMoPage() {
     // Archive current conversation if it has messages
     if (user?.businessId && messagesRef.current.length > 0) {
       try {
-        const archiveRef = doc(getConvCollection(user.businessId), 'archive-' + Date.now());
-        await setDoc(archiveRef, {
+        const archiveRef = getConvCollection(user.businessId).doc('archive-' + Date.now());
+        await archiveRef.set({
           messages: messagesRef.current,
           conversationHistory: historyRef.current,
           preview: messagesRef.current.find(m => m.role === 'user')?.text?.slice(0, 60) ?? '',
@@ -366,8 +360,8 @@ export function SellAskMoPage() {
           updatedAt: Date.now(),
         });
         // Clear active
-        const activeRef = doc(getConvCollection(user.businessId), 'active');
-        await setDoc(activeRef, { messages: [], conversationHistory: [], updatedAt: Date.now() }, { merge: true });
+        const activeRef = getConvCollection(user.businessId).doc('active');
+        await activeRef.set({ messages: [], conversationHistory: [], updatedAt: Date.now() }, { merge: true });
       } catch { /* silent */ }
     }
     setMessages([]);
@@ -383,7 +377,7 @@ export function SellAskMoPage() {
     async (convId: string) => {
       if (!user?.businessId) return;
       try {
-        await deleteDoc(doc(getConvCollection(user.businessId), convId));
+        await getConvCollection(user.businessId).doc(convId).delete();
         setConversations(prev => prev.filter(c => c.id !== convId));
         showToast('Conversation deleted', 'info');
       } catch { /* silent */ }
@@ -507,14 +501,14 @@ export function SellAskMoPage() {
     async (update: Record<string, unknown>, messageId: string) => {
       if (!user?.businessId) return;
       try {
-        const { firestore } = initializeFirebase();
-        const cfgRef = doc(firestore, 'businesses', user.businessId, 'store', 'config');
+        const db = getDatabase();
+        const cfgRef = db.doc(`businesses/${user.businessId}/store/config`);
         const fieldsToUpdate: Record<string, unknown> = {};
         for (const [key, value] of Object.entries(update)) {
           if (value !== null && value !== undefined && value !== '') fieldsToUpdate[key] = value;
         }
         if (Object.keys(fieldsToUpdate).length === 0) { showToast('No changes to apply', 'info'); return; }
-        await updateDoc(cfgRef, fieldsToUpdate);
+        await cfgRef.update(fieldsToUpdate);
         setMessages(prev => prev.map(msg => msg.id === messageId ? { ...msg, applied: true } : msg));
         showToast('Store updated successfully!', 'success');
       } catch (err) {
@@ -584,9 +578,9 @@ export function SellAskMoPage() {
   const publishProduct = useCallback(async (messageId: string, productId: string) => {
     if (!user?.businessId) return;
     try {
-      const { firestore } = initializeFirebase();
-      const productRef = doc(firestore, 'businesses', user.businessId, 'storeProducts', productId);
-      await updateDoc(productRef, { available: true, featured: true });
+      const db = getDatabase();
+      const productRef = db.doc(`businesses/${user.businessId}/storeProducts/${productId}`);
+      await productRef.update({ available: true, featured: true });
       setMessages(prev => prev.map(msg => msg.id === messageId ? { ...msg, productCreated: true } : msg));
       showToast('Product is now public in your store!', 'success');
     } catch {

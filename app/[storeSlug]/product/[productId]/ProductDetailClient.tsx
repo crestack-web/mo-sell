@@ -235,7 +235,7 @@ export function ProductDetailClient({ product, storeSlug, currency, theme, busin
     try {
       const activeKey = storeConfig?.paystackPublicKey || process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || '';
       if (!activeKey) {
-        setError('Payment is not configured for this store.');
+        setError('Payment is temporarily unavailable. Please try again later.');
         setProcessing(false);
         return;
       }

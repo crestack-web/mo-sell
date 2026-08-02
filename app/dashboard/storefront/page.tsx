@@ -5,8 +5,7 @@ import { useRouter } from 'next/navigation';
 import { THEMES, getThemeType } from '@/themes/registry';
 import { useSell } from '@/context/SellContext';
 import type { SellPageId } from '@/context/SellContext';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { initializeFirebase } from '@/lib/firebase';
+import { getDatabase } from '@/lib/database/adapter';
 
 const s = {
   page: {
@@ -169,10 +168,9 @@ export default function StorefrontPage() {
   const handleApplyAndCustomize = async (themeId: string) => {
     if (!user?.businessId) return;
     try {
-      const { firestore } = initializeFirebase();
-      await setDoc(
-        doc(firestore, 'businesses', user.businessId, 'store', 'config'),
-        { theme: themeId, updatedAt: serverTimestamp() },
+      const db = getDatabase();
+      await db.doc(`businesses/${user.businessId}/store/config`).set(
+        { theme: themeId, updatedAt: new Date().toISOString() },
         { merge: true }
       );
       handleCustomize(themeId);

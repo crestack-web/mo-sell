@@ -2,10 +2,9 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { signOut } from 'firebase/auth';
+import { signOut } from '@/lib/auth';
 import { useSell } from '../context/SellContext';
 import type { SellPageId } from '../context/SellContext';
-import { initializeFirebase } from '@/lib/firebase';
 import styles from './SellSidebar.module.css';
 
 // ─── Nav Config ───────────────────────────────────────────────────────────────
@@ -179,8 +178,7 @@ export function SellSidebar() {
 
   const handleLogout = async () => {
     try {
-      const { auth } = initializeFirebase();
-      await signOut(auth);
+      await signOut();
     } catch {
       // ignore
     }

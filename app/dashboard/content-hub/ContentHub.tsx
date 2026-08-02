@@ -1,14 +1,13 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { collection, getDocs, addDoc, doc, getDoc, setDoc, updateDoc, deleteDoc, query, where, orderBy, limit, serverTimestamp, writeBatch } from 'firebase/firestore';
+import { getDatabase } from '@/lib/database/adapter';
 import {
   Lightbulb, Calendar, TrendingUp, Megaphone, BarChart3, Users,
   Copy, Check, Bell, BellOff, Eye, EyeOff, BadgeCheck,
   Sparkles, Package, X, Plus, Star, Camera, Instagram, Music2, Youtube, Twitter, Trash2, Upload,
   ChevronLeft, ChevronRight, CalendarClock, Send, CheckCircle2, Target,
 } from 'lucide-react';
-import { initializeFirebase } from '@/lib/firebase';
 import { useSell } from '@/context/SellContext';
 import { ContentGenerator } from './ContentGenerator';
 import { ProductContentCard } from './ProductContentCard';
@@ -343,10 +342,8 @@ export function ContentHub() {
     if (!user?.businessId) return;
     setProductsLoading(true);
     try {
-      const { firestore } = initializeFirebase();
-      const snap = await getDocs(
-        collection(firestore, 'businesses', user.businessId, 'storeProducts')
-      );
+      const db = getDatabase();
+      const snap = await db.collection(`businesses/${user.businessId}/storeProducts`).get();
       const items = snap.docs.map(d => ({
         id: d.id,
         displayName: d.data().displayName ?? '',
@@ -369,10 +366,8 @@ export function ContentHub() {
     if (!user?.businessId) return;
     setCampaignLoading(true);
     try {
-      const { firestore } = initializeFirebase();
-      const snap = await getDocs(
-        collection(firestore, 'businesses', user.businessId, 'campaigns')
-      );
+      const db = getDatabase();
+      const snap = await db.collection(`businesses/${user.businessId}/campaigns`).get();
       const items = snap.docs.map(d => ({ id: d.id, ...d.data() } as Campaign));
       setCampaigns(items);
     } catch (err) {
@@ -389,8 +384,8 @@ export function ContentHub() {
     if (!user?.businessId) return;
     setCalendarLoading(true);
     try {
-      const { firestore } = initializeFirebase();
-      const snap = await getDocs(collection(firestore, 'businesses', user.businessId, 'contentCalendar'));
+      const db = getDatabase();
+      const snap = await db.collection(`businesses/${user.businessId}/contentCalendar`).get();
       const posts = snap.docs.map(d => ({ id: d.id, ...d.data() } as CalendarPost));
       posts.sort((a, b) => (a.date + (a.time || '')) < (b.date + (b.time || '')) ? -1 : 1);
       setCalendarPosts(posts);
@@ -404,8 +399,8 @@ export function ContentHub() {
   const loadSocialProfiles = useCallback(async () => {
     if (!user?.businessId) return;
     try {
-      const { firestore } = initializeFirebase();
-      const snap = await getDocs(collection(firestore, 'businesses', user.businessId, 'socialProfiles'));
+      const db = getDatabase();
+      const snap = await db.collection(`businesses/${user.businessId}/socialProfiles`).get();
       const profiles: Record<string, SocialProfile> = {};
       snap.docs.forEach(d => {
         const p = d.data() as SocialProfile;
@@ -421,16 +416,14 @@ export function ContentHub() {
     if (!user?.businessId) return;
     setAnalyticsLoading(true);
     try {
-      const { firestore } = initializeFirebase();
+      const db = getDatabase();
       const biz = user.businessId;
-      const evSnap = await getDocs(
-        query(collection(firestore, 'businesses', biz, 'storeAnalytics'), orderBy('timestamp', 'desc'), limit(500))
-      );
+      const evSnap = await db.collection(`businesses/${biz}/storeAnalytics`).limit(500).get();
       setAnalyticsEvents(evSnap.docs.map(d => d.data() as any));
-      const ordersSnap = await getDocs(collection(firestore, 'businesses', biz, 'storeOrders'));
+      const ordersSnap = await db.collection(`businesses/${biz}/storeOrders`).get();
       setAnalyticsOrders(ordersSnap.docs.map(d => ({
         ...d.data(),
-        createdAt: d.data().createdAt?.toDate?.() ?? new Date(),
+        createdAt: new Date(d.data().createdAt || Date.now()),
       })));
     } catch (err) {
       console.error('[ContentHub] Load analytics error:', err);
@@ -447,9 +440,9 @@ export function ContentHub() {
     if (!user?.id) return;
     setLoadingUgcData(true);
     try {
-      const { firestore } = initializeFirebase();
-      const profileSnap = await getDoc(doc(firestore, 'ugcCreators', user.id));
-      if (profileSnap.exists()) {
+      const db = getDatabase();
+      const profileSnap = await db.doc(`ugcCreators/${user.id}`).get();
+      if (profileSnap.exists) {
         const data = profileSnap.data();
         setUgcProfile(data);
         setBio(data.bio || '');
@@ -466,15 +459,11 @@ export function ContentHub() {
         setPortfolioImages(data.portfolioImages || []);
         setContactEmail(data.contactEmail || '');
       }
-      const ordersSnap = await getDocs(
-        query(collection(firestore, 'ugcOrders'), where('creatorId', '==', user.id))
-      );
+      const ordersSnap = await db.collection('ugcOrders').where('creatorId', '==', user.id).get();
       const allOrders = ordersSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
       setUgcRequests(allOrders.filter(o => o.type === 'request' || o.status === 'pending'));
       setUgcOrders(allOrders.filter(o => o.type !== 'request' && o.status !== 'pending'));
-      const videosSnap = await getDocs(
-        query(collection(firestore, 'ugcVideos'), where('creatorId', '==', user.id))
-      );
+      const videosSnap = await db.collection('ugcVideos').where('creatorId', '==', user.id).get();
       const vids = videosSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
       const urls = vids.map((v: any) => v.url);
       setSampleVideos(urls.length > 0 ? [...urls, ...Array(Math.max(0, 3 - urls.length)).fill('')] : ['', '', '']);
@@ -558,7 +547,7 @@ export function ContentHub() {
       return;
     }
     try {
-      const { firestore } = initializeFirebase();
+      const db = getDatabase();
       const days: CampaignDay[] = [
         { day: 1, task: 'Shoot 3 raw video clips of the product', done: false },
         { day: 2, task: 'Write 5 hook variations for the product', done: false },
@@ -568,8 +557,7 @@ export function ContentHub() {
         { day: 6, task: 'Engage with comments and reshare', done: false },
         { day: 7, task: 'Analyze performance and adjust strategy', done: false },
       ];
-      const docRef = await addDoc(
-        collection(firestore, 'businesses', user.businessId, 'campaigns'),
+      const docRef = await db.collection(`businesses/${user.businessId}/campaigns`).add(
         { productId: product.id, productName: product.displayName, days, createdAt: Date.now() }
       );
       setCampaigns(prev => [...prev, { id: docRef.id, productId: product.id, productName: product.displayName, days, createdAt: Date.now() }]);
@@ -584,8 +572,8 @@ export function ContentHub() {
     if (!campaign || !user?.businessId) return;
     const updatedDays = campaign.days.map((d, i) => i === dayIndex ? { ...d, done: !d.done } : d);
     try {
-      const { firestore } = initializeFirebase();
-      await setDoc(doc(firestore, 'businesses', user.businessId, 'campaigns', campaignId), { days: updatedDays }, { merge: true });
+      const db = getDatabase();
+      await db.doc(`businesses/${user.businessId}/campaigns/${campaignId}`).set({ days: updatedDays }, { merge: true });
       setCampaigns(prev => prev.map(c => c.id === campaignId ? { ...c, days: updatedDays } : c));
     } catch (err) {
       showToast('Failed to update task', 'error');
@@ -715,7 +703,7 @@ export function ContentHub() {
       return;
     }
     try {
-      const { firestore } = initializeFirebase();
+      const db = getDatabase();
       const product = products.find(p => p.id === addForm.productId);
       const post: any = {
         title: addForm.title.trim(),
@@ -729,7 +717,7 @@ export function ContentHub() {
         postedUrl: '',
         createdAt: Date.now(),
       };
-      const ref = await addDoc(collection(firestore, 'businesses', user.businessId, 'contentCalendar'), post);
+      const ref = await db.collection(`businesses/${user.businessId}/contentCalendar`).add(post);
       setCalendarPosts(prev => [...prev, { id: ref.id, ...post }]);
       setAddFormOpen(false);
       setAddForm({ title: '', platform: 'instagram', date: '', time: '12:00', productId: '', notes: '' });
@@ -743,8 +731,8 @@ export function ContentHub() {
     if (!user?.businessId) return;
     const next = post.status === 'scheduled' ? 'posted' : 'scheduled';
     try {
-      const { firestore } = initializeFirebase();
-      await setDoc(doc(firestore, 'businesses', user.businessId, 'contentCalendar', post.id), { status: next }, { merge: true });
+      const db = getDatabase();
+      await db.doc(`businesses/${user.businessId}/contentCalendar/${post.id}`).set({ status: next }, { merge: true });
       setCalendarPosts(prev => prev.map(p => p.id === post.id ? { ...p, status: next } : p));
     } catch {
       showToast('Failed to update post', 'error');
@@ -755,8 +743,8 @@ export function ContentHub() {
     if (!user?.businessId) return;
     if (!window.confirm('Delete this scheduled post?')) return;
     try {
-      const { firestore } = initializeFirebase();
-      await deleteDoc(doc(firestore, 'businesses', user.businessId, 'contentCalendar', postId));
+      const db = getDatabase();
+      await db.doc(`businesses/${user.businessId}/contentCalendar/${postId}`).delete();
       setCalendarPosts(prev => prev.filter(p => p.id !== postId));
       showToast('Post deleted', 'info');
     } catch {
@@ -773,8 +761,8 @@ export function ContentHub() {
     }
     const key = newSocialPlatform;
     try {
-      const { firestore } = initializeFirebase();
-      await setDoc(doc(firestore, 'businesses', user.businessId, 'socialProfiles', key), {
+      const db = getDatabase();
+      await db.doc(`businesses/${user.businessId}/socialProfiles/${key}`).set({
         platform: key, url, updatedAt: Date.now(),
       }, { merge: true });
       setSocialProfiles(prev => ({ ...prev, [key]: { ...(prev[key] || {}), platform: key, url } as SocialProfile }));
@@ -808,8 +796,8 @@ export function ContentHub() {
           verified: data.accountVerified === true,
           verifiedAt: new Date().toISOString(),
         };
-        const { firestore } = initializeFirebase();
-        await setDoc(doc(firestore, 'businesses', user.businessId, 'socialProfiles', key), updated, { merge: true });
+        const db = getDatabase();
+        await db.doc(`businesses/${user.businessId}/socialProfiles/${key}`).set(updated, { merge: true });
         setSocialProfiles(prev => ({ ...prev, [key]: updated }));
         showToast(`${key === 'tiktok' ? 'TikTok' : 'Instagram'} verified — ${formatCount(data.followerCount)} followers`, 'success');
       } else if (res.ok && data.ok) {
@@ -828,8 +816,8 @@ export function ContentHub() {
     if (!user?.businessId) return;
     if (!window.confirm('Remove this social profile?')) return;
     try {
-      const { firestore } = initializeFirebase();
-      await deleteDoc(doc(firestore, 'businesses', user.businessId, 'socialProfiles', key));
+      const db = getDatabase();
+      await db.doc(`businesses/${user.businessId}/socialProfiles/${key}`).delete();
       setSocialProfiles(prev => { const n = { ...prev }; delete n[key]; return n; });
       showToast('Profile removed', 'info');
     } catch {
@@ -929,7 +917,7 @@ export function ContentHub() {
     }
     setSavingUgc(true);
     try {
-      const { firestore } = initializeFirebase();
+      const db = getDatabase();
       const p30 = Number(price30s);
       const p60 = Number(price60s);
       if (isNaN(p30) || isNaN(p60) || p30 < 0 || p60 < 0) {
@@ -959,26 +947,21 @@ export function ContentHub() {
         socialStats,
         portfolioImages: portfolioImages.filter(Boolean),
         contactEmail: contactEmail || user.email || '',
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       };
-      await setDoc(doc(firestore, 'ugcCreators', user.id), creator);
+      await db.doc(`ugcCreators/${user.id}`).set(creator);
       const videos = sampleVideos.filter(Boolean);
-      const batch = writeBatch(firestore);
-      const existingVideos = await getDocs(
-        query(collection(firestore, 'ugcVideos'), where('creatorId', '==', user.id), where('hasWatermark', '==', true))
-      );
-      existingVideos.docs.forEach(d => {
-        batch.delete(doc(firestore, 'ugcVideos', d.id));
-      });
+      const existingVideos = await db.collection('ugcVideos').where('creatorId', '==', user.id).where('hasWatermark', '==', true).get();
+      for (const d of existingVideos.docs) {
+        await db.doc(`ugcVideos/${d.id}`).delete();
+      }
       for (const url of videos) {
-        const ref = doc(collection(firestore, 'ugcVideos'));
-        batch.set(ref, {
+        await db.collection('ugcVideos').add({
           creatorId: user.id, url, thumbnail: null, duration: 15,
-          hasWatermark: true, title: null, createdAt: serverTimestamp(),
+          hasWatermark: true, title: null, createdAt: new Date().toISOString(),
         });
       }
-      await batch.commit();
       showToast(ugcProfile ? 'Profile updated!' : 'Profile saved! You\'re now listed as a creator.', 'success');
       setUgcView('dashboard');
       await loadUgcData();
@@ -999,10 +982,10 @@ export function ContentHub() {
       : 'Hide your profile? Brands will no longer see you in the marketplace.')) return;
     setUgcActionLoading('visibility');
     try {
-      const { firestore } = initializeFirebase();
-      await updateDoc(doc(firestore, 'ugcCreators', user.id), {
+      const db = getDatabase();
+      await db.doc(`ugcCreators/${user.id}`).update({
         isActive: next,
-        updatedAt: serverTimestamp(),
+        updatedAt: new Date().toISOString(),
       });
       showToast(next ? 'Profile is now public' : 'Profile hidden', 'success');
       await loadUgcData();
@@ -1018,16 +1001,12 @@ export function ContentHub() {
     if (!window.confirm('Delete your creator profile permanently? Your listing and sample videos will be removed. This cannot be undone.')) return;
     setUgcActionLoading('delete');
     try {
-      const { firestore } = initializeFirebase();
-      const batch = writeBatch(firestore);
-      const videosSnap = await getDocs(
-        query(collection(firestore, 'ugcVideos'), where('creatorId', '==', user.id), where('hasWatermark', '==', true))
-      );
-      videosSnap.docs.forEach(d => {
-        batch.delete(doc(firestore, 'ugcVideos', d.id));
-      });
-      batch.delete(doc(firestore, 'ugcCreators', user.id));
-      await batch.commit();
+      const db = getDatabase();
+      const videosSnap = await db.collection('ugcVideos').where('creatorId', '==', user.id).where('hasWatermark', '==', true).get();
+      for (const d of videosSnap.docs) {
+        await db.doc(`ugcVideos/${d.id}`).delete();
+      }
+      await db.doc(`ugcCreators/${user.id}`).delete();
       setUgcProfile(null);
       setUgcView('apply');
       setSampleVideos(['', '', '']);
@@ -1044,7 +1023,7 @@ export function ContentHub() {
       {/* Header */}
       <div>
         <h2 style={s.heading}>Content Hub</h2>
-        <p style={s.sub}>Your Growth OS \u2014 ideas, scheduling, trends, campaigns, analytics, and UGC marketplace</p>
+        <p style={s.sub}>Create, schedule, and analyze your content across all platforms</p>
       </div>
 
       {/* ─── Tabs ─── */}
