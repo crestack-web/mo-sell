@@ -3,8 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSell } from '../context/SellContext';
-import { initializeFirebase } from '@/lib/firebase';
-import { getFirestore, doc, getDoc } from 'firebase/firestore';
+import { getDatabase } from '@/lib/database/adapter';
 
 interface Props { children: React.ReactNode; }
 
@@ -19,9 +18,9 @@ export function SellAuthGuard({ children }: Props) {
 
     async function checkAccess() {
       try {
-        const { firestore } = initializeFirebase();
-        const userDoc = await getDoc(doc(firestore, 'users', user!.id));
-        const userData = userDoc.data();
+        const db = getDatabase();
+        const userDoc = await db.doc(`users/${user!.id}`).get();
+        const userData = userDoc.exists ? userDoc.data() : {};
 
         if (!userData) {
           setHasAccess(false);
@@ -39,7 +38,7 @@ export function SellAuthGuard({ children }: Props) {
           }
           const moSellSub = userData.moSellSubscription;
           if (moSellSub.status === 'active') {
-            const endDate = moSellSub.endDate?.toDate?.() ?? new Date(moSellSub.endDate);
+            const endDate = new Date(moSellSub.endDate);
             if (endDate > new Date()) {
               setHasAccess(true);
               setSubscriptionChecked(true);
@@ -55,7 +54,7 @@ export function SellAuthGuard({ children }: Props) {
         // Non-Busmo users need active moSellSubscription
         const moSellSub = userData.moSellSubscription;
         if (moSellSub?.status === 'active') {
-          const endDate = moSellSub.endDate?.toDate?.() ?? new Date(moSellSub.endDate);
+          const endDate = new Date(moSellSub.endDate);
           if (endDate > new Date()) {
             setHasAccess(true);
             setSubscriptionChecked(true);
@@ -65,7 +64,7 @@ export function SellAuthGuard({ children }: Props) {
 
         // Check general subscription (owner plans include MO Sell)
         if (userData.subscriptionStatus === 'active') {
-          const endDate = userData.subscriptionEndDate?.toDate?.() ?? new Date(userData.subscriptionEndDate);
+          const endDate = new Date(userData.subscriptionEndDate);
           if (endDate > new Date()) {
             setHasAccess(true);
             setSubscriptionChecked(true);
