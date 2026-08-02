@@ -79,6 +79,7 @@ export default function SellLoginPage() {
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState('');
   const [resetSent, setResetSent] = useState(false);
+  const [tab, setTab]           = useState<'email' | 'google'>('email');
 
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && password.length >= 6;
 
@@ -191,6 +192,50 @@ export default function SellLoginPage() {
               </p>
             )}
 
+            {/* Tab switcher */}
+            <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+              <button
+                onClick={() => setTab('email')}
+                disabled={loading}
+                style={{
+                  flex: 1,
+                  padding: '10px 16px',
+                  borderRadius: 10,
+                  border: 'none',
+                  background: tab === 'email' ? C.primary : '#F0F9FF',
+                  color: tab === 'email' ? 'white' : C.text2,
+                  fontFamily: FONT_BODY,
+                  fontSize: 14,
+                  fontWeight: 600,
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.18s ease',
+                }}
+              >
+                Email
+              </button>
+              <button
+                onClick={() => setTab('google')}
+                disabled={loading}
+                style={{
+                  flex: 1,
+                  padding: '10px 16px',
+                  borderRadius: 10,
+                  border: 'none',
+                  background: tab === 'google' ? C.primary : '#F0F9FF',
+                  color: tab === 'google' ? 'white' : C.text2,
+                  fontFamily: FONT_BODY,
+                  fontSize: 14,
+                  fontWeight: 600,
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.18s ease',
+                }}
+              >
+                Google
+              </button>
+            </div>
+
+            {/* Email tab */}
+            {tab === 'email' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <Field label="Email address" id="sl-email" type="email" value={email}
                 onChange={setEmail} placeholder="you@example.com" autoComplete="email" disabled={loading} />

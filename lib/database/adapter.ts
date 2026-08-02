@@ -88,6 +88,6 @@ export function getDatabase(): DatabaseAdapter {
   }
   
   // Default to Firestore
-  const { FirestoreAdapter } = require('./firestore-adapter');
+  const { FirestoreAdapter } = require('./postgresql-adapter');
   return new FirestoreAdapter();
 }
