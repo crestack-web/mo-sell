@@ -3,8 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef, ChangeEvent } from 'react';
 import { getDatabase } from '@/lib/database/adapter';
 import { getStorage } from '@/lib/storage/adapter';
-import { signOut } from 'firebase/auth';
-import { initializeFirebase } from '@/lib/firebase';
+import { signOut } from '@/lib/auth';
 import { useSell } from '@/context/SellContext';
 
 import styles from './SellSettingsPage.module.css';
