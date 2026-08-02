@@ -11,9 +11,9 @@ import React, {
   ReactNode,
 } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { initializeFirebase } from '@/lib/firebase';
-import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc, collection, getDocs, query, where, orderBy, limit } from 'firebase/firestore';
+import { getDatabase } from '@/lib/database/adapter';
+import { supabaseClient } from '@/lib/supabase-client';
+import { useUser } from '@/lib/supabase/provider';
 
 // ─── URL ↔ Page mapping ──────────────────────────────────────────────────────
 
@@ -222,25 +222,28 @@ export function SellProvider({ children }: { children: ReactNode }) {
   // User
   const [user, setUser] = useState<SellUser | null>(null);
   const [userLoading, setUserLoading] = useState(true);
+  const { user: supabaseUser, isUserLoading: supabaseLoading } = useUser();
 
   useEffect(() => {
-    const { auth, firestore } = initializeFirebase();
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: import('firebase/auth').User | null) => {
-      if (!firebaseUser) {
+    if (supabaseLoading) return;
+    
+    const loadUser = async () => {
+      if (!supabaseUser) {
         setUser(null);
         setUserLoading(false);
         return;
       }
       try {
-        const userDoc = await getDoc(doc(firestore, 'users', firebaseUser.uid));
-        const data = userDoc.exists() ? userDoc.data() : {};
-        const displayName = firebaseUser.displayName || data.displayName || data.businessName || firebaseUser.email?.split('@')[0] || 'User';
+        const db = getDatabase();
+        const userDoc = await db.doc(`users/${supabaseUser.id}`).get();
+        const data = userDoc.exists ? userDoc.data() : {};
+        const displayName = supabaseUser.user_metadata?.full_name || data.displayName || data.businessName || supabaseUser.email?.split('@')[0] || 'User';
         const firstName = displayName.split(' ')[0];
         setUser({
-          id: firebaseUser.uid,
+          id: supabaseUser.id,
           name: displayName,
           shortName: firstName,
-          email: firebaseUser.email || data.email || '',
+          email: supabaseUser.email || data.email || '',
           businessId: data.businessId || '',
           plan: data.plan || 'starter',
           avatarContent: data.avatarContent || firstName.charAt(0).toUpperCase(),
@@ -258,9 +261,10 @@ export function SellProvider({ children }: { children: ReactNode }) {
       } finally {
         setUserLoading(false);
       }
-    });
-    return () => unsubscribe();
-  }, []);
+    };
+
+    loadUser();
+  }, [supabaseUser, supabaseLoading]);
 
   // Store Config
   const [storeConfig, setStoreConfig] = useState<StoreConfig | null>(null);
@@ -269,11 +273,9 @@ export function SellProvider({ children }: { children: ReactNode }) {
   const refreshStoreConfig = useCallback(async () => {
     if (!user?.businessId) return;
     try {
-      const { firestore } = initializeFirebase();
-      const configDoc = await getDoc(
-        doc(firestore, 'businesses', user.businessId, 'store', 'config')
-      );
-      if (configDoc.exists()) {
+      const db = getDatabase();
+      const configDoc = await db.doc(`businesses/${user.businessId}/store/config`).get();
+      if (configDoc.exists) {
         setStoreConfig(configDoc.data() as StoreConfig);
       } else {
         setStoreConfig(null);
@@ -299,37 +301,32 @@ export function SellProvider({ children }: { children: ReactNode }) {
   const refreshQuickStats = useCallback(async () => {
     if (!user?.businessId) return;
     try {
-      const { firestore } = initializeFirebase();
+      const db = getDatabase();
       const biz = user.businessId;
 
-      // Pending orders count
-      const ordersQ = query(
-        collection(firestore, 'businesses', biz, 'storeOrders'),
-        where('status', 'in', ['paid', 'processing']),
-        limit(100)
-      );
-      const ordersSnap = await getDocs(ordersQ);
-      const pendingOrders = ordersSnap.size;
+      // Pending orders count (simplified - get all and filter)
+      const ordersSnap = await db.collection(`businesses/${biz}/storeOrders`).limit(100).get();
+      const pendingOrders = ordersSnap.docs.filter(d => {
+        const status = d.data().status;
+        return status === 'paid' || status === 'processing';
+      }).length;
 
-      // Monthly revenue
+      // Monthly revenue (simplified - get all and filter)
+      const revenueSnap = await db.collection(`businesses/${biz}/storeOrders`).limit(500).get();
       const startOfMonth = new Date();
       startOfMonth.setDate(1);
       startOfMonth.setHours(0, 0, 0, 0);
-      const revenueQ = query(
-        collection(firestore, 'businesses', biz, 'storeOrders'),
-        where('paymentStatus', '==', 'paid'),
-        where('createdAt', '>=', startOfMonth),
-        orderBy('createdAt', 'desc'),
-        limit(500)
-      );
-      const revenueSnap = await getDocs(revenueQ);
-      const monthlyRevenue = revenueSnap.docs.reduce((sum, d) => sum + (d.data().total || 0), 0);
+      const monthlyRevenue = revenueSnap.docs.reduce((sum, d) => {
+        const order = d.data();
+        if (order.paymentStatus === 'paid' && new Date(order.createdAt || Date.now()) >= startOfMonth) {
+          return sum + (order.total || 0);
+        }
+        return sum;
+      }, 0);
 
       // Product count
-      const productsSnap = await getDocs(
-        collection(firestore, 'businesses', biz, 'storeProducts')
-      );
-      const totalProducts = productsSnap.size;
+      const productsSnap = await db.collection(`businesses/${biz}/storeProducts`).get();
+      const totalProducts = productsSnap.docs.length;
 
       setQuickStats({ pendingOrders, monthlyRevenue, totalProducts });
     } catch (err) {
