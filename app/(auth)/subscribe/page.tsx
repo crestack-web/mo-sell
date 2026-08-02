@@ -2,9 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { initializeFirebase } from '@/lib/firebase';
-import { getAuth, onAuthStateChanged } from 'firebase/auth';
-import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { supabaseClient } from '@/lib/supabase-client';
+import { getDatabase } from '@/lib/database/adapter';
 import { convertFromUsd } from '@/lib/currency';
 import posthog from 'posthog-js';
 
@@ -41,23 +40,23 @@ export default function SellSubscribePage() {
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    const { auth } = initializeFirebase();
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (!firebaseUser) {
+    const checkAuth = async () => {
+      const { data: { user: supabaseUser } } = await supabaseClient.auth.getUser();
+      if (!supabaseUser) {
         router.replace('/sell-login');
         return;
       }
-      setUser(firebaseUser);
+      setUser(supabaseUser);
 
       // Check if Busmo user
-      const { firestore } = initializeFirebase();
-      const userDoc = await getDoc(doc(firestore, 'users', firebaseUser.uid));
-      const userData = userDoc.data();
+      const db = getDatabase();
+      const userDoc = await db.doc(`users/${supabaseUser.id}`).get();
+      const userData = userDoc.exists ? userDoc.data() : {};
       setIsBusmoUser(!!userData?.businessId);
 
       // If Busmo user with existing active subscription, redirect to dashboard
       if (userData?.businessId && userData?.moSellSubscription?.status === 'active') {
-        const endDate = userData.moSellSubscription.endDate?.toDate?.() ?? new Date(userData.moSellSubscription.endDate);
+        const endDate = new Date(userData.moSellSubscription.endDate);
         if (endDate > new Date()) {
           router.replace('/dashboard');
           return;
@@ -66,7 +65,7 @@ export default function SellSubscribePage() {
 
       // If non-Busmo user with active subscription, redirect
       if (!userData?.businessId && userData?.moSellSubscription?.status === 'active') {
-        const endDate = userData.moSellSubscription.endDate?.toDate?.() ?? new Date(userData.moSellSubscription.endDate);
+        const endDate = new Date(userData.moSellSubscription.endDate);
         if (endDate > new Date()) {
           router.replace('/dashboard');
           return;
@@ -74,16 +73,16 @@ export default function SellSubscribePage() {
       }
 
       setLoading(false);
-    });
-    return () => unsubscribe();
+    };
+
+    checkAuth();
   }, [router]);
 
   const handleGetStarted = async () => {
     setIsProcessing(true);
     setError('');
     try {
-      const { auth, firestore } = initializeFirebase();
-      const currentUser = auth.currentUser;
+      const { data: { user: currentUser } } = await supabaseClient.auth.getUser();
       if (!currentUser) {
         router.replace('/sell-login');
         return;
@@ -94,13 +93,14 @@ export default function SellSubscribePage() {
         const trialEnd = new Date();
         trialEnd.setMonth(trialEnd.getMonth() + 3);
 
-        await setDoc(doc(firestore, 'users', currentUser.uid), {
+        const db = getDatabase();
+        await db.doc(`users/${currentUser.id}`).set({
           moSellSubscription: {
             status: 'active',
             plan: 'sell-starter',
             type: 'busmo-free-trial',
-            activatedAt: serverTimestamp(),
-            endDate: trialEnd,
+            activatedAt: new Date().toISOString(),
+            endDate: trialEnd.toISOString(),
           },
         }, { merge: true });
 
@@ -118,7 +118,7 @@ export default function SellSubscribePage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             plan: 'sell-starter',
-            userId: currentUser.uid,
+            userId: currentUser.id,
             email: currentUser.email,
             amount: convertFromUsd(1, 'NG'), // $1 → NGN at live rate
             currency: 'NGN',
@@ -127,7 +127,7 @@ export default function SellSubscribePage() {
             metadata: {
               plan: 'sell-starter',
               billing: 'trial',
-              userId: currentUser.uid,
+              userId: currentUser.id,
               product: 'mo-sell',
             },
           }),
