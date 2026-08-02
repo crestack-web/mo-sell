@@ -14,19 +14,34 @@ import {
   BatchAdapter,
 } from './adapter';
 
-// Initialize Supabase client with service key for server-side operations
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY!;
+// Lazy initialization of Supabase client to avoid build-time errors
+let supabaseServerInstance: SupabaseClient | null = null;
 
-if (!supabaseUrl || !supabaseServiceKey) {
-  throw new Error('Missing Supabase environment variables. Please set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_KEY');
+export function getSupabaseServer(): SupabaseClient {
+  if (supabaseServerInstance) {
+    return supabaseServerInstance;
+  }
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error('Missing Supabase environment variables. Please set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_KEY');
+  }
+
+  supabaseServerInstance = createClient(supabaseUrl, supabaseServiceKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
+
+  return supabaseServerInstance;
 }
 
-export const supabaseServer = createClient(supabaseUrl, supabaseServiceKey, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false,
-  },
+// Export for backward compatibility (deprecated - use getSupabaseServer() instead)
+export const supabaseServer = new Proxy({} as any, {
+  get: () => getSupabaseServer(),
 });
 
 /**
@@ -34,7 +49,20 @@ export const supabaseServer = createClient(supabaseUrl, supabaseServiceKey, {
  * Maps Firestore-like operations to Supabase PostgreSQL queries
  */
 export class SupabaseAdapter implements DatabaseAdapter {
-  private supabase: SupabaseClient = supabaseServer;
+  private supabase: SupabaseClient;
+
+  constructor() {
+    // Initialize with mock client during build time
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://mock.supabase.co';
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || 'mock-key';
+
+    this.supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    });
+  }
 
   collection(name: string): CollectionAdapter {
     return new SupabaseCollection(this.supabase, name);

@@ -5,6 +5,8 @@ import { getDatabase } from '@/lib/database/adapter';
 import { useSell } from '@/context/SellContext';
 import styles from './SellEarningsPage.module.css';
 
+export const dynamic = 'force-dynamic';
+
 // â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface Earning {

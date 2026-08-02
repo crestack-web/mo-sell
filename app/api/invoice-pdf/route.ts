@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseServer } from '@/lib/database/postgresql-adapter';
 
 export async function GET(req: NextRequest) {
   try {
@@ -9,6 +8,10 @@ export async function GET(req: NextRequest) {
     if (!orderId) {
       return NextResponse.json({ error: 'Order ID required' }, { status: 400 });
     }
+
+    // Import supabaseServer dynamically to avoid initialization during build
+    const { getSupabaseServer } = await import('@/lib/database/postgresql-adapter');
+    const supabaseServer = getSupabaseServer();
 
     // Fetch order from Supabase
     const { data: order, error } = await supabaseServer

@@ -5,6 +5,8 @@ import { getDatabase } from '@/lib/database/adapter';
 import { useSell } from '@/context/SellContext';
 import styles from './SellShippingPage.module.css';
 
+export const dynamic = 'force-dynamic';
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface ShippingZone {
@@ -13,8 +15,8 @@ interface ShippingZone {
   regions: string[];
   flatRate: number;
   estimatedDeliveryDays: number;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: Date | string;
+  updatedAt: Date | string;
 }
 
 interface PickupLocation {
@@ -77,8 +79,8 @@ function ZoneSlideOver({ zone, onClose, onSaved, businessId, currency }: ZoneSli
       if (zone) {
         await db.doc(`businesses/${businessId}/storeShippingZones/${zone.id}`).update(payload);
       } else {
-        const newRef = await colRef.add({ ...payload, createdAt: new Date().toISOString() });
-        zone = { id: newRef.id, ...payload, createdAt: new Date().toISOString() };
+        const newRef = await colRef.add({ ...payload, createdAt: new Date() });
+        zone = { id: newRef.id, ...payload, createdAt: new Date() };
       }
       onSaved();
     } catch (err) {

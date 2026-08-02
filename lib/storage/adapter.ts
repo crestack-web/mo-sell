@@ -14,7 +14,7 @@ export interface StorageAdapter {
  * Get the appropriate storage adapter based on environment
  */
 export function getStorage(): StorageAdapter {
-  const provider = process.env.STORAGE_PROVIDER || 'firebase';
+  const provider = process.env.STORAGE_PROVIDER || 'r2';
   
   if (provider === 'r2') {
     return new R2StorageAdapter();
@@ -39,16 +39,14 @@ export class R2StorageAdapter implements StorageAdapter {
 // Firebase Storage Adapter
 export class FirebaseStorageAdapter implements StorageAdapter {
   async upload(file: File, path: string): Promise<string> {
-    // Convert File to Buffer
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    
-    const { uploadToFirebaseStorage } = await import('./firebase-adapter');
-    return await uploadToFirebaseStorage(buffer, path, file.type);
+    const { FirebaseStorageAdapter } = await import('./firebase-adapter');
+    const adapter = new FirebaseStorageAdapter();
+    return await adapter.upload(file, path);
   }
 
   async delete(path: string): Promise<void> {
-    const { deleteFromFirebaseStorage } = await import('./firebase-adapter');
-    return await deleteFromFirebaseStorage(path);
+    const { FirebaseStorageAdapter } = await import('./firebase-adapter');
+    const adapter = new FirebaseStorageAdapter();
+    return await adapter.delete(path);
   }
 }

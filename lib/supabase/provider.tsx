@@ -52,15 +52,16 @@ export const SupabaseProvider: React.FC<{ children: ReactNode }> = ({ children }
 
     const { data: { subscription } } = supabaseClient.auth.onAuthStateChange(
       (event, session) => {
-        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-          setUserAuthState({ user: session?.user ?? null, isUserLoading: false, userError: null });
-        } else if (event === 'SIGNED_OUT') {
-          setUserAuthState({ user: null, isUserLoading: false, userError: null });
+        try {
+          if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+            setUserAuthState({ user: session?.user ?? null, isUserLoading: false, userError: null });
+          } else if (event === 'SIGNED_OUT') {
+            setUserAuthState({ user: null, isUserLoading: false, userError: null });
+          }
+        } catch (error) {
+          console.error("SupabaseProvider: onAuthStateChange error:", error);
+          setUserAuthState({ user: null, isUserLoading: false, userError: error as Error });
         }
-      },
-      (error) => {
-        console.error("SupabaseProvider: onAuthStateChange error:", error);
-        setUserAuthState({ user: null, isUserLoading: false, userError: error as Error });
       }
     );
 

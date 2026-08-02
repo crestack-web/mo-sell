@@ -67,6 +67,7 @@ export interface DocumentAdapter {
 }
 
 export interface QueryAdapter {
+  where(field: string, op: string, value: any): QueryAdapter;
   limit(n: number): QueryAdapter;
   get(): Promise<{ docs: { id: string; data(): any }[] }>;
 }
@@ -79,15 +80,21 @@ export interface BatchAdapter {
 
 // Factory function
 export function getDatabase(): DatabaseAdapter {
-  const provider = process.env.DATABASE_PROVIDER || 'supabase';
-  
-  if (provider === 'supabase') {
-    // Dynamic import to avoid loading Supabase when using Firestore
+  // Check if we're in a browser environment
+  if (typeof window !== 'undefined') {
+    const provider = process.env.DATABASE_PROVIDER || 'supabase';
+    
+    if (provider === 'supabase') {
+      // Dynamic import to avoid loading Supabase when using Firestore
+      const { SupabaseAdapter } = require('./postgresql-adapter');
+      return new SupabaseAdapter();
+    }
+    
+    // Default to Supabase (Firestore deprecated for client-side usage)
     const { SupabaseAdapter } = require('./postgresql-adapter');
     return new SupabaseAdapter();
   }
   
-  // Default to Supabase (Firestore deprecated for client-side usage)
-  const { SupabaseAdapter } = require('./postgresql-adapter');
-  return new SupabaseAdapter();
+  // Server-side: throw error to prevent build-time initialization
+  throw new Error('getDatabase() should only be called on the client side. Use getSupabaseServer() for server-side operations.');
 }

@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseServer } from '@/lib/database/postgresql-adapter';
 
 export async function POST(req: NextRequest) {
   try {
@@ -39,6 +38,10 @@ export async function POST(req: NextRequest) {
 
 async function handlePaymentSuccess(data: any) {
   try {
+    // Import supabaseServer dynamically to avoid initialization during build
+    const { getSupabaseServer } = await import('@/lib/database/postgresql-adapter');
+    const supabaseServer = getSupabaseServer();
+
     // Create order in Supabase
     const { error } = await supabaseServer
       .from('orders')
@@ -65,6 +68,10 @@ async function handlePaymentSuccess(data: any) {
 
 async function handlePaymentFailed(data: any) {
   try {
+    // Import supabaseServer dynamically to avoid initialization during build
+    const { getSupabaseServer } = await import('@/lib/database/postgresql-adapter');
+    const supabaseServer = getSupabaseServer();
+
     // Log failed payment
     const { error } = await supabaseServer
       .from('payments')

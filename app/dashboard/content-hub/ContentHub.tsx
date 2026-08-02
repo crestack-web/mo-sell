@@ -8,6 +8,8 @@ import {
   Sparkles, Package, X, Plus, Star, Camera, Instagram, Music2, Youtube, Twitter, Trash2, Upload,
   ChevronLeft, ChevronRight, CalendarClock, Send, CheckCircle2, Target,
 } from 'lucide-react';
+
+export const dynamic = 'force-dynamic';
 import { useSell } from '@/context/SellContext';
 import { ContentGenerator } from './ContentGenerator';
 import { ProductContentCard } from './ProductContentCard';

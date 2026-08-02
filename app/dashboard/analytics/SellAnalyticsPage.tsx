@@ -6,6 +6,8 @@ import { useSell } from '@/context/SellContext';
 import { getStorePublicUrl } from '@/lib/store-url';
 import styles from './SellAnalyticsPage.module.css';
 
+export const dynamic = 'force-dynamic';
+
 // â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface OrderData {
