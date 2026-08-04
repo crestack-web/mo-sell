@@ -386,11 +386,8 @@ export default function SellWelcomePage() {
           .sw-ai-grid img { max-width: 320px !important; }
         }
 
-        /* ── Mobile pricing trial card ── */
+        /* ── Mobile comparison grid ── */
         @media (max-width: 480px) {
-          .sw-trial-price { font-size: 52px !important; }
-          .sw-trial-features { gap: 8px !important; }
-          .sw-trial-features span { font-size: 11px !important; padding: 5px 10px !important; }
           .sw-compare-grid { grid-template-columns: 1fr !important; }
         }
 
@@ -648,50 +645,8 @@ export default function SellWelcomePage() {
                 Simple, transparent pricing
               </div>
               <p className="sw-section-sub" style={{ color:C.text2, fontSize:16, marginTop:10, maxWidth:520, margin:'10px auto 0' }}>
-                Get started for just $1 for 3 months. Then $10/month.
+                $10/month. No hidden fees. Cancel anytime.
               </p>
-            </div>
-
-            {/* Single pricing card */}
-            <div style={{ display:'flex', justifyContent:'center', marginBottom:64 }}>
-              <div style={{
-                background:C.surface, borderRadius:20, padding:'32px 28px',
-                border:`2px solid ${C.primary}`,
-                boxShadow:'0 8px 32px rgba(14,165,233,0.12)',
-                display:'flex', flexDirection:'column', gap:16, width:'100%', maxWidth:400,
-              }}>
-                <div style={{ textAlign:'center' }}>
-                  <div style={{ fontFamily:FONT_DISPLAY, fontWeight:800, fontSize:14, color:C.text3, letterSpacing:'0.04em' }}>FIRST 3 MONTHS</div>
-                  <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'center', gap:4, marginTop:4 }}>
-                    <span style={{ fontFamily:FONT_DISPLAY, fontWeight:400, fontSize:24, color:C.text3, lineHeight:1.2, marginTop:4 }}>$</span>
-                    <span style={{ fontFamily:FONT_DISPLAY, fontWeight:800, fontSize:56, color:C.primary, lineHeight:1, letterSpacing:'-0.04em' }}>1</span>
-                  </div>
-                  <div style={{ fontSize:13, color:C.text3, marginTop:4 }}>Then $10/month</div>
-                </div>
-                <div style={{ height:1, background:C.border }} />
-                {[
-                  'AI store builder',
-                  'Unlimited products',
-                  'Paystack payments',
-                  '10 premium themes',
-                  'Custom domain',
-                  'Analytics',
-                ].map((f, i) => (
-                  <div key={i} style={{ display:'flex', alignItems:'center', gap:8, fontSize:13, color:C.text2 }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={C.green} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink:0 }}>
-                      <polyline points="20 6 9 17 4 12"/>
-                    </svg>
-                    {f}
-                  </div>
-                ))}
-                <a href="/signup" style={{
-                  display:'flex', alignItems:'center', justifyContent:'center', gap:6,
-                  padding:'12px 24px', borderRadius:10, textDecoration:'none',
-                  background:`linear-gradient(135deg, ${C.primary} 0%, ${C.accent} 100%)`,
-                  color:'white', fontFamily:FONT_DISPLAY, fontWeight:700, fontSize:14, marginTop:8,
-                  boxShadow:'0 4px 16px rgba(14,165,233,0.25)',
-                }}>Sign up for $1 →</a>
-              </div>
             </div>
 
             {/* Competitor comparison */}
@@ -727,7 +682,6 @@ export default function SellWelcomePage() {
                     <span style={{ fontFamily:FONT_DISPLAY, fontWeight:800, fontSize:32, color:C.text1, letterSpacing:'-0.03em' }}>$10</span>
                     <span style={{ fontSize:14, color:C.text3 }}>/month</span>
                   </div>
-                  <div style={{ fontSize:12, color:C.green, fontWeight:700, marginTop:4 }}>$1 for first 3 months</div>
                 </div>
                 <div style={{ height:1, background:C.border }} />
                 {[
@@ -750,6 +704,13 @@ export default function SellWelcomePage() {
                     {f.note && <span style={{ fontSize:11, color:C.green, fontWeight:600, marginLeft:'auto' }}>{f.note}</span>}
                   </div>
                 ))}
+                <a href="/signup" style={{
+                  display:'flex', alignItems:'center', justifyContent:'center', gap:6,
+                  padding:'12px 24px', borderRadius:10, textDecoration:'none',
+                  background:`linear-gradient(135deg, ${C.primary} 0%, ${C.accent} 100%)`,
+                  color:'white', fontFamily:FONT_DISPLAY, fontWeight:700, fontSize:14, marginTop:8,
+                  boxShadow:'0 4px 16px rgba(14,165,233,0.25)',
+                }}>Get Started →</a>
               </div>
 
               {/* Stan Store */}

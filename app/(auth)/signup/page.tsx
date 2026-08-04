@@ -315,13 +315,13 @@ export default function SellSignupPage() {
           plan: 'sell-starter',
           userId: currentUser.id,
           email: currentUser.email,
-          amount: convertFromUsd(1, 'NG'),
+          amount: convertFromUsd(10, 'NG'),
           currency: 'NGN',
-          billing: 'trial',
+          billing: 'monthly',
           callback_url: `${window.location.origin}/subscribe/success`,
           metadata: {
             plan: 'sell-starter',
-            billing: 'trial',
+            billing: 'monthly',
             userId: currentUser.id,
             product: 'mo-sell',
           },
@@ -827,37 +827,37 @@ export default function SellSignupPage() {
                     Start Selling with MO
                   </h1>
                   <p style={{ color: C.text2, maxWidth: 400, margin: '0 auto', fontSize: 14 }}>
-                    Get full access for just $1 for 3 months. Then $10/month.
+                    Start selling for $10/month. No hidden fees.
                   </p>
                 </div>
 
                 <div className="rounded-2xl p-6 mb-6" style={{
                   background: C.surface,
-                  border: `2px solid ${C.green}`,
-                  boxShadow: '0 8px 32px rgba(22,163,74,0.12)',
+                  border: `2px solid ${C.primary}`,
+                  boxShadow: '0 8px 32px rgba(14,165,233,0.12)',
                 }}>
                   <div className="flex items-center justify-between mb-4">
                     <div>
-                      <span className="inline-block px-3 py-1 rounded-full text-xs font-bold text-white" style={{ background: C.green }}>
-                        LIMITED OFFER
+                      <span className="inline-block px-3 py-1 rounded-full text-xs font-bold text-white" style={{ background: C.primary }}>
+                        SIMPLE PRICING
                       </span>
                       <h2 className="text-xl font-bold mt-2" style={{ color: C.text1, fontFamily: FONT_DISPLAY }}>
-                        $1 for 3 Months
+                        $10/month
                       </h2>
                     </div>
                     <div className="text-right">
-                      <div className="text-3xl font-bold" style={{ color: C.green, fontFamily: FONT_DISPLAY }}>
-                        $1
+                      <div className="text-3xl font-bold" style={{ color: C.primary, fontFamily: FONT_DISPLAY }}>
+                        $10
                       </div>
-                      <div className="text-xs" style={{ color: C.text3 }}>total for 3 months</div>
+                      <div className="text-xs" style={{ color: C.text3 }}>per month</div>
                     </div>
                   </div>
 
-                  <div className="rounded-xl p-4 mb-4" style={{ background: C.greenBg }}>
+                  <div className="rounded-xl p-4 mb-4" style={{ background: `${C.primary}15` }}>
                     <div className="grid grid-cols-2 gap-3">
                       {['AI-powered store builder', 'Unlimited products', 'Paystack payments', '10 premium themes', 'Custom domain', 'Real-time analytics'].map((feature, idx) => (
                         <div key={idx} className="flex items-center gap-2 text-sm" style={{ color: C.text2 }}>
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.green} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.primary} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                             <polyline points="20 6 9 17 4 12" />
                           </svg>
                           {feature}
@@ -867,7 +867,7 @@ export default function SellSignupPage() {
                   </div>
 
                   <div className="text-center text-xs" style={{ color: C.text3 }}>
-                    Then $10/month · Cancel anytime · No lock-in
+                    Cancel anytime · No lock-in · All features included
                   </div>
                 </div>
 
