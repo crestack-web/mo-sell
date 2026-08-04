@@ -354,7 +354,7 @@ export function UGCMarketplacePage() {
             />
             <div style={{ display: 'flex', gap: 12 }}>
               <a
-                href="/brand/register"
+                href="/brand-auth/register"
                 style={{
                   padding: '8px 16px',
                   borderRadius: 8,
@@ -372,7 +372,7 @@ export function UGCMarketplacePage() {
                 🏢 For Brands
               </a>
               <a
-                href="/brand/login"
+                href="/brand-auth/login"
                 style={{
                   padding: '8px 16px',
                   borderRadius: 8,
@@ -387,7 +387,7 @@ export function UGCMarketplacePage() {
                 Brand Login
               </a>
               <a
-                href="/brand/register"
+                href="/brand-auth/register"
                 style={{
                   padding: '8px 16px',
                   borderRadius: 8,
