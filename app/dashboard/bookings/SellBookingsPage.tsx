@@ -177,6 +177,11 @@ function BookingSlideOver({ booking, onClose, onStatusChange }: BookingSlideOver
 export function SellBookingsPage() {
   const { user, showToast } = useSell();
 
+  // Only render booking functionality on client side
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
   // Tab state
   const [activeTab, setActiveTab] = useState<'bookings' | 'availability'>('bookings');
 

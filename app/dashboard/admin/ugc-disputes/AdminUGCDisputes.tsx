@@ -1,9 +1,6 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { initializeFirebase } from '@/lib/firebase';
-import { collection, query, where, orderBy, onSnapshot, doc, updateDoc, Timestamp } from 'firebase/firestore';
-import { getAuth, onAuthStateChanged } from 'firebase/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,10 +18,10 @@ interface UGCOrder {
   disputeReason: string | null;
   disputeDescription: string | null;
   disputeOpenedBy: string | null;
-  disputeOpenedAt: Timestamp | null;
-  disputeResolvedAt: Timestamp | null;
+  disputeOpenedAt: any;
+  disputeResolvedAt: any;
   disputeResolution: string | null;
-  createdAt: Timestamp;
+  createdAt: any;
 }
 
 const REASON_LABELS: Record<string, string> = {
@@ -37,6 +34,11 @@ const REASON_LABELS: Record<string, string> = {
 };
 
 export function AdminUGCDisputes() {
+  // Prevent build-time rendering
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
   const [orders, setOrders] = useState<UGCOrder[]>([]);
   const [resolving, setResolving] = useState<string | null>(null);
   const [selectedResolution, setSelectedResolution] = useState<Record<string, string>>({});
@@ -45,20 +47,29 @@ export function AdminUGCDisputes() {
   const [showPayout, setShowPayout] = useState<string | null>(null);
 
   useEffect(() => {
-    const { auth, firestore } = initializeFirebase();
-    const unsubAuth = onAuthStateChanged(auth, (user) => {
-      if (!user) return;
-      const q = query(
-        collection(firestore, 'ugcOrders'),
-        where('status', '==', 'DISPUTED'),
-        orderBy('createdAt', 'desc')
-      );
-      const unsubSnap = onSnapshot(q, (snap) => {
-        setOrders(snap.docs.map(d => ({ id: d.id, ...d.data() }) as UGCOrder));
+    // Dynamic import Firebase only on client side
+    const loadFirebase = async () => {
+      const { initializeFirebase } = await import('@/lib/firebase');
+      const { collection, query, where, orderBy, onSnapshot } = await import('firebase/firestore');
+      const { getAuth, onAuthStateChanged } = await import('firebase/auth');
+      
+      const { auth, firestore } = initializeFirebase();
+      const unsubAuth = onAuthStateChanged(auth, (user) => {
+        if (!user) return;
+        const q = query(
+          collection(firestore, 'ugcOrders'),
+          where('status', '==', 'DISPUTED'),
+          orderBy('createdAt', 'desc')
+        );
+        const unsubSnap = onSnapshot(q, (snap) => {
+          setOrders(snap.docs.map(d => ({ id: d.id, ...d.data() }) as UGCOrder));
+        });
+        return () => unsubSnap();
       });
-      return () => unsubSnap();
-    });
-    return () => unsubAuth();
+      return () => unsubAuth();
+    };
+
+    loadFirebase();
   }, []);
 
   async function handleResolve(orderId: string) {

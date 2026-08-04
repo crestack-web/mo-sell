@@ -1,8 +1,10 @@
 'use client';
 
-import dynamic from 'next/dynamic';
+import nextDynamic from 'next/dynamic';
 
-const ContentHub = dynamic(() => import('./ContentHub').then(m => ({ default: m.ContentHub })), {
+export const dynamic = 'force-dynamic';
+
+const ContentHub = nextDynamic(() => import('./ContentHub').then(m => ({ default: m.ContentHub })), {
   ssr: false,
   loading: () => (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: 200 }}>

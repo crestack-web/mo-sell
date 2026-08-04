@@ -1,8 +1,10 @@
 'use client';
 
-import dynamic from 'next/dynamic';
+import nextDynamic from 'next/dynamic';
 
-const SellOverview = dynamic(() => import('./SellOverview').then(m => ({ default: m.SellOverview })), {
+export const dynamic = 'force-dynamic';
+
+const SellOverview = nextDynamic(() => import('./SellOverview').then(m => ({ default: m.SellOverview })), {
   ssr: false,
   loading: () => (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: 200 }}>

@@ -1,8 +1,10 @@
 'use client';
 
-import dynamic from 'next/dynamic';
+import nextDynamic from 'next/dynamic';
 
-const AdminUGCDisputes = dynamic(() => import('./AdminUGCDisputes').then(m => ({ default: m.AdminUGCDisputes })), {
+export const dynamic = 'force-dynamic';
+
+const AdminUGCDisputes = nextDynamic(() => import('./AdminUGCDisputes').then(m => ({ default: m.AdminUGCDisputes })), {
   ssr: false,
   loading: () => (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: 200 }}>

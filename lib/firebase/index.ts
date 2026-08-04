@@ -18,7 +18,18 @@ export function initializeFirebase(): { firebaseApp: FirebaseApp; auth: Auth; fi
 
     if (!isBrowser) {
       // During build/SSR-like evaluation, Firebase App Hosting auto-config isn't available.
-      firebaseApp = initializeApp(firebaseConfig);
+      // Check if firebaseConfig has valid values before initializing
+      if (firebaseConfig.apiKey && firebaseConfig.projectId) {
+        firebaseApp = initializeApp(firebaseConfig);
+      } else {
+        // Return mock SDKs during build time
+        return {
+          firebaseApp: {} as FirebaseApp,
+          auth: {} as Auth,
+          firestore: {} as Firestore,
+          storage: {} as FirebaseStorage,
+        };
+      }
     } else {
       try {
         // Attempt to initialize via Firebase App Hosting environment variables

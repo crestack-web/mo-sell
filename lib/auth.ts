@@ -8,6 +8,11 @@
 import { supabaseServer } from './supabase-server';
 import type { User } from '@supabase/supabase-js';
 
+// Helper function to check if Supabase is available
+function isSupabaseAvailable(): boolean {
+  return supabaseServer !== null;
+}
+
 /**
  * Get the current authenticated user from the session
  * Works with Supabase Auth tokens
@@ -17,6 +22,10 @@ import type { User } from '@supabase/supabase-js';
 export async function getCurrentUser(): Promise<User | null> {
   try {
     // Get session from Supabase
+    if (!supabaseServer) {
+      return null;
+    }
+    
     const { data: { session } } = await supabaseServer.auth.getSession();
     
     if (!session?.user) {
@@ -38,6 +47,10 @@ export async function getCurrentUser(): Promise<User | null> {
  */
 export async function verifyEmail(token: string): Promise<{ success: boolean; error?: string }> {
   try {
+    if (!supabaseServer) {
+      return { success: false, error: 'Service unavailable' };
+    }
+    
     const { data, error } = await supabaseServer.auth.verifyOtp({
       token_hash: token,
       type: 'email',
@@ -62,6 +75,10 @@ export async function verifyEmail(token: string): Promise<{ success: boolean; er
  */
 export async function sendPasswordResetEmail(email: string): Promise<{ success: boolean; error?: string }> {
   try {
+    if (!supabaseServer) {
+      return { success: false, error: 'Service unavailable' };
+    }
+    
     const { error } = await supabaseServer.auth.resetPasswordForEmail(email, {
       redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'https://mo-sell.store'}/auth/reset-password`,
     });
@@ -85,7 +102,11 @@ export async function sendPasswordResetEmail(email: string): Promise<{ success: 
  */
 export async function updatePassword(newPassword: string): Promise<{ success: boolean; error?: string }> {
   try {
-    const { error } = await supabaseServer.auth.updateUser({
+    if (!isSupabaseAvailable()) {
+      return { success: false, error: 'Service unavailable' };
+    }
+    
+    const { error } = await supabaseServer!.auth.updateUser({
       password: newPassword,
     });
 
@@ -112,7 +133,11 @@ export async function updateUserProfile(updates: {
   data?: { full_name?: string; avatar_url?: string };
 }): Promise<{ success: boolean; error?: string }> {
   try {
-    const { error } = await supabaseServer.auth.updateUser(updates);
+    if (!isSupabaseAvailable()) {
+      return { success: false, error: 'Service unavailable' };
+    }
+    
+    const { error } = await supabaseServer!.auth.updateUser(updates);
 
     if (error) {
       return { success: false, error: error.message };
@@ -132,7 +157,11 @@ export async function updateUserProfile(updates: {
  */
 export async function signOut(): Promise<{ success: boolean; error?: string }> {
   try {
-    const { error } = await supabaseServer.auth.signOut();
+    if (!isSupabaseAvailable()) {
+      return { success: false, error: 'Service unavailable' };
+    }
+    
+    const { error } = await supabaseServer!.auth.signOut();
 
     if (error) {
       return { success: false, error: error.message };
@@ -159,7 +188,11 @@ export async function getUserProfile(userId: string): Promise<{
   business_id?: string;
 } | null> {
   try {
-    const { data, error } = await supabaseServer
+    if (!isSupabaseAvailable()) {
+      return null;
+    }
+    
+    const { data, error } = await supabaseServer!
       .from('users')
       .select('*')
       .eq('id', userId)
@@ -190,7 +223,11 @@ export async function createUser(
   fullName?: string
 ): Promise<{ user: User | null; error?: string }> {
   try {
-    const { data, error } = await supabaseServer.auth.signUp({
+    if (!isSupabaseAvailable()) {
+      return { user: null, error: 'Service unavailable' };
+    }
+    
+    const { data, error } = await supabaseServer!.auth.signUp({
       email,
       password,
       options: {
@@ -223,7 +260,11 @@ export async function signInWithPassword(
   password: string
 ): Promise<{ session: any; user: User | null; error?: string }> {
   try {
-    const { data, error } = await supabaseServer.auth.signInWithPassword({
+    if (!isSupabaseAvailable()) {
+      return { session: null, user: null, error: 'Service unavailable' };
+    }
+    
+    const { data, error } = await supabaseServer!.auth.signInWithPassword({
       email,
       password,
     });
@@ -247,7 +288,11 @@ export async function signInWithPassword(
  */
 export async function signInWithOAuth(provider: 'google' | 'github' | 'facebook'): Promise<{ url: string | null; error?: string }> {
   try {
-    const { data, error } = await supabaseServer.auth.signInWithOAuth({
+    if (!isSupabaseAvailable()) {
+      return { url: null, error: 'Service unavailable' };
+    }
+    
+    const { data, error } = await supabaseServer!.auth.signInWithOAuth({
       provider,
       options: {
         redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'https://mo-sell.store'}/auth/callback`,
@@ -272,7 +317,11 @@ export async function signInWithOAuth(provider: 'google' | 'github' | 'facebook'
  */
 export async function refreshSession(): Promise<any> {
   try {
-    const { data, error } = await supabaseServer.auth.refreshSession();
+    if (!isSupabaseAvailable()) {
+      return null;
+    }
+    
+    const { data, error } = await supabaseServer!.auth.refreshSession();
 
     if (error) {
       return null;

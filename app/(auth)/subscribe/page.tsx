@@ -88,58 +88,33 @@ export default function SellSubscribePage() {
         return;
       }
 
-      if (isBusmoUser) {
-        // Busmo users get 3 months free
-        const trialEnd = new Date();
-        trialEnd.setMonth(trialEnd.getMonth() + 3);
-
-        const db = getDatabase();
-        await db.doc(`users/${currentUser.id}`).set({
-          moSellSubscription: {
-            status: 'active',
-            plan: 'sell-starter',
-            type: 'busmo-free-trial',
-            activatedAt: new Date().toISOString(),
-            endDate: trialEnd.toISOString(),
-          },
-        }, { merge: true });
-
-        posthog.capture('sell_subscription_started', {
+      // All users pay $10 via Paystack
+      const response = await fetch('https://us-central1-bizassistant2-62305643-adad7.cloudfunctions.net/initializePayment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           plan: 'sell-starter',
-          billing_cycle: 'busmo-free-trial',
-          amount: 0,
-        });
-
-        router.replace('/dashboard');
-      } else {
-        // Non-Busmo users pay $1 via Paystack
-        const response = await fetch('https://us-central1-bizassistant2-62305643-adad7.cloudfunctions.net/initializePayment', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
+          userId: currentUser.id,
+          email: currentUser.email,
+          amount: convertFromUsd(10, 'NG'), // $10 → NGN at live rate
+          currency: 'NGN',
+          billing: 'monthly',
+          callback_url: `${window.location.origin}/subscribe/success`,
+          metadata: {
             plan: 'sell-starter',
+            billing: 'monthly',
             userId: currentUser.id,
-            email: currentUser.email,
-            amount: convertFromUsd(1, 'NG'), // $1 → NGN at live rate
-            currency: 'NGN',
-            billing: 'trial',
-            callback_url: `${window.location.origin}/subscribe/success`,
-            metadata: {
-              plan: 'sell-starter',
-              billing: 'trial',
-              userId: currentUser.id,
-              product: 'mo-sell',
-            },
-          }),
-        });
+            product: 'mo-sell',
+          },
+        }),
+      });
 
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || 'Failed to initialize payment');
-        if (data.data?.authorization_url) {
-          window.location.href = data.data.authorization_url;
-        } else {
-          throw new Error('No checkout URL returned');
-        }
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to initialize payment');
+      if (data.data?.authorization_url) {
+        window.location.href = data.data.authorization_url;
+      } else {
+        throw new Error('No checkout URL returned');
       }
     } catch (err: any) {
       console.error('MO Sell subscription error:', err);
@@ -175,9 +150,7 @@ export default function SellSubscribePage() {
             Start Selling with MO
           </h1>
           <p style={{ color: C.text2, maxWidth: 400, margin: '0 auto' }}>
-            {isBusmoUser
-              ? 'As a Busmo user, you get 3 months free — no payment needed.'
-              : 'Get full access for just $1 for 3 months. Then $10/month.'}
+            Get full access for just $10/month. Cancel anytime.
           </p>
         </div>
 
@@ -190,18 +163,18 @@ export default function SellSubscribePage() {
           <div className="flex items-center justify-between mb-4">
             <div>
               <span className="inline-block px-3 py-1 rounded-full text-xs font-bold text-white" style={{ background: C.green }}>
-                {isBusmoUser ? '🎉 BUSMO PERK' : '🎯 LIMITED OFFER'}
+                 LIMITED OFFER
               </span>
               <h2 className="text-xl font-bold mt-2" style={{ color: C.text1, fontFamily: FONT_DISPLAY }}>
-                {isBusmoUser ? 'Free for 3 Months' : '$1 for 3 Months'}
+                $10/month
               </h2>
             </div>
             <div className="text-right">
               <div className="text-3xl font-bold" style={{ color: C.green, fontFamily: FONT_DISPLAY }}>
-                {isBusmoUser ? '$0' : '$1'}
+                $10
               </div>
               <div className="text-xs" style={{ color: C.text3 }}>
-                {isBusmoUser ? 'total for 3 months' : 'total for 3 months'}
+                per month
               </div>
             </div>
           </div>
@@ -248,18 +221,18 @@ export default function SellSubscribePage() {
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ animation: 'spin 0.7s linear infinite' }}>
                 <path d="M21 12a9 9 0 11-6.219-8.56" />
               </svg>
-              {isBusmoUser ? 'Activating your free access...' : 'Redirecting to Paystack...'}
+              Redirecting to Paystack...
             </span>
           ) : (
-            isBusmoUser ? 'Start Free →' : 'Start for $1 →'
+            'Start for $10 →'
           )}
         </button>
 
         {/* Trust */}
         <div className="mt-8 grid grid-cols-3 gap-4">
           <div className="text-center">
-            <div className="text-2xl mb-2">{isBusmoUser ? '🎁' : '🔒'}</div>
-            <div className="text-xs" style={{ color: C.text3 }}>{isBusmoUser ? 'Free for 3 Months' : 'Secure Payment'}</div>
+            <div className="text-2xl mb-2">🔒</div>
+            <div className="text-xs" style={{ color: C.text3 }}>Secure Payment</div>
           </div>
           <div className="text-center">
             <div className="text-2xl mb-2">✓</div>

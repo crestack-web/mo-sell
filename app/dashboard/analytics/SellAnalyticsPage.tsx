@@ -8,8 +8,6 @@ import styles from './SellAnalyticsPage.module.css';
 
 export const dynamic = 'force-dynamic';
 
-export const dynamic = 'force-dynamic';
-
 // â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface OrderData {
@@ -39,6 +37,11 @@ function fmt(n: number, currency = 'NGN') {
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
 export function SellAnalyticsPage() {
+  // Prevent build-time initialization
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
   const { user, storeConfig, navigateTo } = useSell();
   const currency = storeConfig?.currency ?? 'NGN';
 

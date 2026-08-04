@@ -7,16 +7,35 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+let supabaseClientInstance: ReturnType<typeof createClient> | null = null;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables');
-}
+export const supabaseClient = (() => {
+  if (supabaseClientInstance) {
+    return supabaseClientInstance;
+  }
 
-export const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-  },
-});
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    // During build time, return a mock client to prevent build failures
+    if (typeof window === 'undefined') {
+      return createClient('https://mock.supabase.co', 'mock-key', {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+        },
+      }) as any;
+    }
+    throw new Error('Missing Supabase environment variables');
+  }
+
+  supabaseClientInstance = createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+    },
+  });
+
+  return supabaseClientInstance;
+})();

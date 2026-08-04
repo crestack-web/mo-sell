@@ -1,8 +1,10 @@
 'use client';
 
-import dynamic from 'next/dynamic';
+import nextDynamic from 'next/dynamic';
 
-const ThemeEditorPage = dynamic(() => import('./ThemeEditorPage').then(m => ({ default: m.ThemeEditorPage })), {
+export const dynamic = 'force-dynamic';
+
+const ThemeEditorPage = nextDynamic(() => import('./ThemeEditorPage').then(m => ({ default: m.ThemeEditorPage })), {
   ssr: false,
   loading: () => (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: 200 }}>

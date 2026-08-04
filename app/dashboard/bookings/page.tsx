@@ -1,8 +1,10 @@
 'use client';
 
-import dynamic from 'next/dynamic';
+import nextDynamic from 'next/dynamic';
 
-const SellBookingsPage = dynamic(() => import('./SellBookingsPage').then(m => ({ default: m.SellBookingsPage })), {
+export const dynamic = 'force-dynamic';
+
+const SellBookingsPage = nextDynamic(() => import('./SellBookingsPage').then(m => ({ default: m.SellBookingsPage })), {
   ssr: false,
   loading: () => (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: 200 }}>

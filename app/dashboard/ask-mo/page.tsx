@@ -1,8 +1,10 @@
 'use client';
 
-import dynamic from 'next/dynamic';
+import nextDynamic from 'next/dynamic';
 
-const SellAskMoPage = dynamic(() => import('./SellAskMoPage').then(m => ({ default: m.SellAskMoPage })), {
+export const dynamic = 'force-dynamic';
+
+const SellAskMoPage = nextDynamic(() => import('./SellAskMoPage').then(m => ({ default: m.SellAskMoPage })), {
   ssr: false,
   loading: () => (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: 200 }}>

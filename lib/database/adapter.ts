@@ -80,21 +80,21 @@ export interface BatchAdapter {
 
 // Factory function
 export function getDatabase(): DatabaseAdapter {
-  // Check if we're in a browser environment
-  if (typeof window !== 'undefined') {
-    const provider = process.env.DATABASE_PROVIDER || 'supabase';
-    
-    if (provider === 'supabase') {
-      // Dynamic import to avoid loading Supabase when using Firestore
-      const { SupabaseAdapter } = require('./postgresql-adapter');
-      return new SupabaseAdapter();
-    }
-    
-    // Default to Supabase (Firestore deprecated for client-side usage)
+  // During build time, return a mock adapter to prevent build failures
+  if (typeof window === 'undefined') {
     const { SupabaseAdapter } = require('./postgresql-adapter');
     return new SupabaseAdapter();
   }
   
-  // Server-side: throw error to prevent build-time initialization
-  throw new Error('getDatabase() should only be called on the client side. Use getSupabaseServer() for server-side operations.');
+  const provider = process.env.DATABASE_PROVIDER || 'supabase';
+  
+  if (provider === 'supabase') {
+    // Dynamic import to avoid loading Supabase when using Firestore
+    const { SupabaseAdapter } = require('./postgresql-adapter');
+    return new SupabaseAdapter();
+  }
+  
+  // Default to Supabase (Firestore deprecated for client-side usage)
+  const { SupabaseAdapter } = require('./postgresql-adapter');
+  return new SupabaseAdapter();
 }

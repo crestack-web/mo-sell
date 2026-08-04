@@ -55,7 +55,7 @@ function SellSubscribeSuccessContent() {
               status: 'active',
               plan: 'sell-starter',
               startDate: new Date().toISOString(),
-              endDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(), // 3 months
+              endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 1 month
               reference,
             },
             updatedAt: new Date().toISOString(),
