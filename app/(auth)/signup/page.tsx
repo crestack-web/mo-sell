@@ -434,7 +434,7 @@ export default function SellSignupPage() {
                   type="text" placeholder="Enter 6-digit code" required value={otp}
                   onChange={e => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
                   maxLength={6}
-                  style={{ padding: '12px 14px', borderRadius: 10, border: `1.5px solid ${C.border}`, fontSize: 14, fontFamily: FONT_BODY, outline: 'none', background: '#F8FBFF', textAlign: 'center', letterSpacing: 8, fontSize: 24 }}
+                  style={{ padding: '12px 14px', borderRadius: 10, border: `1.5px solid ${C.border}`, fontFamily: FONT_BODY, outline: 'none', background: '#F8FBFF', textAlign: 'center', letterSpacing: 8, fontSize: 24 }}
                 />
                 <button type="submit" disabled={loading || otp.length !== 6} style={{
                   padding: '13px', borderRadius: 10, border: 'none',
