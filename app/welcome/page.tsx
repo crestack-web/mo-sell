@@ -54,14 +54,41 @@ function TopNav() {
         }}>
           🎬 Discover Creators
         </a>
-        <a href="/login" style={{
+        <a href="/brand/discover" style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          padding: '9px 18px', borderRadius: 10,
+          border: `1.5px solid ${C.border}`,
+          color: C.text2, fontFamily: FONT_BODY, fontWeight: 600, fontSize: 14,
+          textDecoration: 'none',
+        }}>
+          🏢 For Brands
+        </a>
+        <a href="/brand/login" style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          padding: '9px 20px', borderRadius: 10,
+          border: `1.5px solid ${C.border}`,
+          color: C.text2, fontFamily: FONT_BODY, fontWeight: 600, fontSize: 14,
+          textDecoration: 'none',
+        }}>
+          Brand Login
+        </a>
+        <a href="/brand/register" style={{
           display: 'inline-flex', alignItems: 'center', gap: 6,
           padding: '9px 20px', borderRadius: 10,
           background: `linear-gradient(135deg, ${C.primary} 0%, ${C.accent} 100%)`,
           color: 'white', fontFamily: FONT_BODY, fontWeight: 700, fontSize: 14,
           textDecoration: 'none', boxShadow: '0 4px 12px rgba(14,165,233,0.28)',
         }}>
-          Log in →
+          Brand Register →
+        </a>
+        <a href="/login" style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          padding: '9px 20px', borderRadius: 10,
+          border: `1.5px solid ${C.border}`,
+          color: C.text2, fontFamily: FONT_BODY, fontWeight: 600, fontSize: 14,
+          textDecoration: 'none',
+        }}>
+          Creator Login
         </a>
       </div>
     </nav>

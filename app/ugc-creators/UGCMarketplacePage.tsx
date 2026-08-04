@@ -346,11 +346,63 @@ export function UGCMarketplacePage() {
       <div style={innerStyle}>
         {/* Header */}
         <div style={headerStyle}>
-          <img
-            src="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1785078071/mosell_gpzl2q.png"
-            alt="MO Sell"
-            style={{ height: 40, width: 'auto', objectFit: 'contain', marginBottom: 16, display: 'block' }}
-          />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+            <img
+              src="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1785078071/mosell_gpzl2q.png"
+              alt="MO Sell"
+              style={{ height: 40, width: 'auto', objectFit: 'contain' }}
+            />
+            <div style={{ display: 'flex', gap: 12 }}>
+              <a
+                href="/brand/discover"
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: 8,
+                  border: '1px solid #E0F2FE',
+                  background: '#F0F9FF',
+                  color: '#0C4A6E',
+                  fontSize: 14,
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                }}
+              >
+                🏢 For Brands
+              </a>
+              <a
+                href="/brand/login"
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: 8,
+                  border: '1px solid #E0F2FE',
+                  background: '#F0F9FF',
+                  color: '#0C4A6E',
+                  fontSize: 14,
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                }}
+              >
+                Brand Login
+              </a>
+              <a
+                href="/brand/register"
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: 8,
+                  background: 'linear-gradient(135deg, #0EA5E9 0%, #6366F1 100%)',
+                  color: 'white',
+                  fontSize: 14,
+                  fontWeight: 700,
+                  textDecoration: 'none',
+                  boxShadow: '0 4px 12px rgba(14,165,233,0.28)',
+                }}
+              >
+                Brand Register →
+              </a>
+            </div>
+          </div>
           <h1 style={titleStyle}>Hire UGC Creators</h1>
           <p style={subtitleStyle}>Find the perfect creator for your brand</p>
         </div>

@@ -304,11 +304,19 @@ export default function SellLoginPage() {
                 onMouseLeave={e => ((e.currentTarget as HTMLAnchorElement).style.color = C.text2)}>
                 ← About MO Sell
               </a>
-              <a href="/sell-signup" style={{ color: C.primary, textDecoration: 'none', fontWeight: 600 }}
-                onMouseEnter={e => ((e.currentTarget as HTMLAnchorElement).style.textDecoration = 'underline')}
-                onMouseLeave={e => ((e.currentTarget as HTMLAnchorElement).style.textDecoration = 'none')}>
-                Create account →
-              </a>
+              <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                <a href="/sell-signup" style={{ color: C.primary, textDecoration: 'none', fontWeight: 600 }}
+                  onMouseEnter={e => ((e.currentTarget as HTMLAnchorElement).style.textDecoration = 'underline')}
+                  onMouseLeave={e => ((e.currentTarget as HTMLAnchorElement).style.textDecoration = 'none')}>
+                  Creator signup →
+                </a>
+                <span style={{ color: C.text3 }}>|</span>
+                <a href="/brand/register" style={{ color: C.accent, textDecoration: 'none', fontWeight: 600 }}
+                  onMouseEnter={e => ((e.currentTarget as HTMLAnchorElement).style.textDecoration = 'underline')}
+                  onMouseLeave={e => ((e.currentTarget as HTMLAnchorElement).style.textDecoration = 'none')}>
+                  Brand signup →
+                </a>
+              </div>
             </div>
           </div>
 
