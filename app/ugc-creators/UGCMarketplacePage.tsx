@@ -354,7 +354,7 @@ export function UGCMarketplacePage() {
             />
             <div style={{ display: 'flex', gap: 12 }}>
               <a
-                href="/brand/discover"
+                href="/brand/register"
                 style={{
                   padding: '8px 16px',
                   borderRadius: 8,
