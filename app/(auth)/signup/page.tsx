@@ -134,11 +134,14 @@ export default function SellSignupPage() {
 
   // Step tracking
   const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [verificationStep, setVerificationStep] = useState<'signup' | 'verify' | 'complete'>('signup');
 
   // Step 1: Account
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [otp, setOtp] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
 
   // Step 2: Business
   const [businessName, setBusinessName] = useState('');
@@ -158,50 +161,60 @@ export default function SellSignupPage() {
   const [userId, setUserId] = useState('');
   const [businessId, setBusinessId] = useState('');
 
-  // ── Step 1→2: Create account ──────────────────────────────────────────────
-  const handleCreateAccount = async (e: React.FormEvent) => {
+  // ── Step 1→2: Send OTP and verify email ──────────────────────────────────
+  const handleSendOTP = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
     try {
-      const { data, error } = await supabaseClient.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: fullName,
-          },
-        },
-      });
-      if (error) throw error;
-
-      const uid_val = data.user?.id || '';
-      const businessIdVal = `biz_${uid_val.slice(0, 12)}`;
-
-      const db = getDatabase();
-      await db.doc(`users/${uid_val}`).set({
-        displayName: fullName,
-        email: email,
-        businessId: businessIdVal,
-        plan: 'starter',
-        moSellAccess: true,
-        createdAt: new Date().toISOString(),
+      const response = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'send-otp',
+          email,
+          password,
+          fullName,
+        }),
       });
 
-      await db.doc(`businesses/${businessIdVal}`).set({
-        ownerUserId: uid_val,
-        businessName: businessName || `${fullName}'s Business`,
-        businessType: businessType,
-        createdAt: new Date().toISOString(),
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to send verification code');
+
+      setOtpSent(true);
+      setVerificationStep('verify');
+    } catch (err: any) {
+      setError(err.message || 'Failed to send verification code');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyOTP = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    try {
+      const response = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'verify-otp',
+          email,
+          otp,
+        }),
       });
 
-      setUserId(uid_val);
-      setBusinessId(businessIdVal);
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to verify email');
+
+      setUserId(data.userId);
+      setBusinessId(data.businessId);
 
       posthog.capture('sell_signup_completed', { step: 1, businessType });
       setStep(2);
     } catch (err: any) {
-      setError(err.message || 'Failed to create account');
+      setError(err.message || 'Failed to verify email');
     } finally {
       setLoading(false);
     }
@@ -376,40 +389,68 @@ export default function SellSignupPage() {
           }}>
             <div style={{ textAlign: 'center', marginBottom: 24 }}>
               <img src="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1785078071/mosell_gpzl2q.png" alt="MO Sell" style={{ width: 48, height: 48, objectFit: 'contain', marginBottom: 12 }} />
-              <h1 style={{ fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 22, color: C.text1, marginBottom: 4 }}>Create your account</h1>
-              <p style={{ fontSize: 14, color: C.text2 }}>Step 1 of 3 — Account info</p>
+              <h1 style={{ fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 22, color: C.text1, marginBottom: 4 }}>
+                {!otpSent ? 'Create your account' : 'Verify your email'}
+              </h1>
+              <p style={{ fontSize: 14, color: C.text2 }}>
+                {!otpSent ? 'Step 1 of 3 — Account info' : `Enter the 6-digit code sent to ${email}`}
+              </p>
             </div>
 
             {error && (
               <div style={{ padding: '10px 14px', borderRadius: 10, background: C.redBg, color: C.red, fontSize: 13, marginBottom: 16 }}>{error}</div>
             )}
 
-            <form onSubmit={handleCreateAccount} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <input
-                type="text" placeholder="Full name" required value={fullName}
-                onChange={e => setFullName(e.target.value)}
-                style={{ padding: '12px 14px', borderRadius: 10, border: `1.5px solid ${C.border}`, fontSize: 14, fontFamily: FONT_BODY, outline: 'none', background: '#F8FBFF' }}
-              />
-              <input
-                type="email" placeholder="Email address" required value={email}
-                onChange={e => setEmail(e.target.value)}
-                style={{ padding: '12px 14px', borderRadius: 10, border: `1.5px solid ${C.border}`, fontSize: 14, fontFamily: FONT_BODY, outline: 'none', background: '#F8FBFF' }}
-              />
-              <input
-                type="password" placeholder="Password (min 6 characters)" required minLength={6} value={password}
-                onChange={e => setPassword(e.target.value)}
-                style={{ padding: '12px 14px', borderRadius: 10, border: `1.5px solid ${C.border}`, fontSize: 14, fontFamily: FONT_BODY, outline: 'none', background: '#F8FBFF' }}
-              />
-              <button type="submit" disabled={loading} style={{
-                padding: '13px', borderRadius: 10, border: 'none',
-                cursor: loading ? 'not-allowed' : 'pointer',
-                background: loading ? C.text3 : `linear-gradient(135deg, ${C.primary}, ${C.accent})`,
-                color: 'white', fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 15,
-                boxShadow: loading ? 'none' : '0 4px 16px rgba(14,165,233,0.25)',
-              }}>
-                {loading ? 'Creating account...' : 'Continue →'}
-              </button>
-            </form>
+            {!otpSent ? (
+              <form onSubmit={handleSendOTP} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <input
+                  type="text" placeholder="Full name" required value={fullName}
+                  onChange={e => setFullName(e.target.value)}
+                  style={{ padding: '12px 14px', borderRadius: 10, border: `1.5px solid ${C.border}`, fontSize: 14, fontFamily: FONT_BODY, outline: 'none', background: '#F8FBFF' }}
+                />
+                <input
+                  type="email" placeholder="Email address" required value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  style={{ padding: '12px 14px', borderRadius: 10, border: `1.5px solid ${C.border}`, fontSize: 14, fontFamily: FONT_BODY, outline: 'none', background: '#F8FBFF' }}
+                />
+                <input
+                  type="password" placeholder="Password (min 6 characters)" required minLength={6} value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  style={{ padding: '12px 14px', borderRadius: 10, border: `1.5px solid ${C.border}`, fontSize: 14, fontFamily: FONT_BODY, outline: 'none', background: '#F8FBFF' }}
+                />
+                <button type="submit" disabled={loading} style={{
+                  padding: '13px', borderRadius: 10, border: 'none',
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  background: loading ? C.text3 : `linear-gradient(135deg, ${C.primary}, ${C.accent})`,
+                  color: 'white', fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 15,
+                  boxShadow: loading ? 'none' : '0 4px 16px rgba(14,165,233,0.25)',
+                }}>
+                  {loading ? 'Sending code...' : 'Continue →'}
+                </button>
+              </form>
+            ) : (
+              <form onSubmit={handleVerifyOTP} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <input
+                  type="text" placeholder="Enter 6-digit code" required value={otp}
+                  onChange={e => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  maxLength={6}
+                  style={{ padding: '12px 14px', borderRadius: 10, border: `1.5px solid ${C.border}`, fontSize: 14, fontFamily: FONT_BODY, outline: 'none', background: '#F8FBFF', textAlign: 'center', letterSpacing: 8, fontSize: 24 }}
+                />
+                <button type="submit" disabled={loading || otp.length !== 6} style={{
+                  padding: '13px', borderRadius: 10, border: 'none',
+                  cursor: loading || otp.length !== 6 ? 'not-allowed' : 'pointer',
+                  background: loading || otp.length !== 6 ? C.text3 : C.green,
+                  color: 'white', fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 15,
+                  boxShadow: loading || otp.length !== 6 ? 'none' : '0 4px 16px rgba(22,163,74,0.25)',
+                }}>
+                  {loading ? 'Verifying...' : 'Verify Email →'}
+                </button>
+                <button type="button" onClick={() => { setOtpSent(false); setOtp(''); }}
+                  style={{ padding: '10px', borderRadius: 10, border: `1.5px solid ${C.border}`, background: C.surface, color: C.text2, cursor: 'pointer', fontFamily: FONT_BODY, fontWeight: 600, fontSize: 13 }}>
+                  ← Back to edit email
+                </button>
+              </form>
+            )}
 
             <div style={{ textAlign: 'center', marginTop: 16, fontSize: 13, color: C.text2 }}>
               Already have an account? <a href="/sell-login" style={{ color: C.primary, fontWeight: 600, textDecoration: 'none' }}>Log in</a>
