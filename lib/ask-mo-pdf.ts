@@ -1,53 +1,68 @@
 /**
- * Ask MO — designed PDF ebook pipeline
+ * Ask MO PDF Generator v2 — designed PDF ebook pipeline
  *
- * 1. Groq generates the 5-page recipe content (strict JSON, <3000 tokens)
- * 2. Pexels supplies a cover + per-recipe images (embedded, never hotlinked)
- * 3. pdf-lib renders a colorful 5-page PDF
+ * 1. Groq writes the 5-page ebook content as strict JSON (max_tokens 800)
+ * 2. Pexels supplies a full-bleed cover + per-recipe photos (embedded, never hotlinked)
+ * 3. @react-pdf/renderer renders a Canva-style 5-page PDF
  * 4. PDF is uploaded to Supabase Storage bucket `ebooks` and a public URL returned
+ *
+ * Errors are surfaced to the user WITHOUT leaking org_id, token limits, or internals.
  */
 
 import { Client } from '@/lib/groq-client';
 import { estimateTokens } from '@/lib/ask-mo-safety';
-import { generateEbookPDF, EbookData } from '@/lib/ebook-pdf';
+import { EbookRecipe5Page, EbookPdfData } from '@/components/pdf/ebook_recipe_5page';
+import { renderToBuffer } from '@react-pdf/renderer';
 
 const MODEL = process.env.AI_MODEL || 'llama-3.3-70b-versatile';
-const RECIPE_COUNT = 3;
 
-const RECIPE_SYSTEM_PROMPT = `You design a 5-page meal-prep recipe PDF ebook.
+const GEN_SYSTEM_PROMPT = `You are a JSON content generator for Ask MO. Never output markdown, explanations, or apologies.
+Only output valid JSON matching the schema below. Keep all text under 15 words per field.
 
-Return ONLY a JSON object. No markdown, no code fences, no explanations. Schema:
+Schema:
 {
-  "title": "short catchy ebook title (max 6 words)",
-  "subtitle": "one short subtitle line",
-  "coverSearch": "image keyword for the cover, e.g. 'meal prep bowls healthy'",
-  "recipes": [
+  "template": "ebook_recipe_5page",
+  "title": "string (short catchy ebook title)",
+  "brand_colors": ["2-3 hex colors that match the theme"],
+  "pages": [
     {
-      "title": "dish name (max 5 words)",
-      "subtitle": "one short line describing it",
-      "search": "image keyword for this dish, e.g. 'grilled chicken meal prep bowl'",
-      "ingredients": ["concise item, max 10 words"],
-      "steps": ["concise instruction, max 14 words"]
+      "type": "cover | recipe | cta",
+      "title": "string",
+      "subtitle": "string (one short line)",
+      "image_prompt": "string (Pexels photo keyword, e.g. 'meal prep bowls healthy')",
+      "ingredients": ["string"] (recipe pages only, 5-7 concise items),
+      "steps": ["string"] (recipe pages only, 4-6 concise instructions),
+      "ingredients_box_color": "hex color" (recipe pages only)
     }
-  ],
-  "notes": ["quick meal-prep tip, max 12 words"],
-  "cta": "one short line inviting the reader to make the ebook theirs"
+  ]
 }
 
 Rules:
-- Exactly ${RECIPE_COUNT} recipes.
-- 5-7 ingredients and 4-6 steps per recipe. Keep every string SHORT (concise) so it fits one PDF page.
-- Recipes must match what the user asked for.
+- Exactly 5 pages: 1 cover, 3 recipe, 1 cta.
+- Every page includes an image_prompt, including the cover (hero photo).
+- Recipe pages must match what the user asked for.
+- Keep every string SHORT and under 15 words so it fits one PDF page.
 - Output ONLY the JSON object.`;
 
 export interface PdfResult {
   success: boolean;
   title?: string;
-  subtitle?: string;
   url?: string | null;
   dataUrl?: string | null;
   pageCount?: number;
   error?: string;
+}
+
+const BUSY_ERROR = 'Busy right now. Try again in 1 minute.';
+
+function isBusyOrTooLarge(msg: string): boolean {
+  return /429|413|rate limit|quota exceeded|too large|request too large|token limit|busy|overloaded/i.test(msg);
+}
+
+function friendlyError(err: unknown): string {
+  const msg = err instanceof Error ? err.message : String(err);
+  if (isBusyOrTooLarge(msg)) return BUSY_ERROR;
+  return 'Could not generate the PDF. Try again with a shorter request.';
 }
 
 async function summarizeIfNeeded(
@@ -88,7 +103,7 @@ export function parseStrictJson(text: string): any {
   return null;
 }
 
-async function fetchPexelsImage(query: string): Promise<Uint8Array | null> {
+async function fetchPexelsImage(query: string): Promise<Buffer | null> {
   const key = process.env.PEXELS_API_KEY;
   if (!key) return null;
   try {
@@ -102,8 +117,7 @@ async function fetchPexelsImage(query: string): Promise<Uint8Array | null> {
     if (!photo?.src?.large) return null;
     const imgRes = await fetch(photo.src.large);
     if (!imgRes.ok) return null;
-    const buf = await imgRes.arrayBuffer();
-    return new Uint8Array(buf);
+    return Buffer.from(await imgRes.arrayBuffer());
   } catch {
     return null;
   }
@@ -157,16 +171,16 @@ export async function generateDesignedPdf(params: {
   const client = new Client({ apiKey });
 
   try {
-    const userPrompt = await summarizeIfNeeded(client, RECIPE_SYSTEM_PROMPT, message);
+    const userPrompt = await summarizeIfNeeded(client, GEN_SYSTEM_PROMPT, message);
 
     const contentRes = await client.chat.completions.create({
       model: MODEL,
       messages: [
-        { role: 'system', content: RECIPE_SYSTEM_PROMPT },
+        { role: 'system', content: GEN_SYSTEM_PROMPT },
         { role: 'user', content: userPrompt },
       ],
       temperature: 0.7,
-      max_tokens: 1800,
+      max_tokens: 800,
     });
 
     const raw = contentRes.choices[0]?.message?.content;
@@ -175,47 +189,45 @@ export async function generateDesignedPdf(params: {
     }
 
     const parsed = parseStrictJson(raw);
-    if (!parsed) {
+    const pages = Array.isArray(parsed?.pages) ? parsed.pages : null;
+    if (!pages || pages.length === 0) {
       return { success: false, error: 'Invalid content format returned by the model' };
     }
 
-    const recipes = (parsed.recipes || []).slice(0, RECIPE_COUNT);
+    // Fetch one Pexels photo per page in parallel (embedded, never hotlinked)
+    const images = await Promise.all(
+      pages.map((p: { image_prompt?: string }) =>
+        p?.image_prompt ? fetchPexelsImage(p.image_prompt) : Promise.resolve(null),
+      ),
+    );
 
-    // Fetch cover + recipe images in parallel (Pexels)
-    const [coverImage, ...recipeImages] = await Promise.all([
-      fetchPexelsImage(parsed.coverSearch || 'meal prep'),
-      ...recipes.map((r: { search?: string }) => fetchPexelsImage(r.search || 'meal prep')),
-    ]);
-
-    const ebook: EbookData = {
-      title: parsed.title || 'Meal Prep Made Easy',
-      subtitle: parsed.subtitle || 'Simple, colorful recipes for a stress-free week',
-      coverImage,
-      recipes: recipes.map((r: any, i: number) => ({
-        title: r.title || `Recipe ${i + 1}`,
-        subtitle: r.subtitle,
-        ingredients: Array.isArray(r.ingredients) ? r.ingredients.slice(0, 7) : [],
-        steps: Array.isArray(r.steps) ? r.steps.slice(0, 6) : [],
-        image: recipeImages[i] || null,
+    const data: EbookPdfData = {
+      template: parsed.template === 'ebook_recipe_5page' ? 'ebook_recipe_5page' : 'ebook_recipe_5page',
+      title: typeof parsed.title === 'string' && parsed.title ? parsed.title : 'Meal Prep Made Easy',
+      brand_colors: Array.isArray(parsed.brand_colors) ? parsed.brand_colors.filter((c: unknown) => typeof c === 'string') : [],
+      pages: pages.map((p: any) => ({
+        type: p?.type === 'cta' || p?.type === 'cover' ? p.type : 'recipe',
+        title: p?.title,
+        subtitle: p?.subtitle,
+        image_prompt: p?.image_prompt,
+        ingredients: Array.isArray(p?.ingredients) ? p.ingredients.slice(0, 7) : [],
+        steps: Array.isArray(p?.steps) ? p.steps.slice(0, 6) : [],
+        ingredients_box_color: p?.ingredients_box_color,
       })),
-      notes: Array.isArray(parsed.notes) ? parsed.notes : [],
-      cta: parsed.cta,
     };
 
-    const pdfBytes = await generateEbookPDF(ebook);
-    const { url, dataUrl } = await uploadPdf(pdfBytes, businessId, ebook.title);
+    const pdfBuffer = await renderToBuffer(EbookRecipe5Page({ data, images }));
+    const { url, dataUrl } = await uploadPdf(pdfBuffer, businessId, data.title);
 
     return {
       success: true,
-      title: ebook.title,
-      subtitle: ebook.subtitle,
+      title: data.title,
       url,
       dataUrl,
-      pageCount: 5,
+      pageCount: data.pages.length,
     };
   } catch (err) {
-    const msg = err instanceof Error ? err.message : 'PDF generation failed';
     console.error('[AskMoPdf] Error:', err);
-    return { success: false, error: msg };
+    return { success: false, error: friendlyError(err) };
   }
 }
