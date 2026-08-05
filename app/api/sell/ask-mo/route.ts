@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Client } from 'xai-sdk';
+import { Client } from '@/lib/groq-client';
 import { getServerFirestore as getAdminDb, getServerStorage as getAdminStorage, FieldValue } from '@/lib/server-firestore';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import { ASK_MO_COMMISSION_RATE, ASK_MO_COMMISSION_FIELD, getTokenCost, TOKEN_DOC_PATH, TOKEN_BALANCE_FIELD, ensureFreeTokens, getTokenSpendPlan } from '@/lib/ask-mo-tokens';
 
-const MODEL = process.env.AI_MODEL || 'grok-4';
+const MODEL = process.env.AI_MODEL || 'llama-3.1-8b-instant';
 
 const SELL_MO_SYSTEM_PROMPT = `
 You are MO — the AI commerce assistant inside Busmo, Africa's business operating system.
@@ -188,7 +188,7 @@ async function callGrok(
 
 export async function POST(req: NextRequest) {
   try {
-    const apiKey = process.env.GROK_API_KEY;
+    const apiKey = process.env.GROQ_API_KEY;
     if (!apiKey) {
       return NextResponse.json({ error: 'AI service not configured' }, { status: 503 });
     }

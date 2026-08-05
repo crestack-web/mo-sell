@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef, ChangeEvent } from 'react';
 import { getDatabase } from '@/lib/database/adapter';
 import { getStorage } from '@/lib/storage/adapter';
-import { signOut } from '@/lib/auth';
+import { supabaseClient } from '@/lib/supabase-client';
 import { useSell } from '@/context/SellContext';
 
 import styles from './SellSettingsPage.module.css';
@@ -662,7 +662,7 @@ export function SellSettingsPage() {
           <button
             className={`${styles.btn} ${styles.btnDanger}`}
             onClick={async () => {
-              await signOut();
+              await supabaseClient.auth.signOut();
               window.location.href = '/login';
             }}
             style={{ alignSelf: 'flex-start' }}

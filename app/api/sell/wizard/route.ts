@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerFirestore as getAdminDb } from '@/lib/server-firestore';
-import { Client } from 'xai-sdk';
+import { Client } from '@/lib/groq-client';
 
-const MODEL = process.env.AI_MODEL || 'grok-4';
+const MODEL = process.env.AI_MODEL || 'llama-3.1-8b-instant';
 
 const WIZARD_SYSTEM_PROMPT = `
 You are MO — the AI commerce architect inside Busmo, Africa's business operating system.
@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
       } catch { /* non-fatal */ }
     }
 
-    const apiKey = process.env.GROK_API_KEY;
+    const apiKey = process.env.GROQ_API_KEY;
     if (!apiKey) {
       return NextResponse.json(
         { error: 'AI service not configured' },

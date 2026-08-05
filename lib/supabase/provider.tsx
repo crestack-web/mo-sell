@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
-import { User } from '@supabase/supabase-js';
+import { User, Session, AuthChangeEvent } from '@supabase/supabase-js';
 import { supabaseClient } from '../supabase-client';
 
 // Internal state for user authentication
@@ -51,9 +51,12 @@ export const SupabaseProvider: React.FC<{ children: ReactNode }> = ({ children }
     setUserAuthState({ user: null, isUserLoading: true, userError: null });
 
     const { data: { subscription } } = supabaseClient.auth.onAuthStateChange(
-      (event: 'SIGNED_IN' | 'SIGNED_OUT' | 'TOKEN_REFRESHED' | 'USER_UPDATED', session: any) => {
+      (event: AuthChangeEvent, session: Session | null) => {
         try {
-          if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          // INITIAL_SESSION fires on mount when a session is restored from storage.
+          // Without handling it, refreshing the dashboard while logged in drops the
+          // user to null, and logged-out visitors never stop loading.
+          if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
             setUserAuthState({ user: session?.user ?? null, isUserLoading: false, userError: null });
           } else if (event === 'SIGNED_OUT') {
             setUserAuthState({ user: null, isUserLoading: false, userError: null });

@@ -54,9 +54,12 @@ export class SupabaseAdapter implements DatabaseAdapter {
   constructor() {
     // Initialize with mock client during build time
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://mock.supabase.co';
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || 'mock-key';
+    const isClient = typeof window !== 'undefined';
+    const supabaseKey = isClient
+      ? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'mock-key'
+      : process.env.SUPABASE_SERVICE_KEY || 'mock-key';
 
-    this.supabase = createClient(supabaseUrl, supabaseServiceKey, {
+    this.supabase = createClient(supabaseUrl, supabaseKey, {
       auth: {
         autoRefreshToken: false,
         persistSession: false,

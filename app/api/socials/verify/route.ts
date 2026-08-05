@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: 'Missing URL' }, { status: 400 });
     }
 
-    const apifyToken = process.env.APIFY_TOKEN;
+    const apifyToken = process.env.APIFY_KEY || process.env.APIFY_TOKEN;
 
     if (platform === 'tiktok') {
       const normalized = normalizeTiktok(url);

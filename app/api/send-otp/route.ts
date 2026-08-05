@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
+import { getSupabaseServer } from '@/lib/database/postgresql-adapter';
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { email, name, otp } = body;
+    const { email, name } = body;
 
-    if (!email || !otp) {
-      return NextResponse.json({ error: 'Email and OTP required' }, { status: 400 });
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return NextResponse.json({ error: 'Valid email required' }, { status: 400 });
     }
 
     const resendApiKey = process.env.RESEND_API_KEY;
@@ -15,9 +16,38 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Email service not configured' }, { status: 503 });
     }
 
+    const supabase = getSupabaseServer();
+
+    // Reject emails that already belong to a brand
+    const { data: existingBrand } = await supabase
+      .from('brands')
+      .select('id')
+      .eq('email', email.toLowerCase())
+      .maybeSingle();
+    if (existingBrand) {
+      return NextResponse.json({ error: 'An account with this email already exists' }, { status: 409 });
+    }
+
+    const otp = String(Math.floor(100000 + Math.random() * 900000));
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+
+    const { error: storeError } = await supabase
+      .from('email_otps')
+      .upsert({
+        email: email.toLowerCase(),
+        otp,
+        full_name: name || '',
+        expires_at: expiresAt,
+        created_at: new Date().toISOString(),
+      });
+
+    if (storeError) {
+      console.error('[Send OTP] Failed to store OTP:', storeError);
+      return NextResponse.json({ error: 'Failed to send verification code' }, { status: 500 });
+    }
+
     const resend = new Resend(resendApiKey);
 
-    // Send OTP email via Resend
     const { data, error } = await resend.emails.send({
       from: 'MO Sell <noreply@mo-sell.store>',
       to: [email],

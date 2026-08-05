@@ -262,7 +262,7 @@ function BrandDiscoverPageContent() {
             ) : (
               <>
                 <button
-                  onClick={() => router.push('/brand/login')}
+                  onClick={() => router.push('/brand-auth/login')}
                   style={{
                     padding: '10px 20px',
                     background: 'transparent',
@@ -277,7 +277,7 @@ function BrandDiscoverPageContent() {
                   Login
                 </button>
                 <button
-                  onClick={() => router.push('/brand/register')}
+                  onClick={() => router.push('/brand-auth/register')}
                   style={{
                     padding: '10px 20px',
                     background: THEME.primary,
@@ -585,7 +585,7 @@ function BrandDiscoverPageContent() {
               <button
                 onClick={() => {
                   setShowAuthModal(false);
-                  router.push('/brand/register');
+                  router.push('/brand-auth/register');
                 }}
                 style={{
                   padding: 14,
@@ -607,7 +607,7 @@ function BrandDiscoverPageContent() {
               <button
                 onClick={() => {
                   setShowAuthModal(false);
-                  router.push('/brand/login');
+                  router.push('/brand-auth/login');
                 }}
                 style={{
                   padding: 14,

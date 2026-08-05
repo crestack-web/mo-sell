@@ -4,7 +4,6 @@ import React, { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabaseClient } from '@/lib/supabase-client';
 import { getDatabase } from '@/lib/database/adapter';
-export const runtime = 'edge';
 
 const C = {
   primary: '#0EA5E9', bg: '#F0F9FF', surface: '#FFFFFF',

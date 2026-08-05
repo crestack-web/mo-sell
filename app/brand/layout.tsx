@@ -74,22 +74,22 @@ export default function BrandDashboardLayout({ children }: { children: React.Rea
     try {
       const { data: { user } } = await supabaseClient.auth.getUser();
       if (!user) {
-        router.push('/brand/login');
+        router.push('/brand-auth/login');
         return;
       }
 
       const db = getDatabase();
-      const brandDoc = await db.collection('brands').where('userId', '==', user.id).limit(1).get();
-      
-      if (brandDoc.docs.length === 0) {
-        router.push('/brand/register');
+      const brandDoc = await db.doc(`brands/${user.id}`).get();
+
+      if (!brandDoc.exists) {
+        router.push('/brand-auth/register');
         return;
       }
 
-      setBrand(brandDoc.docs[0].data());
+      setBrand(brandDoc.data());
     } catch (error) {
       console.error('Auth check error:', error);
-      router.push('/brand/login');
+      router.push('/brand-auth/login');
     } finally {
       setLoading(false);
     }
@@ -97,7 +97,7 @@ export default function BrandDashboardLayout({ children }: { children: React.Rea
 
   const handleLogout = async () => {
     await supabaseClient.auth.signOut();
-    router.push('/brand/login');
+    router.push('/brand-auth/login');
   };
 
   if (loading) {

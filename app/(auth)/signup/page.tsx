@@ -202,6 +202,7 @@ export default function SellSignupPage() {
           action: 'verify-otp',
           email,
           otp,
+          password,
         }),
       });
 
@@ -210,6 +211,13 @@ export default function SellSignupPage() {
 
       setUserId(data.userId);
       setBusinessId(data.businessId);
+
+      // Establish the browser session so the rest of onboarding (and payment) works
+      const signIn = await supabaseClient.auth.signInWithPassword({ email, password });
+      if (signIn.error) {
+        console.error('[Signup] Auto sign-in failed:', signIn.error);
+        throw new Error('Account created, but auto sign-in failed. Please try logging in.');
+      }
 
       posthog.capture('sell_signup_completed', { step: 1, businessType });
       setStep(2);
@@ -453,7 +461,7 @@ export default function SellSignupPage() {
             )}
 
             <div style={{ textAlign: 'center', marginTop: 16, fontSize: 13, color: C.text2 }}>
-              Already have an account? <a href="/sell-login" style={{ color: C.primary, fontWeight: 600, textDecoration: 'none' }}>Log in</a>
+              Already have an account? <a href="/login" style={{ color: C.primary, fontWeight: 600, textDecoration: 'none' }}>Log in</a>
             </div>
           </div>
         )}

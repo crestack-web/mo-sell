@@ -3,52 +3,55 @@ import { supabaseServer } from '@/lib/supabase-server';
 import { Resend } from 'resend';
 import { getDatabase } from '@/lib/database/adapter';
 
-// Store OTPs temporarily (in production, use Redis or database)
-const otpStore = new Map<string, { otp: string; email: string; fullName: string; password: string; expires: number }>();
-
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { email, password, fullName, action, otp } = body;
 
-    if (!email || !password || !fullName) {
-      return NextResponse.json({ error: 'Email, password, and full name are required' }, { status: 400 });
-    }
-
-    const resendApiKey = process.env.RESEND_API_KEY;
-    if (!resendApiKey) {
-      return NextResponse.json({ error: 'Email service not configured' }, { status: 503 });
-    }
-
-    const resend = new Resend(resendApiKey);
-
     if (action === 'send-otp') {
+      if (!email || !password || !fullName) {
+        return NextResponse.json({ error: 'Email, password, and full name are required' }, { status: 400 });
+      }
+
+      const resendApiKey = process.env.RESEND_API_KEY;
+      if (!resendApiKey) {
+        return NextResponse.json({ error: 'Email service not configured' }, { status: 503 });
+      }
+
       if (!supabaseServer) {
         return NextResponse.json({ error: 'Supabase not configured' }, { status: 503 });
       }
 
-      // Check if user already exists
-      const { data: existingUsers } = await supabaseServer.auth.admin.listUsers();
-      const users = (existingUsers as any)?.users || [];
-      const userExists = users.some((u: any) => u.email === email);
-      
-      if (userExists) {
+      // Check if user already exists (best-effort - admin.createUser also guards at verify time)
+      const { data: existingUser } = await supabaseServer
+        .from('users')
+        .select('id, email')
+        .eq('email', email)
+        .maybeSingle();
+
+      if (existingUser?.id) {
         return NextResponse.json({ error: 'An account with this email already exists' }, { status: 400 });
       }
 
-      // Generate 6-digit OTP
+      // Generate 6-digit OTP (expires in 10 minutes)
       const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-      
-      // Store OTP with user data (expires in 10 minutes)
-      otpStore.set(email, {
-        otp: otpCode,
-        email,
-        fullName,
-        password,
-        expires: Date.now() + 10 * 60 * 1000,
-      });
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+
+      // Persist OTP in Supabase so it survives serverless instances
+      const { error: storeError } = await supabaseServer
+        .from('email_otps')
+        .upsert(
+          { email, otp: otpCode, full_name: fullName, expires_at: expiresAt },
+          { onConflict: 'email' }
+        );
+
+      if (storeError) {
+        console.error('[Signup] Failed to store OTP:', storeError);
+        return NextResponse.json({ error: 'Failed to send verification email' }, { status: 500 });
+      }
 
       // Send branded OTP email
+      const resend = new Resend(resendApiKey);
       const { data, error } = await resend.emails.send({
         from: 'MO Sell <noreply@mo-sell.store>',
         to: [email],
@@ -88,26 +91,38 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Failed to send verification email' }, { status: 500 });
       }
 
-      return NextResponse.json({ 
-        success: true, 
+      return NextResponse.json({
+        success: true,
         message: 'Verification code sent to your email',
-        messageId: data.id 
+        messageId: data.id
       });
     }
 
     if (action === 'verify-otp') {
+      if (!email || !otp) {
+        return NextResponse.json({ error: 'Email and verification code are required' }, { status: 400 });
+      }
+      if (!password) {
+        return NextResponse.json({ error: 'Password is required' }, { status: 400 });
+      }
+
       if (!supabaseServer) {
         return NextResponse.json({ error: 'Supabase not configured' }, { status: 503 });
       }
 
-      const stored = otpStore.get(email);
-      
-      if (!stored) {
+      // Look up the persisted OTP record
+      const { data: stored, error: fetchError } = await supabaseServer
+        .from('email_otps')
+        .select('email, otp, full_name, expires_at')
+        .eq('email', email)
+        .single();
+
+      if (fetchError || !stored) {
         return NextResponse.json({ error: 'OTP not found or expired. Please request a new code.' }, { status: 400 });
       }
 
-      if (Date.now() > stored.expires) {
-        otpStore.delete(email);
+      if (new Date(stored.expires_at).getTime() < Date.now()) {
+        await supabaseServer.from('email_otps').delete().eq('email', email);
         return NextResponse.json({ error: 'OTP expired. Please request a new code.' }, { status: 400 });
       }
 
@@ -118,15 +133,18 @@ export async function POST(req: NextRequest) {
       // OTP verified - create the user account
       const { data, error } = await supabaseServer.auth.admin.createUser({
         email: stored.email,
-        password: stored.password,
+        password,
         email_confirm: true,
         user_metadata: {
-          full_name: stored.fullName,
+          full_name: stored.full_name,
         },
       });
 
       if (error) {
         console.error('[Signup] Supabase error:', error);
+        if (error.message?.toLowerCase().includes('already registered')) {
+          return NextResponse.json({ error: 'An account with this email already exists' }, { status: 400 });
+        }
         return NextResponse.json({ error: 'Failed to create account' }, { status: 500 });
       }
 
@@ -137,35 +155,39 @@ export async function POST(req: NextRequest) {
 
       const businessId = `biz_${userId.slice(0, 12)}`;
 
-      // Create user and business documents
-      const db = getDatabase();
-      await db.doc(`users/${userId}`).set({
-        displayName: stored.fullName,
-        email: stored.email,
-        businessId,
-        plan: 'starter',
-        moSellAccess: true,
-        emailVerified: true,
-        createdAt: new Date().toISOString(),
-      });
+      // Clean up the OTP record so it can't be reused
+      await supabaseServer.from('email_otps').delete().eq('email', email);
 
-      await db.doc(`businesses/${businessId}`).set({
-        ownerUserId: userId,
-        businessName: `${stored.fullName}'s Business`,
-        businessType: '',
-        createdAt: new Date().toISOString(),
-      });
+      // Create user and business profile records (best-effort - auth is already complete)
+      try {
+        const db = getDatabase();
+        await db.doc(`users/${userId}`).set({
+          displayName: stored.full_name,
+          email: stored.email,
+          businessId,
+          plan: 'starter',
+          moSellAccess: true,
+          emailVerified: true,
+          createdAt: new Date().toISOString(),
+        });
 
-      // Clean up OTP
-      otpStore.delete(email);
+        await db.doc(`businesses/${businessId}`).set({
+          ownerUserId: userId,
+          businessName: `${stored.full_name}'s Business`,
+          businessType: '',
+          createdAt: new Date().toISOString(),
+        });
+      } catch (profileError) {
+        console.error('[Signup] Failed to create profile records:', profileError);
+      }
 
-      return NextResponse.json({ 
-        success: true, 
+      return NextResponse.json({
+        success: true,
         message: 'Account created successfully',
         userId,
         businessId,
         email: stored.email,
-        fullName: stored.fullName,
+        fullName: stored.full_name,
       });
     }
 

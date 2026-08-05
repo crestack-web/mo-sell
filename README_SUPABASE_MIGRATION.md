@@ -114,7 +114,20 @@ CREATE INDEX idx_products_business ON products(business_id);
 CREATE INDEX idx_orders_business ON orders(business_id);
 CREATE INDEX idx_orders_email ON orders(customer_email);
 CREATE INDEX idx_customers_business_email ON customers(business_id, email);
+
+-- Email OTPs (custom branded OTP signup flow)
+-- REQUIRED: without this, OTP verification fails on serverless (Vercel)
+CREATE TABLE IF NOT EXISTS email_otps (
+  email VARCHAR(255) PRIMARY KEY,
+  otp VARCHAR(6) NOT NULL,
+  full_name TEXT NOT NULL,
+  expires_at TIMESTAMPTZ NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_email_otps_expires_at ON email_otps(expires_at);
 ```
+
+> Note: the same schema lives in `supabase/migrations/001_email_otps.sql`.
 
 ## Step 2: Install Dependencies
 

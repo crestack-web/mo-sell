@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import { supabaseClient } from '@/lib/supabase-client';
-import { signInWithPassword, signOut } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -100,9 +99,12 @@ export default function SellLoginPage() {
       goToDashboard();
     } catch (err: any) {
       const code = err?.code ?? '';
-      if (code === 'Invalid login credentials') {
+      const message = err?.message ?? '';
+      if (code === 'invalid_credentials' || message === 'Invalid login credentials') {
         setError('Invalid email or password.');
-      } else if (code === 'Too many requests') {
+      } else if (code === 'email_not_confirmed') {
+        setError('Please verify your email before signing in.');
+      } else if (code === 'over_email_send_rate_limit' || message === 'Too many requests') {
         setError('Too many attempts. Try again later.');
       } else {
         setError('Login failed. Please try again.');
@@ -274,7 +276,7 @@ export default function SellLoginPage() {
             {tab === 'google' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <p style={{ fontSize: 14, color: C.text2, margin: 0, lineHeight: 1.55 }}>
-                  Sign in with your Google account linked to Busmo — no separate password needed.
+                  Sign in with your Google account — no separate password needed.
                 </p>
                 <button onClick={handleGoogleLogin} disabled={loading} style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
@@ -299,19 +301,19 @@ export default function SellLoginPage() {
               paddingTop: 4, borderTop: `1px solid ${C.border}`,
               fontSize: 13, color: C.text2,
             }}>
-              <a href="/sell-welcome" style={{ color: C.text2, textDecoration: 'none', fontWeight: 500 }}
+              <a href="/welcome" style={{ color: C.text2, textDecoration: 'none', fontWeight: 500 }}
                 onMouseEnter={e => ((e.currentTarget as HTMLAnchorElement).style.color = C.primary)}
                 onMouseLeave={e => ((e.currentTarget as HTMLAnchorElement).style.color = C.text2)}>
                 ← About MO Sell
               </a>
               <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                <a href="/sell-signup" style={{ color: C.primary, textDecoration: 'none', fontWeight: 600 }}
+                <a href="/signup" style={{ color: C.primary, textDecoration: 'none', fontWeight: 600 }}
                   onMouseEnter={e => ((e.currentTarget as HTMLAnchorElement).style.textDecoration = 'underline')}
                   onMouseLeave={e => ((e.currentTarget as HTMLAnchorElement).style.textDecoration = 'none')}>
                   Creator signup →
                 </a>
                 <span style={{ color: C.text3 }}>|</span>
-                <a href="/brand/register" style={{ color: C.accent, textDecoration: 'none', fontWeight: 600 }}
+                <a href="/brand-auth/register" style={{ color: C.accent, textDecoration: 'none', fontWeight: 600 }}
                   onMouseEnter={e => ((e.currentTarget as HTMLAnchorElement).style.textDecoration = 'underline')}
                   onMouseLeave={e => ((e.currentTarget as HTMLAnchorElement).style.textDecoration = 'none')}>
                   Brand signup →

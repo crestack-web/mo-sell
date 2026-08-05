@@ -43,7 +43,7 @@ export default function SellSubscribePage() {
     const checkAuth = async () => {
       const { data: { user: supabaseUser } } = await supabaseClient.auth.getUser();
       if (!supabaseUser) {
-        router.replace('/sell-login');
+        router.replace('/login');
         return;
       }
       setUser(supabaseUser);
@@ -84,7 +84,7 @@ export default function SellSubscribePage() {
     try {
       const { data: { user: currentUser } } = await supabaseClient.auth.getUser();
       if (!currentUser) {
-        router.replace('/sell-login');
+        router.replace('/login');
         return;
       }
 
