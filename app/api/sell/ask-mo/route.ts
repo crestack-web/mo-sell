@@ -261,7 +261,8 @@ export async function POST(req: NextRequest) {
       .trim();
 
     return NextResponse.json({
-      text: cleanText,
+      answer: cleanText,
+      raw: responseText,
       storeUpdate,
       newProduct,
       editProduct,
