@@ -3,7 +3,6 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabaseClient } from '@/lib/supabase-client';
-import { getDatabase } from '@/lib/database/adapter';
 import { ArrowRight, Mail, Lock, Building, Phone, Globe, Briefcase, CheckCircle, Loader2 } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
@@ -153,44 +152,49 @@ function BrandRegisterPageContent() {
     setError('');
 
     try {
-      // Verify OTP
-      const verifyResponse = await fetch('/api/verify-otp', {
+      // Create the account + brand profile server-side (bypasses RLS)
+      const response = await fetch('/api/brand/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: formData.email, code: otp }),
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+          code: otp,
+          brandName: formData.brandName,
+          phone: formData.phone,
+          website: formData.website,
+          industry: formData.industry,
+        }),
       });
 
-      if (!verifyResponse.ok) {
-        const data = await verifyResponse.json();
-        throw new Error(data.error || 'Invalid verification code');
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to create account');
       }
 
-      // Create Supabase user
-      const { data: authData, error: authError } = await supabaseClient.auth.signUp({
+      // Establish the client session so dashboard reads work
+      const { error: signInError } = await supabaseClient.auth.signInWithPassword({
         email: formData.email,
         password: formData.password,
       });
 
-      if (authError) throw authError;
-
-      if (!authData.user) {
-        throw new Error('Failed to create account');
+      if (signInError) {
+        setError(signInError.message || 'Account created. Please sign in.');
+        setLoading(false);
+        return;
       }
 
-      // Create brand profile in database
-      const db = getDatabase();
-      await db.collection('brands').doc(authData.user.id).set({
-        brandName: formData.brandName,
-        email: formData.email.toLowerCase(),
-        userId: authData.user.id,
-        phone: formData.phone,
-        website: formData.website,
-        industry: formData.industry,
-        walletBalance: 0,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        status: 'active',
-      });
+      // Send brand welcome email (non-blocking)
+      fetch('/api/email/welcome', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          role: 'brand',
+          email: formData.email,
+          name: formData.brandName,
+          brandName: formData.brandName,
+        }),
+      }).catch(() => {});
 
       setStep('success');
       
@@ -279,11 +283,10 @@ function BrandRegisterPageContent() {
         <div style={{ width: '100%', maxWidth: 480 }}>
           {/* Logo */}
           <div style={{ marginBottom: 40, display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 40, height: 40, borderRadius: 8, background: THEME.primary, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Building size={24} color="white" />
-            </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1785078071/mosell_gpzl2q.png" alt="MO Sell" style={{ height: 40, width: 'auto', objectFit: 'contain' }} />
             <span style={{ fontSize: 24, fontWeight: 700, color: THEME.text1, fontFamily: FONTS.display }}>
-              UGC Marketplace
+              MO Sell
             </span>
           </div>
 

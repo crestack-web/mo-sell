@@ -7,7 +7,7 @@ import type { User } from 'firebase/auth';
 import { initializeFirebase } from '@/lib/firebase';
 import { supabaseClient } from '@/lib/supabase-client';
 import { ToastProvider, useToast } from '@/components/brand/ToastProvider';
-import { Star, Clock, Play, Filter, Search, X, Loader2, User as UserIcon, ChevronRight, Building, ShoppingBag, Wallet, CreditCard } from 'lucide-react';
+import { Star, Clock, Play, Filter, Search, X, Loader2, User as UserIcon, ChevronRight, ShoppingBag, Wallet, CreditCard } from 'lucide-react';
 
 // ── Theme ────────────────────────────────────────────────────────────────────
 const THEME = {
@@ -203,11 +203,10 @@ function BrandDiscoverPageContent() {
       }}>
         <div style={{ maxWidth: 1400, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 40, height: 40, borderRadius: 8, background: THEME.primary, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Building size={24} color="white" />
-            </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1785078071/mosell_gpzl2q.png" alt="MO Sell" style={{ height: 36, width: 'auto', objectFit: 'contain' }} />
             <span style={{ fontSize: 20, fontWeight: 700, color: THEME.text1, fontFamily: FONTS.display }}>
-              UGC Marketplace
+              MO Sell
             </span>
           </div>
 

@@ -44,6 +44,17 @@ export default function AuthCallbackPage() {
               createdAt: new Date().toISOString(),
               updatedAt: new Date().toISOString(),
             });
+
+            // Send creator welcome email (non-blocking, new sign-ups only)
+            fetch('/api/email/welcome', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                role: 'creator',
+                email: user.email,
+                name: displayName,
+              }),
+            }).catch(() => {});
           }
         } catch (profileError) {
           console.error('Auth callback: failed to ensure user profile:', profileError);

@@ -290,7 +290,8 @@ export default function SellLoginPage() {
                   onMouseEnter={e => { if (!loading) { (e.currentTarget as HTMLButtonElement).style.borderColor = C.primary; } }}
                   onMouseLeave={e => { if (!loading) { (e.currentTarget as HTMLButtonElement).style.borderColor = C.border; } }}
                 >
-                  {loading ? 'Signing in…' : 'Sign in'}
+                  <GoogleMark />
+                  {loading ? 'Signing in…' : 'Continue with Google'}
                 </button>
               </div>
             )}

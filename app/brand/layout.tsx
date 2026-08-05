@@ -17,7 +17,6 @@ import {
   LogOut,
   Menu,
   X,
-  Building,
   Bell
 } from 'lucide-react';
 
@@ -194,12 +193,11 @@ export default function BrandDashboardLayout({ children }: { children: React.Rea
         {/* Logo */}
         <div style={{ padding: 24, borderBottom: `1px solid ${THEME.border}` }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 40, height: 40, borderRadius: 8, background: THEME.primary, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Building size={24} color="white" />
-            </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1785078071/mosell_gpzl2q.png" alt="MO Sell" style={{ height: 32, width: 'auto', objectFit: 'contain' }} />
             <div>
               <div style={{ fontSize: 16, fontWeight: 700, color: THEME.text1, fontFamily: FONTS.display }}>
-                UGC Marketplace
+                MO Sell
               </div>
               <div style={{ fontSize: 12, color: THEME.text3 }}>Brand Dashboard</div>
             </div>

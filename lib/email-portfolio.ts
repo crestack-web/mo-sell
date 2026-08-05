@@ -1,35 +1,20 @@
-const BREVO_API = 'https://api.brevo.com/v3';
-const BREVO_KEY = () => process.env.BREVO_API_KEY ?? '';
+import { sendEmail } from '@/lib/services/email/core';
 
-async function sendBrevoEmail(params: {
-  to: { email: string; name: string };
+async function sendPortfolioEmail(params: {
+  to: string;
+  name?: string;
   subject: string;
-  htmlContent: string;
+  html: string;
 }) {
-  const key = BREVO_KEY();
-  if (!key) {
-    console.log('[Email Portfolio] No BREVO_API_KEY, stubbing email:', params.subject);
-    return { success: true, stub: true };
-  }
   try {
-    const res = await fetch(`${BREVO_API}/smtp/email`, {
-      method: 'POST',
-      headers: {
-        'api-key': key,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        sender: { email: 'hello@mo-sell.store', name: 'MO-Sell UGC' },
-        to: [params.to],
-        subject: params.subject,
-        htmlContent: params.htmlContent,
-      }),
+    const result = await sendEmail({
+      to: params.to,
+      name: params.name,
+      subject: params.subject,
+      html: params.html,
+      from: { email: 'hello@mo-sell.store', name: 'MO-Sell UGC' },
     });
-    if (!res.ok) {
-      const text = await res.text();
-      console.error('[Email Portfolio] Brevo error:', res.status, text);
-    }
-    return { success: res.ok };
+    return { success: result.success };
   } catch (err) {
     console.error('[Email Portfolio] Send failed:', err);
     return { success: false };
@@ -53,10 +38,11 @@ export interface PortfolioRequestData {
 export async function sendPortfolioRequestToCreator(data: PortfolioRequestData) {
   const budgetDisplay = `₦${(data.budget / 100).toLocaleString()}`;
   const depositDisplay = `₦${(data.deposit / 100).toLocaleString()}`;
-  return sendBrevoEmail({
-    to: { email: data.creatorEmail, name: data.creatorName },
+  return sendPortfolioEmail({
+    to: data.creatorEmail,
+    name: data.creatorName,
     subject: `New UGC Request from ${data.guestName} via your portfolio`,
-    htmlContent: `
+    html: `
       <div style="font-family:system-ui;max-width:560px;margin:0 auto;">
         <h2 style="color:#0EA5E9;">New Request!</h2>
         <p><strong>${data.guestName}</strong>${data.guestCompany ? ` from <strong>${data.guestCompany}</strong>` : ''} wants to work with you.</p>
@@ -76,10 +62,11 @@ export async function sendPortfolioRequestToCreator(data: PortfolioRequestData) 
 
 export async function sendPortfolioRequestToGuest(data: PortfolioRequestData) {
   const depositDisplay = `₦${(data.deposit / 100).toLocaleString()}`;
-  return sendBrevoEmail({
-    to: { email: data.guestEmail, name: data.guestName },
+  return sendPortfolioEmail({
+    to: data.guestEmail,
+    name: data.guestName,
     subject: `Your UGC request for ${data.creatorName} has been received`,
-    htmlContent: `
+    html: `
       <div style="font-family:system-ui;max-width:560px;margin:0 auto;">
         <h2 style="color:#0EA5E9;">Request Received!</h2>
         <p>Hi ${data.guestName},</p>
@@ -97,10 +84,11 @@ export async function sendPortfolioRequestToGuest(data: PortfolioRequestData) {
 }
 
 export async function sendCreatorAcceptedEmailToGuest(data: PortfolioRequestData) {
-  return sendBrevoEmail({
-    to: { email: data.guestEmail, name: data.guestName },
+  return sendPortfolioEmail({
+    to: data.guestEmail,
+    name: data.guestName,
     subject: `${data.creatorName} accepted your UGC request!`,
-    htmlContent: `
+    html: `
       <div style="font-family:system-ui;max-width:560px;margin:0 auto;">
         <h2 style="color:#0EA5E9;">Accepted!</h2>
         <p>Hi ${data.guestName},</p>

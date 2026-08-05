@@ -128,6 +128,18 @@ function slugify(s: string) {
   return s.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').slice(0, 30);
 }
 
+// ── Google mark ───────────────────────────────────────────────────────────────
+function GoogleMark() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+      <path d="M17.64 9.205c0-.639-.057-1.252-.164-1.841H9v3.481h4.844a4.14 4.14 0 01-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4" />
+      <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z" fill="#34A853" />
+      <path d="M3.964 10.71A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05" />
+      <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335" />
+    </svg>
+  );
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function SellSignupPage() {
   const router = useRouter();
@@ -160,6 +172,25 @@ export default function SellSignupPage() {
   const [error, setError] = useState('');
   const [userId, setUserId] = useState('');
   const [businessId, setBusinessId] = useState('');
+
+  // ── Google sign-up (Supabase OAuth → /auth/callback) ─────────────────────
+  const handleGoogleSignup = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const { error } = await supabaseClient.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+      if (error) throw error;
+    } catch (err: any) {
+      console.error('[Signup] Google auth error:', err);
+      setError('Google sign-up failed. Please try again.');
+      setLoading(false);
+    }
+  };
 
   // ── Step 1→2: Send OTP and verify email ──────────────────────────────────
   const handleSendOTP = async (e: React.FormEvent) => {
@@ -236,7 +267,6 @@ export default function SellSignupPage() {
       const db = getDatabase();
       await db.doc(`businesses/${businessId}`).set({
         businessName,
-        businessType,
         updatedAt: new Date().toISOString(),
       }, { merge: true });
 
@@ -260,6 +290,7 @@ export default function SellSignupPage() {
       const q7 = answers.q7!;
       const storeSlug = slugify(businessName);
       const tagline = answers.q2 === 'custom' ? answers.q2Custom : (Q2_TAGLINES[answers.q2!] ?? '');
+      const businessCategory = Q1_OPTIONS.find(o => o.id === q1)?.cat ?? 'physical-products';
 
       // Theme colors from registry
       const themeMeta = THEMES.find(t => t.id === q7);
@@ -274,7 +305,7 @@ export default function SellSignupPage() {
         logoUrl: null,
         primaryColor: colors.primary,
         secondaryColor: colors.secondary,
-        businessCategory: Q1_OPTIONS.find(o => o.id === q1)?.cat ?? 'physical-products',
+        businessCategory,
         currency: 'NGN',
         contactEmail: email,
         contactPhone: '',
@@ -291,7 +322,7 @@ export default function SellSignupPage() {
         domainPurchaseRecord: null,
         onboardingAnswers: {
           ...answers,
-          businessType,
+          businessType: businessCategory,
           businessName,
         },
         productCategory: q1,
@@ -410,6 +441,31 @@ export default function SellSignupPage() {
             )}
 
             {!otpSent ? (
+              <>
+                <button type="button" onClick={handleGoogleSignup} disabled={loading}
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                    width: '100%', padding: '13px', borderRadius: 10,
+                    border: `1.5px solid ${C.border}`, background: C.surface,
+                    cursor: loading ? 'not-allowed' : 'pointer',
+                    color: C.text1, fontFamily: FONT_BODY, fontWeight: 600, fontSize: 14,
+                    transition: 'all 0.18s ease',
+                  }}
+                  onMouseEnter={e => { if (!loading) { (e.currentTarget as HTMLButtonElement).style.borderColor = C.primary; } }}
+                  onMouseLeave={e => { if (!loading) { (e.currentTarget as HTMLButtonElement).style.borderColor = C.border; } }}
+                >
+                  <GoogleMark />
+                  {loading ? 'Redirecting...' : 'Continue with Google'}
+                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ flex: 1, height: 1, background: C.border }} />
+                  <span style={{ fontSize: 12, color: C.text3, fontWeight: 500 }}>or sign up with email</span>
+                  <div style={{ flex: 1, height: 1, background: C.border }} />
+                </div>
+              </>
+            ) : null}
+
+            {!otpSent ? (
               <form onSubmit={handleSendOTP} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <input
                   type="text" placeholder="Full name" required value={fullName}
@@ -475,8 +531,8 @@ export default function SellSignupPage() {
             border: `1px solid ${C.border}`, boxShadow: '0 8px 32px rgba(14,88,140,0.08)',
           }}>
             <div style={{ textAlign: 'center', marginBottom: 24 }}>
-              <h1 style={{ fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 22, color: C.text1, marginBottom: 4 }}>About your business</h1>
-              <p style={{ fontSize: 14, color: C.text2 }}>Step 2 of 3 — Tell us about what you sell</p>
+              <h1 style={{ fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 22, color: C.text1, marginBottom: 4 }}>Name your business</h1>
+              <p style={{ fontSize: 14, color: C.text2 }}>Step 2 of 3 — What should we call your store?</p>
             </div>
 
             {error && (
@@ -489,25 +545,6 @@ export default function SellSignupPage() {
                 onChange={e => setBusinessName(e.target.value)}
                 style={{ padding: '12px 14px', borderRadius: 10, border: `1.5px solid ${C.border}`, fontSize: 14, fontFamily: FONT_BODY, outline: 'none', background: '#F8FBFF' }}
               />
-              <select
-                required value={businessType}
-                onChange={e => setBusinessType(e.target.value)}
-                style={{
-                  padding: '12px 14px', borderRadius: 10, border: `1.5px solid ${C.border}`,
-                  fontSize: 14, fontFamily: FONT_BODY, outline: 'none', background: '#F8FBFF',
-                  color: businessType ? C.text1 : C.text3,
-                }}
-              >
-                <option value="">What do you sell?</option>
-                <option value="physical-products">Physical Products</option>
-                <option value="digital-products">Digital Products</option>
-                <option value="courses">Courses & Education</option>
-                <option value="services">Services & Consulting</option>
-                <option value="fashion">Fashion & Beauty</option>
-                <option value="food">Food & Beverage</option>
-                <option value="creator">Creator / Personal Brand</option>
-                <option value="other">Other</option>
-              </select>
               <button type="submit" disabled={loading} style={{
                 padding: '13px', borderRadius: 10, border: 'none',
                 cursor: loading ? 'not-allowed' : 'pointer',
@@ -840,7 +877,7 @@ export default function SellSignupPage() {
                         color: 'white', cursor: 'pointer',
                         fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 13,
                       }}
-                    >{loading ? 'Saving...' : 'Continue → $1'}</button>
+                    >{loading ? 'Saving...' : 'Continue → $10'}</button>
                   )}
                 </div>
               </>
@@ -945,7 +982,7 @@ export default function SellSignupPage() {
                       </svg>
                       Redirecting to Paystack...
                     </span>
-                  ) : 'Pay $1 →'}
+                  ) : 'Pay $10 →'}
                 </button>
 
                 <div className="mt-8 grid grid-cols-3 gap-4">

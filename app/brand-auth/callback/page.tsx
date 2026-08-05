@@ -47,16 +47,36 @@ function BrandAuthCallbackContent() {
 
         if (!brandDoc.exists) {
           // Auto-create a minimal brand profile so Google sign-up "just works".
-          const now = new Date().toISOString();
-          await db.doc(`brands/${user.id}`).set({
-            brandName: user.user_metadata?.name || user.user_metadata?.full_name || (user.email ?? 'Brand').split('@')[0],
-            email: (user.email || '').toLowerCase(),
-            userId: user.id,
-            walletBalance: 0,
-            status: 'active',
-            createdAt: now,
-            updatedAt: now,
+          const newBrandName = user.user_metadata?.name || user.user_metadata?.full_name || (user.email ?? 'Brand').split('@')[0];
+          const createResponse = await fetch('/api/brand/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              accessToken: data.session.access_token,
+              email: user.email,
+              brandName: newBrandName,
+              phone: '',
+              website: '',
+              industry: 'Other',
+            }),
           });
+
+          if (!createResponse.ok) {
+            const createData = await createResponse.json().catch(() => ({}));
+            throw new Error(createData.error || 'Failed to create brand profile');
+          }
+
+          // Send brand welcome email (non-blocking)
+          fetch('/api/email/welcome', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              role: 'brand',
+              email: user.email,
+              name: newBrandName,
+              brandName: newBrandName,
+            }),
+          }).catch(() => {});
         }
 
         router.replace(redirectTo);

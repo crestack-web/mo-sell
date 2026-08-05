@@ -17,6 +17,18 @@ import {
 // Lazy initialization of Supabase client to avoid build-time errors
 let supabaseServerInstance: SupabaseClient | null = null;
 
+function readAccessToken(supabaseUrl: string): string | null {
+  try {
+    const ref = supabaseUrl.replace('https://', '').split('.')[0];
+    const raw = window.localStorage.getItem(`sb-${ref}-auth-token`);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed?.access_token || null;
+  } catch {
+    return null;
+  }
+}
+
 export function getSupabaseServer(): SupabaseClient {
   if (supabaseServerInstance) {
     return supabaseServerInstance;
@@ -59,10 +71,23 @@ export class SupabaseAdapter implements DatabaseAdapter {
       ? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'mock-key'
       : process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || 'mock-key';
 
+    // On the client, attach the signed-in user's access token so RLS
+    // policies (e.g. `id = auth.uid()`) resolve correctly for own rows.
+    const headers: Record<string, string> = {};
+    if (isClient && supabaseUrl && !supabaseUrl.includes('mock')) {
+      const token = readAccessToken(supabaseUrl);
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+    }
+
     this.supabase = createClient(supabaseUrl, supabaseKey, {
       auth: {
         autoRefreshToken: false,
         persistSession: false,
+      },
+      global: {
+        headers,
       },
     });
   }

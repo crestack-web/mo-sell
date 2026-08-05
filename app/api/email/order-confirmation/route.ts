@@ -1,47 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerFirestore as getAdminDb } from '@/lib/server-firestore';
+import { sendEmail } from '@/lib/services/email/core';
 
-async function sendBrevoEmail(params: {
-  to: { email: string; name: string };
+async function sendOrderEmail(params: {
+  to: string;
+  name?: string;
   subject: string;
-  htmlContent: string;
-  textContent?: string;
-  sender?: { email: string; name: string };
+  html: string;
+  text?: string;
+  from?: { email: string; name: string };
 }): Promise<{ success: boolean; stub?: boolean }> {
-  const apiKey = process.env.BREVO_API_KEY;
-  if (!apiKey) {
-    console.log('[Email] No BREVO_API_KEY, stubbing email:', params.subject);
-    return { success: true, stub: true };
-  }
-
-  try {
-    const sender = params.sender || { email: 'hello@mo-sell.store', name: 'MO Sell' };
-    const res = await fetch('https://api.brevo.com/v3/smtp/email', {
-      method: 'POST',
-      headers: {
-        'api-key': apiKey,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        sender,
-        to: [params.to],
-        subject: params.subject,
-        htmlContent: params.htmlContent,
-        textContent: params.textContent,
-      }),
-    });
-
-    if (!res.ok) {
-      const err = await res.text();
-      console.error('[Email] Brevo API error:', res.status, err);
-      return { success: false };
-    }
-
-    return { success: true };
-  } catch (err) {
-    console.error('[Email] Failed to send:', err);
-    return { success: false };
-  }
+  const result = await sendEmail({
+    to: params.to,
+    name: params.name,
+    subject: params.subject,
+    html: params.html,
+    text: params.text,
+    from: params.from,
+  });
+  return { success: result.success, stub: result.provider === 'stub' };
 }
 
 export async function POST(req: NextRequest) {
@@ -234,15 +211,13 @@ export async function POST(req: NextRequest) {
       Questions? Contact us at ${merchantEmail}
     `;
 
-    const result = await sendBrevoEmail({
-      to: {
-        email: customerEmail,
-        name: 'Customer',
-      },
+    const result = await sendOrderEmail({
+      to: customerEmail,
+      name: 'Customer',
       subject,
-      htmlContent,
-      textContent,
-      sender: {
+      html: htmlContent,
+      text: textContent,
+      from: {
         email: merchantEmail,
         name: merchantName,
       },

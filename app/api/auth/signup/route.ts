@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase-server';
 import { Resend } from 'resend';
 import { getDatabase } from '@/lib/database/adapter';
+import { sendWelcomeCreatorEmail } from '@/lib/services/email/welcome-emails';
 
 export async function POST(req: NextRequest) {
   try {
@@ -180,6 +181,15 @@ export async function POST(req: NextRequest) {
       } catch (profileError) {
         console.error('[Signup] Failed to create profile records:', profileError);
       }
+
+      // Send welcome email (non-blocking - never fail account creation over email)
+      sendWelcomeCreatorEmail({
+        email: stored.email,
+        name: stored.full_name,
+        businessName: `${stored.full_name}'s Business`,
+      }).catch((emailError) => {
+        console.error('[Signup] Failed to send welcome email:', emailError);
+      });
 
       return NextResponse.json({
         success: true,

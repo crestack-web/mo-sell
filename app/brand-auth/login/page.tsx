@@ -4,7 +4,7 @@ import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabaseClient } from '@/lib/supabase-client';
 import { getDatabase } from '@/lib/database/adapter';
-import { ArrowRight, Mail, Lock, Building, Loader2, AlertCircle } from 'lucide-react';
+import { ArrowRight, Mail, Lock, Loader2, AlertCircle } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -153,11 +153,10 @@ function BrandLoginPageContent() {
         <div style={{ width: '100%', maxWidth: 480 }}>
           {/* Logo */}
           <div style={{ marginBottom: 40, display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 40, height: 40, borderRadius: 8, background: THEME.primary, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Building size={24} color="white" />
-            </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1785078071/mosell_gpzl2q.png" alt="MO Sell" style={{ height: 40, width: 'auto', objectFit: 'contain' }} />
             <span style={{ fontSize: 24, fontWeight: 700, color: THEME.text1, fontFamily: FONTS.display }}>
-              UGC Marketplace
+              MO Sell
             </span>
           </div>
 
