@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Client } from '@/lib/groq-client';
 
-const MODEL = process.env.AI_MODEL || 'llama-3.1-8b-instant';
+const MODEL = process.env.AI_MODEL || 'llama-3.3-70b-versatile';
 
 const UGC_IDEAS_SYSTEM_PROMPT = `
 You are MO — an AI assistant that helps UGC creators generate video content ideas from buyer briefs.

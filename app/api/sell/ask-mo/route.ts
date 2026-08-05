@@ -4,7 +4,7 @@ import { getServerFirestore as getAdminDb, getServerStorage as getAdminStorage, 
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import { ASK_MO_COMMISSION_RATE, ASK_MO_COMMISSION_FIELD, getTokenCost, TOKEN_DOC_PATH, TOKEN_BALANCE_FIELD, ensureFreeTokens, getTokenSpendPlan } from '@/lib/ask-mo-tokens';
 
-const MODEL = process.env.AI_MODEL || 'llama-3.1-8b-instant';
+const MODEL = process.env.AI_MODEL || 'llama-3.3-70b-versatile';
 
 const SELL_MO_SYSTEM_PROMPT = `
 You are MO — the AI commerce assistant inside Busmo, Africa's business operating system.

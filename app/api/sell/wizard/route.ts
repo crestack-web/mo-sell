@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerFirestore as getAdminDb } from '@/lib/server-firestore';
 import { Client } from '@/lib/groq-client';
 
-const MODEL = process.env.AI_MODEL || 'llama-3.1-8b-instant';
+const MODEL = process.env.AI_MODEL || 'llama-3.3-70b-versatile';
 
 const WIZARD_SYSTEM_PROMPT = `
 You are MO — the AI commerce architect inside Busmo, Africa's business operating system.

@@ -6,7 +6,7 @@ The mo-sell application uses Groq for all AI features (Ask Mo, content hub, supp
 
 ```env
 GROQ_API_KEY=your_groq_api_key_here
-AI_MODEL=llama-3.1-8b-instant
+AI_MODEL=llama-3.3-70b-versatile
 ```
 
 ### Getting a Groq API Key

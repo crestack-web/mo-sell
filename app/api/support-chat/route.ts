@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Client } from '@/lib/groq-client';
 
-const MODEL = process.env.AI_MODEL || 'llama-3.1-8b-instant';
+const MODEL = process.env.AI_MODEL || 'llama-3.3-70b-versatile';
 
 const SUPPORT_SYSTEM_PROMPT = `
 You are MO — the AI support agent for MO Sell by Busmo, Africa's business operating system.

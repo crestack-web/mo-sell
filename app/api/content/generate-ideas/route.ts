@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
     }
 
     const client = new Client({ apiKey });
-    const model = process.env.AI_MODEL || 'llama-3.1-8b-instant';
+    const model = process.env.AI_MODEL || 'llama-3.3-70b-versatile';
 
     const productInfo = [
       `Product: ${displayName}`,
