@@ -29,6 +29,7 @@ interface ChatMessage {
   storeUpdate?: Record<string, unknown> | null;
   newProduct?: Record<string, unknown> | null;
   editProduct?: Record<string, unknown> | null;
+  pdf?: { title?: string; url?: string | null; dataUrl?: string | null; pageCount?: number } | null;
   applied?: boolean;
   productCreated?: boolean;
   showPreview?: boolean;
@@ -445,7 +446,8 @@ export function SellAskMoPage() {
           storeUpdate: data.storeUpdate ?? null,
           newProduct: productToShow,
           editProduct: data.editProduct ?? null,
-          showPreview: !!(data.storeUpdate || productToShow || data.editProduct),
+          pdf: data.pdf ?? null,
+          showPreview: !!(data.storeUpdate || productToShow || data.editProduct || data.pdf),
         };
 
         setMessages(prev => {
@@ -726,6 +728,35 @@ export function SellAskMoPage() {
                               <button className={`${styles.confirmBtn} ${styles.confirmBtnSecondary}`} onClick={() => setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, storeUpdate: null } : m))}>Dismiss</button>
                             </>
                           )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* ── Designed PDF Ebook Card ── */}
+                    {msg.pdf && (
+                      <div className={styles.actionCard}>
+                        <div className={styles.actionCardHeader}>
+                          <span className={styles.actionCardIcon}>📕</span>
+                          Designed PDF Ebook
+                        </div>
+                        <div className={styles.actionCardBody}>
+                          {msg.pdf.title && (
+                            <div className={styles.actionCardRow}><span className={styles.actionCardLabel}>Title</span><span className={styles.actionCardValue}>{msg.pdf.title}</span></div>
+                          )}
+                          {msg.pdf.pageCount && (
+                            <div className={styles.actionCardRow}><span className={styles.actionCardLabel}>Pages</span><span className={styles.actionCardValue}>{msg.pdf.pageCount} pages · colorful design</span></div>
+                          )}
+                          <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                            <a
+                              href={msg.pdf.url ?? msg.pdf.dataUrl ?? '#'}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className={`${styles.confirmBtn} ${styles.confirmBtnPrimary}`}
+                              style={{ flex: 1, textAlign: 'center' }}
+                            >
+                              ⬇ Download PDF
+                            </a>
+                          </div>
                         </div>
                       </div>
                     )}

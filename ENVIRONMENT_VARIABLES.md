@@ -7,7 +7,14 @@ The mo-sell application uses Groq for all AI features (Ask Mo, content hub, supp
 ```env
 GROQ_API_KEY=your_groq_api_key_here
 AI_MODEL=llama-3.3-70b-versatile
+PEXELS_API_KEY=your_pexels_api_key_here   # optional — images for Ask MO designed PDF ebooks
 ```
+
+### Getting a Pexels API Key (Ask MO PDF images)
+
+1. Go to https://www.pexels.com/api/
+2. Sign in and create an API key
+3. Add `PEXELS_API_KEY` to your environment. If it is missing, Ask MO still generates the PDF using colored placeholders instead of photos.
 
 ### Getting a Groq API Key
 
