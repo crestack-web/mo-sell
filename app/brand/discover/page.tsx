@@ -56,6 +56,13 @@ const formatFollowerCount = (num: number): string => {
   return num.toString();
 };
 
+const currencySymbol = (currency?: string): string => {
+  if (currency === 'NGN') return '₦';
+  if (currency === 'USD') return '$';
+  if (currency === 'GHS') return 'GH₵';
+  return currency ? `${currency} ` : '₦';
+};
+
 interface Creator {
   id: string;
   userId: string;
@@ -66,6 +73,7 @@ interface Creator {
   niches: string[];
   price30s: number;
   price60s: number;
+  currency?: string;
   price30sDisplay: number;
   price60sDisplay: number;
   deliveryDays: number;
@@ -122,7 +130,7 @@ function BrandDiscoverPageContent() {
   const [priceMax, setPriceMax] = useState('');
   const [sort, setSort] = useState<SortOption>('rating');
   const [selectedCreator, setSelectedCreator] = useState<Creator | null>(null);
-  const [selectedVideo, setSelectedVideo] = useState<{ url: string; price: number; title: string } | null>(null);
+  const [selectedVideo, setSelectedVideo] = useState<{ url: string; price: number; title: string; currency?: string } | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'wallet' | 'direct'>('wallet');
@@ -233,7 +241,7 @@ function BrandDiscoverPageContent() {
     }
   };
 
-  const handleBuyVideo = (video: { url: string; price: number; title: string }) => {
+  const handleBuyVideo = (video: { url: string; price: number; title: string; currency?: string }) => {
     if (!brand) {
       setSelectedVideo(video);
       setShowAuthModal(true);
@@ -646,10 +654,10 @@ function BrandDiscoverPageContent() {
               }}>
                 <div>
                   <div style={{ fontSize: 15, fontWeight: 600, color: THEME.text1 }}>
-                    From ${creator.price30sDisplay ?? 0}/30s
+                    From {currencySymbol(creator.currency)}{creator.price30sDisplay ?? 0}/30s
                   </div>
                   <div style={{ fontSize: 12.5, color: THEME.text3, marginTop: 2 }}>
-                    ${creator.price60sDisplay ?? 0}/60s
+                    {currencySymbol(creator.currency)}{creator.price60sDisplay ?? 0}/60s
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: THEME.text3, fontSize: 13 }}>
@@ -677,6 +685,7 @@ function BrandDiscoverPageContent() {
                         handleBuyVideo({
                           url: video.url,
                           price: creator.price30sDisplay,
+                          currency: creator.currency,
                           title: `${creator.displayName || creator.name}'s Video`,
                         });
                       }}
@@ -714,6 +723,7 @@ function BrandDiscoverPageContent() {
                       handleBuyVideo({
                         url: creator.sampleVideos[0].url,
                         price: creator.price30sDisplay,
+                        currency: creator.currency,
                         title: `${creator.displayName || creator.name}'s Video`,
                       });
                     }
@@ -738,7 +748,7 @@ function BrandDiscoverPageContent() {
                   onMouseLeave={(e) => e.currentTarget.style.background = THEME.primary}
                 >
                   <ShoppingBag size={17} />
-                  Buy Video ${creator.price30sDisplay ?? 0}
+                  Buy Video {currencySymbol(creator.currency)}{creator.price30sDisplay ?? 0}
                 </button>
               </div>
             </div>
@@ -883,7 +893,7 @@ function BrandDiscoverPageContent() {
                 {selectedVideo.title}
               </p>
               <div style={{ fontSize: 30, fontWeight: 700, color: THEME.text1, fontFamily: FONTS.display }}>
-                ${selectedVideo.price.toFixed(2)}
+                {currencySymbol(selectedVideo.currency)}{selectedVideo.price.toFixed(2)}
               </div>
             </div>
 

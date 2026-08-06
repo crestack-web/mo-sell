@@ -43,6 +43,7 @@ export async function GET(req: NextRequest) {
     const result = creators.map(c => ({
       ...c,
       sampleVideos: (videosByCreator[c.userId] ?? []).slice(0, 3),
+      currency: c.currency ?? 'NGN',
       price30sDisplay: (c.price30s ?? 0) / 100,
       price60sDisplay: (c.price60s ?? 0) / 100,
     }));

@@ -939,6 +939,7 @@ export function ContentHub() {
         isBanned: false,
         price30s: Math.round(p30 * 100),
         price60s: Math.round(p60 * 100),
+        currency: storeConfig?.currency ?? 'NGN',
         deliveryDays: Number(deliveryDays) || 5,
         rating: 0,
         totalOrders: 0,

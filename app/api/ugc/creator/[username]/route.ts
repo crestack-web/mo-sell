@@ -46,6 +46,7 @@ export async function GET(
         ...creator,
         sampleVideos: videos,
         completedOrders: completedCount,
+        currency: creator.currency ?? 'NGN',
         price30sDisplay: (creator.price30s ?? 0) / 100,
         price60sDisplay: (creator.price60s ?? 0) / 100,
       },
