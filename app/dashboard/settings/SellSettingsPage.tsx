@@ -147,7 +147,7 @@ export function SellSettingsPage() {
   };
 
   const handleSave = useCallback(async () => {
-    if (!user?.businessId || !storeName.trim()) return;
+    if (!user?.businessId) return;
     setSaving(true);
     try {
       const db = getDatabase();
@@ -193,11 +193,13 @@ export function SellSettingsPage() {
       }, { merge: true });
 
       // Keep storeIndex in sync for O(1) slug -> businessId lookup
-      await db.collection('storeIndex').doc(finalSlug).set({
-        businessId: user.businessId,
-        storeName: storeName.trim(),
-        updatedAt: new Date().toISOString(),
-      }, { merge: true });
+      if (finalSlug) {
+        await db.collection('storeIndex').doc(finalSlug).set({
+          businessId: user.businessId,
+          storeName: storeName.trim(),
+          updatedAt: new Date().toISOString(),
+        }, { merge: true });
+      }
 
       await refreshStoreConfig();
       setImageFile(null);
@@ -654,7 +656,7 @@ export function SellSettingsPage() {
         </div>
         <div className={styles.cardBody}>
           <div className={styles.saveRow}>
-            <button className={`${styles.btn} ${styles.btnPrimary}`} onClick={handleSave} disabled={saving || !dirty || !storeName.trim()}>
+            <button className={`${styles.btn} ${styles.btnPrimary}`} onClick={handleSave} disabled={saving || !dirty}>
               {saving
                 ? <><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ animation: 'spin 0.7s linear infinite' }}><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>Saving…</>
                 : <><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>Save settings</>}
