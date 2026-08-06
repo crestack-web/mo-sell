@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Client } from '@/lib/groq-client';
 import { estimateTokens, chunkHistory, sanitizeOutput } from '@/lib/ask-mo-safety';
-import { generateDesignedPdf } from '@/lib/ask-mo-pdf';
+import { generateDesignedPdf, generateEbookPdf } from '@/lib/ask-mo-pdf';
+import { getServerFirestore as getAdminDb } from '@/lib/server-firestore';
 
 const MODEL = process.env.AI_MODEL_FAST || 'llama-3.1-8b-instant';
 
@@ -23,8 +24,8 @@ WHO YOU ARE:
 
 WHAT YOU CAN DO:
 1. EDIT THE STORE — name, colors, tagline, collections, policy, theme, FAQ
-2. CREATE DIGITAL PRODUCTS — ebooks, templates, courses, tickets — with title, description, price, category, tags
-3. EDIT DIGITAL PRODUCTS — modify any product you previously created (change title, chapters, price, description, add/remove sections)
+2. CREATE PRODUCTS — physical goods or digital products (ebooks, templates, courses, tickets) — with title, description, price, category, tags
+3. EDIT PRODUCTS — modify any product you previously created (change title, chapters, price, description, add/remove sections)
 4. GENERAL HELP — product descriptions, collection ideas, pricing advice, marketing tips
 
 HOW TO RESPOND:
@@ -56,7 +57,7 @@ When the user wants to EDIT their store, append this at the END of your message:
 }
 \`\`\`
 
-When the user wants to CREATE a digital product, append this at the END of your message:
+When the user wants to CREATE a product (physical or digital), append this at the END of your message:
 
 \`\`\`new_product
 {
@@ -64,10 +65,12 @@ When the user wants to CREATE a digital product, append this at the END of your 
   "description": "Compelling product description (2-3 sentences that sell the value)",
   "price": 5000,
   "currency": "NGN",
-  "productType": "digital",
+  "productType": "physical|digital",
   "digitalSubtype": "ebook|template|course|ticket",
   "category": "one of: fashion|beauty|food|electronics|home|health|services|general|digital",
   "tags": ["tag1", "tag2"],
+  "stock": 10,
+  "deliveryNote": "Optional note for physical products",
   "pdfContent": {
     "title": "PDF Document Title",
     "subtitle": "Optional subtitle",
@@ -108,8 +111,11 @@ When the user wants to EDIT/UPDATE an existing product, append this at the END o
 
 RULES FOR new_product:
 - price must be a positive number (no currency symbol)
-- digitalSubtype must be one of: ebook, template, course, ticket
-- pdfContent is REQUIRED for digital products — this is the actual product the customer pays for
+- productType must be either "physical" (tangible goods: clothes, food, electronics, home items, etc.) or "digital" (downloadable content)
+- For DIGITAL products include: digitalSubtype (one of: ebook, template, course, ticket) and pdfContent (REQUIRED) — this is the actual product the customer pays for
+- For PHYSICAL products do NOT include pdfContent. Optionally include: stock (quantity available, defaults to 10), sku, images, deliveryNote
+- Infer the product type from what the user describes: tangible items they ship → "physical"; downloadable content → "digital"
+- If the user asks for an ebook, always produce full chapter content
 - Generate 5-8 chapters of SUBSTANTIAL, SELLABLE content
 - Each chapter MUST be 500-1000 words — real educational value, not surface-level fluff
 - Every chapter MUST include: actionable steps, real-world examples, specific tips, and practical advice
@@ -234,6 +240,7 @@ async function callGrok(
 
     // 2. Auto-retry with an aggressively compact prompt on 413
     retried = true;
+    console.warn('[AskMo] First attempt failed (request too large), retrying compact:', msg);
     const compact: { role: 'user' | 'assistant' | 'system'; content: string }[] = [
       { role: 'system', content: COMPACT_SYSTEM_PROMPT },
       ...history.slice(-2),
@@ -324,7 +331,7 @@ export async function POST(req: NextRequest) {
       content: h.parts[0]?.text || '',
     }));
 
-    const { text: responseText, retried } = await callGrok(client, SELL_MO_SYSTEM_PROMPT, grokHistory, message, attachments);
+    const { text: responseText } = await callGrok(client, SELL_MO_SYSTEM_PROMPT, grokHistory, message, attachments);
 
     // Parse response for JSON blocks
     const storeUpdateMatch = responseText.match(/```store_update\n([\s\S]+?)\n```/);
@@ -369,14 +376,9 @@ export async function POST(req: NextRequest) {
         .trim(),
     );
 
-    const finalAnswer = retried
-      ? `This request was a bit long. Let me make a shorter version for you.\n\n${cleanText}`
-      : cleanText;
-
     return NextResponse.json({
-      answer: finalAnswer,
+      answer: cleanText,
       raw: responseText,
-      wasLong: retried,
       storeUpdate,
       newProduct,
       editProduct,
@@ -386,5 +388,104 @@ export async function POST(req: NextRequest) {
     console.error('[AskMo] Error:', err);
     const msg = err instanceof Error ? err.message : 'Internal server error';
     return NextResponse.json({ error: msg || 'Internal server error' }, { status: 500 });
+  }
+}
+
+// ── Helper: create a product in Firestore (generates ebook PDF when present) ─
+
+async function createProductInFirestore(
+  businessId: string,
+  productData: Record<string, unknown>,
+  storeConfig: Record<string, unknown> | null,
+): Promise<Record<string, unknown>> {
+  const db = getAdminDb();
+  const pdfContent = productData.pdfContent as
+    | { title?: string; subtitle?: string; chapters?: { heading?: string; body?: string }[]; author?: string }
+    | undefined;
+  const productType = productData.productType === 'physical' ? 'physical' : 'digital';
+  const chapters = Array.isArray(pdfContent?.chapters)
+    ? pdfContent.chapters.filter(c => c && (c.heading || c.body))
+    : [];
+
+  let digitalFileUrl: string | null = null;
+  let digitalFileName: string | null = null;
+  if (chapters.length > 0) {
+    const uploaded = await generateEbookPdf({
+      businessId,
+      title: pdfContent?.title || String(productData.displayName || 'Digital Product'),
+      subtitle: pdfContent?.subtitle,
+      chapters,
+      author: pdfContent?.author,
+      storeName: (storeConfig?.storeName as string) ?? null,
+    });
+    digitalFileUrl = uploaded.url;
+    digitalFileName = uploaded.fileName;
+  }
+
+  const payload: Record<string, unknown> = {
+    displayName: productData.displayName,
+    description: productData.description ?? '',
+    price: productData.price ?? 0,
+    currency: (productData.currency as string) || (storeConfig?.currency as string) || 'NGN',
+    productType,
+    digitalSubtype: productType === 'digital' ? (productData.digitalSubtype ?? 'ebook') : null,
+    category: productData.category ?? 'general',
+    tags: Array.isArray(productData.tags) ? productData.tags : [],
+    images: Array.isArray(productData.images) ? productData.images : [],
+    collectionIds: [],
+    stock: productType === 'physical' ? (productData.stock ?? 10) : 9999,
+    sku: productData.sku ?? null,
+    available: true,
+    featured: false,
+    digitalFileUrl,
+    digitalFileName,
+    pdfContent: chapters.length > 0 ? pdfContent : null,
+    deliveryNote: productType === 'physical' ? (productData.deliveryNote ?? null) : null,
+    compareAtPrice: productData.compareAtPrice ?? null,
+    lowStockThreshold: 10,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  const docRef = await db
+    .collection('businesses').doc(businessId)
+    .collection('storeProducts')
+    .add(payload);
+  await docRef.update({ productId: docRef.id });
+
+  return { id: docRef.id, ...payload };
+}
+
+// ── PUT Handler (approve a proposed product → create in Firestore) ──────────
+
+export async function PUT(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const { businessId, storeConfig, productData } = body as {
+      businessId?: string;
+      storeConfig: Record<string, unknown> | null;
+      productData: Record<string, unknown>;
+    };
+
+    if (!businessId) {
+      return NextResponse.json({ error: 'businessId is required' }, { status: 400 });
+    }
+    if (!productData || typeof productData !== 'object' || !productData.displayName) {
+      return NextResponse.json(
+        { error: 'Valid productData with displayName is required' },
+        { status: 400 },
+      );
+    }
+
+    const created = await createProductInFirestore(businessId, productData, storeConfig);
+
+    return NextResponse.json({ success: true, product: created });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('[AskMo] Approve error:', msg);
+    return NextResponse.json(
+      { error: 'Failed to approve product', details: msg },
+      { status: 500 },
+    );
   }
 }

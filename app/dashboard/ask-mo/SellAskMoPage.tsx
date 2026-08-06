@@ -32,6 +32,7 @@ interface ChatMessage {
   pdf?: { title?: string; url?: string | null; dataUrl?: string | null; pageCount?: number } | null;
   needsTokens?: boolean;
   applied?: boolean;
+  approved?: boolean;
   productCreated?: boolean;
   showPreview?: boolean;
 }
@@ -81,6 +82,22 @@ const SUGGESTIONS: Suggestion[] = [
 const MO_AVATAR = 'https://res.cloudinary.com/dzjoqbg2u/image/upload/v1784793259/mo_sell_chat_ucbw3x.png';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+const CURRENCY_SYMBOL: Record<string, string> = {
+  NGN: '₦',
+  USD: '$',
+  GHS: 'GH₵',
+  KES: 'KSh',
+  ZAR: 'R',
+  UGX: 'USh',
+  TZS: 'TSh',
+  XOF: 'FCFA',
+  XAF: 'FCFA',
+};
+
+function currencySymbol(currency?: string | null): string {
+  return CURRENCY_SYMBOL[(currency || 'NGN').toUpperCase()] || '₦';
+}
 
 let msgIdCounter = 0;
 function nextMsgId(): string {
@@ -643,8 +660,10 @@ export function SellAskMoPage() {
             productData,
           }),
         });
-        const data = await res.json();
-        if (!res.ok || !data.success) throw new Error(data.error || data.details || 'Approval failed');
+        const data = await res.json().catch(() => null);
+        if (!data || !res.ok || !data.success) {
+          throw new Error((data && (data.error || data.details)) || 'Approval failed');
+        }
 
         // Update the message with the created product (now has id + digitalFileUrl)
         // Do NOT set productCreated yet — user must click "Looks Good" or "Publish to Store"
@@ -652,13 +671,14 @@ export function SellAskMoPage() {
           if (msg.id === msgId) {
             return {
               ...msg,
+              approved: true,
               newProduct: { ...productData, ...data.product },
             };
           }
           return msg;
         }));
 
-        showToast('Ebook created successfully! Preview it below.', 'success');
+        showToast('Product created successfully! Preview it below.', 'success');
       } catch (err) {
         const errMsg = err instanceof Error ? err.message : 'Failed to approve product';
         showToast(errMsg, 'error');
@@ -900,8 +920,13 @@ export function SellAskMoPage() {
                         <div className={styles.actionCardBody}>
                           <div className={styles.actionCardRow}><span className={styles.actionCardLabel}>Name</span><span className={styles.actionCardValue}>{String(msg.newProduct.displayName)}</span></div>
                           <div className={styles.actionCardRow}><span className={styles.actionCardLabel}>Type</span><span className={styles.actionCardValue}>{String(msg.newProduct.digitalSubtype || msg.newProduct.productType)}</span></div>
-                          <div className={styles.actionCardRow}><span className={styles.actionCardLabel}>Price</span><span className={styles.actionCardValue}>₦{Number(msg.newProduct.price).toLocaleString()}</span></div>
+                          <div className={styles.actionCardRow}><span className={styles.actionCardLabel}>Price</span><span className={styles.actionCardValue}>{currencySymbol(typeof msg.newProduct.currency === 'string' ? msg.newProduct.currency : null)}{Number(msg.newProduct.price).toLocaleString()}</span></div>
                           {msg.newProduct.category ? <div className={styles.actionCardRow}><span className={styles.actionCardLabel}>Category</span><span className={styles.actionCardValue}>{String(msg.newProduct.category)}</span></div> : null}
+                          {(msg.newProduct.productType === 'physical' && msg.newProduct.stock != null) ? <div className={styles.actionCardRow}><span className={styles.actionCardLabel}>Stock</span><span className={styles.actionCardValue}>{String(msg.newProduct.stock)}</span></div> : null}
+                          {msg.newProduct.sku ? <div className={styles.actionCardRow}><span className={styles.actionCardLabel}>SKU</span><span className={styles.actionCardValue}>{String(msg.newProduct.sku)}</span></div> : null}
+                          {msg.newProduct.deliveryNote ? (
+                            <div className={styles.actionCardRow}><span className={styles.actionCardLabel}>Delivery note</span><span className={styles.actionCardValue}>{String(msg.newProduct.deliveryNote)}</span></div>
+                          ) : null}
                           {msg.newProduct.description ? (
                             <div style={{ fontSize: '11.5px', color: 'var(--sell-text-muted, #6b7280)', lineHeight: 1.5, marginTop: 4 }}>
                               {String(msg.newProduct.description)}
@@ -962,9 +987,9 @@ export function SellAskMoPage() {
                           )}
                         </div>
                         <div className={styles.actionCardFooter}>
-                          {msg.productCreated && msg.newProduct?.digitalFileUrl ? (
+                          {msg.productCreated ? (
                             <span className={styles.appliedLabel}>✓ Product live in your store</span>
-                          ) : msg.newProduct?.digitalFileUrl ? (
+                          ) : (msg.approved || (msg.newProduct as any)?.id || msg.newProduct?.digitalFileUrl) ? (
                             <>
                               <button
                                 className={`${styles.confirmBtn} ${styles.confirmBtnPrimary}`}

@@ -13,6 +13,7 @@ import { Client } from '@/lib/groq-client';
 import { estimateTokens } from '@/lib/ask-mo-safety';
 import { EbookPdfData, RecipeEbookPages } from '@/components/pdf/ebook_recipe_5page';
 import { EbookCoverCollage, CoverCollageData } from '@/components/pdf/ebook_cover_collage';
+import { EbookChaptersDocument } from '@/components/pdf/ebook_chapters';
 import { renderToBuffer, Document } from '@react-pdf/renderer';
 import { getTokenBalance, deductTokens, TOKEN_COSTS } from '@/lib/ask-mo-tokens';
 import { getServerFirestore } from '@/lib/server-firestore';
@@ -168,6 +169,36 @@ async function uploadPdf(bytes: Uint8Array, businessId: string | null, title: st
   // Fallback: return the PDF inline so the user can still download it.
   const base64 = Buffer.from(bytes).toString('base64');
   return { url: null, dataUrl: `data:application/pdf;base64,${base64}` };
+}
+
+export interface EbookPdfInput {
+  businessId: string;
+  title: string;
+  subtitle?: string | null;
+  chapters: { heading?: string; body?: string }[];
+  author?: string | null;
+  storeName?: string | null;
+}
+
+export async function generateEbookPdf(params: EbookPdfInput): Promise<{ url: string | null; fileName: string }> {
+  const { businessId, title, subtitle, chapters, author, storeName } = params;
+  const safeChapters = Array.isArray(chapters)
+    ? chapters.filter(c => c && (c.heading || c.body))
+    : [];
+
+  const buffer = await renderToBuffer(
+    <EbookChaptersDocument
+      data={{
+        title: title || 'Digital Product',
+        subtitle: subtitle ?? null,
+        author: author || storeName || 'Busmo Merchant',
+        chapters: safeChapters,
+      }}
+    />,
+  );
+
+  const { url, dataUrl } = await uploadPdf(buffer, businessId, title || 'digital-product');
+  return { url: url || dataUrl, fileName: `${slugify(title || 'digital-product')}.pdf` };
 }
 
 export async function generateDesignedPdf(params: {
