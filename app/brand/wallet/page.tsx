@@ -5,6 +5,7 @@ import { getDatabase } from '@/lib/database/adapter';
 import { supabaseClient } from '@/lib/supabase-client';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useToast } from '@/components/brand/ToastProvider';
+import { convertFromUsd, convertToUsd, getUserCountryCode } from '@/lib/currency';
 import { 
   Wallet, 
   Plus, 
@@ -49,7 +50,13 @@ interface Transaction {
   paymentMethod?: string;
 }
 
-const TOPUP_AMOUNTS = [50, 100, 250];
+type TopUpCurrency = 'USD' | 'NGN';
+
+const TOPUP_AMOUNTS: Record<TopUpCurrency, number[]> = {
+  USD: [50, 100, 250],
+  NGN: [25000, 50000, 100000],
+};
+const MIN_TOPUP_USD = 10;
 
 export default function BrandWalletPage() {
   const router = useRouter();
@@ -64,6 +71,12 @@ export default function BrandWalletPage() {
   const [toppingUp, setToppingUp] = useState(false);
   const [customAmount, setCustomAmount] = useState('');
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
+  const [currency, setCurrency] = useState<TopUpCurrency>('USD');
+
+  const currencySymbol = currency === 'NGN' ? '₦' : '$';
+  const minAmount = currency === 'NGN'
+    ? Math.round(convertFromUsd(MIN_TOPUP_USD, 'NG'))
+    : MIN_TOPUP_USD;
 
   useEffect(() => {
     loadWalletData();
@@ -89,13 +102,20 @@ export default function BrandWalletPage() {
       if (brandQuery.docs.length === 0) return;
       
       const brand = brandQuery.docs[0].data();
-      const brandId = brandQuery.docs[0].id;
+      const id = brandQuery.docs[0].id;
 
-      setBalance(brand.walletBalance || 0);
+      setBalance(Number(brand.walletBalance) || 0);
+
+      const savedCurrency = brand.topupCurrency as TopUpCurrency | undefined;
+      if (savedCurrency === 'NGN' || savedCurrency === 'USD') {
+        setCurrency(savedCurrency);
+      } else if (['NG', 'GH', 'NE', 'CM'].includes(getUserCountryCode())) {
+        setCurrency('NGN');
+      }
 
       // Get transactions
       const transactionsQuery = await db.collection('wallet_transactions')
-        .where('brandId', '==', brandId)
+        .where('brandId', '==', id)
         .get();
       
       const txs = transactionsQuery.docs.map(doc => doc.data() as Transaction);
@@ -117,9 +137,9 @@ export default function BrandWalletPage() {
       const brandQuery = await db.collection('brands').where('userId', '==', user.id).limit(1).get();
       if (brandQuery.docs.length === 0) return;
       
-      const brandId = brandQuery.docs[0].id;
+      const id = brandQuery.docs[0].id;
 
-      const response = await fetch(`/api/brand/wallet/topup?amount=${amount}&brandId=${brandId}`, {
+      const response = await fetch(`/api/brand/wallet/topup?amount=${amount}&brandId=${id}&currency=${currency}`, {
         method: 'POST',
       });
 
@@ -143,8 +163,8 @@ export default function BrandWalletPage() {
       alert('Please enter a valid amount');
       return;
     }
-    if (amount < 10) {
-      alert('Minimum top-up amount is $10');
+    if (amount < minAmount) {
+      alert(`Minimum top-up amount is ${currencySymbol}${minAmount.toLocaleString()}`);
       return;
     }
     handleTopUp(amount);
@@ -161,7 +181,8 @@ export default function BrandWalletPage() {
   };
 
   const formatAmount = (amount: number) => {
-    return amount >= 0 ? `+$${amount.toFixed(2)}` : `-$${Math.abs(amount).toFixed(2)}`;
+    const n = Number(amount) || 0;
+    return n >= 0 ? `+$${n.toFixed(2)}` : `-$${Math.abs(n).toFixed(2)}`;
   };
 
   if (loading) {
@@ -246,10 +267,41 @@ export default function BrandWalletPage() {
 
         <div style={{ marginBottom: 20 }}>
           <label style={{ display: 'block', fontSize: 14, fontWeight: 500, color: THEME.text2, marginBottom: 12 }}>
+            Top-Up Currency
+          </label>
+          <div style={{ display: 'flex', gap: 12 }}>
+            {(['USD', 'NGN'] as TopUpCurrency[]).map((c) => (
+              <button
+                key={c}
+                onClick={() => {
+                  setCurrency(c);
+                  setSelectedAmount(null);
+                  setCustomAmount('');
+                }}
+                style={{
+                  padding: '12px 20px',
+                  background: currency === c ? `${THEME.primary}20` : THEME.bg,
+                  border: currency === c ? `2px solid ${THEME.primary}` : `1px solid ${THEME.border}`,
+                  borderRadius: 8,
+                  color: currency === c ? THEME.primary : THEME.text1,
+                  fontSize: 14,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                }}
+              >
+                {c === 'NGN' ? '₦ Naira (NGN)' : '$ Dollar (USD)'}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ marginBottom: 20 }}>
+          <label style={{ display: 'block', fontSize: 14, fontWeight: 500, color: THEME.text2, marginBottom: 12 }}>
             Quick Amount
           </label>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-            {TOPUP_AMOUNTS.map((amount) => (
+            {TOPUP_AMOUNTS[currency].map((amount) => (
               <button
                 key={amount}
                 onClick={() => {
@@ -271,7 +323,7 @@ export default function BrandWalletPage() {
                 onMouseEnter={(e) => !toppingUp && (e.currentTarget.style.borderColor = THEME.primary)}
                 onMouseLeave={(e) => !toppingUp && (e.currentTarget.style.borderColor = selectedAmount === amount ? THEME.primary : THEME.border)}
               >
-                ${amount}
+                {currencySymbol}{amount.toLocaleString()}
               </button>
             ))}
           </div>
@@ -292,7 +344,7 @@ export default function BrandWalletPage() {
                 fontWeight: 600, 
                 color: THEME.text3 
               }}>
-                $
+                {currencySymbol}
               </span>
               <input
                 type="number"
@@ -383,15 +435,38 @@ export default function BrandWalletPage() {
                 Processing...
               </>
             ) : (
-              `Top Up $${selectedAmount}`
+              `Top Up ${currencySymbol}${selectedAmount.toLocaleString()}`
             )}
           </button>
         )}
 
+        {(() => {
+          const raw = selectedAmount ?? parseFloat(customAmount);
+          if (!raw || isNaN(raw)) return null;
+          const chargeNgn = currency === 'NGN'
+            ? Math.round(raw)
+            : Math.round(convertFromUsd(raw, 'NG'));
+          const creditUsd = currency === 'NGN'
+            ? convertToUsd(raw, 'NG')
+            : raw;
+          return (
+            <div style={{ marginTop: 12, padding: 12, borderRadius: 8, background: THEME.bg, border: `1px solid ${THEME.border}` }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: THEME.text2, marginBottom: 6 }}>
+                <span>Paystack charge (NGN)</span>
+                <span style={{ color: THEME.text1, fontWeight: 600 }}>₦{chargeNgn.toLocaleString()}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: THEME.text2 }}>
+                <span>Wallet credit</span>
+                <span style={{ color: THEME.text1, fontWeight: 600 }}>${Number(creditUsd).toFixed(2)}</span>
+              </div>
+            </div>
+          );
+        })()}
+
         <div style={{ marginTop: 16, padding: 12, borderRadius: 8, background: `${THEME.primary}10`, border: `1px solid ${THEME.primary}30` }}>
           <div style={{ display: 'flex', gap: 8, fontSize: 13, color: THEME.text2 }}>
             <AlertCircle size={16} color={THEME.primary} />
-            <span>Minimum top-up amount is $10. All payments are processed securely via Paystack.</span>
+            <span>Minimum top-up amount is {currencySymbol}{minAmount.toLocaleString()}. All payments are processed securely via Paystack.</span>
           </div>
         </div>
       </div>
@@ -462,7 +537,7 @@ export default function BrandWalletPage() {
                   <div style={{ 
                     fontSize: 16, 
                     fontWeight: 600, 
-                    color: tx.amount >= 0 ? THEME.success : THEME.error,
+                    color: Number(tx.amount) >= 0 ? THEME.success : THEME.error,
                     fontFamily: FONTS.display,
                   }}>
                     {formatAmount(tx.amount)}

@@ -7,7 +7,7 @@ import { useSell } from '@/context/SellContext';
 import styles from './LinkInBioEditor.module.css';
 
 export function LinkInBioEditor() {
-  const { user, storeConfig, refreshStoreConfig, showToast } = useSell();
+  const { user, storeConfig, storeConfigLoading, refreshStoreConfig, showToast } = useSell();
   const [form, setForm] = useState<any>(null);
   const [saving, setSaving] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -15,17 +15,17 @@ export function LinkInBioEditor() {
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    if (storeConfigLoading) return;
     const linkInBio = (storeConfig as any)?.linkInBio;
-    if (!linkInBio) return;
     setForm({
-      bio: linkInBio.bio || '',
-      avatarUrl: linkInBio.avatarUrl || null,
-      links: linkInBio.links || [],
-      theme: linkInBio.theme || 'light',
-      showBusmoBadge: linkInBio.showBusmoBadge ?? true,
+      bio: linkInBio?.bio || '',
+      avatarUrl: linkInBio?.avatarUrl || null,
+      links: linkInBio?.links || [],
+      theme: linkInBio?.theme || 'light',
+      showBusmoBadge: linkInBio?.showBusmoBadge ?? true,
     });
-    setAvatarPreview(linkInBio.avatarUrl || null);
-  }, [storeConfig]);
+    setAvatarPreview(linkInBio?.avatarUrl || null);
+  }, [storeConfig, storeConfigLoading]);
 
   const handleSave = useCallback(async () => {
     if (!user?.businessId || !form) return;

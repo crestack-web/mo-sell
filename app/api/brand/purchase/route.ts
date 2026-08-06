@@ -169,34 +169,8 @@ export async function POST(request: NextRequest) {
       const reference = `VIDEO_PURCHASE_${Date.now()}_${brandId}_${videoId}`;
       const amountInNaira = convertFromUsd(price, 'NG');
 
-      const response = await fetch('https://us-central1-bizassistant2-62305643-adad7.cloudfunctions.net/initializePayment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          plan: 'video-purchase',
-          userId: brandId,
-          email: brandData.email,
-          amount: amountInNaira,
-          currency: 'NGN',
-          billing: 'onetime',
-          callback_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/brand/purchase/verify?reference=${reference}`,
-          metadata: {
-            type: 'video_purchase',
-            brandId,
-            videoId,
-            creatorId,
-            price,
-            reference,
-          },
-        }),
-      });
-
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to initialize payment');
-      }
-
-      // Create pending transaction
+      // Create pending transaction BEFORE initializing payment so the verify
+      // route can resolve it when Paystack redirects back.
       const transactionRef = db.collection('wallet_transactions').doc();
       await transactionRef.set({
         id: transactionRef.id,
@@ -211,11 +185,46 @@ export async function POST(request: NextRequest) {
         paymentReference: reference,
         status: 'pending',
         createdAt: new Date().toISOString(),
-        metadata: {
-          paystackReference: data.data?.reference,
-          isDirectPayment: true,
-        },
       });
+
+      const paystackSecret = process.env.PAYSTACK_SECRET_KEY;
+      if (!paystackSecret) {
+        await db.doc(`wallet_transactions/${transactionRef.id}`).update({ status: 'failed' });
+        return NextResponse.json(
+          { success: false, error: 'Paystack not configured' },
+          { status: 503 },
+        );
+      }
+
+      const response = await fetch('https://api.paystack.co/transaction/initialize', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${paystackSecret}`,
+        },
+        body: JSON.stringify({
+          email: brandData.email,
+          amount: Math.round(amountInNaira * 100),
+          currency: 'NGN',
+          reference,
+          callback_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/brand/purchase/verify?reference=${reference}`,
+          metadata: {
+            type: 'video_purchase',
+            brandId,
+            videoId,
+            creatorId,
+            price,
+            reference,
+            transactionId: transactionRef.id,
+          },
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok || !data.status) {
+        await db.doc(`wallet_transactions/${transactionRef.id}`).update({ status: 'failed' });
+        throw new Error(data.message || 'Failed to initialize payment');
+      }
 
       return NextResponse.json({
         success: true,

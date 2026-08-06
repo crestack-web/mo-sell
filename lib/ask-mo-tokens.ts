@@ -68,72 +68,63 @@ export const TOKEN_PURCHASED_FIELD = 'askMoTotalPurchased';
 export const TOKEN_MONTH_USAGE_FIELD = 'askMoMonthUsage';
 export const TOKEN_MONTH_RESET_FIELD = 'askMoMonthReset';
 
-// ─── Free Tokens (one-time grant for all users) ────────────────────────────────
+// ─── Balance helpers (server-side) ─────────────────────────────────────────────
 
-/** Free tokens every user gets on first Ask Mo access */
-export const FREE_TOKEN_AMOUNT = 2000;
-export const FREE_TOKENS_CREDITED_FIELD = 'askMoFreeTokensCredited';
-
-// ─── Ensure free tokens (shared across APIs) ──────────────────────────────────
+import { FieldValue } from '@/lib/server-firestore';
 
 /**
- * Ensures the business has been granted FREE_TOKEN_AMOUNT once.
- * Call this before any token check so users always get their 2000 free tokens
- * regardless of which API route is hit first.
+ * Reads the current token balance for a business.
+ * NOTE: no free-token grant happens here — users start at 0 and purchase tokens.
+ * Chat stays free (llama-instant); PDF/ebook creation costs tokens (llama-versatile).
  */
-export async function ensureFreeTokens(
+export async function getTokenBalance(
   db: any,
   businessId: string,
 ): Promise<number> {
-  const docRef = db.doc(TOKEN_DOC_PATH(businessId));
-  const snap = await docRef.get();
-  const data = snap.data() ?? {};
-
-  const currentBalance = (data[TOKEN_BALANCE_FIELD] as number) ?? 0;
-  const hasBalanceField = TOKEN_BALANCE_FIELD in data;
-  const credited = !!data[FREE_TOKENS_CREDITED_FIELD];
-  const totalPurchased = (data[TOKEN_PURCHASED_FIELD] as number) ?? 0;
-
-  // 1) Brand-new user: no balance field at all → grant 2000
-  if (!hasBalanceField) {
-    try {
-      await docRef.set({
-        [TOKEN_BALANCE_FIELD]: FREE_TOKEN_AMOUNT,
-        [FREE_TOKENS_CREDITED_FIELD]: true,
-      }, { merge: true });
-      return FREE_TOKEN_AMOUNT;
-    } catch {
-      return 0;
-    }
-  }
-
-  // 2) Already credited → return what they have
-  if (credited) {
-    // Edge-case: credited but balance=0 and never purchased (bug from earlier deployment)
-    if (currentBalance === 0 && totalPurchased === 0) {
-      try {
-        await docRef.set({
-          [TOKEN_BALANCE_FIELD]: FREE_TOKEN_AMOUNT,
-        }, { merge: true });
-        return FREE_TOKEN_AMOUNT;
-      } catch {
-        return 0;
-      }
-    }
-    return currentBalance;
-  }
-
-  // 3) Has balance field but not yet credited → grant free tokens on top
   try {
-    const newBalance = currentBalance + FREE_TOKEN_AMOUNT;
-    await docRef.set({
-      [TOKEN_BALANCE_FIELD]: newBalance,
-      [FREE_TOKENS_CREDITED_FIELD]: true,
-    }, { merge: true });
-    return newBalance;
+    const snap = await db.doc(TOKEN_DOC_PATH(businessId)).get();
+    return (snap.data()?.[TOKEN_BALANCE_FIELD] as number) ?? 0;
   } catch {
-    return currentBalance;
+    return 0;
   }
+}
+
+/**
+ * Atomically deducts `amount` tokens. Throws 'Insufficient tokens' when the
+ * balance is too low so the caller can decide how to surface it.
+ */
+export async function deductTokens(
+  db: any,
+  businessId: string,
+  amount: number,
+): Promise<number> {
+  const docRef = db.doc(TOKEN_DOC_PATH(businessId));
+
+  const result = await db.runTransaction(async (tx: any) => {
+    const snap = await tx.get(docRef);
+    const data = snap.data() ?? {};
+    const currentBalance = (data[TOKEN_BALANCE_FIELD] as number) ?? 0;
+    const currentMonthUsage = (data[TOKEN_MONTH_USAGE_FIELD] as number) ?? 0;
+    const monthReset = (data[TOKEN_MONTH_RESET_FIELD] as number) ?? 0;
+
+    if (currentBalance < amount) {
+      throw new Error('Insufficient tokens');
+    }
+
+    const now = Date.now();
+    const currentMonth = new Date(now).toISOString().slice(0, 7);
+    const resetMonth = monthReset ? new Date(monthReset).toISOString().slice(0, 7) : '';
+
+    tx.update(docRef, {
+      [TOKEN_BALANCE_FIELD]: FieldValue.increment(-amount),
+      [TOKEN_MONTH_USAGE_FIELD]: (resetMonth === currentMonth ? currentMonthUsage : 0) + amount,
+      [TOKEN_MONTH_RESET_FIELD]: now,
+    });
+
+    return currentBalance - amount;
+  });
+
+  return result;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

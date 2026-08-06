@@ -6,6 +6,16 @@
   background: var(--sell-bg, #f8fafc);
 }
 
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 200px;
+  color: var(--sell-text-2, #64748b);
+  font-size: 0.88rem;
+}
+
 .previewCol {
   flex-shrink: 0;
   width: 375px;

@@ -3,7 +3,7 @@ import { Client } from '@/lib/groq-client';
 import { estimateTokens, chunkHistory, sanitizeOutput } from '@/lib/ask-mo-safety';
 import { generateDesignedPdf } from '@/lib/ask-mo-pdf';
 
-const MODEL = process.env.AI_MODEL || 'llama-3.3-70b-versatile';
+const MODEL = process.env.AI_MODEL || 'llama-3.3-70b-instant';
 
 const GUARDRAIL = `
 SECURITY RULES — ALWAYS:
@@ -298,6 +298,20 @@ export async function POST(req: NextRequest) {
             pageCount: pdfResult.pageCount,
           },
           pdfGenerated: true,
+          provider: 'grok',
+        });
+      }
+      // No tokens → ask the user to purchase before generating.
+      if (pdfResult.tokensRequired) {
+        const answer =
+          'PDF & ebook creation needs Ask MO tokens. Top up your token balance and I’ll build it right away.';
+        return NextResponse.json({
+          answer,
+          raw: answer,
+          purchaseRequired: true,
+          pdfBlocked: true,
+          pdfCost: pdfResult.requiredTokens ?? 500,
+          pdfBalance: pdfResult.balance ?? 0,
           provider: 'grok',
         });
       }

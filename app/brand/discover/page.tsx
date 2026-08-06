@@ -7,7 +7,7 @@ import type { User } from 'firebase/auth';
 import { initializeFirebase } from '@/lib/firebase';
 import { supabaseClient } from '@/lib/supabase-client';
 import { ToastProvider, useToast } from '@/components/brand/ToastProvider';
-import { Star, Clock, Play, Filter, Search, X, Loader2, User as UserIcon, ChevronRight, ShoppingBag, Wallet, CreditCard } from 'lucide-react';
+import { Star, Clock, Play, Filter, Search, X, Loader2, User as UserIcon, ChevronRight, ShoppingBag, Wallet, CreditCard, Sparkles } from 'lucide-react';
 
 // ── Theme ────────────────────────────────────────────────────────────────────
 const THEME = {
@@ -69,6 +69,15 @@ interface Creator {
   socialLinks?: Record<string, string>;
   socialVerified?: Record<string, string>;
   followerCounts?: Record<string, number>;
+  score?: number | null;
+  grade?: string | null;
+  metrics?: {
+    er?: number | null;
+    avgViews?: number | null;
+    topHashtags?: { name: string; count: number }[];
+    audienceGuess?: { primary: string; confidence: number } | null;
+    followers?: number | null;
+  } | null;
 }
 
 type SortOption = 'rating' | 'price' | 'orders';
@@ -89,6 +98,7 @@ function BrandDiscoverPageContent() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'wallet' | 'direct'>('wallet');
+  const [analyzingId, setAnalyzingId] = useState<string | null>(null);
 
   useEffect(() => {
     const { auth } = initializeFirebase();
@@ -121,7 +131,7 @@ function BrandDiscoverPageContent() {
     try {
       const params = new URLSearchParams();
       if (niche) params.set('niche', niche);
-      if (priceMax) params.set('priceMax', String(parseFloat(priceMax) * 100));
+      if (priceMax) params.set('priceMax', String((parseFloat(priceMax) || 0) * 100));
       params.set('sort', sort);
       const res = await fetch(`/api/ugc/creators?${params.toString()}`);
       const data = await res.json();
@@ -130,6 +140,71 @@ function BrandDiscoverPageContent() {
       setCreators([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAnalyze = async (creator: Creator) => {
+    if (analyzingId) return;
+    const tiktok = creator.socialLinks?.tiktok;
+    const instagram = creator.socialLinks?.instagram;
+    if (!tiktok && !instagram) {
+      showError('This creator has no TikTok or Instagram link to analyze.');
+      return;
+    }
+    setAnalyzingId(creator.id);
+    try {
+      const res = await fetch('/api/apify/creator-score', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...(tiktok ? { tiktokUrl: tiktok } : {}),
+          ...(instagram ? { igHandle: instagram } : {}),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || 'Analysis failed');
+      }
+      setCreators(prev =>
+        prev.map(c =>
+          c.id === creator.id
+            ? {
+                ...c,
+                score: data.score,
+                grade: data.grade,
+                metrics: {
+                  er: data.er,
+                  avgViews: data.avgViews,
+                  topHashtags: data.topHashtags,
+                  audienceGuess: data.audienceGuess,
+                  followers: data.followers,
+                },
+              }
+            : c,
+        ),
+      );
+      showInfo(`@${creator.username} score: ${data.score}/100 (${data.grade}) — avg views ${formatViews(data.avgViews)}, ER ${data.er ?? 0}%`);
+    } catch (error: any) {
+      showError(error.message || 'Failed to analyze creator');
+    } finally {
+      setAnalyzingId(null);
+    }
+  };
+
+  const formatViews = (v: number | null | undefined) => {
+    if (v == null) return 'n/a';
+    if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
+    if (v >= 1_000) return `${(v / 1_000).toFixed(1)}k`;
+    return String(v);
+  };
+
+  const scoreColor = (grade: string | null | undefined) => {
+    switch (grade) {
+      case 'A': return THEME.success;
+      case 'B': return '#22C55E';
+      case 'C': return '#F59E0B';
+      case 'D': return '#F97316';
+      default: return THEME.error;
     }
   };
 
@@ -438,7 +513,7 @@ function BrandDiscoverPageContent() {
                       fontWeight: 600,
                       color: 'white',
                     }}>
-                      ${creator.price30sDisplay}
+                      ${creator.price30sDisplay ?? 0}
                     </div>
                   </div>
                 )}
@@ -458,7 +533,7 @@ function BrandDiscoverPageContent() {
                       fontWeight: 700,
                       color: THEME.text2,
                     }}>
-                      {creator.name.charAt(0)}
+                      {creator.name?.charAt(0) || '?'}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <h3 style={{ fontSize: 16, fontWeight: 600, color: THEME.text1, marginBottom: 2 }}>
@@ -474,11 +549,29 @@ function BrandDiscoverPageContent() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 12 }}>
                     <Star size={14} fill={THEME.success} color={THEME.success} />
                     <span style={{ fontSize: 14, fontWeight: 600, color: THEME.text1 }}>
-                      {creator.rating.toFixed(1)}
+                      {(Number(creator.rating) || 0).toFixed(1)}
                     </span>
                     <span style={{ fontSize: 13, color: THEME.text3 }}>
-                      ({creator.totalOrders} orders)
+                      ({creator.totalOrders || 0} orders)
                     </span>
+                    {creator.score != null && creator.grade && (
+                      <span
+                        title={`Creator score: ${creator.score}/100 — avg views ${formatViews(creator.metrics?.avgViews)}, ER ${creator.metrics?.er ?? 0}%`}
+                        style={{
+                          marginLeft: 'auto',
+                          padding: '4px 10px',
+                          borderRadius: 999,
+                          background: `${scoreColor(creator.grade)}18`,
+                          border: `1px solid ${scoreColor(creator.grade)}50`,
+                          color: scoreColor(creator.grade),
+                          fontSize: 12,
+                          fontWeight: 700,
+                          cursor: 'default',
+                        }}
+                      >
+                        {creator.grade} · {creator.score}
+                      </span>
+                    )}
                   </div>
 
                   {/* Niches */}
@@ -501,7 +594,7 @@ function BrandDiscoverPageContent() {
                   </div>
 
                   {/* Social Links */}
-                  <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+                  <div style={{ display: 'flex', gap: 8, marginBottom: 16, alignItems: 'center' }}>
                     {creator.socialLinks?.tiktok && (
                       <TikTokIcon size={16} color={THEME.text3} />
                     )}
@@ -511,6 +604,40 @@ function BrandDiscoverPageContent() {
                     {creator.socialLinks?.youtube && (
                       <YouTubeIconCustom size={16} color={THEME.text3} />
                     )}
+                    <button
+                      onClick={() => handleAnalyze(creator)}
+                      disabled={analyzingId !== null}
+                      style={{
+                        marginLeft: 'auto',
+                        padding: '6px 12px',
+                        background: 'transparent',
+                        border: `1px solid ${THEME.border}`,
+                        borderRadius: 6,
+                        color: THEME.text2,
+                        fontSize: 12,
+                        fontWeight: 500,
+                        cursor: analyzingId !== null ? 'not-allowed' : 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        transition: 'all 0.2s',
+                        opacity: analyzingId !== null && analyzingId !== creator.id ? 0.5 : 1,
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.borderColor = THEME.primary; e.currentTarget.style.color = THEME.primary; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.borderColor = THEME.border; e.currentTarget.style.color = THEME.text2; }}
+                    >
+                      {analyzingId === creator.id ? (
+                        <>
+                          <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} />
+                          Analyzing…
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles size={13} />
+                          Analyze
+                        </>
+                      )}
+                    </button>
                   </div>
 
                   {/* Buy Button */}
@@ -545,7 +672,7 @@ function BrandDiscoverPageContent() {
                     onMouseLeave={(e) => e.currentTarget.style.background = THEME.primary}
                   >
                     <ShoppingBag size={18} />
-                    Buy Video ${creator.price30sDisplay}
+                    Buy Video ${creator.price30sDisplay ?? 0}
                   </button>
                 </div>
               </div>

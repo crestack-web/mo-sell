@@ -353,7 +353,9 @@ export default function BrandDashboardLayout({ children }: { children: React.Rea
 
         {/* Page Content */}
         <div style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
-          {children}
+          <div style={{ maxWidth: 1000, width: '100%', margin: '0 auto' }}>
+            {children}
+          </div>
         </div>
       </main>
 

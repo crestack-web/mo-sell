@@ -30,6 +30,7 @@ interface ChatMessage {
   newProduct?: Record<string, unknown> | null;
   editProduct?: Record<string, unknown> | null;
   pdf?: { title?: string; url?: string | null; dataUrl?: string | null; pageCount?: number } | null;
+  needsTokens?: boolean;
   applied?: boolean;
   productCreated?: boolean;
   showPreview?: boolean;
@@ -48,6 +49,23 @@ interface Suggestion {
   label: string;
   message: string;
 }
+
+interface TokenPackage {
+  id: string;
+  name: string;
+  tokens: number;
+  price: number;
+  popular?: boolean;
+}
+
+const TOKEN_PACKAGES: TokenPackage[] = [
+  { id: 'starter', name: 'Starter Pack', tokens: 1_000, price: 5_000 },
+  { id: 'standard', name: 'Standard Pack', tokens: 3_000, price: 12_000, popular: true },
+  { id: 'pro', name: 'Pro Pack', tokens: 10_000, price: 30_000 },
+  { id: 'enterprise', name: 'Enterprise Pack', tokens: 25_000, price: 60_000 },
+];
+
+const PDF_TOKEN_COST = 500;
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -85,6 +103,20 @@ function getConvCollection(userId: string) {
   return db.collection(`businesses/${userId}/aiConversations`);
 }
 
+function newConvId(): string {
+  return `conv_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+// Strip large base64 payloads before persisting so a single document never
+// exceeds the 1 MB Firestore limit (which silently dropped whole conversations).
+function sanitizeMessagesForSave(msgs: ChatMessage[]): ChatMessage[] {
+  return msgs.map(m => ({
+    ...m,
+    attachments: m.attachments?.map(a => (a.data ? { ...a, data: '' } : a)),
+    pdf: m.pdf ? { ...m.pdf, dataUrl: m.pdf.dataUrl ? '' : m.pdf.dataUrl } : m.pdf,
+  }));
+}
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export function SellAskMoPage() {
@@ -95,7 +127,6 @@ export function SellAskMoPage() {
   const [conversationHistory, setConversationHistory] = useState<
     { role: 'user' | 'model'; parts: { text: string }[] }[]
   >([]);
-  const [activeConvId, setActiveConvId] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
@@ -113,6 +144,11 @@ export function SellAskMoPage() {
   const historyRef = useRef<{ role: 'user' | 'model'; parts: { text: string }[] }[]>([]);
   const [previewEbook, setPreviewEbook] = useState<{ url: string; title: string } | null>(null);
   const [tokenData, setTokenData] = useState<TokenData | null>(null);
+  const [tokenModalOpen, setTokenModalOpen] = useState(false);
+  const [buyingPackage, setBuyingPackage] = useState<string | null>(null);
+  const [convId, setConvId] = useState<string | null>(null);
+  const convIdRef = useRef<string | null>(null);
+  const createdAtRef = useRef<number>(0);
 
 
   // ── Fetch token data ──
@@ -130,6 +166,31 @@ export function SellAskMoPage() {
   useEffect(() => {
     fetchTokenData();
   }, [fetchTokenData]);
+
+  // ── Buy tokens (Paystack) ────────────────────────────────────────────────
+
+  const handleBuyTokens = useCallback(async (packageId: string) => {
+    if (!user?.businessId || !user.email) {
+      showToast('Account details missing. Please try again.', 'error');
+      return;
+    }
+    setBuyingPackage(packageId);
+    try {
+      const res = await fetch('/api/sell/ask-mo/tokens/purchase', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ businessId: user.businessId, packageId, email: user.email }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.paystackUrl) {
+        throw new Error(data.error || 'Failed to start purchase');
+      }
+      window.location.href = data.paystackUrl;
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Purchase failed', 'error');
+      setBuyingPackage(null);
+    }
+  }, [user?.businessId, user?.email, showToast]);
 
   // Keep refs in sync
   messagesRef.current = messages;
@@ -225,14 +286,26 @@ export function SellAskMoPage() {
 
     (async () => {
       try {
-        const convRef = getConvCollection(user.businessId!).doc('active');
-        const snap = await convRef.get();
-        if (snap.exists) {
-          const data = snap.data();
-          if (data.messages?.length) {
-            setMessages(data.messages);
-            setConversationHistory(data.conversationHistory ?? []);
-            setActiveConvId('active');
+        const coll = getConvCollection(user.businessId!);
+        // The _meta doc points at the currently-open conversation. Fall back
+        // to the legacy 'active' doc so existing chats aren't lost.
+        const metaSnap = await coll.doc('_meta').get();
+        let activeConvId = metaSnap.exists ? (metaSnap.data()?.activeConvId ?? null) : null;
+        if (!activeConvId) {
+          const legacy = await coll.doc('active').get();
+          if (legacy.exists && legacy.data()?.messages?.length) activeConvId = 'active';
+        }
+        if (activeConvId) {
+          const snap = await coll.doc(activeConvId).get();
+          if (snap.exists) {
+            const data = snap.data();
+            if (data.messages?.length) {
+              setMessages(data.messages);
+              setConversationHistory(data.conversationHistory ?? []);
+              convIdRef.current = activeConvId;
+              createdAtRef.current = data.createdAt ?? Date.now();
+              setConvId(activeConvId);
+            }
           }
         }
       } catch {
@@ -243,16 +316,21 @@ export function SellAskMoPage() {
 
   // ── Save active conversation ───────────────────────────────────────────
 
-  const saveActive = useCallback(
-    async (msgs: ChatMessage[], hist: { role: 'user' | 'model'; parts: { text: string }[] }[]) => {
-      if (!user?.businessId || msgs.length === 0) return;
+  const saveConversation = useCallback(
+    async (msgs: ChatMessage[], hist: { role: 'user' | 'model'; parts: { text: string }[] }[], id?: string | null) => {
+      const convIdToSave = id ?? convIdRef.current;
+      if (!user?.businessId || !convIdToSave || msgs.length === 0) return;
       try {
-        const convRef = getConvCollection(user.businessId).doc('active');
-        await convRef.set({
-          messages: msgs,
+        const coll = getConvCollection(user.businessId);
+        await coll.doc(convIdToSave).set({
+          messages: sanitizeMessagesForSave(msgs),
           conversationHistory: hist,
-          updatedAt: new Date().toISOString(),
+          preview: msgs.find(m => m.role === 'user')?.text?.slice(0, 80) ?? '',
+          createdAt: createdAtRef.current || Date.now(),
+          updatedAt: Date.now(),
         }, { merge: true });
+        // Remember which conversation to restore on next visit.
+        await coll.doc('_meta').set({ activeConvId: convIdToSave, updatedAt: Date.now() }, { merge: true });
       } catch (e) { console.error('Ask MO save failed:', e); }
     },
     [user?.businessId]
@@ -261,29 +339,29 @@ export function SellAskMoPage() {
   // Auto-save (debounced)
   useEffect(() => {
     if (!loadedRef.current || messages.length === 0) return;
-    const t = setTimeout(() => saveActive(messages, conversationHistory), 500);
+    const t = setTimeout(() => saveConversation(messages, conversationHistory), 500);
     return () => clearTimeout(t);
-  }, [messages, conversationHistory, saveActive]);
+  }, [messages, conversationHistory, saveConversation]);
 
   // Save on visibility change (tab switch, minimize, navigation)
   useEffect(() => {
     const handleVisibility = () => {
       if (document.visibilityState === 'hidden' && messagesRef.current.length > 0) {
-        saveActive(messagesRef.current, historyRef.current);
+        saveConversation(messagesRef.current, historyRef.current);
       }
     };
     document.addEventListener('visibilitychange', handleVisibility);
     return () => document.removeEventListener('visibilitychange', handleVisibility);
-  }, [saveActive]);
+  }, [saveConversation]);
 
   // Save immediately on unmount so navigating away doesn't lose messages
   useEffect(() => {
     return () => {
       if (messagesRef.current.length > 0) {
-        saveActive(messagesRef.current, historyRef.current);
+        saveConversation(messagesRef.current, historyRef.current);
       }
     };
-  }, [saveActive]);
+  }, [saveConversation]);
 
   // ── Load conversation history list ─────────────────────────────────────
 
@@ -291,11 +369,12 @@ export function SellAskMoPage() {
     if (!user?.businessId) return;
     setHistoryLoading(true);
     try {
-      const snap = await getConvCollection(user.businessId).limit(50).get();
+      const snap = await getConvCollection(user.businessId).limit(100).get();
       const list: Conversation[] = [];
       snap.docs.forEach(d => {
-        if (d.id === 'active') return;
+        if (d.id === '_meta') return;
         const data = d.data();
+        if (!data.messages?.length) return;
         list.push({
           id: d.id,
           preview: data.preview ?? data.messages?.[0]?.text?.slice(0, 60) ?? 'Empty conversation',
@@ -304,6 +383,7 @@ export function SellAskMoPage() {
           updatedAt: data.updatedAt ?? 0,
         });
       });
+      list.sort((a, b) => b.updatedAt - a.updatedAt);
       setConversations(list);
     } catch { /* silent */ }
     setHistoryLoading(false);
@@ -316,28 +396,22 @@ export function SellAskMoPage() {
   // ── Load a past conversation ───────────────────────────────────────────
 
   const loadConversation = useCallback(
-    async (convId: string) => {
+    async (convIdToLoad: string) => {
       if (!user?.businessId) return;
       try {
-        // Save current as history first
-        if (messagesRef.current.length > 0) {
-          const currentRef = getConvCollection(user.businessId).doc('current-' + Date.now());
-          await currentRef.set({
-            messages: messagesRef.current,
-            conversationHistory: historyRef.current,
-            preview: messagesRef.current.find(m => m.role === 'user')?.text?.slice(0, 60) ?? '',
-            createdAt: historyRef.current[0] ? Date.now() : Date.now(),
-            updatedAt: Date.now(),
-          });
-        }
-
-        const snap = await getConvCollection(user.businessId).doc(convId).get();
+        const coll = getConvCollection(user.businessId);
+        const snap = await coll.doc(convIdToLoad).get();
         if (snap.exists) {
           const data = snap.data();
           setMessages(data.messages ?? []);
           setConversationHistory(data.conversationHistory ?? []);
-          setActiveConvId(convId);
+          convIdRef.current = convIdToLoad;
+          createdAtRef.current = data.createdAt ?? Date.now();
+          setConvId(convIdToLoad);
+          await coll.doc('_meta').set({ activeConvId: convIdToLoad, updatedAt: Date.now() }, { merge: true });
           setHistoryOpen(false);
+        } else {
+          showToast('Conversation not found', 'error');
         }
       } catch {
         showToast('Failed to load conversation', 'error');
@@ -349,25 +423,21 @@ export function SellAskMoPage() {
   // ── New chat ───────────────────────────────────────────────────────────
 
   const handleNewChat = useCallback(async () => {
-    // Archive current conversation if it has messages
-    if (user?.businessId && messagesRef.current.length > 0) {
+    // Point the meta doc at no conversation so the next visit starts fresh.
+    // The previous conversation is already saved as its own history entry.
+    if (user?.businessId) {
       try {
-        const archiveRef = getConvCollection(user.businessId).doc('archive-' + Date.now());
-        await archiveRef.set({
-          messages: messagesRef.current,
-          conversationHistory: historyRef.current,
-          preview: messagesRef.current.find(m => m.role === 'user')?.text?.slice(0, 60) ?? '',
-          createdAt: historyRef.current.length > 0 ? Date.now() : Date.now(),
-          updatedAt: Date.now(),
-        });
-        // Clear active
-        const activeRef = getConvCollection(user.businessId).doc('active');
-        await activeRef.set({ messages: [], conversationHistory: [], updatedAt: Date.now() }, { merge: true });
+        await getConvCollection(user.businessId).doc('_meta').set(
+          { activeConvId: null, updatedAt: Date.now() },
+          { merge: true },
+        );
       } catch { /* silent */ }
     }
+    convIdRef.current = null;
+    createdAtRef.current = 0;
+    setConvId(null);
     setMessages([]);
     setConversationHistory([]);
-    setActiveConvId(null);
     setInput('');
     setAttachments([]);
   }, [user?.businessId]);
@@ -375,11 +445,22 @@ export function SellAskMoPage() {
   // ── Delete a past conversation ─────────────────────────────────────────
 
   const deleteConversation = useCallback(
-    async (convId: string) => {
+    async (convIdToDelete: string) => {
       if (!user?.businessId) return;
       try {
-        await getConvCollection(user.businessId).doc(convId).delete();
-        setConversations(prev => prev.filter(c => c.id !== convId));
+        await getConvCollection(user.businessId).doc(convIdToDelete).delete();
+        if (convIdToDelete === convIdRef.current) {
+          convIdRef.current = null;
+          createdAtRef.current = 0;
+          setConvId(null);
+          setMessages([]);
+          setConversationHistory([]);
+          await getConvCollection(user.businessId).doc('_meta').set(
+            { activeConvId: null, updatedAt: Date.now() },
+            { merge: true },
+          );
+        }
+        setConversations(prev => prev.filter(c => c.id !== convIdToDelete));
         showToast('Conversation deleted', 'info');
       } catch { /* silent */ }
     },
@@ -400,12 +481,24 @@ export function SellAskMoPage() {
       const messageText = text.trim();
       const currentAttachments = [...attachments];
       const userMsg: ChatMessage = { id: nextMsgId(), role: 'user', text: messageText, attachments: currentAttachments };
-      setMessages(prev => [...prev, userMsg]);
+      const userHistoryEntry = { role: 'user' as const, parts: [{ text: messageText || '(attachment)' }] };
+
+      // Start a conversation doc on the first message so the chat is saved to
+      // history even if the user navigates away before the debounced save.
+      if (!convIdRef.current) {
+        convIdRef.current = newConvId();
+        createdAtRef.current = Date.now();
+      }
+      const cid = convIdRef.current;
+      setConvId(cid);
+      const nextMessages = [...messagesRef.current, userMsg];
+      const nextHistory = [...historyRef.current, userHistoryEntry];
+      saveConversation(nextMessages, nextHistory, cid);
+
+      setMessages(nextMessages);
       setInput('');
       setAttachments([]);
       setLoading(true);
-
-      const userHistoryEntry = { role: 'user' as const, parts: [{ text: messageText || '(attachment)' }] };
 
       try {
         const res = await fetch('/api/sell/ask-mo', {
@@ -426,7 +519,8 @@ export function SellAskMoPage() {
         }
 
         if (data.purchaseRequired) {
-          showToast('You’ve used your 2,000 free Ask MO tokens. Purchase more to continue.', 'info');
+          showToast('PDF & ebook creation needs Ask MO tokens. Buy tokens to continue.', 'info');
+          setTokenModalOpen(true);
         }
 
         // Refresh token balance
@@ -447,7 +541,8 @@ export function SellAskMoPage() {
           newProduct: productToShow,
           editProduct: data.editProduct ?? null,
           pdf: data.pdf ?? null,
-          showPreview: !!(data.storeUpdate || productToShow || data.editProduct || data.pdf),
+          needsTokens: !!data.pdfBlocked,
+          showPreview: !!(data.storeUpdate || productToShow || data.editProduct || data.pdf || data.pdfBlocked),
         };
 
         setMessages(prev => {
@@ -494,7 +589,7 @@ export function SellAskMoPage() {
         setLoading(false);
       }
     },
-    [loading, user, storeConfig, conversationHistory, attachments, showToast, tokenData, fetchTokenData]
+    [loading, user, storeConfig, conversationHistory, attachments, showToast, tokenData, fetchTokenData, saveConversation]
   );
 
   // ── Apply store update ─────────────────────────────────────────────────
@@ -625,12 +720,18 @@ export function SellAskMoPage() {
             <span className={styles.headerStatus}>AI Commerce Assistant</span>
           </div>
           {tokenData && (
-            <div className={styles.tokenBadge} title={`${tokenData.balance} tokens remaining`}>
+            <button
+              className={styles.tokenBadge}
+              onClick={() => setTokenModalOpen(true)}
+              title={`${tokenData.balance} tokens remaining · click to buy`}
+              style={{ border: 'none', font: 'inherit' }}
+            >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="10"/><path d="M12 6v12"/><path d="M9 9h4a2 2 0 010 4H9"/>
               </svg>
               <span className={styles.tokenBalance}>{tokenData.balance}</span>
-            </div>
+              <span className={styles.tokenBuyHint}>+ Buy</span>
+            </button>
           )}
           <div className={styles.headerActions}>
             <button
@@ -687,9 +788,9 @@ export function SellAskMoPage() {
                       <div className={styles.messageBubble}>
                         {msg.attachments?.map(a => (
                           <div key={a.id} className={styles.attachmentPreview}>
-                            {a.type === 'image' ? (
+                            {a.type === 'image' && a.data ? (
                               <img src={`data:${a.mimeType};base64,${a.data}`} alt={a.name} className={styles.attachmentImage} />
-                            ) : a.type === 'audio' ? (
+                            ) : a.type === 'audio' && a.data ? (
                               <audio controls src={`data:${a.mimeType};base64,${a.data}`} className={styles.attachmentAudio} />
                             ) : (
                               <div className={styles.attachmentFile}>
@@ -756,6 +857,29 @@ export function SellAskMoPage() {
                             >
                               ⬇ Download PDF
                             </a>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* ── Tokens Required Card ── */}
+                    {msg.needsTokens && (
+                      <div className={styles.actionCard}>
+                        <div className={styles.actionCardHeader}>
+                          <span className={styles.actionCardIcon}>🪙</span>
+                          Tokens Required
+                        </div>
+                        <div className={styles.actionCardBody}>
+                          <div className={styles.actionCardRow}><span className={styles.actionCardLabel}>Cost per PDF</span><span className={styles.actionCardValue}>{PDF_TOKEN_COST} tokens</span></div>
+                          <div className={styles.actionCardRow}><span className={styles.actionCardLabel}>Your balance</span><span className={styles.actionCardValue}>{tokenData?.balance ?? 0} tokens</span></div>
+                          <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                            <button
+                              className={`${styles.confirmBtn} ${styles.confirmBtnPrimary}`}
+                              style={{ flex: 1 }}
+                              onClick={() => setTokenModalOpen(true)}
+                            >
+                              🪙 Buy tokens
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -1017,6 +1141,42 @@ export function SellAskMoPage() {
             </div>
           </div>
         </>
+      )}
+
+      {/* ── Token Purchase Modal ── */}
+      {tokenModalOpen && (
+        <div className={styles.tokenModalBackdrop} onClick={() => setTokenModalOpen(false)}>
+          <div className={styles.tokenModal} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.tokenModalHeader}>
+              <span className={styles.tokenModalTitle}>Buy Ask MO Tokens</span>
+              <button className={styles.tokenModalClose} onClick={() => setTokenModalOpen(false)} aria-label="Close">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+            <div className={styles.tokenModalBody}>
+              <p className={styles.tokenModalSubtitle}>
+                PDF &amp; ebook creation costs {PDF_TOKEN_COST} tokens per file. Your balance: <b>{tokenData?.balance ?? 0}</b>.
+              </p>
+              <div className={styles.tokenPackages}>
+                {TOKEN_PACKAGES.map(pkg => (
+                  <div key={pkg.id} className={`${styles.tokenPackage} ${pkg.popular ? styles.tokenPackagePopular : ''}`}>
+                    <div className={styles.tokenPackageName}>{pkg.name}{pkg.popular ? <span className={styles.tokenPackageTag}>Popular</span> : null}</div>
+                    <div className={styles.tokenPackageTokens}>{pkg.tokens.toLocaleString()} tokens</div>
+                    <div className={styles.tokenPackagePrice}>₦{pkg.price.toLocaleString()}</div>
+                    <button
+                      className={`${styles.confirmBtn} ${styles.confirmBtnPrimary}`}
+                      style={{ width: '100%', justifyContent: 'center' }}
+                      disabled={buyingPackage === pkg.id}
+                      onClick={() => handleBuyTokens(pkg.id)}
+                    >
+                      {buyingPackage === pkg.id ? 'Redirecting…' : 'Buy'}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Ebook preview modal */}

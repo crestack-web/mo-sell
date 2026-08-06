@@ -7,7 +7,7 @@ import {
   TOKEN_BALANCE_FIELD,
   TOKEN_MONTH_USAGE_FIELD,
   TOKEN_MONTH_RESET_FIELD,
-  ensureFreeTokens,
+  getTokenBalance,
 } from '@/lib/ask-mo-tokens';
 
 // ─── GET: balance + costs + packages ─────────────────────────────────────────
@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     const db = getAdminDb();
     const docRef = db.doc(TOKEN_DOC_PATH(businessId));
 
-    const balance = await ensureFreeTokens(db, businessId);
+    const balance = await getTokenBalance(db, businessId);
     const cfgSnap = await docRef.get();
     const cfgData = cfgSnap.data() ?? {};
     const monthUsage = (cfgData[TOKEN_MONTH_USAGE_FIELD] as number) ?? 0;

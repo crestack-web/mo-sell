@@ -162,99 +162,99 @@ export default function BrandDashboardPage() {
   return (
     <div>
       {/* Header */}
-      <div style={{ marginBottom: 32 }}>
-        <h1 style={{ fontSize: 32, fontWeight: 700, color: THEME.text1, fontFamily: FONTS.display, marginBottom: 8 }}>
+      <div style={{ marginBottom: 20 }}>
+        <h1 style={{ fontSize: 24, fontWeight: 700, color: THEME.text1, fontFamily: FONTS.display, marginBottom: 4 }}>
           Dashboard
         </h1>
-        <p style={{ fontSize: 16, color: THEME.text2 }}>
+        <p style={{ fontSize: 13.5, color: THEME.text2 }}>
           Welcome back! Here's an overview of your UGC marketplace activity.
         </p>
       </div>
 
       {/* Stats Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24, marginBottom: 32 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16, marginBottom: 20 }}>
         {/* Wallet Balance Card */}
         <div style={{ 
-          padding: 24, 
-          borderRadius: 16, 
+          padding: 18, 
+          borderRadius: 14, 
           background: `linear-gradient(135deg, ${THEME.primary} 0%, #8B5CF6 100%)`,
           position: 'relative',
           overflow: 'hidden',
         }}>
           <div style={{ position: 'absolute', top: -20, right: -20, width: 80, height: 80, borderRadius: '50%', background: 'rgba(255,255,255,0.1)' }} />
           <div style={{ position: 'relative', zIndex: 1 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-              <Wallet size={20} color="white" />
-              <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.8)', fontWeight: 500 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+              <Wallet size={18} color="white" />
+              <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', fontWeight: 500 }}>
                 Wallet Balance
               </span>
             </div>
-            <div style={{ fontSize: 36, fontWeight: 700, color: 'white', fontFamily: FONTS.display, marginBottom: 16 }}>
+            <div style={{ fontSize: 28, fontWeight: 700, color: 'white', fontFamily: FONTS.display, marginBottom: 12 }}>
               ${stats.walletBalance.toFixed(2)}
             </div>
             <button
               onClick={() => window.location.href = '/brand/wallet'}
               style={{
-                padding: '10px 20px',
+                padding: '8px 14px',
                 background: 'rgba(255,255,255,0.2)',
                 border: 'none',
-                borderRadius: 8,
+                borderRadius: 7,
                 color: 'white',
-                fontSize: 14,
+                fontSize: 12.5,
                 fontWeight: 600,
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: 8,
+                gap: 6,
                 transition: 'background 0.2s',
               }}
               onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.3)'}
               onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
             >
               Top Up
-              <ArrowUpRight size={16} />
+              <ArrowUpRight size={14} />
             </button>
           </div>
         </div>
 
         {/* Videos Purchased Card */}
         <div style={{ 
-          padding: 24, 
-          borderRadius: 16, 
+          padding: 18, 
+          borderRadius: 14, 
           background: THEME.surface, 
           border: `1px solid ${THEME.border}`,
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-            <Video size={20} color={THEME.primary} />
-            <span style={{ fontSize: 14, color: THEME.text2, fontWeight: 500 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+            <Video size={18} color={THEME.primary} />
+            <span style={{ fontSize: 13, color: THEME.text2, fontWeight: 500 }}>
               Videos Purchased
             </span>
           </div>
-          <div style={{ fontSize: 36, fontWeight: 700, color: THEME.text1, fontFamily: FONTS.display, marginBottom: 8 }}>
+          <div style={{ fontSize: 28, fontWeight: 700, color: THEME.text1, fontFamily: FONTS.display, marginBottom: 4 }}>
             {stats.videosPurchased}
           </div>
-          <div style={{ fontSize: 13, color: THEME.text3 }}>
+          <div style={{ fontSize: 12, color: THEME.text3 }}>
             Total videos in your library
           </div>
         </div>
 
         {/* Total Spend Card */}
         <div style={{ 
-          padding: 24, 
-          borderRadius: 16, 
+          padding: 18, 
+          borderRadius: 14, 
           background: THEME.surface, 
           border: `1px solid ${THEME.border}`,
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-            <TrendingUp size={20} color={THEME.success} />
-            <span style={{ fontSize: 14, color: THEME.text2, fontWeight: 500 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+            <TrendingUp size={18} color={THEME.success} />
+            <span style={{ fontSize: 13, color: THEME.text2, fontWeight: 500 }}>
               Total Spend This Month
             </span>
           </div>
-          <div style={{ fontSize: 36, fontWeight: 700, color: THEME.text1, fontFamily: FONTS.display, marginBottom: 8 }}>
+          <div style={{ fontSize: 28, fontWeight: 700, color: THEME.text1, fontFamily: FONTS.display, marginBottom: 4 }}>
             ${stats.totalSpendThisMonth.toFixed(2)}
           </div>
-          <div style={{ fontSize: 13, color: THEME.text3 }}>
+          <div style={{ fontSize: 12, color: THEME.text3 }}>
             UGC purchases this month
           </div>
         </div>
@@ -262,27 +262,27 @@ export default function BrandDashboardPage() {
 
       {/* Recent Activity */}
       <div style={{ 
-        padding: 24, 
-        borderRadius: 16, 
+        padding: 18, 
+        borderRadius: 14, 
         background: THEME.surface, 
         border: `1px solid ${THEME.border}`,
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Activity size={20} color={THEME.primary} />
-            <h2 style={{ fontSize: 18, fontWeight: 600, color: THEME.text1, fontFamily: FONTS.display }}>
+            <Activity size={18} color={THEME.primary} />
+            <h2 style={{ fontSize: 16, fontWeight: 600, color: THEME.text1, fontFamily: FONTS.display }}>
               Recent Activity
             </h2>
           </div>
           <button
             onClick={() => window.location.href = '/brand/transactions'}
             style={{
-              padding: '8px 16px',
+              padding: '6px 12px',
               background: 'transparent',
               border: `1px solid ${THEME.border}`,
               borderRadius: 6,
               color: THEME.text2,
-              fontSize: 13,
+              fontSize: 12,
               fontWeight: 500,
               cursor: 'pointer',
               transition: 'all 0.2s',
@@ -301,12 +301,12 @@ export default function BrandDashboardPage() {
         </div>
 
         {stats.recentActivity.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: 40, color: THEME.text3 }}>
-            <Activity size={48} style={{ margin: '0 auto 16px', opacity: 0.5 }} />
-            <p style={{ fontSize: 14 }}>No recent activity</p>
+          <div style={{ textAlign: 'center', padding: 32, color: THEME.text3 }}>
+            <Activity size={40} style={{ margin: '0 auto 12px', opacity: 0.5 }} />
+            <p style={{ fontSize: 13 }}>No recent activity</p>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {stats.recentActivity.map((activity) => (
               <div
                 key={activity.id}
@@ -314,7 +314,7 @@ export default function BrandDashboardPage() {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  padding: 16,
+                  padding: 12,
                   borderRadius: 8,
                   background: THEME.bg,
                   border: `1px solid ${THEME.border}`,
@@ -322,8 +322,8 @@ export default function BrandDashboardPage() {
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <div style={{ 
-                    width: 40, 
-                    height: 40, 
+                    width: 34, 
+                    height: 34, 
                     borderRadius: 8, 
                     background: activity.type === 'topup' ? `${THEME.success}15` : `${THEME.primary}15`,
                     display: 'flex', 
@@ -331,46 +331,46 @@ export default function BrandDashboardPage() {
                     justifyContent: 'center',
                   }}>
                     {activity.type === 'topup' ? (
-                      <Wallet size={20} color={THEME.success} />
+                      <Wallet size={18} color={THEME.success} />
                     ) : activity.type === 'purchase' ? (
-                      <Video size={20} color={THEME.primary} />
+                      <Video size={18} color={THEME.primary} />
                     ) : (
-                      <Activity size={20} color={THEME.error} />
+                      <Activity size={18} color={THEME.error} />
                     )}
                   </div>
                   <div>
-                    <div style={{ fontSize: 14, fontWeight: 500, color: THEME.text1, marginBottom: 2 }}>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: THEME.text1, marginBottom: 2 }}>
                       {activity.description}
                     </div>
-                    <div style={{ fontSize: 12, color: THEME.text3, display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <Clock size={12} />
+                    <div style={{ fontSize: 11.5, color: THEME.text3, display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <Clock size={11} />
                       {formatDate(activity.createdAt)}
                     </div>
                   </div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
                   <div style={{ 
-                    fontSize: 16, 
+                    fontSize: 14, 
                     fontWeight: 600, 
                     color: activity.amount >= 0 ? THEME.success : THEME.error,
                     fontFamily: FONTS.display,
                   }}>
                     {formatAmount(activity.amount)}
                   </div>
-                  <div style={{ fontSize: 12, color: THEME.text3, display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'flex-end' }}>
+                  <div style={{ fontSize: 11.5, color: THEME.text3, display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'flex-end' }}>
                     {activity.status === 'completed' ? (
                       <>
-                        <CheckCircle size={12} color={THEME.success} />
+                        <CheckCircle size={11} color={THEME.success} />
                         Completed
                       </>
                     ) : activity.status === 'pending' ? (
                       <>
-                        <Clock size={12} color={THEME.text3} />
+                        <Clock size={11} color={THEME.text3} />
                         Pending
                       </>
                     ) : (
                       <>
-                        <XCircle size={12} color={THEME.error} />
+                        <XCircle size={11} color={THEME.error} />
                         Failed
                       </>
                     )}
