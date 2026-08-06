@@ -3,7 +3,7 @@ import { Client } from '@/lib/groq-client';
 import { estimateTokens, chunkHistory, sanitizeOutput } from '@/lib/ask-mo-safety';
 import { generateDesignedPdf } from '@/lib/ask-mo-pdf';
 
-const MODEL = process.env.AI_MODEL_FAST || 'llama-3.3-70b-instant';
+const MODEL = process.env.AI_MODEL_FAST || 'llama-3.1-8b-instant';
 
 const GUARDRAIL = `
 SECURITY RULES — ALWAYS:
