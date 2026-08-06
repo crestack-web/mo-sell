@@ -37,6 +37,10 @@ const r2Client = new S3Client({
  */
 export async function uploadFile(file: File, path: string): Promise<string> {
   try {
+    if (!r2PublicUrl) {
+      throw new Error('R2_PUBLIC_URL is not configured');
+    }
+
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
@@ -45,7 +49,6 @@ export async function uploadFile(file: File, path: string): Promise<string> {
       Key: path,
       Body: buffer,
       ContentType: file.type,
-      ACL: 'public-read',
     });
 
     await r2Client.send(command);
@@ -53,7 +56,7 @@ export async function uploadFile(file: File, path: string): Promise<string> {
     return `${r2PublicUrl}/${path}`;
   } catch (error) {
     console.error('[R2] Upload failed:', error);
-    throw new Error('Failed to upload file to R2');
+    throw new Error(error instanceof Error ? error.message : 'Failed to upload file to R2');
   }
 }
 
