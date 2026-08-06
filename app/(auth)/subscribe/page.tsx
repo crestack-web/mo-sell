@@ -144,7 +144,7 @@ export default function SellSubscribePage() {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center mb-4">
-            <img src="/email-logo.png" alt="MO Sell" style={{ width: '56px', height: '56px', objectFit: 'contain' }} />
+            <img src="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1785078071/mosell_gpzl2q.png" alt="MO Sell" style={{ width: '56px', height: '56px', objectFit: 'contain' }} />
           </div>
           <h1 className="text-3xl font-bold mb-3" style={{ color: C.text1, fontFamily: FONT_DISPLAY }}>
             Start Selling with MO

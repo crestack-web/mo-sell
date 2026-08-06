@@ -100,6 +100,19 @@ export function LinkInBioEditor() {
       .catch(() => setProducts([]));
   }, [user?.businessId]);
 
+  const themeFont = THEMES.find(t => t.id === theme)?.previewFont ?? null;
+
+  useEffect(() => {
+    if (!themeFont) return;
+    const fontKey = themeFont.toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (document.getElementById(`linkbio-font-${fontKey}`)) return;
+    const link = document.createElement('link');
+    link.id = `linkbio-font-${fontKey}`;
+    link.rel = 'stylesheet';
+    link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(themeFont)}:wght@400;500;600;700;800&display=swap`;
+    document.head.appendChild(link);
+  }, [themeFont]);
+
   const setField = (patch: Partial<LinkBioForm>) => {
     setForm(f => (f ? { ...f, ...patch } : f));
     setDirty(true);
@@ -275,7 +288,7 @@ export function LinkInBioEditor() {
                     style={{ opacity: form.backgroundType === 'pattern' ? 0.15 : 1 }}
                   />
                 )}
-                <div style={{ position: 'relative', zIndex: 1, width: '100%', minHeight: '100%', display: 'flex', flexDirection: 'column' }}>
+                <div style={{ position: 'relative', zIndex: 1, width: '100%', minHeight: '100%', display: 'flex', flexDirection: 'column', fontFamily: themeFont ? `'${themeFont}', system-ui, sans-serif` : undefined }}>
                   <Layout
                     config={config}
                     bio={bio}
