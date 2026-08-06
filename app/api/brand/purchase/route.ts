@@ -24,7 +24,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify user is authenticated
+    // Verify user is authenticated via the access token sent by the client
+    const token = request.headers.get('authorization')?.replace(/^Bearer\s+/i, '') || '';
+    if (!token) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const supabase = await import('@/lib/supabase-server').then(m => m.supabaseServer);
     if (!supabase) {
       return NextResponse.json(
@@ -33,7 +41,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (authError || !user) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },

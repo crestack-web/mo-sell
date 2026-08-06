@@ -222,9 +222,13 @@ function BrandDiscoverPageContent() {
     if (!selectedVideo || !brand) return;
 
     try {
+      const { data: { session } } = await supabaseClient.auth.getSession();
       const response = await fetch('/api/brand/purchase', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
         body: JSON.stringify({
           videoId: selectedVideo.url, // This should be the actual video ID
           creatorId: selectedCreator?.id,

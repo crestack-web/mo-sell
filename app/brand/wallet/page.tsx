@@ -139,8 +139,12 @@ export default function BrandWalletPage() {
       
       const id = brandQuery.docs[0].id;
 
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      const accessToken = session?.access_token;
+
       const response = await fetch(`/api/brand/wallet/topup?amount=${amount}&brandId=${id}&currency=${currency}`, {
         method: 'POST',
+        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
       });
 
       const data = await response.json();
