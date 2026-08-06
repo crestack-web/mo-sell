@@ -56,9 +56,7 @@ export async function GET(request: NextRequest) {
 
     if (existingPurchase.docs.length === 0) {
       // Create purchased video record
-      const purchasedVideoRef = db.collection('purchased_videos').doc();
-      await purchasedVideoRef.set({
-        id: purchasedVideoRef.id,
+      await db.collection('purchased_videos').add({
         brandId,
         videoId,
         creatorId,

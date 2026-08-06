@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getCreatorByUsername, listVideos } from '@/lib/ugc';
 import { getServerFirestore as getAdminDb } from '@/lib/server-firestore';
 
 export async function GET(
@@ -8,30 +9,16 @@ export async function GET(
   try {
     const { username } = await params;
 
-    const db = getAdminDb();
-    const snap = await db.collection('ugcCreators')
-      .where('username', '==', username)
-      .where('isActive', '==', true)
-      .where('isBanned', '==', false)
-      .limit(1)
-      .get();
-
-    if (snap.empty) {
+    const creator = (await getCreatorByUsername(username, { activeOnly: true })) as any;
+    if (!creator || creator.isBanned === true) {
       return NextResponse.json({ error: 'Creator not found' }, { status: 404 });
     }
 
-    const doc = snap.docs[0];
-    const creator = { id: doc.id, ...doc.data() } as any;
-
-    const videoSnap = await db.collection('ugcVideos')
-      .where('creatorId', '==', creator.userId)
-      .where('hasWatermark', '==', true)
-      .limit(9)
-      .get();
-    const videos = videoSnap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
+    const videos = (await listVideos({ creatorId: creator.userId, hasWatermark: true, limit: 9 })) as any[];
 
     let completedCount = 0;
     try {
+      const db = getAdminDb();
       const orderSnap = await db.collection('ugcOrders')
         .where('creatorId', '==', creator.userId)
         .where('status', '==', 'COMPLETED')

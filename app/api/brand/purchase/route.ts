@@ -118,9 +118,7 @@ export async function POST(request: NextRequest) {
       });
 
       // Create transaction record
-      const transactionRef = db.collection('wallet_transactions').doc();
-      await transactionRef.set({
-        id: transactionRef.id,
+      const addedTx = await db.collection('wallet_transactions').add({
         brandId,
         type: 'purchase',
         amount: -price,
@@ -134,9 +132,7 @@ export async function POST(request: NextRequest) {
       });
 
       // Create purchased video record
-      const purchasedVideoRef = db.collection('purchased_videos').doc();
-      await purchasedVideoRef.set({
-        id: purchasedVideoRef.id,
+      const addedVideo = await db.collection('purchased_videos').add({
         brandId,
         videoId,
         creatorId,
@@ -158,14 +154,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: true,
         purchasedVideo: {
-          id: purchasedVideoRef.id,
+          id: addedVideo.id,
           ...videoData,
           price,
           paymentMethod: 'wallet',
           purchaseDate: new Date().toISOString(),
         },
         transaction: {
-          id: transactionRef.id,
+          id: addedTx.id,
           amount: -price,
           balanceAfter: newBalance,
         },
@@ -179,9 +175,7 @@ export async function POST(request: NextRequest) {
 
       // Create pending transaction BEFORE initializing payment so the verify
       // route can resolve it when Paystack redirects back.
-      const transactionRef = db.collection('wallet_transactions').doc();
-      await transactionRef.set({
-        id: transactionRef.id,
+      const addedTx = await db.collection('wallet_transactions').add({
         brandId,
         type: 'purchase',
         amount: -price,
@@ -194,10 +188,11 @@ export async function POST(request: NextRequest) {
         status: 'pending',
         createdAt: new Date().toISOString(),
       });
+      const transactionId = addedTx.id;
 
       const paystackSecret = process.env.PAYSTACK_SECRET_KEY;
       if (!paystackSecret) {
-        await db.doc(`wallet_transactions/${transactionRef.id}`).update({ status: 'failed' });
+        await db.doc(`wallet_transactions/${transactionId}`).update({ status: 'failed' });
         return NextResponse.json(
           { success: false, error: 'Paystack not configured' },
           { status: 503 },
@@ -223,14 +218,14 @@ export async function POST(request: NextRequest) {
             creatorId,
             price,
             reference,
-            transactionId: transactionRef.id,
+            transactionId,
           },
         }),
       });
 
       const data = await response.json();
       if (!response.ok || !data.status) {
-        await db.doc(`wallet_transactions/${transactionRef.id}`).update({ status: 'failed' });
+        await db.doc(`wallet_transactions/${transactionId}`).update({ status: 'failed' });
         throw new Error(data.message || 'Failed to initialize payment');
       }
 
@@ -238,7 +233,7 @@ export async function POST(request: NextRequest) {
         success: true,
         authorizationUrl: data.data?.authorization_url,
         reference,
-        transactionId: transactionRef.id,
+        transactionId,
       });
     }
 

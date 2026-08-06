@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerFirestore as getAdminDb } from '@/lib/server-firestore';
+import { listActiveCreators, listVideos } from '@/lib/ugc';
 
 export async function GET(req: NextRequest) {
   try {
@@ -8,11 +8,7 @@ export async function GET(req: NextRequest) {
     const priceMax = searchParams.get('priceMax');
     const sort = searchParams.get('sort') ?? 'rating';
 
-    const db = getAdminDb();
-    // Single-field where() only — a two-field query needs a Firestore composite
-    // index that may not exist, which makes the discover page 500.
-    const snap = await db.collection('ugcCreators').where('isActive', '==', true).limit(200).get();
-    let creators = snap.docs.map((d: any) => ({ id: d.id, ...d.data() })) as any[];
+    let creators = (await listActiveCreators(200)) as any[];
     creators = creators.filter(c => c.isBanned !== true);
 
     if (niche) {
@@ -31,11 +27,11 @@ export async function GET(req: NextRequest) {
       return (b.rating ?? 0) - (a.rating ?? 0);
     });
 
-    const videoSnap = await db.collection('ugcVideos').limit(200).get();
+    const videoRows = await listVideos({ limit: 200 });
     const videosByCreator: Record<string, any[]> = {};
-    videoSnap.docs.forEach((d: any) => {
-      const v = { id: d.id, ...d.data() };
+    videoRows.forEach((v: any) => {
       const cid = v.creatorId;
+      if (!cid) return;
       if (!videosByCreator[cid]) videosByCreator[cid] = [];
       videosByCreator[cid].push(v);
     });

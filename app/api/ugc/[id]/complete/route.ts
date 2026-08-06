@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerFirestore as getAdminDb, FieldValue } from '@/lib/server-firestore';
 import { createTransferRecipient, payoutToCreator, calculateUGCPayment } from '@/lib/paystack-ugc';
+import { getCreatorById, incrementCreator } from '@/lib/ugc';
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -25,8 +26,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: 'Already paid out' }, { status: 400 });
     }
 
-    const creatorSnap = await db.collection('ugcCreators').doc(order.creatorId).get();
-    const creator = creatorSnap.data() as any;
+    const creator = (await getCreatorById(order.creatorId)) as any;
     const displayName = creator?.displayName ?? accountName ?? 'Creator';
 
     const recipientCode = await createTransferRecipient(displayName, accountNumber, bankCode);
@@ -42,10 +42,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       updatedAt: FieldValue.serverTimestamp(),
     });
 
-    await db.collection('ugcCreators').doc(order.creatorId).update({
-      totalEarnings: FieldValue.increment(order.creatorPayout),
-      updatedAt: FieldValue.serverTimestamp(),
-    });
+    await incrementCreator(order.creatorId, { totalEarnings: order.creatorPayout });
 
     return NextResponse.json({ success: true, transferCode });
   } catch (err) {

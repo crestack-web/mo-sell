@@ -58,8 +58,8 @@ export async function POST(req: NextRequest) {
       if (order.guestEmail) {
         try {
           const { sendCreatorAcceptedEmailToGuest } = await import('@/lib/email-portfolio');
-          const creatorSnap = await db.collection('ugcCreators').doc(order.creatorId).get();
-          const creator = creatorSnap.exists ? creatorSnap.data() as any : {};
+          const { getCreatorById } = await import('@/lib/ugc');
+          const creator = (await getCreatorById(order.creatorId)) ?? ({} as any);
           await sendCreatorAcceptedEmailToGuest({
             guestName: order.guestName ?? 'there',
             guestEmail: order.guestEmail,

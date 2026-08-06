@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerFirestore as getAdminDb, FieldValue } from '@/lib/server-firestore';
 import { createTransferRecipient, payoutToCreator } from '@/lib/paystack-ugc';
+import { getCreatorById, updateCreator, incrementCreator } from '@/lib/ugc';
 
 export async function POST(req: NextRequest) {
   try {
@@ -23,8 +24,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No completed orders available to cash out' }, { status: 400 });
     }
 
-    const creatorSnap = await db.collection('ugcCreators').doc(userId).get();
-    const creator = creatorSnap.exists ? creatorSnap.data() as any : {};
+    const creator = (await getCreatorById(userId)) ?? ({} as any);
     const displayName = creator.displayName ?? accountName ?? 'Creator';
 
     const recipientCode = await createTransferRecipient(displayName, accountNumber, bankCode);
@@ -47,14 +47,14 @@ export async function POST(req: NextRequest) {
     }
     await batch.commit();
 
-    await db.collection('ugcCreators').doc(userId).update({
-      totalEarnings: FieldValue.increment(totalPayout),
+    await updateCreator(userId, {
       bankName: bankName ?? creator.bankName ?? null,
       bankCode,
       accountNumber,
       accountName: accountName ?? null,
-      updatedAt: FieldValue.serverTimestamp(),
+      updatedAt: new Date().toISOString(),
     });
+    await incrementCreator(userId, { totalEarnings: totalPayout });
 
     return NextResponse.json({ success: true, ordersPaid: eligible.length, amount: totalPayout, transferCode });
   } catch (err) {
