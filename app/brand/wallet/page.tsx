@@ -228,7 +228,7 @@ export default function BrandWalletPage() {
               Current Balance
             </span>
           </div>
-          <div style={{ fontSize: 56, fontWeight: 700, color: 'white', fontFamily: FONTS.display, marginBottom: 24 }}>
+          <div className="brand-balance-amount" style={{ fontSize: 56, fontWeight: 700, color: 'white', fontFamily: FONTS.display, marginBottom: 24 }}>
             ${balance.toFixed(2)}
           </div>
           <button
@@ -273,7 +273,7 @@ export default function BrandWalletPage() {
           <label style={{ display: 'block', fontSize: 14, fontWeight: 500, color: THEME.text2, marginBottom: 12 }}>
             Top-Up Currency
           </label>
-          <div style={{ display: 'flex', gap: 12 }}>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
             {(['USD', 'NGN'] as TopUpCurrency[]).map((c) => (
               <button
                 key={c}
@@ -337,8 +337,8 @@ export default function BrandWalletPage() {
           <label style={{ display: 'block', fontSize: 14, fontWeight: 500, color: THEME.text2, marginBottom: 12 }}>
             Or Enter Custom Amount
           </label>
-          <div style={{ display: 'flex', gap: 12 }}>
-            <div style={{ position: 'relative', flex: 1 }}>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            <div style={{ position: 'relative', flex: 1, minWidth: 220 }}>
               <span style={{ 
                 position: 'absolute', 
                 left: 14, 
@@ -575,6 +575,11 @@ export default function BrandWalletPage() {
         @keyframes spin {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
+        }
+        @media (max-width: 640px) {
+          .brand-balance-amount {
+            font-size: 40px !important;
+          }
         }
       `}</style>
     </div>

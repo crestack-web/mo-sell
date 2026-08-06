@@ -172,7 +172,7 @@ export default function BrandDashboardPage() {
       </div>
 
       {/* Stats Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12, marginBottom: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(220px, 100%), 1fr))', gap: 12, marginBottom: 20 }}>
         {/* Wallet Balance Card */}
         <div style={{ 
           padding: 14, 
@@ -318,9 +318,11 @@ export default function BrandDashboardPage() {
                   borderRadius: 8,
                   background: THEME.bg,
                   border: `1px solid ${THEME.border}`,
+                  flexWrap: 'wrap',
+                  gap: 8,
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 }}>
                   <div style={{ 
                     width: 34, 
                     height: 34, 
@@ -348,7 +350,7 @@ export default function BrandDashboardPage() {
                     </div>
                   </div>
                 </div>
-                <div style={{ textAlign: 'right' }}>
+                <div style={{ textAlign: 'right', flexShrink: 0 }}>
                   <div style={{ 
                     fontSize: 14, 
                     fontWeight: 600, 

@@ -112,7 +112,7 @@ export default function BrandDashboardLayout({ children }: { children: React.Rea
 
   return (
     <ToastProvider>
-      <div style={{ height: '100vh', overflow: 'hidden', display: 'flex', background: THEME.bg, fontFamily: FONTS.body }}>
+      <div style={{ height: '100vh', overflow: 'hidden', display: 'flex', background: THEME.bg, fontFamily: FONTS.body, width: '100%', maxWidth: '100vw' }}>
       {/* Mobile Menu Button */}
       <button
         onClick={() => setSidebarOpen(true)}
@@ -332,7 +332,7 @@ export default function BrandDashboardLayout({ children }: { children: React.Rea
       </aside>
 
       {/* Main Content */}
-      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
         {/* Top Bar */}
         <header style={{ 
           height: 64, 
@@ -355,8 +355,8 @@ export default function BrandDashboardLayout({ children }: { children: React.Rea
         </header>
 
         {/* Page Content */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
-          <div style={{ maxWidth: 900, width: '100%', margin: '0 auto' }}>
+        <div className="brand-content" style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: 24 }}>
+          <div style={{ maxWidth: 900, width: '100%', margin: '0 auto', minWidth: 0 }}>
             {children}
           </div>
         </div>
@@ -386,6 +386,20 @@ export default function BrandDashboardLayout({ children }: { children: React.Rea
           }
           .header {
             padding-left: 0 !important;
+          }
+        }
+        @media (max-width: 640px) {
+          .brand-content {
+            padding: 16px !important;
+          }
+          .header {
+            padding: 0 16px !important;
+          }
+          .mobile-menu-button {
+            top: 12px;
+            left: 12px;
+            width: 36px;
+            height: 36px;
           }
         }
       `}</style>

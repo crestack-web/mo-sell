@@ -159,7 +159,7 @@ export default function BrandTransactionsPage() {
   return (
     <div>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32, flexWrap: 'wrap', gap: 16 }}>
         <div>
           <h1 style={{ fontSize: 32, fontWeight: 700, color: THEME.text1, fontFamily: FONTS.display, marginBottom: 8 }}>
             Transactions
@@ -311,10 +311,12 @@ export default function BrandTransactionsPage() {
           border: `1px solid ${THEME.border}`,
           overflow: 'hidden',
         }}>
+          <div style={{ overflowX: 'auto' }}>
           {/* Table Header */}
           <div style={{ 
             display: 'grid', 
             gridTemplateColumns: '200px 1fr 120px 120px 120px 120px 100px',
+            minWidth: 980,
             padding: 16,
             background: THEME.bg,
             borderBottom: `1px solid ${THEME.border}`,
@@ -338,6 +340,7 @@ export default function BrandTransactionsPage() {
               style={{
                 display: 'grid',
                 gridTemplateColumns: '200px 1fr 120px 120px 120px 120px 100px',
+                minWidth: 980,
                 padding: 16,
                 borderBottom: `1px solid ${THEME.border}`,
                 fontSize: 14,
@@ -406,6 +409,7 @@ export default function BrandTransactionsPage() {
               </div>
             </div>
           ))}
+          </div>
         </div>
       )}
 
