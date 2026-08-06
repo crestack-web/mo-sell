@@ -29,7 +29,31 @@ const FONT_DISPLAY = "'Clash Display','Plus Jakarta Sans',sans-serif";
 const FONT_BODY    = "'Plus Jakarta Sans',system-ui,sans-serif";
 
 // ── Nav ───────────────────────────────────────────────────────────────────────
+const NAV_MENU_ITEMS = [
+  { href: '/signup', label: 'Register', icon: '🚀', note: 'Create your store — free', primary: true },
+  { href: '/login', label: 'Log in', icon: '🔑', note: 'Returning seller', primary: false },
+  { href: '/brand-auth/register', label: 'Brand Register', icon: '🏢', note: 'For brands & agencies', primary: true },
+  { href: '/brand-auth/login', label: 'Brand Login', icon: '🔐', note: 'Manage creator requests', primary: false },
+  { href: '/ugc-creators', label: 'Discover Creators', icon: '🎬', note: 'Browse & hire UGC creators', primary: false },
+];
+
 function TopNav() {
+  const [open, setOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (!(e.target as HTMLElement | null)?.closest?.('.sw-nav')) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
   return (
     <nav className="sw-nav" style={{
       position: 'sticky', top: 0, zIndex: 50,
@@ -44,26 +68,88 @@ function TopNav() {
         <img src="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1785078071/mosell_gpzl2q.png" alt="MO Sell" style={{ height: 36, width: 'auto', objectFit: 'contain' }} />
         <span className="sw-nav-brand" style={{ fontSize: 16, fontWeight: 800, letterSpacing: '0.06em', color: C.text1, fontFamily: FONT_DISPLAY }}>MO-SELL</span>
       </a>
-      <div className="sw-nav-links" style={{ display:'flex', alignItems:'center', gap: 10 }}>
-        <a href="/ugc-creators" style={{
-          display: 'inline-flex', alignItems: 'center', gap: 6,
-          padding: '9px 18px', borderRadius: 10,
-          border: `1.5px solid ${C.border}`,
-          color: C.text2, fontFamily: FONT_BODY, fontWeight: 600, fontSize: 14,
-          textDecoration: 'none',
-        }}>
-          🎬 Discover Creators
-        </a>
-        <a href="/login" style={{
-          display: 'inline-flex', alignItems: 'center', gap: 6,
-          padding: '9px 20px', borderRadius: 10,
-          background: `linear-gradient(135deg, ${C.primary} 0%, ${C.accent} 100%)`,
-          color: 'white', fontFamily: FONT_BODY, fontWeight: 700, fontSize: 14,
-          textDecoration: 'none', boxShadow: '0 4px 12px rgba(14,165,233,0.28)',
-        }}>
-          Log in →
-        </a>
+      <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+        <div className="sw-nav-links" style={{ display:'flex', alignItems:'center', gap: 10 }}>
+          <a href="/ugc-creators" style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            padding: '9px 18px', borderRadius: 10,
+            border: `1.5px solid ${C.border}`,
+            color: C.text2, fontFamily: FONT_BODY, fontWeight: 600, fontSize: 14,
+            textDecoration: 'none',
+          }}>
+            🎬 Discover Creators
+          </a>
+          <a href="/login" style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            padding: '9px 20px', borderRadius: 10,
+            background: `linear-gradient(135deg, ${C.primary} 0%, ${C.accent} 100%)`,
+            color: 'white', fontFamily: FONT_BODY, fontWeight: 700, fontSize: 14,
+            textDecoration: 'none', boxShadow: '0 4px 12px rgba(14,165,233,0.28)',
+          }}>
+            Log in →
+          </a>
+        </div>
+        <button
+          type="button"
+          aria-label={open ? 'Close menu' : 'Open menu'}
+          aria-expanded={open}
+          onClick={() => setOpen(o => !o)}
+          style={{
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            width: 40, height: 40, borderRadius: 10, cursor: 'pointer',
+            background: C.surface, border: `1.5px solid ${C.border}`,
+            color: C.text2, boxShadow: '0 2px 8px rgba(14,88,140,0.06)',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          {open ? (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          ) : (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
+            </svg>
+          )}
+        </button>
       </div>
+
+      {open && (
+        <div className="sw-nav-menu" style={{
+          position: 'absolute', top: 'calc(100% + 8px)', left: '5%', right: '5%',
+          maxWidth: 420, marginLeft: 'auto',
+          background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16,
+          boxShadow: '0 16px 48px rgba(14,88,140,0.16)',
+          padding: '10px', display: 'flex', flexDirection: 'column', gap: 4,
+        }}>
+          <div style={{ padding: '6px 12px 4px', fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.text3, fontFamily: FONT_DISPLAY }}>
+            Menu
+          </div>
+          {NAV_MENU_ITEMS.map(item => (
+            <a
+              key={item.href}
+              href={item.href}
+              onClick={() => setOpen(false)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none',
+                padding: '11px 12px', borderRadius: 12,
+                background: item.primary ? `linear-gradient(135deg, rgba(14,165,233,0.08), rgba(99,102,241,0.08))` : 'transparent',
+                transition: 'background 0.15s ease',
+              }}
+            >
+              <span style={{
+                width: 36, height: 36, borderRadius: 10, flexShrink: 0,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16,
+                background: item.primary ? `linear-gradient(135deg, ${C.primary}, ${C.accent})` : C.bg,
+              }}>{item.icon}</span>
+              <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <span style={{ fontFamily: FONT_BODY, fontSize: 14, fontWeight: 700, color: C.text1 }}>{item.label}</span>
+                <span style={{ fontSize: 12, color: C.text3 }}>{item.note}</span>
+              </span>
+            </a>
+          ))}
+        </div>
+      )}
     </nav>
   );
 }
@@ -366,8 +452,8 @@ export default function SellWelcomePage() {
         @media (max-width: 600px) {
           .sw-nav { padding: 0 3% !important; height: 52px !important; }
           .sw-nav-brand { font-size: 13px !important; }
-          .sw-nav-links { gap: 4px !important; }
-          .sw-nav-links a { font-size: 12px !important; padding: 6px 10px !important; }
+          .sw-nav-links { display: none !important; }
+          .sw-nav-menu { left: 3% !important; right: 3% !important; max-width: none !important; }
         }
 
         /* ── Mobile section padding ── */
