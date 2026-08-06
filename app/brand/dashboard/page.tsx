@@ -172,35 +172,35 @@ export default function BrandDashboardPage() {
       </div>
 
       {/* Stats Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16, marginBottom: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12, marginBottom: 20 }}>
         {/* Wallet Balance Card */}
         <div style={{ 
-          padding: 18, 
-          borderRadius: 14, 
+          padding: 14, 
+          borderRadius: 12, 
           background: `linear-gradient(135deg, ${THEME.primary} 0%, #8B5CF6 100%)`,
           position: 'relative',
           overflow: 'hidden',
         }}>
           <div style={{ position: 'absolute', top: -20, right: -20, width: 80, height: 80, borderRadius: '50%', background: 'rgba(255,255,255,0.1)' }} />
           <div style={{ position: 'relative', zIndex: 1 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-              <Wallet size={18} color="white" />
-              <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', fontWeight: 500 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+              <Wallet size={16} color="white" />
+              <span style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.8)', fontWeight: 500 }}>
                 Wallet Balance
               </span>
             </div>
-            <div style={{ fontSize: 28, fontWeight: 700, color: 'white', fontFamily: FONTS.display, marginBottom: 12 }}>
+            <div style={{ fontSize: 22, fontWeight: 700, color: 'white', fontFamily: FONTS.display, marginBottom: 10 }}>
               ${stats.walletBalance.toFixed(2)}
             </div>
             <button
               onClick={() => window.location.href = '/brand/wallet'}
               style={{
-                padding: '8px 14px',
+                padding: '6px 12px',
                 background: 'rgba(255,255,255,0.2)',
                 border: 'none',
-                borderRadius: 7,
+                borderRadius: 6,
                 color: 'white',
-                fontSize: 12.5,
+                fontSize: 12,
                 fontWeight: 600,
                 cursor: 'pointer',
                 display: 'flex',
@@ -212,49 +212,49 @@ export default function BrandDashboardPage() {
               onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
             >
               Top Up
-              <ArrowUpRight size={14} />
+              <ArrowUpRight size={13} />
             </button>
           </div>
         </div>
 
         {/* Videos Purchased Card */}
         <div style={{ 
-          padding: 18, 
-          borderRadius: 14, 
+          padding: 14, 
+          borderRadius: 12, 
           background: THEME.surface, 
           border: `1px solid ${THEME.border}`,
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-            <Video size={18} color={THEME.primary} />
-            <span style={{ fontSize: 13, color: THEME.text2, fontWeight: 500 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+            <Video size={16} color={THEME.primary} />
+            <span style={{ fontSize: 12.5, color: THEME.text2, fontWeight: 500 }}>
               Videos Purchased
             </span>
           </div>
-          <div style={{ fontSize: 28, fontWeight: 700, color: THEME.text1, fontFamily: FONTS.display, marginBottom: 4 }}>
+          <div style={{ fontSize: 22, fontWeight: 700, color: THEME.text1, fontFamily: FONTS.display, marginBottom: 4 }}>
             {stats.videosPurchased}
           </div>
-          <div style={{ fontSize: 12, color: THEME.text3 }}>
+          <div style={{ fontSize: 11.5, color: THEME.text3 }}>
             Total videos in your library
           </div>
         </div>
 
         {/* Total Spend Card */}
         <div style={{ 
-          padding: 18, 
-          borderRadius: 14, 
+          padding: 14, 
+          borderRadius: 12, 
           background: THEME.surface, 
           border: `1px solid ${THEME.border}`,
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-            <TrendingUp size={18} color={THEME.success} />
-            <span style={{ fontSize: 13, color: THEME.text2, fontWeight: 500 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+            <TrendingUp size={16} color={THEME.success} />
+            <span style={{ fontSize: 12.5, color: THEME.text2, fontWeight: 500 }}>
               Total Spend This Month
             </span>
           </div>
-          <div style={{ fontSize: 28, fontWeight: 700, color: THEME.text1, fontFamily: FONTS.display, marginBottom: 4 }}>
+          <div style={{ fontSize: 22, fontWeight: 700, color: THEME.text1, fontFamily: FONTS.display, marginBottom: 4 }}>
             ${stats.totalSpendThisMonth.toFixed(2)}
           </div>
-          <div style={{ fontSize: 12, color: THEME.text3 }}>
+          <div style={{ fontSize: 11.5, color: THEME.text3 }}>
             UGC purchases this month
           </div>
         </div>
@@ -262,12 +262,12 @@ export default function BrandDashboardPage() {
 
       {/* Recent Activity */}
       <div style={{ 
-        padding: 18, 
-        borderRadius: 14, 
+        padding: 16, 
+        borderRadius: 12, 
         background: THEME.surface, 
         border: `1px solid ${THEME.border}`,
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <Activity size={18} color={THEME.primary} />
             <h2 style={{ fontSize: 16, fontWeight: 600, color: THEME.text1, fontFamily: FONTS.display }}>

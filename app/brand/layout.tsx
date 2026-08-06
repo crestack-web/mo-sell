@@ -112,7 +112,7 @@ export default function BrandDashboardLayout({ children }: { children: React.Rea
 
   return (
     <ToastProvider>
-      <div style={{ minHeight: '100vh', display: 'flex', background: THEME.bg, fontFamily: FONTS.body }}>
+      <div style={{ height: '100vh', overflow: 'hidden', display: 'flex', background: THEME.bg, fontFamily: FONTS.body }}>
       {/* Mobile Menu Button */}
       <button
         onClick={() => setSidebarOpen(true)}
@@ -159,6 +159,9 @@ export default function BrandDashboardLayout({ children }: { children: React.Rea
           top: 0,
           bottom: 0,
           width: 280,
+          height: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
           background: THEME.surface,
           borderRight: `1px solid ${THEME.border}`,
           zIndex: 45,
@@ -353,7 +356,7 @@ export default function BrandDashboardLayout({ children }: { children: React.Rea
 
         {/* Page Content */}
         <div style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
-          <div style={{ maxWidth: 1000, width: '100%', margin: '0 auto' }}>
+          <div style={{ maxWidth: 900, width: '100%', margin: '0 auto' }}>
             {children}
           </div>
         </div>
