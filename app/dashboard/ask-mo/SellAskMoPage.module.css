@@ -362,7 +362,7 @@
 
 .appliedLabel {
   font-size: 12px;
-  color: #16a34a;
+  color: var(--sell-green, #16a34a);
   font-weight: 600;
 }
 
@@ -625,9 +625,9 @@
 }
 
 .actionBtnActive {
-  background: #fef2f2;
-  border-color: #fca5a5;
-  color: #dc2626;
+  background: var(--sell-red-bg, #fef2f2);
+  border-color: var(--sell-red, #fca5a5);
+  color: var(--sell-red, #dc2626);
   animation: pulse 1.2s ease-in-out infinite;
 }
 
@@ -650,9 +650,9 @@
   gap: 5px;
   font-size: 12px;
   font-weight: 600;
-  color: #dc2626;
+  color: var(--sell-red, #dc2626);
   flex-shrink: 0;
-  background: #fef2f2;
+  background: var(--sell-red-bg, #fef2f2);
   padding: 4px 10px;
   border-radius: 8px;
 }
@@ -661,7 +661,7 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #dc2626;
+  background: var(--sell-red, #dc2626);
   animation: blink 1s step-end infinite;
 }
 
@@ -721,8 +721,8 @@
 }
 
 .attachmentChipRemove:hover {
-  background: #fef2f2;
-  color: #dc2626;
+  background: var(--sell-red-bg, #fef2f2);
+  color: var(--sell-red, #dc2626);
 }
 
 /* ── Attachment Previews in Messages ── */
@@ -894,8 +894,8 @@
 }
 
 .historyItemDelete:hover {
-  background: #fef2f2;
-  color: #dc2626;
+  background: var(--sell-red-bg, #fef2f2);
+  color: var(--sell-red, #dc2626);
 }
 
 @keyframes fadeIn {
