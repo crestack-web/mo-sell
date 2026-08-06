@@ -136,6 +136,15 @@ function newConvId(): string {
   return `conv_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
+// Surface chat-history persistence failures once per session instead of
+// swallowing them (a missing ai_conversations table fails silently otherwise).
+let chatPersistWarned = false;
+function warnChatPersist(showToast: (message: string, type?: 'error' | 'success' | 'info') => void): void {
+  if (chatPersistWarned) return;
+  chatPersistWarned = true;
+  showToast('Chat history failed to save. Please report this.', 'error');
+}
+
 // Strip large base64 payloads before persisting so a single document never
 // exceeds the 1 MB Firestore limit (which silently dropped whole conversations).
 function sanitizeMessagesForSave(msgs: ChatMessage[]): ChatMessage[] {
@@ -332,11 +341,12 @@ export function SellAskMoPage() {
             }
           }
         }
-      } catch {
-        // Start fresh
+      } catch (e) {
+        console.error('Ask MO load failed:', e);
+        warnChatPersist(showToast);
       }
     })();
-  }, [user?.businessId]);
+  }, [user?.businessId, showToast]);
 
   // ── Save active conversation ───────────────────────────────────────────
 
@@ -355,9 +365,12 @@ export function SellAskMoPage() {
         }, { merge: true });
         // Remember which conversation to restore on next visit.
         await getConvMetaDoc(user.businessId).set({ activeConvId: convIdToSave, updatedAt: Date.now() }, { merge: true });
-      } catch (e) { console.error('Ask MO save failed:', e); }
+      } catch (e) {
+        console.error('Ask MO save failed:', e);
+        warnChatPersist(showToast);
+      }
     },
-    [user?.businessId]
+    [user?.businessId, showToast]
   );
 
   // Auto-save (debounced)
