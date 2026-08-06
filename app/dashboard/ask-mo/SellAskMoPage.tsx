@@ -98,9 +98,21 @@ function timeAgo(ts: number): string {
   return `${days}d ago`;
 }
 
-function getConvCollection(userId: string) {
-  const db = getDatabase();
-  return db.collection(`businesses/${userId}/aiConversations`);
+// Conversations are stored in the dedicated ai_conversations table (one row per
+// conversation, scoped by businessId). The old Firestore-style subcollection
+// path ('businesses/{userId}/aiConversations') mapped to a table name that
+// never existed in Postgres, so history never persisted.
+function getConvDoc(convId: string) {
+  return getDatabase().collection('ai_conversations').doc(convId);
+}
+
+function getConvQuery(businessId: string) {
+  return getDatabase().collection('ai_conversations').where('businessId', '==', businessId);
+}
+
+// Tracks which conversation to restore on the next visit (id = businessId).
+function getConvMetaDoc(businessId: string) {
+  return getDatabase().collection('ai_conversation_meta').doc(businessId);
 }
 
 function newConvId(): string {
@@ -286,17 +298,12 @@ export function SellAskMoPage() {
 
     (async () => {
       try {
-        const coll = getConvCollection(user.businessId!);
-        // The _meta doc points at the currently-open conversation. Fall back
-        // to the legacy 'active' doc so existing chats aren't lost.
-        const metaSnap = await coll.doc('_meta').get();
-        let activeConvId = metaSnap.exists ? (metaSnap.data()?.activeConvId ?? null) : null;
-        if (!activeConvId) {
-          const legacy = await coll.doc('active').get();
-          if (legacy.exists && legacy.data()?.messages?.length) activeConvId = 'active';
-        }
+        // The meta doc points at the currently-open conversation so the last
+        // chat is restored on the next visit.
+        const metaSnap = await getConvMetaDoc(user.businessId!).get();
+        const activeConvId = metaSnap.exists ? (metaSnap.data()?.activeConvId ?? null) : null;
         if (activeConvId) {
-          const snap = await coll.doc(activeConvId).get();
+          const snap = await getConvDoc(activeConvId).get();
           if (snap.exists) {
             const data = snap.data();
             if (data.messages?.length) {
@@ -321,8 +328,8 @@ export function SellAskMoPage() {
       const convIdToSave = id ?? convIdRef.current;
       if (!user?.businessId || !convIdToSave || msgs.length === 0) return;
       try {
-        const coll = getConvCollection(user.businessId);
-        await coll.doc(convIdToSave).set({
+        await getConvDoc(convIdToSave).set({
+          businessId: user.businessId,
           messages: sanitizeMessagesForSave(msgs),
           conversationHistory: hist,
           preview: msgs.find(m => m.role === 'user')?.text?.slice(0, 80) ?? '',
@@ -330,7 +337,7 @@ export function SellAskMoPage() {
           updatedAt: Date.now(),
         }, { merge: true });
         // Remember which conversation to restore on next visit.
-        await coll.doc('_meta').set({ activeConvId: convIdToSave, updatedAt: Date.now() }, { merge: true });
+        await getConvMetaDoc(user.businessId).set({ activeConvId: convIdToSave, updatedAt: Date.now() }, { merge: true });
       } catch (e) { console.error('Ask MO save failed:', e); }
     },
     [user?.businessId]
@@ -369,10 +376,9 @@ export function SellAskMoPage() {
     if (!user?.businessId) return;
     setHistoryLoading(true);
     try {
-      const snap = await getConvCollection(user.businessId).limit(100).get();
+      const snap = await getConvQuery(user.businessId).limit(100).get();
       const list: Conversation[] = [];
       snap.docs.forEach(d => {
-        if (d.id === '_meta') return;
         const data = d.data();
         if (!data.messages?.length) return;
         list.push({
@@ -399,8 +405,7 @@ export function SellAskMoPage() {
     async (convIdToLoad: string) => {
       if (!user?.businessId) return;
       try {
-        const coll = getConvCollection(user.businessId);
-        const snap = await coll.doc(convIdToLoad).get();
+        const snap = await getConvDoc(convIdToLoad).get();
         if (snap.exists) {
           const data = snap.data();
           setMessages(data.messages ?? []);
@@ -408,7 +413,7 @@ export function SellAskMoPage() {
           convIdRef.current = convIdToLoad;
           createdAtRef.current = data.createdAt ?? Date.now();
           setConvId(convIdToLoad);
-          await coll.doc('_meta').set({ activeConvId: convIdToLoad, updatedAt: Date.now() }, { merge: true });
+          await getConvMetaDoc(user.businessId).set({ activeConvId: convIdToLoad, updatedAt: Date.now() }, { merge: true });
           setHistoryOpen(false);
         } else {
           showToast('Conversation not found', 'error');
@@ -427,7 +432,7 @@ export function SellAskMoPage() {
     // The previous conversation is already saved as its own history entry.
     if (user?.businessId) {
       try {
-        await getConvCollection(user.businessId).doc('_meta').set(
+        await getConvMetaDoc(user.businessId).set(
           { activeConvId: null, updatedAt: Date.now() },
           { merge: true },
         );
@@ -448,14 +453,14 @@ export function SellAskMoPage() {
     async (convIdToDelete: string) => {
       if (!user?.businessId) return;
       try {
-        await getConvCollection(user.businessId).doc(convIdToDelete).delete();
+        await getConvDoc(convIdToDelete).delete();
         if (convIdToDelete === convIdRef.current) {
           convIdRef.current = null;
           createdAtRef.current = 0;
           setConvId(null);
           setMessages([]);
           setConversationHistory([]);
-          await getConvCollection(user.businessId).doc('_meta').set(
+          await getConvMetaDoc(user.businessId).set(
             { activeConvId: null, updatedAt: Date.now() },
             { merge: true },
           );
