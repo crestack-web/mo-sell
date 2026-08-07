@@ -422,6 +422,12 @@ async function createProductInFirestore(
     digitalFileName = uploaded.fileName;
   }
 
+  if (productType === 'digital' && !digitalFileUrl) {
+    throw new Error(
+      'This digital product has no deliverable file. Ask MO to generate ebook content (chapters) before approving so customers get a download after purchase.',
+    );
+  }
+
   const payload: Record<string, unknown> = {
     displayName: productData.displayName,
     description: productData.description ?? '',

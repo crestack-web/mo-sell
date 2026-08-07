@@ -29,14 +29,39 @@ async function sendOrderConfirmationEmail(params: {
   orderUrl: string;
   storeSlug: string;
   businessId: string;
+  orderId: string;
 }): Promise<void> {
-  // Uses the existing sendgrid pattern in src/services/email/
   try {
-    await fetch(`${process.env.NEXT_PUBLIC_APP_URL ?? 'https://mo-sell.store'}/api/email/order-confirmation`, {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL ?? 'https://mo-sell.store'}/api/email/order-confirmation`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(params),
     });
+    const data = (await res.json().catch(() => null)) as { success?: boolean; stub?: boolean } | null;
+    const ok = res.ok && data?.success !== false;
+    const status = ok ? 'sent' : data?.stub ? 'stub' : 'failed';
+
+    if (!ok) {
+      console.error('[IntegrationBridge] Order confirmation email NOT delivered for', params.orderNumber, {
+        httpStatus: res.status,
+        providerStatus: data?.stub ? 'stub' : 'failure',
+      });
+    }
+
+    // Surface delivery status on the order so merchants can follow up
+    try {
+      const supabase = getSupabaseServer();
+      await supabase
+        .from('storeOrders')
+        .update({
+          customerEmailStatus: status,
+          customerEmailSentAt: ok ? new Date().toISOString() : null,
+          updatedAt: new Date().toISOString(),
+        })
+        .eq('id', params.orderId);
+    } catch (updateErr) {
+      console.error('[IntegrationBridge] Failed to record email status on order:', updateErr);
+    }
   } catch (err) {
     console.error('[IntegrationBridge] sendOrderConfirmationEmail failed:', err);
   }
@@ -287,6 +312,7 @@ export async function processConfirmedOrder(
     orderUrl,
     storeSlug:     config?.storeSlug ?? '',
     businessId,
+    orderId,
   }).catch(console.error);
 
   if (config?.contactEmail) {

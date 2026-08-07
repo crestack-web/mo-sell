@@ -18,6 +18,14 @@ async function sendOrderEmail(params: {
     text: params.text,
     from: params.from,
   });
+  if (!result.success) {
+    console.error('[Order Email] FAILED to deliver order confirmation:', {
+      to: params.to,
+      subject: params.subject,
+      provider: result.provider,
+      error: result.error,
+    });
+  }
   return { success: result.success, stub: result.provider === 'stub' };
 }
 
@@ -223,7 +231,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    return NextResponse.json({ success: result.success });
+    return NextResponse.json({ success: result.success, stub: result.stub });
   } catch (err) {
     console.error('[Email] Error:', err);
     return NextResponse.json({ error: 'Failed to send email' }, { status: 500 });

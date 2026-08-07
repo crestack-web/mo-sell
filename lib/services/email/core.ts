@@ -83,14 +83,18 @@ export interface EmailPayload {
   from?: { email: string; name: string };
 }
 
-export async function sendEmail(payload: EmailPayload): Promise<{ success: boolean; id?: string; provider?: string }> {
+export async function sendEmail(payload: EmailPayload): Promise<{ success: boolean; id?: string; provider?: string; error?: string }> {
   const resendApiKey = process.env.RESEND_API_KEY;
   const brevoApiKey = process.env.BREVO_API_KEY;
   const from = payload.from ?? { email: DEFAULT_SENDER_EMAIL, name: BRAND_NAME };
 
   if (!resendApiKey && !brevoApiKey) {
-    console.log('[Email] No RESEND_API_KEY/BREVO_API_KEY, stubbing email:', payload.subject);
-    return { success: true, provider: 'stub' };
+    console.warn('[Email] NO EMAIL PROVIDER CONFIGURED — email NOT delivered (stubbed):', {
+      to: payload.to,
+      subject: payload.subject,
+      from: `${from.name} <${from.email}>`,
+    });
+    return { success: false, provider: 'stub', error: 'No email provider configured (RESEND_API_KEY/BREVO_API_KEY missing)' };
   }
 
   if (resendApiKey) {

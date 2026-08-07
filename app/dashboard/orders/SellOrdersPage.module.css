@@ -51,6 +51,7 @@
 /* ── Customer cell ── */
 .customer { font-weight: 600; }
 .customerEmail { font-size: 0.75rem; color: var(--sell-text-3); margin-top: 2px; }
+.emailWarn { font-size: 0.72rem; font-weight: 600; color: var(--sell-red); margin-top: 3px; white-space: nowrap; }
 
 /* ── Items cell ── */
 .itemCount { font-size: 0.82rem; color: var(--sell-text-2); }
