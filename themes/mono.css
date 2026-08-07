@@ -1,0 +1,30 @@
+/* ═══════════════════════════════════════════
+   MONO STUDIO — Sharp and editorial
+   Black on white, single red accent, square corners
+═══════════════════════════════════════════ */
+
+[data-theme="mono"] {
+  --sf-font:         'Helvetica Neue', Arial, sans-serif;
+  --sf-font-display: 'Helvetica Neue', Arial, sans-serif;
+  --sf-bg:           #FFFFFF;
+  --sf-surface:      #FFFFFF;
+  --sf-surface-2:    #F5F5F5;
+  --sf-border:       #000000;
+  --sf-text-1:       #000000;
+  --sf-text-2:       #555555;
+  --sf-text-3:       #999999;
+  --sf-accent:       #FF0000;
+  --sf-accent-2:     #000000;
+  --sf-radius:       0px;
+  --sf-radius-sm:    0px;
+  --sf-radius-lg:    0px;
+  --sf-shadow:       0 8px 24px rgba(0,0,0,0.05);
+  --sf-shadow-sm:    0 2px 8px rgba(0,0,0,0.03);
+  --sf-nav-h:        0px;
+}
+
+[data-theme="mono"] body {
+  font-family: var(--sf-font);
+  background: var(--sf-bg);
+  color: var(--sf-text-1);
+}

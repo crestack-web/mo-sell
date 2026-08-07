@@ -1,0 +1,30 @@
+/* ═══════════════════════════════════════════
+   NEON LAGOS — After-dark energy
+   Black, scan-line texture, cyan borders, magenta accents
+═══════════════════════════════════════════ */
+
+[data-theme="neon"] {
+  --sf-font:         'Courier New', monospace;
+  --sf-font-display: 'Arial Narrow', 'Helvetica Neue', sans-serif;
+  --sf-bg:           #0A0A0A;
+  --sf-surface:      #111111;
+  --sf-surface-2:    #1A1A1A;
+  --sf-border:       #00F0FF;
+  --sf-text-1:       #FFFFFF;
+  --sf-text-2:       #9A9A9A;
+  --sf-text-3:       #555555;
+  --sf-accent:       #FF2E9A;
+  --sf-accent-2:     #00F0FF;
+  --sf-radius:       6px;
+  --sf-radius-sm:    6px;
+  --sf-radius-lg:    10px;
+  --sf-shadow:       0 0 20px rgba(0,240,255,0.08);
+  --sf-shadow-sm:    0 0 10px rgba(255,46,154,0.06);
+  --sf-nav-h:        0px;
+}
+
+[data-theme="neon"] body {
+  font-family: var(--sf-font);
+  background: var(--sf-bg);
+  color: var(--sf-text-1);
+}

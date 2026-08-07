@@ -68,7 +68,7 @@ function loadPaystackScript(): Promise<void> {
   });
 }
 
-const LINK_STYLE_THEMES = ['glow', 'creator', 'link', 'pulse', 'vault', 'atlas', 'spark', 'bazaar', 'abby'];
+const LINK_STYLE_THEMES = ['ankara', 'midnight', 'harmattan', 'neon', 'sunset', 'mono'];
 
 // Loading skeleton while theme loads
 function ProductPageSkeleton() {

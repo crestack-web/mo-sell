@@ -7,7 +7,9 @@ import { useSell } from '@/context/SellContext';
 import { THEMES } from '@/themes/registry';
 import type { ProductCardData } from '@/themes/types';
 import { getLinkBioLayout, type CustomLink } from '@/app/[storeSlug]/components/layouts/index';
-import { ExternalLink, GripVertical, Eye, EyeOff, X } from 'lucide-react';
+import { getThemeCssVars } from '@/components/StorefrontCanvas';
+import type { StorefrontTheme } from '@/types/mo-sell.types';
+import { ExternalLink, GripVertical, Eye, EyeOff, X, Pencil, ArrowRight } from 'lucide-react';
 import styles from './LinkInBioEditor.module.css';
 
 type DisplayType = 'button' | 'callout' | 'minimal';
@@ -48,15 +50,16 @@ function newLinkId(): string {
 }
 
 export function LinkInBioEditor() {
-  const { user, storeConfig, storeConfigLoading, refreshStoreConfig, showToast } = useSell();
+  const { user, storeConfig, storeConfigLoading, refreshStoreConfig, showToast, navigateTo } = useSell();
   const [form, setForm] = useState<LinkBioForm | null>(null);
-  const [theme, setTheme] = useState<string>('glow');
+  const [theme, setTheme] = useState<string>('ankara');
   const [tab, setTab] = useState<'profile' | 'design' | 'products' | 'links'>('profile');
   const [products, setProducts] = useState<ProductRow[]>([]);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
+  const [mobileEditorOpen, setMobileEditorOpen] = useState(false);
 
   useEffect(() => {
     if (storeConfigLoading) return;
@@ -75,7 +78,7 @@ export function LinkInBioEditor() {
       productOrder: Array.isArray(lb?.productOrder) ? lb.productOrder : [],
     });
     setAvatarPreview(lb?.avatarUrl ?? null);
-    setTheme((storeConfig as any)?.theme ?? 'glow');
+    setTheme((storeConfig as any)?.theme ?? 'ankara');
     setDirty(false);
   }, [storeConfig, storeConfigLoading]);
 
@@ -175,6 +178,25 @@ export function LinkInBioEditor() {
     }
   };
 
+  const handleSwitchToStore = async () => {
+    if (!user?.businessId) return;
+    if (dirty && !window.confirm('You have unsaved changes. Switch to the store theme editor?')) return;
+    try {
+      const db = getDatabase();
+      const target = THEMES.find(t => t.type === 'e-commerce');
+      if (target) {
+        await db.doc(`businesses/${user.businessId}/store/config`).set(
+          { theme: target.id, updatedAt: new Date().toISOString() },
+          { merge: true }
+        );
+      }
+      await refreshStoreConfig();
+      navigateTo('theme-editor');
+    } catch {
+      showToast('Failed to switch', 'error');
+    }
+  };
+
   const setProductVisibility = (id: string) => {
     if (!form) return;
     const current = form.productVisibility[id] !== false;
@@ -230,15 +252,22 @@ export function LinkInBioEditor() {
     paystackPublicKey: (storeConfig as any)?.paystackPublicKey ?? '',
   };
 
-  const isLightBg = form.backgroundType === 'solid' && ['#FFFFFF', '#F9FAFB', '#FFF7ED', '#ECFDF5', '#F0F9FF'].includes(form.backgroundValue);
+  const LIGHT_BGS = ['#FFFFFF', '#F9FAFB', '#FFF7ED', '#ECFDF5', '#F0F9FF', '#FFC93C', '#EDE7D9'];
+  const isLightBg = form.backgroundType === 'solid' && LIGHT_BGS.includes(form.backgroundValue);
   const text1 = isLightBg ? '#0f172a' : '#ffffff';
   const text2 = isLightBg ? '#64748b' : 'rgba(255,255,255,0.7)';
   const text3 = isLightBg ? '#94a3b8' : 'rgba(255,255,255,0.4)';
 
+  // Default solid backgrounds fall back to the theme palette bg (like the live page).
+  const isDefaultSolid = form.backgroundType === 'solid' && (form.backgroundValue === '#0A0A0A' || !form.backgroundValue);
   const bgStyle: React.CSSProperties =
     form.backgroundType === 'image' || form.backgroundType === 'pattern'
       ? { backgroundColor: '#111' }
-      : { background: form.backgroundValue };
+      : isDefaultSolid
+        ? { background: 'var(--sf-bg, #0A0A0A)' }
+        : { background: form.backgroundValue };
+
+  const themeVars = getThemeCssVars(theme as StorefrontTheme, config.primaryColor, config.secondaryColor);
 
   const Layout = getLinkBioLayout(theme);
   const bio = {
@@ -262,23 +291,42 @@ export function LinkInBioEditor() {
             <h2 style={{ margin: 0, fontFamily: 'var(--sell-font-display)', fontSize: '1.1rem', fontWeight: 700, color: 'var(--sell-text-1)' }}>Link in Bio</h2>
             <p style={{ margin: '2px 0 0', fontSize: '0.82rem', color: 'var(--sell-text-2)' }}>Preview updates live as you edit</p>
           </div>
-          {storeConfig?.storeSlug && (
-            <a
-              href={`/${storeConfig.storeSlug}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.72rem', fontWeight: 600, color: 'var(--sell-green)', background: 'var(--sell-green-bg)', padding: '3px 10px', borderRadius: 100, textDecoration: 'none' }}
-            >
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--sell-green)' }} />Live
-            </a>
-          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {storeConfig?.storeSlug && (
+              <a
+                href={`/${storeConfig.storeSlug}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.72rem', fontWeight: 600, color: 'var(--sell-green)', background: 'var(--sell-green-bg)', padding: '3px 10px', borderRadius: 100, textDecoration: 'none' }}
+              >
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--sell-green)' }} />Live
+              </a>
+            )}
+            <div className={styles.typeSwitch}>
+              <button
+                className={[styles.typeSwitchOpt, styles.typeSwitchOptActive].join(' ')}
+                type="button"
+                aria-pressed
+              >
+                Bio
+              </button>
+              <button
+                className={styles.typeSwitchOpt}
+                type="button"
+                onClick={handleSwitchToStore}
+                title="Edit your full storefront"
+              >
+                Store
+              </button>
+            </div>
+          </div>
         </div>
 
         <div style={{ display: 'flex', gap: 24, flex: 1, minHeight: 0, overflow: 'hidden' }}>
           {/* Mobile preview */}
           <div className={styles.previewCol}>
             <div className={styles.phoneFrame}>
-              <div className={styles.phoneScreen} style={bgStyle}>
+              <div className={styles.phoneScreen} style={{ ...themeVars, ...bgStyle }}>
                 {(form.backgroundType === 'image' || form.backgroundType === 'pattern') && form.backgroundValue && (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -305,7 +353,7 @@ export function LinkInBioEditor() {
           </div>
 
           {/* Editor panel */}
-          <div className={styles.editorCol}>
+          <div className={[styles.editorCol, mobileEditorOpen ? styles.editorColOpen : ''].join(' ')}>
             <div className={styles.editorTabs}>
               {(['profile', 'design', 'products', 'links'] as const).map(t => (
                 <button
@@ -317,6 +365,14 @@ export function LinkInBioEditor() {
                   {t[0].toUpperCase() + t.slice(1)}
                 </button>
               ))}
+              <button
+                className={styles.mobileClose}
+                onClick={() => setMobileEditorOpen(false)}
+                aria-label="Close editor"
+                type="button"
+              >
+                <X size={16} />
+              </button>
             </div>
 
             <div className={styles.editorContent}>
@@ -598,6 +654,16 @@ export function LinkInBioEditor() {
           </div>
         </div>
       </div>
+
+      {/* Mobile editor trigger (hidden on desktop) */}
+      <button
+        className={styles.mobileFab}
+        onClick={() => setMobileEditorOpen(true)}
+        type="button"
+        style={{ display: mobileEditorOpen ? 'none' : undefined }}
+      >
+        <Pencil size={14} /> Edit
+      </button>
     </div>
   );
 }
