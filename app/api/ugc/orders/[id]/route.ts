@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerFirestore as getAdminDb, FieldValue } from '@/lib/server-firestore';
+import { getSupabaseServer } from '@/lib/database/postgresql-adapter';
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -10,31 +10,34 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       return NextResponse.json({ error: 'action must be "accept" or "reject"' }, { status: 400 });
     }
 
-    const db = getAdminDb();
-    const orderRef = db.collection('ugcOrders').doc(id);
-    const orderSnap = await orderRef.get();
+    const supabase = getSupabaseServer();
+    const { data: order, error: orderError } = await supabase
+      .from('ugcOrders')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+    if (orderError) throw orderError;
 
-    if (!orderSnap.exists) {
+    if (!order) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 });
     }
 
-    const order = orderSnap.data()!;
     if (order.status !== 'REQUESTED') {
       return NextResponse.json({ error: `Order is already ${order.status}` }, { status: 400 });
     }
 
     if (action === 'accept') {
-      await orderRef.update({
+      await supabase.from('ugcOrders').update({
         status: 'IN_PROGRESS',
-        acceptedAt: FieldValue.serverTimestamp(),
-        updatedAt: FieldValue.serverTimestamp(),
-      });
+        acceptedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }).eq('id', id);
     } else {
-      await orderRef.update({
+      await supabase.from('ugcOrders').update({
         status: 'REJECTED',
         rejectionReason: reason || null,
-        updatedAt: FieldValue.serverTimestamp(),
-      });
+        updatedAt: new Date().toISOString(),
+      }).eq('id', id);
     }
 
     return NextResponse.json({ success: true, status: action === 'accept' ? 'IN_PROGRESS' : 'REJECTED' });

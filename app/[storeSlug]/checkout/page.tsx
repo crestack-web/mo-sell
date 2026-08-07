@@ -1,6 +1,6 @@
 import React from 'react';
 import { notFound } from 'next/navigation';
-import { getServerFirestore as getAdminDb } from '@/lib/server-firestore';
+import { getSupabaseServer } from '@/lib/database/postgresql-adapter';
 import { getStoreConfigBySlug } from '@/lib/store';
 import { CheckoutForm } from './CheckoutForm';
 
@@ -27,11 +27,12 @@ async function getStoreConfig(storeSlug: string) {
 
 async function getShippingZones(businessId: string) {
   try {
-    const db = getAdminDb();
-    const snap = await db
-      .collection('businesses').doc(businessId)
-      .collection('storeShippingZones').get();
-    return snap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
+    const supabase = getSupabaseServer();
+    const { data: rows } = await supabase
+      .from('storeShippingZones')
+      .select('*')
+      .eq('businessId', businessId);
+    return (rows ?? []).map((d: any) => ({ id: d.id, ...d }));
   } catch { return []; }
 }
 

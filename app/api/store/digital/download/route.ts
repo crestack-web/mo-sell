@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerFirestore as getAdminDb, FieldValue } from '@/lib/server-firestore';
+import { getSupabaseServer } from '@/lib/database/postgresql-adapter';
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -12,20 +12,17 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const db = getAdminDb();
+    const supabase = getSupabaseServer();
 
     // Find the order by orderNumber
-    const ordersQuery = db.collection('businesses').collectionGroup('storeOrders')
-      .where('orderNumber', '==', orderNumber)
-      .limit(1);
-    
-    const ordersSnap = await ordersQuery.get();
-    if (ordersSnap.empty) {
+    const { data: order } = await supabase
+      .from('storeOrders')
+      .select('*')
+      .eq('orderNumber', orderNumber)
+      .maybeSingle();
+    if (!order) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 });
     }
-
-    const orderDoc = ordersSnap.docs[0];
-    const order = orderDoc.data();
 
     // Verify the order belongs to this customer
     if (order.customerEmail !== email) {
@@ -43,32 +40,36 @@ export async function GET(req: NextRequest) {
     }
 
     // Get the product details to retrieve the digitalFileUrl
-    const businessId = orderDoc.ref.path.split('/')[1];
-    const productSnap = await db
-      .collection('businesses').doc(businessId)
-      .collection('storeProducts').doc(productId)
-      .get();
+    const businessId = order.businessId;
+    const { data: product } = await supabase
+      .from('storeProducts')
+      .select('*')
+      .eq('id', productId)
+      .eq('businessId', businessId)
+      .maybeSingle();
 
-    if (!productSnap.exists) {
+    if (!product) {
       return NextResponse.json({ error: 'Product not found' }, { status: 404 });
     }
 
-    const product = productSnap.data();
-    const digitalFileUrl = product?.digitalFileUrl;
+    const digitalFileUrl = product.digitalFileUrl;
 
     if (!digitalFileUrl) {
       return NextResponse.json({ error: 'Digital file not available' }, { status: 404 });
     }
 
     // Log the download
-    await db.collection('businesses').doc(businessId).collection('storeOrders').doc(orderDoc.id).update({
-      downloads: FieldValue.arrayUnion({
-        productId,
-        productName: lineItem.displayName,
-        downloadedAt: new Date().toISOString(),
-        email,
-      }),
+    const downloads = Array.isArray(order.downloads) ? order.downloads : [];
+    downloads.push({
+      productId,
+      productName: lineItem.displayName,
+      downloadedAt: new Date().toISOString(),
+      email,
     });
+    await supabase
+      .from('storeOrders')
+      .update({ downloads })
+      .eq('id', order.id);
 
     // Redirect to the file URL
     return NextResponse.redirect(digitalFileUrl);

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerFirestore as getAdminDb } from '@/lib/server-firestore';
+import { getSupabaseServer } from '@/lib/database/postgresql-adapter';
 
 /**
  * GET /api/store/products
@@ -25,32 +25,43 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const db = getAdminDb();
-    let query = db
-      .collection('businesses').doc(businessId)
-      .collection('storeProducts') as FirebaseFirestore.Query;
+    const supabase = getSupabaseServer();
+
+    const { data: rows, error } = await supabase
+      .from('storeProducts')
+      .select('*')
+      .eq('businessId', businessId);
+
+    if (error) {
+      console.error('[Store Products] Query error:', error);
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    }
+
+    let products = (rows ?? []).slice();
 
     if (available === 'true') {
-      query = query.where('available', '==', true);
+      products = products.filter((p: any) => p.available === true);
     }
     if (featured === 'true') {
-      query = query.where('featured', '==', true);
+      products = products.filter((p: any) => p.featured === true);
     }
     if (collectionId) {
-      query = query.where('collectionIds', 'array-contains', collectionId);
+      products = products.filter((p: any) =>
+        Array.isArray(p.collectionIds) && p.collectionIds.includes(collectionId),
+      );
     }
 
-    const snap = await query.limit(Math.min(limitParam, 200)).get();
+    products = products.slice(0, Math.min(limitParam, 200));
 
-    const products = snap.docs.map((d: any) => ({
+    const mapped = products.map((d: any) => ({
       id: d.id,
-      ...d.data(),
-      // Convert Timestamps to ISO strings for JSON serialization
-      createdAt: d.data().createdAt?.toDate?.()?.toISOString() ?? null,
-      updatedAt: d.data().updatedAt?.toDate?.()?.toISOString() ?? null,
+      ...d,
+      // Timestamps come back as ISO strings from Supabase
+      createdAt: d.createdAt ? new Date(d.createdAt).toISOString() : null,
+      updatedAt: d.updatedAt ? new Date(d.updatedAt).toISOString() : null,
     }));
 
-    return NextResponse.json({ products }, {
+    return NextResponse.json({ products: mapped }, {
       headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=30' },
     });
   } catch {

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerFirestore as getAdminDb } from '@/lib/server-firestore';
+import { getSupabaseServer } from '@/lib/database/postgresql-adapter';
 import { Client } from '@/lib/groq-client';
 
 const MODEL = process.env.AI_MODEL || 'llama-3.3-70b-versatile';
@@ -89,15 +89,16 @@ export async function POST(request: NextRequest) {
     let inventoryContext = '';
     if (businessId) {
       try {
-        const db = getAdminDb();
-        const snap = await db
-          .collection('businesses').doc(businessId)
-          .collection('storeProducts')
-          .where('available', '==', true)
-          .limit(20).get();
-        if (!snap.empty) {
-          const names = snap.docs
-            .map((d: any) => (d.data().displayName ?? d.data().name ?? '') as string)
+        const supabase = getSupabaseServer();
+        const { data: rows, error } = await supabase
+          .from('storeProducts')
+          .select('*')
+          .eq('businessId', businessId)
+          .eq('available', true)
+          .limit(20);
+        if (!error && rows && rows.length > 0) {
+          const names = rows
+            .map((d: any) => (d.displayName ?? d.name ?? '') as string)
             .filter(Boolean)
             .slice(0, 10)
             .join(', ');

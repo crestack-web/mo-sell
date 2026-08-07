@@ -93,15 +93,32 @@ export class SupabaseAdapter implements DatabaseAdapter {
   }
 
   collection(name: string): CollectionAdapter {
-    return new SupabaseCollection(this.supabase, name);
+    // Normalize Firestore subcollection paths to flat tables:
+    //   "businesses/{businessId}/storeOrders" -> table "storeOrders"
+    let tableName = name;
+    const sub = name.match(/^businesses\/[^/]+\/(.+)$/);
+    if (sub) {
+      tableName = sub[1];
+    }
+    return new SupabaseCollection(this.supabase, tableName);
   }
 
   doc(path: string): DocumentAdapter {
     // Parse path like "businesses/{businessId}/store/config"
     const parts = path.split('/');
+
+    if (parts.length === 4) {
+      // "businesses/{businessId}/store/config" maps to the businesses row;
+      // "businesses/{businessId}/storeOrders/{orderId}" maps to the storeOrders row.
+      if (parts[2] === 'store' && parts[3] === 'config') {
+        return new SupabaseDocument(this.supabase, parts[0], parts[1], path);
+      }
+      return new SupabaseDocument(this.supabase, parts[2], parts[3], path);
+    }
+
     const collectionName = parts[0];
     const docId = parts[1] || '';
-    
+
     return new SupabaseDocument(
       this.supabase,
       collectionName,

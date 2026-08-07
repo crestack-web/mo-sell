@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerFirestore as getAdminDb, FieldValue } from '@/lib/server-firestore';
+import { getSupabaseServer } from '@/lib/database/postgresql-adapter';
 import { processConfirmedOrder } from '@/lib/services/mo-sell-integration-bridge';
 
 export async function POST(req: NextRequest) {
@@ -16,27 +16,39 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const db = getAdminDb();
+    const supabase = getSupabaseServer();
 
     // 1. Resolve businessId from storeSlug
     let businessId = '';
     let storeData: Record<string, any> | null = null;
 
-    const idxDoc = await db.collection('storeIndex').doc(storeSlug).get();
-    if (idxDoc.exists) {
-      businessId = idxDoc.data()?.businessId ?? '';
+    const { data: indexRow } = await supabase
+      .from('storeIndex')
+      .select('*')
+      .eq('id', storeSlug)
+      .maybeSingle();
+    if (indexRow) {
+      businessId = indexRow.businessId ?? '';
       if (businessId) {
-        const cfgSnap = await db.collection('businesses').doc(businessId).collection('store').doc('config').get();
-        if (cfgSnap.exists) storeData = cfgSnap.data() ?? null;
+        const { data: configRow } = await supabase
+          .from('businesses')
+          .select('*')
+          .eq('id', businessId)
+          .maybeSingle();
+        if (configRow) storeData = configRow as Record<string, any>;
       }
     }
 
     if (!storeData) {
-      const snap = await db.collectionGroup('store').where('storeSlug', '==', storeSlug).limit(1).get();
-      if (!snap.empty) {
-        const doc = snap.docs[0];
-        storeData = doc.data() ?? null;
-        businessId = doc.ref.path.split('/')[1];
+      const { data: fallback } = await supabase
+        .from('businesses')
+        .select('*')
+        .eq('storeSlug', storeSlug)
+        .limit(1)
+        .maybeSingle();
+      if (fallback) {
+        storeData = fallback as Record<string, any>;
+        businessId = fallback.id ?? '';
       }
     }
 
@@ -45,14 +57,16 @@ export async function POST(req: NextRequest) {
     }
 
     // 2. Load product
-    const productSnap = await db
-      .collection('businesses').doc(businessId)
-      .collection('storeProducts').doc(productId)
-      .get();
-    if (!productSnap.exists) {
+    const { data: productRow } = await supabase
+      .from('storeProducts')
+      .select('*')
+      .eq('id', productId)
+      .eq('businessId', businessId)
+      .maybeSingle();
+    if (!productRow) {
       return NextResponse.json({ error: 'Product not found' }, { status: 404 });
     }
-    const product = { id: productSnap.id, ...productSnap.data() } as Record<string, any>;
+    const product = { id: productRow.id, ...productRow } as Record<string, any>;
     if (!product.available) {
       return NextResponse.json({ error: 'Product is not available' }, { status: 400 });
     }
@@ -93,10 +107,7 @@ export async function POST(req: NextRequest) {
 
     // 5. Create a checkout session for the single product
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
-    const sessionRef = db
-      .collection('businesses').doc(businessId)
-      .collection('checkoutSessions').doc();
-    const sessionId = sessionRef.id;
+    const sessionId = 'cs_' + crypto.randomUUID();
 
     const lineItem = {
       productId: product.id,
@@ -107,7 +118,8 @@ export async function POST(req: NextRequest) {
       lineTotal: product.price ?? 0,
     };
 
-    await sessionRef.set({
+    const { error: sessionError } = await supabase.from('checkoutSessions').insert({
+      id: sessionId,
       storeSlug,
       businessId,
       lineItems: [lineItem],
@@ -122,10 +134,13 @@ export async function POST(req: NextRequest) {
       total: product.price ?? 0,
       paystackReference,
       status: 'payment_confirmed',
-      expiresAt,
-      createdAt: FieldValue.serverTimestamp(),
+      expiresAt: expiresAt.toISOString(),
+      createdAt: new Date().toISOString(),
       ...(bookingId ? { metadata: { bookingId } } : {}),
     });
+    if (sessionError) {
+      return NextResponse.json({ error: 'Failed to create checkout session' }, { status: 500 });
+    }
 
     // 6. Run Integration Bridge
     const bridgeResult = await processConfirmedOrder({
@@ -144,14 +159,15 @@ export async function POST(req: NextRequest) {
 
     if (bookingId) {
       try {
-        await db
-          .collection('businesses').doc(businessId)
-          .collection('storeBookings').doc(bookingId)
+        await supabase
+          .from('storeBookings')
           .update({
             status: 'confirmed',
             orderId: orderId || null,
-            updatedAt: FieldValue.serverTimestamp(),
-          });
+            updatedAt: new Date().toISOString(),
+          })
+          .eq('id', bookingId)
+          .eq('businessId', businessId);
       } catch (err) {
         console.error('[confirm] Failed to update booking status:', err);
       }

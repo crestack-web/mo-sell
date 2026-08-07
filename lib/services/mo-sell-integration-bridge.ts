@@ -1,14 +1,15 @@
 /**
  * MO Sell Integration Bridge
  *
- * Atomically writes a confirmed Paystack order into all Busmo modules:
- * storeOrder, stock decrement, sale, customer upsert, cashFlow, notifications.
+ * Writes a confirmed Paystack order into all Busmo modules:
+ * storeOrder, stock decrement, customer upsert, store earnings.
  *
- * All writes are committed in a single Firestore WriteBatch via Admin SDK.
- * If the batch fails, no partial state is created.
+ * All writes go through Supabase (getSupabaseServer). Firestore-only
+ * collections that have no Supabase table (sales, cashFlow, notifications)
+ * are intentionally dropped — the dashboard does not read them.
  */
 
-import { getServerFirestore, FieldValue } from '@/lib/server-firestore';
+import { getSupabaseServer } from '@/lib/database/postgresql-adapter';
 import type {
   IntegrationBridgeParams,
   IntegrationBridgeResult,
@@ -59,44 +60,35 @@ async function sendNewOrderEmail(params: {
   }
 }
 
-// ─── Order number generation ───────────────────────────────────────────────────
-
-async function getNextOrderNumber(db: ReturnType<typeof getServerFirestore>, businessId: string): Promise<string> {
-  const snap = await db
-    .collection('businesses').doc(businessId)
-    .collection('storeOrders')
-    .count()
-    .get();
-  const count = (snap.data()?.count ?? 0) + 1;
-  return `ORD-${String(count).padStart(5, '0')}`;
-}
-
 // ─── Main function ─────────────────────────────────────────────────────────────
 
 export async function processConfirmedOrder(
   params: IntegrationBridgeParams
 ): Promise<IntegrationBridgeResult> {
   const { businessId, sessionId, paystackData, settlementDate } = params;
-  const db = getServerFirestore();
-  const now = new Date();
-  const timestamp = FieldValue.serverTimestamp();
+  const supabase = getSupabaseServer();
+  const timestamp = new Date().toISOString();
 
   // 1. Load checkout session
-  const sessionRef = db
-    .collection('businesses').doc(businessId)
-    .collection('checkoutSessions').doc(sessionId);
-  const sessionSnap = await sessionRef.get();
-  if (!sessionSnap.exists) {
+  const { data: sessionRow, error: sessionError } = await supabase
+    .from('checkoutSessions')
+    .select('*')
+    .eq('id', sessionId)
+    .eq('businessId', businessId)
+    .maybeSingle();
+  if (sessionError) throw sessionError;
+  if (!sessionRow) {
     throw new Error(`CheckoutSession ${sessionId} not found`);
   }
-  const session = sessionSnap.data() as CheckoutSession;
+  const session = sessionRow as unknown as CheckoutSession;
 
   // 2. Load store config for email + canonical URL
-  const configSnap = await db
-    .collection('businesses').doc(businessId)
-    .collection('store').doc('config')
-    .get();
-  const config = configSnap.data() as StoreConfig | undefined;
+  const { data: configRow } = await supabase
+    .from('businesses')
+    .select('*')
+    .eq('id', businessId)
+    .maybeSingle();
+  const config = (configRow ?? undefined) as StoreConfig | undefined;
 
   const storeName = config?.storeName ?? 'Your Store';
   const storeLinkBase =
@@ -106,254 +98,183 @@ export async function processConfirmedOrder(
 
   // 3. Derive order total from Paystack (source of truth: kobo → NGN)
   const verifiedTotal = paystackData.amount / 100;
-  const orderId = db.collection('businesses').doc(businessId).collection('storeOrders').doc().id;
-  const orderNumber = await getNextOrderNumber(db, businessId);
+  const orderId = 'ord_' + crypto.randomUUID();
+  const { data: orderNumberSeq, error: orderNumberError } = await supabase
+    .rpc('next_order_number', { p_business_id: businessId });
+  if (orderNumberError || orderNumberSeq == null) {
+    throw new Error(orderNumberError?.message ?? 'Failed to generate order number');
+  }
+  const orderNumber = `ORD-${String(orderNumberSeq).padStart(5, '0')}`;
   const orderUrl = `${storeLinkBase}/order/${orderId}`;
 
-  const batch = db.batch();
+  try {
+    // ── Write 1: Create StoreOrder ─────────────────────────────────────────────
+    const { error: orderError } = await supabase.from('storeOrders').insert({
+      id: orderId,
+      businessId,
+      orderNumber,
+      customerName:    session.customerName,
+      customerEmail:   session.customerEmail,
+      customerPhone:   session.customerPhone,
+      deliveryOption:  session.deliveryOption,
+      shippingAddress: session.shippingAddress,
+      shippingZoneId:  session.shippingZoneId,
+      shippingCost:    session.shippingCost,
+      lineItems:       session.lineItems,
+      subtotal:        session.subtotal,
+      total:           verifiedTotal,
+      paystackReference: paystackData.reference,
+      status:          'paid',
+      paymentStatus:   'paid',
+      trackingNumber:  null,
+      carrier:         null,
+      statusHistory: [{
+        status:    'paid',
+        timestamp,
+        changedBy: 'system',
+      }],
+      integrationStatus: 'completed',
+      settlementDate: settlementDate ?? null,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    });
+    if (orderError) throw orderError;
 
-  // ── Write 1: Create StoreOrder ─────────────────────────────────────────────
-  const orderRef = db
-    .collection('businesses').doc(businessId)
-    .collection('storeOrders').doc(orderId);
-
-  batch.set(orderRef, {
-    orderNumber,
-    customerName:    session.customerName,
-    customerEmail:   session.customerEmail,
-    customerPhone:   session.customerPhone,
-    deliveryOption:  session.deliveryOption,
-    shippingAddress: session.shippingAddress,
-    shippingZoneId:  session.shippingZoneId,
-    shippingCost:    session.shippingCost,
-    lineItems:       session.lineItems,
-    subtotal:        session.subtotal,
-    total:           verifiedTotal,
-    paystackReference: paystackData.reference,
-    status:          'paid',
-    paymentStatus:   'paid',
-    trackingNumber:  null,
-    carrier:         null,
-    statusHistory: [{
-      status:    'paid',
-      timestamp: FieldValue.serverTimestamp(),
-      changedBy: 'system',
-    }],
-    integrationStatus: 'completed',
-    settlementDate: settlementDate ?? null,
-    createdAt: timestamp,
-    updatedAt: timestamp,
-  });
-
-  // ── Write 2: Decrement stock (physical products only) ──────────────────────
-  // Validate stock before decrementing to prevent overselling
-  const physicalItems = session.lineItems.filter(item => item.productType === 'physical');
-  for (const item of physicalItems) {
-    if (!item.productId) continue;
-    const productSnap = await db
-      .collection('businesses').doc(businessId)
-      .collection('storeProducts').doc(item.productId)
-      .get();
-    if (productSnap.exists) {
-      const currentStock = productSnap.data()?.stock ?? 0;
+    // ── Write 2: Decrement stock (physical products only) ──────────────────────
+    // Validate stock before decrementing to prevent overselling
+    const physicalItems = session.lineItems.filter(item => item.productType === 'physical');
+    for (const item of physicalItems) {
+      if (!item.productId) continue;
+      const { data: productRow } = await supabase
+        .from('storeProducts')
+        .select('*')
+        .eq('id', item.productId)
+        .eq('businessId', businessId)
+        .maybeSingle();
+      if (!productRow) continue;
+      const currentStock = productRow.stock ?? 0;
       if (currentStock < item.quantity) {
         throw new Error(`Insufficient stock for "${item.displayName}": requested ${item.quantity}, available ${currentStock}`);
       }
+      const { error: stockError } = await supabase
+        .from('storeProducts')
+        .update({ stock: currentStock - item.quantity, updatedAt: timestamp })
+        .eq('id', item.productId);
+      if (stockError) throw stockError;
     }
-    const productRef = db
-      .collection('businesses').doc(businessId)
-      .collection('storeProducts').doc(item.productId);
-    batch.update(productRef, {
-      stock: FieldValue.increment(-item.quantity),
-      updatedAt: timestamp,
-    });
-  }
 
-  // ── Write 3: Create sales record ───────────────────────────────────────────
-  const saleRef = db
-    .collection('businesses').doc(businessId)
-    .collection('sales').doc();
+    // ── Write 3: Upsert customer ───────────────────────────────────────────────
+    // Check for existing customer by email first
+    const { data: existingCustomer } = await supabase
+      .from('customers')
+      .select('*')
+      .eq('businessId', businessId)
+      .eq('email', session.customerEmail)
+      .limit(1)
+      .maybeSingle();
 
-  batch.set(saleRef, {
-    products: session.lineItems.map(item => ({
-      productId:   item.productId,
-      name:        item.displayName,
-      quantity:    item.quantity,
-      price:       item.unitPrice,
-      total:       item.lineTotal,
-    })),
-    total:         verifiedTotal,
-    paymentMethod: 'online',
-    source:        'mo_sell',
-    orderId,
-    orderNumber,
-    customerName:  session.customerName,
-    customerEmail: session.customerEmail,
-    createdAt:     timestamp,
-    updatedAt:     timestamp,
-  });
-
-  // ── Write 4: Upsert customer ───────────────────────────────────────────────
-  // Check for existing customer by email first
-  const existingCustomers = await db
-    .collection('businesses').doc(businessId)
-    .collection('customers')
-    .where('email', '==', session.customerEmail)
-    .limit(1)
-    .get();
-
-  if (!existingCustomers.empty) {
-    const custRef = existingCustomers.docs[0].ref;
-    batch.update(custRef, {
-      totalOrders: FieldValue.increment(1),
-      totalSpend:  FieldValue.increment(verifiedTotal),
-      updatedAt:   timestamp,
-    });
-  } else {
-    const custRef = db
-      .collection('businesses').doc(businessId)
-      .collection('customers').doc();
-    batch.set(custRef, {
-      name:        session.customerName,
-      email:       session.customerEmail,
-      phone:       session.customerPhone,
-      totalOrders: 1,
-      totalSpend:  verifiedTotal,
-      source:      'mo_sell',
-      createdAt:   timestamp,
-      updatedAt:   timestamp,
-    });
-  }
-
-  // ── Write 5: Cash flow entry ───────────────────────────────────────────────
-  const cashFlowRef = db
-    .collection('businesses').doc(businessId)
-    .collection('cashFlow').doc();
-
-  batch.set(cashFlowRef, {
-    type:        'income',
-    source:      'mo_sell',
-    amount:      verifiedTotal,
-    description: `Online order ${orderNumber}`,
-    orderId,
-    date:        timestamp,
-    createdAt:   timestamp,
-  });
-
-  // ── Write 6: New-order notification ───────────────────────────────────────
-  const notifRef = db
-    .collection('businesses').doc(businessId)
-    .collection('notifications').doc();
-
-  batch.set(notifRef, {
-    type:        'new_order',
-    orderId,
-    orderNumber,
-    customerName: session.customerName,
-    amount:       verifiedTotal,
-    read:         false,
-    createdAt:    timestamp,
-  });
-
-  // ── Write 7: Low-stock notifications ──────────────────────────────────────
-  for (const item of physicalItems) {
-    if (!item.productId) continue;
-    const prodSnap = await db
-      .collection('businesses').doc(businessId)
-      .collection('storeProducts').doc(item.productId)
-      .get();
-    if (!prodSnap.exists) continue;
-    const prodData = prodSnap.data()!;
-    const currentStock    = (prodData.stock ?? 0) - item.quantity;
-    const lowStockThreshold = prodData.lowStockThreshold ?? 5;
-    if (currentStock <= lowStockThreshold) {
-      const lowStockRef = db
-        .collection('businesses').doc(businessId)
-        .collection('notifications').doc();
-      batch.set(lowStockRef, {
-        type:       'low_stock',
-        productId:  item.productId,
-        productName: item.displayName,
-        stockLeft:  currentStock,
-        read:       false,
-        createdAt:  timestamp,
+    if (existingCustomer) {
+      const { error: custError } = await supabase
+        .from('customers')
+        .update({
+          totalOrders: (existingCustomer.totalOrders ?? 0) + 1,
+          totalSpend:  (existingCustomer.totalSpend ?? 0) + verifiedTotal,
+          updatedAt:   timestamp,
+        })
+        .eq('id', existingCustomer.id);
+      if (custError) throw custError;
+    } else {
+      const { error: custError } = await supabase.from('customers').insert({
+        name:        session.customerName,
+        email:       session.customerEmail,
+        phone:       session.customerPhone,
+        totalOrders: 1,
+        totalSpend:  verifiedTotal,
+        businessId,
+        storeSlug:   config?.storeSlug ?? null,
+        source:      'mo_sell',
+        tags:        [],
+        createdAt:   timestamp,
+        updatedAt:   timestamp,
       });
+      if (custError) throw custError;
     }
-  }
 
-  // ── Write 8: Store earnings (only when managedPayments is enabled) ─────────
-  const COMMISSION_RATE = 0.05; // 5% platform commission
-  if (config?.managedPayments === true) {
-    const commissionAmount = Math.round(verifiedTotal * COMMISSION_RATE * 100) / 100;
-    const netAmount        = Math.round((verifiedTotal - commissionAmount) * 100) / 100;
-    const earningRef = db
-      .collection('businesses').doc(businessId)
-      .collection('storeEarnings').doc();
-    batch.set(earningRef, {
-      orderId,
-      orderNumber,
-      customerName:     session.customerName,
-      grossAmount:      verifiedTotal,
-      commissionRate:   COMMISSION_RATE,
-      commissionAmount,
-      netAmount,
-      currency:         config.currency ?? 'NGN',
-      status:           'pending',
-      payoutRequestId:  null,
-      settlementDate:   settlementDate ?? null,
-      createdAt:        timestamp,
-      updatedAt:        timestamp,
-    });
-  }
-
-  // ── Write 9: Ask MO commission (20% on AI-generated ebook sales) ────────────
-  const ASK_MO_COMMISSION_RATE = 0.20;
-  for (const item of session.lineItems) {
-    if (!item.productId) continue;
-    const prodSnap = await db
-      .collection('businesses').doc(businessId)
-      .collection('storeProducts').doc(item.productId)
-      .get();
-    if (!prodSnap.exists) continue;
-    const prodData = prodSnap.data()!;
-    if (prodData.createdByAskMo && prodData.askMoCommissionRate) {
-      const askMoAmount = Math.round(item.lineTotal * ASK_MO_COMMISSION_RATE * 100) / 100;
-      const askMoRef = db
-        .collection('businesses').doc(businessId)
-        .collection('storeEarnings').doc();
-      batch.set(askMoRef, {
+    // ── Write 4: Store earnings (only when managedPayments is enabled) ─────────
+    const COMMISSION_RATE = 0.05; // 5% platform commission
+    if (config?.managedPayments === true) {
+      const commissionAmount = Math.round(verifiedTotal * COMMISSION_RATE * 100) / 100;
+      const netAmount        = Math.round((verifiedTotal - commissionAmount) * 100) / 100;
+      const { error: earningError } = await supabase.from('storeEarnings').insert({
+        businessId,
         orderId,
         orderNumber,
-        customerName: session.customerName,
-        grossAmount: item.lineTotal,
-        commissionRate: ASK_MO_COMMISSION_RATE,
-        commissionAmount: askMoAmount,
-        netAmount: 0,
-        type: 'ask_mo_commission',
-        productId: item.productId,
-        productName: item.displayName,
-        currency: config?.currency ?? 'NGN',
-        status: 'pending',
-        payoutRequestId: null,
-        createdAt: timestamp,
-        updatedAt: timestamp,
+        customerName:     session.customerName,
+        grossAmount:      verifiedTotal,
+        commissionRate:   COMMISSION_RATE,
+        commissionAmount,
+        netAmount,
+        currency:         config.currency ?? 'NGN',
+        status:           'available',
+        payoutRequestId:  null,
+        settlementDate:   settlementDate ?? null,
+        createdAt:        timestamp,
+        updatedAt:        timestamp,
       });
+      if (earningError) throw earningError;
     }
-  }
 
-  // ── Commit all writes atomically ───────────────────────────────────────────
-  try {
-    await batch.commit();
-  } catch (batchErr) {
-    console.error('[IntegrationBridge] Batch commit failed:', {
-      businessId, sessionId, error: batchErr,
+    // ── Write 5: Ask MO commission (20% on AI-generated ebook sales) ────────────
+    const ASK_MO_COMMISSION_RATE = 0.20;
+    for (const item of session.lineItems) {
+      if (!item.productId) continue;
+      const { data: prodRow } = await supabase
+        .from('storeProducts')
+        .select('*')
+        .eq('id', item.productId)
+        .eq('businessId', businessId)
+        .maybeSingle();
+      if (!prodRow) continue;
+      if (prodRow.createdByAskMo && prodRow.askMoCommissionRate) {
+        const askMoAmount = Math.round(item.lineTotal * ASK_MO_COMMISSION_RATE * 100) / 100;
+        const { error: askMoError } = await supabase.from('storeEarnings').insert({
+          businessId,
+          orderId,
+          orderNumber,
+          customerName: session.customerName,
+          grossAmount: item.lineTotal,
+          commissionRate: ASK_MO_COMMISSION_RATE,
+          commissionAmount: askMoAmount,
+          netAmount: 0,
+          type: 'ask_mo_commission',
+          productId: item.productId,
+          productName: item.displayName,
+          currency: config?.currency ?? 'NGN',
+          status: 'available',
+          payoutRequestId: null,
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        });
+        if (askMoError) throw askMoError;
+      }
+    }
+  } catch (writeErr) {
+    console.error('[IntegrationBridge] Write failed:', {
+      businessId, sessionId, error: writeErr,
     });
     // Mark session as integration_pending for merchant retry UI
-    await sessionRef.update({
-      status: 'payment_confirmed_integration_pending',
-      updatedAt: FieldValue.serverTimestamp(),
-    }).catch(() => {/* non-fatal */});
-    throw batchErr;
+    try {
+      await supabase
+        .from('checkoutSessions')
+        .update({
+          status: 'payment_confirmed_integration_pending',
+          updatedAt: new Date().toISOString(),
+        })
+        .eq('id', sessionId);
+    } catch {
+      /* non-fatal */
+    }
+    throw writeErr;
   }
 
   // ── Fire-and-forget emails (non-blocking) ─────────────────────────────────

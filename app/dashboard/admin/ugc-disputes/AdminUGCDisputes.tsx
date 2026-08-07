@@ -46,30 +46,19 @@ export function AdminUGCDisputes() {
   const [bankCode, setBankCode] = useState('');
   const [showPayout, setShowPayout] = useState<string | null>(null);
 
-  useEffect(() => {
-    // Dynamic import Firebase only on client side
-    const loadFirebase = async () => {
-      const { initializeFirebase } = await import('@/lib/firebase');
-      const { collection, query, where, orderBy, onSnapshot } = await import('firebase/firestore');
-      const { getAuth, onAuthStateChanged } = await import('firebase/auth');
-      
-      const { auth, firestore } = initializeFirebase();
-      const unsubAuth = onAuthStateChanged(auth, (user) => {
-        if (!user) return;
-        const q = query(
-          collection(firestore, 'ugcOrders'),
-          where('status', '==', 'DISPUTED'),
-          orderBy('createdAt', 'desc')
-        );
-        const unsubSnap = onSnapshot(q, (snap) => {
-          setOrders(snap.docs.map(d => ({ id: d.id, ...d.data() }) as UGCOrder));
-        });
-        return () => unsubSnap();
-      });
-      return () => unsubAuth();
-    };
+  const loadOrders = async () => {
+    try {
+      const res = await fetch('/api/ugc/disputes');
+      if (!res.ok) return;
+      const data = await res.json();
+      setOrders(data.orders ?? []);
+    } catch {
+      // ignore fetch errors
+    }
+  };
 
-    loadFirebase();
+  useEffect(() => {
+    loadOrders();
   }, []);
 
   async function handleResolve(orderId: string) {
@@ -95,6 +84,7 @@ export function AdminUGCDisputes() {
       }
       setSelectedResolution(prev => { const n = { ...prev }; delete n[orderId]; return n; });
       setShowPayout(null);
+      loadOrders();
     } catch {
       alert('Failed to resolve dispute');
     } finally {

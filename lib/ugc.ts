@@ -96,8 +96,12 @@ export async function updateCreator(id: string, patch: Record<string, unknown>):
 }
 
 export async function incrementCreator(id: string, increments: Record<string, number>): Promise<void> {
-  const payload: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(increments)) payload[key] = { inc: value };
-  const { error } = await db().from('ugcCreators').update(payload).eq('id', id);
-  if (error) throw new Error(`[ugc] incrementCreator failed: ${error.message}`);
+  for (const [field, amount] of Object.entries(increments)) {
+    const { error } = await db().rpc('increment_creator_field', {
+      p_creator_id: id,
+      p_field: field,
+      p_amount: amount,
+    });
+    if (error) throw new Error(`[ugc] incrementCreator failed: ${error.message}`);
+  }
 }

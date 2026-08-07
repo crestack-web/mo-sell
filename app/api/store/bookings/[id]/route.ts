@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerFirestore as getAdminDb, FieldValue } from '@/lib/server-firestore';
+import { getSupabaseServer } from '@/lib/database/postgresql-adapter';
 import type { BookingStatus } from '@/types/mo-sell.types';
 
 /**
@@ -38,20 +38,36 @@ export async function PATCH(
   }
 
   try {
-    const db = getAdminDb();
-    const docRef = db
-      .collection('businesses').doc(businessId)
-      .collection('storeBookings').doc(id);
+    const supabase = getSupabaseServer();
 
-    const snap = await docRef.get();
-    if (!snap.exists) {
+    const { data: existing, error: lookupError } = await supabase
+      .from('storeBookings')
+      .select('id')
+      .eq('id', id)
+      .eq('businessId', businessId)
+      .maybeSingle();
+
+    if (lookupError) {
+      console.error('[Booking PATCH] Lookup error:', lookupError);
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    }
+
+    if (!existing) {
       return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
     }
 
-    await docRef.update({
-      status,
-      updatedAt: FieldValue.serverTimestamp(),
-    });
+    const { error: updateError } = await supabase
+      .from('storeBookings')
+      .update({
+        status,
+        updatedAt: new Date().toISOString(),
+      })
+      .eq('id', id);
+
+    if (updateError) {
+      console.error('[Booking PATCH] Update error:', updateError);
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    }
 
     return NextResponse.json({ success: true });
   } catch {

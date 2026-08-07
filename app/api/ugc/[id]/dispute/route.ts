@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerFirestore as getAdminDb, FieldValue } from '@/lib/server-firestore';
+import { getSupabaseServer } from '@/lib/database/postgresql-adapter';
 
 const VALID_REASONS = ['QUALITY', 'BRIEF_MISMATCH', 'DEADLINE', 'NO_RESPONSE', 'SCOPE_CREEP', 'OTHER'];
 
@@ -17,27 +17,30 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: 'openedBy must be "brand" or "creator"' }, { status: 400 });
     }
 
-    const db = getAdminDb();
-    const orderRef = db.collection('ugcOrders').doc(id);
-    const snap = await orderRef.get();
-    if (!snap.exists) {
+    const supabase = getSupabaseServer();
+    const { data: order, error: orderError } = await supabase
+      .from('ugcOrders')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+    if (orderError) throw orderError;
+    if (!order) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 });
     }
 
-    const order = snap.data() as any;
     if (order.status === 'COMPLETED' || order.status === 'CANCELLED' || order.status === 'DISPUTED') {
       return NextResponse.json({ error: `Cannot dispute order in ${order.status} status` }, { status: 400 });
     }
 
-    await orderRef.update({
+    await supabase.from('ugcOrders').update({
       status: 'DISPUTED',
       paymentStatus: order.paymentStatus === 'PAID_OUT' ? order.paymentStatus : 'DISPUTE_HOLD',
       disputeReason: reason,
       disputeDescription: description ?? '',
       disputeOpenedBy: openedBy,
-      disputeOpenedAt: FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp(),
-    });
+      disputeOpenedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }).eq('id', id);
 
     return NextResponse.json({ success: true, status: 'DISPUTED' });
   } catch (err) {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerFirestore as getAdminDb } from '@/lib/server-firestore';
-import type { BookingAvailability, DayOfWeek } from '@/types/mo-sell.types';
+import { getSupabaseServer } from '@/lib/database/postgresql-adapter';
+import type { DayOfWeek } from '@/types/mo-sell.types';
 
 const DAY_MAP: Record<number, DayOfWeek> = {
   0: 'sun', 1: 'mon', 2: 'tue', 3: 'wed', 4: 'thu', 5: 'fri', 6: 'sat',
@@ -26,22 +26,26 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const db = getAdminDb();
+    const supabase = getSupabaseServer();
 
     // 1. Load availability config
-    const configSnap = await db
-      .collection('businesses').doc(businessId)
-      .collection('storeBookingAvailability').doc('config')
-      .get();
+    const { data: config, error: configError } = await supabase
+      .from('storeBookingAvailability')
+      .select('*')
+      .eq('businessId', businessId)
+      .maybeSingle();
 
-    if (!configSnap.exists) {
+    if (configError) {
+      console.error('[Slots] Config query error:', configError);
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    }
+
+    if (!config) {
       return NextResponse.json({ slots: [] });
     }
 
-    const config = configSnap.data() as BookingAvailability;
-
     // 2. Check if date is blocked
-    if (config.blockedDates.includes(date)) {
+    if (Array.isArray(config.blockedDates) && config.blockedDates.includes(date)) {
       return NextResponse.json({ slots: [] });
     }
 
@@ -49,7 +53,7 @@ export async function GET(req: NextRequest) {
     const dateObj = new Date(date + 'T00:00:00');
     const dayOfWeek = DAY_MAP[dateObj.getDay()];
 
-    const dayConfig = config.slots.find(s => s.day === dayOfWeek);
+    const dayConfig = (config.slots ?? []).find((s: any) => s.day === dayOfWeek);
     if (!dayConfig || !dayConfig.enabled) {
       return NextResponse.json({ slots: [] });
     }
@@ -63,16 +67,20 @@ export async function GET(req: NextRequest) {
     );
 
     // 5. Load existing bookings for this date (non-cancelled)
-    const bookingsSnap = await db
-      .collection('businesses').doc(businessId)
-      .collection('storeBookings')
-      .where('date', '==', date)
-      .where('status', 'in', ['pending', 'confirmed'])
-      .get();
+    const { data: bookings, error: bookingsError } = await supabase
+      .from('storeBookings')
+      .select('startTime')
+      .eq('businessId', businessId)
+      .eq('date', date)
+      .in('status', ['pending', 'confirmed']);
+
+    if (bookingsError) {
+      console.error('[Slots] Bookings query error:', bookingsError);
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    }
 
     const takenStartTimes = new Set<string>();
-    bookingsSnap.docs.forEach((doc: any) => {
-      const booking = doc.data();
+    (bookings ?? []).forEach((booking: any) => {
       takenStartTimes.add(booking.startTime);
     });
 

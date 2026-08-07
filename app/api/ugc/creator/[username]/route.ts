@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCreatorByUsername, listVideos } from '@/lib/ugc';
-import { getServerFirestore as getAdminDb } from '@/lib/server-firestore';
+import { getSupabaseServer } from '@/lib/database/postgresql-adapter';
 
 export async function GET(
   _req: NextRequest,
@@ -18,12 +18,13 @@ export async function GET(
 
     let completedCount = 0;
     try {
-      const db = getAdminDb();
-      const orderSnap = await db.collection('ugcOrders')
-        .where('creatorId', '==', creator.userId)
-        .where('status', '==', 'COMPLETED')
-        .get();
-      completedCount = orderSnap.size;
+      const supabase = getSupabaseServer();
+      const { count, error } = await supabase
+        .from('ugcOrders')
+        .select('*', { count: 'exact', head: true })
+        .eq('creatorId', creator.userId)
+        .eq('status', 'COMPLETED');
+      if (!error) completedCount = count ?? 0;
     } catch (e) {
       console.error('[ugc/creator] orders count unavailable, defaulting to 0:', e);
     }

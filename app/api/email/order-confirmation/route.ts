@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerFirestore as getAdminDb } from '@/lib/server-firestore';
+import { getSupabaseServer } from '@/lib/database/postgresql-adapter';
 import { sendEmail } from '@/lib/services/email/core';
 
 async function sendOrderEmail(params: {
@@ -46,18 +46,18 @@ export async function POST(req: NextRequest) {
 
     if (businessId) {
       try {
-        const db = getAdminDb();
-        const configSnap = await db
-          .collection('businesses').doc(businessId)
-          .collection('store').doc('config')
-          .get();
+        const supabase = getSupabaseServer();
+        const { data: config } = await supabase
+          .from('businesses')
+          .select('*')
+          .eq('id', businessId)
+          .maybeSingle();
 
-        if (configSnap.exists) {
-          const config = configSnap.data();
-          merchantName = config?.storeName || storeName;
-          merchantEmail = config?.contactEmail || `${config?.storeSlug || storeSlug}@mo-sell.store`;
-          
-          if (config?.customDomainStatus === 'verified' && config?.customDomain) {
+        if (config) {
+          merchantName = config.storeName || storeName;
+          merchantEmail = config.contactEmail || `${config.storeSlug || storeSlug}@mo-sell.store`;
+
+          if (config.customDomainStatus === 'verified' && config.customDomain) {
             storeLink = `https://${config.customDomain}/order/${orderUrl.split('/order/')[1]}`;
           }
         }

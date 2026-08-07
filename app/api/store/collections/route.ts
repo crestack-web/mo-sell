@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerFirestore as getAdminDb } from '@/lib/server-firestore';
+import { getSupabaseServer } from '@/lib/database/postgresql-adapter';
 
 /**
  * GET /api/store/collections?businessId=xxx
@@ -13,14 +13,25 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const db = getAdminDb();
-    const snap = await db
-      .collection('businesses').doc(businessId)
-      .collection('storeCollections')
-      .orderBy('title', 'asc')
-      .get();
+    const supabase = getSupabaseServer();
 
-    const collections = snap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
+    const { data: rows, error } = await supabase
+      .from('storeCollections')
+      .select('*')
+      .eq('businessId', businessId);
+
+    if (error) {
+      console.error('[Store Collections] Query error:', error);
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    }
+
+    // orderBy title asc (sort in JS after select). The table stores the title
+    // in the `name` column, fall back to `title` for legacy rows.
+    const collections = (rows ?? [])
+      .sort((a: any, b: any) =>
+        String(a.name ?? a.title ?? '').localeCompare(String(b.name ?? b.title ?? '')),
+      )
+      .map((d: any) => ({ id: d.id, ...d }));
 
     return NextResponse.json({ collections }, {
       headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=30' },

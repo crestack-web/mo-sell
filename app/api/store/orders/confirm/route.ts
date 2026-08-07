@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerFirestore as getAdminDb, FieldValue } from '@/lib/server-firestore';
+import { getSupabaseServer } from '@/lib/database/postgresql-adapter';
 import { processConfirmedOrder } from '@/lib/services/mo-sell-integration-bridge';
 import type { CheckoutSession } from '@/types/mo-sell.types';
 
@@ -31,30 +31,33 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const db = getAdminDb();
+    const supabase = getSupabaseServer();
 
     // 1. Load and validate session
-    const sessionRef = db
-      .collection('businesses').doc(businessId)
-      .collection('checkoutSessions').doc(sessionId);
-    const sessionSnap = await sessionRef.get();
+    const { data: sessionRow } = await supabase
+      .from('checkoutSessions')
+      .select('*')
+      .eq('id', sessionId)
+      .eq('businessId', businessId)
+      .maybeSingle();
 
-    if (!sessionSnap.exists) {
+    if (!sessionRow) {
       return NextResponse.json({ error: 'Session not found' }, { status: 404 });
     }
 
-    const session = sessionSnap.data() as CheckoutSession;
+    const session = sessionRow as unknown as CheckoutSession;
 
     // Reject already-processed sessions
     if (session.status === 'completed') {
       // Idempotent — find the order and return it
-      const orderSnap = await db
-        .collection('businesses').doc(businessId)
-        .collection('storeOrders')
-        .where('paystackReference', '==', paystackReference)
+      const { data: orderRow } = await supabase
+        .from('storeOrders')
+        .select('id')
+        .eq('businessId', businessId)
+        .eq('paystackReference', paystackReference)
         .limit(1)
-        .get();
-      const orderId = orderSnap.empty ? null : orderSnap.docs[0].id;
+        .maybeSingle();
+      const orderId = orderRow?.id ?? null;
       return NextResponse.json({ orderId });
     }
 
@@ -66,20 +69,26 @@ export async function POST(req: NextRequest) {
     }
 
     // Check session hasn't expired
-    const expiresAt = (session.expiresAt as { toDate?: () => Date } | undefined)?.toDate?.() ?? new Date(0);
+    const expiresAt = session.expiresAt ? new Date(session.expiresAt as unknown as string) : new Date(0);
     if (new Date() > expiresAt) {
-      await sessionRef.update({ status: 'expired', updatedAt: FieldValue.serverTimestamp() });
+      await supabase
+        .from('checkoutSessions')
+        .update({ status: 'expired', updatedAt: new Date().toISOString() })
+        .eq('id', sessionId);
       return NextResponse.json({ error: 'Checkout session expired' }, { status: 410 });
     }
 
     // 2. Verify with Paystack — use seller's key if configured
     let paystackSecretKey = process.env.PAYSTACK_SECRET_KEY;
     try {
-      const cfgSnap = await db.collection('businesses').doc(businessId).collection('store').doc('config').get();
-      if (cfgSnap.exists) {
-        const cfg = cfgSnap.data();
-        if (cfg?.useOwnPaystack && cfg?.paystackSecretKey) {
-          paystackSecretKey = cfg.paystackSecretKey;
+      const { data: configRow } = await supabase
+        .from('businesses')
+        .select('*')
+        .eq('id', businessId)
+        .maybeSingle();
+      if (configRow) {
+        if (configRow.useOwnPaystack && configRow.paystackSecretKey) {
+          paystackSecretKey = configRow.paystackSecretKey;
         }
       }
     } catch { /* fall back to Busmo key */ }
@@ -111,10 +120,10 @@ export async function POST(req: NextRequest) {
 
     // 3. Validate payment status
     if (txn.status !== 'success') {
-      await sessionRef.update({
-        status: 'expired',
-        updatedAt: FieldValue.serverTimestamp(),
-      });
+      await supabase
+        .from('checkoutSessions')
+        .update({ status: 'expired', updatedAt: new Date().toISOString() })
+        .eq('id', sessionId);
       return NextResponse.json(
         { error: `Payment not successful: ${txn.status}` },
         { status: 402 }
@@ -152,10 +161,10 @@ export async function POST(req: NextRequest) {
     }
 
     // 6. Mark session completed
-    await sessionRef.update({
-      status: 'completed',
-      updatedAt: FieldValue.serverTimestamp(),
-    });
+    await supabase
+      .from('checkoutSessions')
+      .update({ status: 'completed', updatedAt: new Date().toISOString() })
+      .eq('id', sessionId);
 
     return NextResponse.json({ orderId: bridgeResult.orderId });
   } catch {

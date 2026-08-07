@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerFirestore as getAdminDb, FieldValue } from '@/lib/server-firestore';
+import { getSupabaseServer } from '@/lib/database/postgresql-adapter';
 
 const COMMISSION_RATE = 0.05;
 
@@ -22,19 +22,18 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const db = getAdminDb();
+    const supabase = getSupabaseServer();
 
     // 1. Load store config for bank details
-    const configSnap = await db
-      .collection('businesses').doc(businessId)
-      .collection('store').doc('config')
-      .get();
+    const { data: config } = await supabase
+      .from('businesses')
+      .select('*')
+      .eq('id', businessId)
+      .maybeSingle();
 
-    if (!configSnap.exists) {
+    if (!config) {
       return NextResponse.json({ error: 'Store not found' }, { status: 404 });
     }
-
-    const config = configSnap.data()!;
 
     if (!config.managedPayments) {
       return NextResponse.json({ error: 'Managed payments not enabled for this store' }, { status: 403 });
@@ -45,29 +44,26 @@ export async function POST(req: NextRequest) {
     }
 
     // 2. Fetch all available earnings (status = 'available')
-    const earningsSnap = await db
-      .collection('businesses').doc(businessId)
-      .collection('storeEarnings')
-      .where('status', '==', 'available')
-      .get();
+    const { data: earnings, error: earningsError } = await supabase
+      .from('storeEarnings')
+      .select('*')
+      .eq('businessId', businessId)
+      .eq('status', 'available');
 
-    if (earningsSnap.empty) {
+    if (earningsError || !earnings?.length) {
       return NextResponse.json({ error: 'No available earnings to pay out.' }, { status: 400 });
     }
 
-    const earningIds = earningsSnap.docs.map((d: any) => d.id);
-    const totalNet = earningsSnap.docs.reduce((sum: number, d: any) => sum + (d.data().netAmount ?? 0), 0);
+    const earningIds = earnings.map((d: any) => d.id);
+    const totalNet = earnings.reduce((sum: number, d: any) => sum + (d.netAmount ?? 0), 0);
     const roundedNet = Math.round(totalNet * 100) / 100;
 
-    const timestamp = FieldValue.serverTimestamp();
-    const batch = db.batch();
+    const timestamp = new Date().toISOString();
 
     // 3. Create payout request
-    const payoutRef = db
-      .collection('businesses').doc(businessId)
-      .collection('payoutRequests').doc();
-
-    batch.set(payoutRef, {
+    const payoutRequestId = 'pr_' + crypto.randomUUID();
+    const { error: payoutError } = await supabase.from('payoutRequests').insert({
+      id: payoutRequestId,
       businessId,
       amount:          roundedNet,
       currency:        config.currency ?? 'NGN',
@@ -82,20 +78,27 @@ export async function POST(req: NextRequest) {
       createdAt:       timestamp,
       updatedAt:       timestamp,
     });
-
-    // 4. Mark each earning as requested (waiting for payout)
-    for (const doc of earningsSnap.docs) {
-      batch.update(doc.ref, {
-        status:          'paid_out',
-        payoutRequestId: payoutRef.id,
-        updatedAt:       timestamp,
-      });
+    if (payoutError) {
+      return NextResponse.json({ error: 'Failed to create payout request' }, { status: 500 });
     }
 
-    await batch.commit();
+    // 4. Mark each earning as requested (waiting for payout)
+    for (const earning of earnings as any[]) {
+      const { error: updateError } = await supabase
+        .from('storeEarnings')
+        .update({
+          status:          'paid_out',
+          payoutRequestId,
+          updatedAt:       timestamp,
+        })
+        .eq('id', earning.id);
+      if (updateError) {
+        return NextResponse.json({ error: 'Failed to mark earnings' }, { status: 500 });
+      }
+    }
 
     return NextResponse.json({
-      payoutRequestId: payoutRef.id,
+      payoutRequestId,
       amount:  roundedNet,
       currency: config.currency ?? 'NGN',
       earningsCount: earningIds.length,

@@ -1,7 +1,7 @@
 import React from 'react';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { getServerFirestore as getAdminDb } from '@/lib/server-firestore';
+import { getSupabaseServer } from '@/lib/database/postgresql-adapter';
 import { getStoreConfigBySlug } from '@/lib/store';
 
 interface LineItem {
@@ -33,13 +33,25 @@ async function getStoreConfig(storeSlug: string) {
 
 async function getOrder(businessId: string, orderId: string): Promise<Order | null> {
   try {
-    const db = getAdminDb();
-    const snap = await db
-      .collection('businesses').doc(businessId)
-      .collection('storeOrders').doc(orderId)
-      .get();
-    if (!snap.exists) return null;
-    return { ...snap.data() as Order };
+    const supabase = getSupabaseServer();
+    const byId = await supabase
+      .from('storeOrders')
+      .select('*')
+      .eq('businessId', businessId)
+      .eq('id', orderId)
+      .maybeSingle();
+    let row = byId.data;
+    if (!row) {
+      const byNumber = await supabase
+        .from('storeOrders')
+        .select('*')
+        .eq('businessId', businessId)
+        .eq('orderNumber', orderId)
+        .maybeSingle();
+      row = byNumber.data;
+    }
+    if (!row) return null;
+    return { ...row as Order };
   } catch { return null; }
 }
 

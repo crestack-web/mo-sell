@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Client } from '@/lib/groq-client';
 import { estimateTokens, chunkHistory, sanitizeOutput } from '@/lib/ask-mo-safety';
 import { generateDesignedPdf, generateEbookPdf } from '@/lib/ask-mo-pdf';
-import { getServerFirestore as getAdminDb } from '@/lib/server-firestore';
+import { getSupabaseServer } from '@/lib/database/postgresql-adapter';
 
 const MODEL = process.env.AI_MODEL_FAST || 'llama-3.1-8b-instant';
 
@@ -391,14 +391,14 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// ── Helper: create a product in Firestore (generates ebook PDF when present) ─
+// ── Helper: create a product in storeProducts (generates ebook PDF when present) ─
 
 async function createProductInFirestore(
   businessId: string,
   productData: Record<string, unknown>,
   storeConfig: Record<string, unknown> | null,
 ): Promise<Record<string, unknown>> {
-  const db = getAdminDb();
+  const supabase = getSupabaseServer();
   const pdfContent = productData.pdfContent as
     | { title?: string; subtitle?: string; chapters?: { heading?: string; body?: string }[]; author?: string }
     | undefined;
@@ -447,13 +447,18 @@ async function createProductInFirestore(
     updatedAt: new Date().toISOString(),
   };
 
-  const docRef = await db
-    .collection('businesses').doc(businessId)
-    .collection('storeProducts')
-    .add(payload);
-  await docRef.update({ productId: docRef.id });
+  const productId = 'prod_' + crypto.randomUUID();
 
-  return { id: docRef.id, ...payload };
+  const { error: insertError } = await supabase
+    .from('storeProducts')
+    .insert({ id: productId, businessId, ...payload, productId });
+
+  if (insertError) {
+    console.error('[AskMo] Failed to create product:', insertError);
+    throw new Error(insertError.message || 'Failed to create product');
+  }
+
+  return { id: productId, ...payload };
 }
 
 // ── PUT Handler (approve a proposed product → create in Firestore) ──────────

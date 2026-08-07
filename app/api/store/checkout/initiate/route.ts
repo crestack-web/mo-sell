@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerFirestore as getAdminDb, FieldValue } from '@/lib/server-firestore';
+import { getSupabaseServer } from '@/lib/database/postgresql-adapter';
 
 interface LineItemInput {
   productId: string;
@@ -66,29 +66,34 @@ export async function POST(req: NextRequest) {
   } = body as CheckoutInitiateBody;
 
   try {
-    const db = getAdminDb();
+    const supabase = getSupabaseServer();
 
     // 1. Create CheckoutSession (status: pending)
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour TTL
-    const sessionRef = db
-      .collection('businesses').doc(businessId)
-      .collection('checkoutSessions').doc();
-    const sessionId = sessionRef.id;
+    const sessionId = 'cs_' + crypto.randomUUID();
 
-    await sessionRef.set({
+    const { error: sessionError } = await supabase.from('checkoutSessions').insert({
+      id: sessionId,
       storeSlug, businessId, lineItems,
       customerName, customerEmail, customerPhone,
       deliveryOption, shippingAddress, shippingZoneId,
       shippingCost, subtotal, total,
       paystackReference: null,
       status: 'pending',
-      expiresAt,
-      createdAt: FieldValue.serverTimestamp(),
+      expiresAt: expiresAt.toISOString(),
+      createdAt: new Date().toISOString(),
     });
+    if (sessionError) {
+      return NextResponse.json({ error: 'Failed to create checkout session' }, { status: 500 });
+    }
 
     // 2. Verify store has bank account set up for payouts
-    const cfgSnap = await db.collection('businesses').doc(businessId).collection('store').doc('config').get();
-    const storeConfig = cfgSnap.exists ? cfgSnap.data() : null;
+    const { data: configRow } = await supabase
+      .from('businesses')
+      .select('*')
+      .eq('id', businessId)
+      .maybeSingle();
+    const storeConfig = configRow ?? null;
     const hasPayoutBank = storeConfig?.payoutAccountName && storeConfig?.payoutAccountNumber && storeConfig?.payoutBankCode;
     if (!hasPayoutBank) {
       return NextResponse.json({ error: 'Store owner has not configured payout bank account. Payments are disabled.' }, { status: 503 });
@@ -139,11 +144,17 @@ export async function POST(req: NextRequest) {
     }
 
     // 3. Update session with reference and status
-    await sessionRef.update({
-      paystackReference: reference,
-      status: 'payment_initiated',
-      updatedAt: FieldValue.serverTimestamp(),
-    });
+    const { error: updateError } = await supabase
+      .from('checkoutSessions')
+      .update({
+        paystackReference: reference,
+        status: 'payment_initiated',
+        updatedAt: new Date().toISOString(),
+      })
+      .eq('id', sessionId);
+    if (updateError) {
+      return NextResponse.json({ error: 'Failed to update checkout session' }, { status: 500 });
+    }
 
     return NextResponse.json({
       paystackUrl: paystackData.data.authorization_url,

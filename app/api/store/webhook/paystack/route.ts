@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
-import { getServerFirestore as getAdminDb, FieldValue } from '@/lib/server-firestore';
+import { getSupabaseServer } from '@/lib/database/postgresql-adapter';
 import { processConfirmedOrder } from '@/lib/services/mo-sell-integration-bridge';
 import type { CheckoutSession } from '@/types/mo-sell.types';
 
@@ -74,11 +74,20 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-      const db = getAdminDb();
-      await db.doc(`businesses/${bizId}/store/config`).set({
-        askMoTokenBalance: FieldValue.increment(tokens),
-        askMoTotalPurchased: FieldValue.increment(tokens),
-      }, { merge: true });
+      const supabase = getSupabaseServer();
+      const { error: balanceError } = await supabase.rpc('increment_business_field', {
+        p_business_id: bizId,
+        p_field: 'askMoTokenBalance',
+        p_amount: tokens,
+      });
+      const { error: purchasedError } = await supabase.rpc('increment_business_field', {
+        p_business_id: bizId,
+        p_field: 'askMoTotalPurchased',
+        p_amount: tokens,
+      });
+      if (balanceError || purchasedError) {
+        return NextResponse.json({ received: true, note: 'token_credit_pending' });
+      }
       return NextResponse.json({ received: true });
     } catch {
       return NextResponse.json({ received: true, note: 'token_credit_pending' });
@@ -95,19 +104,21 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const db = getAdminDb();
+    const supabase = getSupabaseServer();
 
     // 5. Load and validate session
-    const sessionRef  = db
-      .collection('businesses').doc(businessId)
-      .collection('checkoutSessions').doc(sessionId);
-    const sessionSnap = await sessionRef.get();
+    const { data: sessionRow } = await supabase
+      .from('checkoutSessions')
+      .select('*')
+      .eq('id', sessionId)
+      .eq('businessId', businessId)
+      .maybeSingle();
 
-    if (!sessionSnap.exists) {
+    if (!sessionRow) {
       return NextResponse.json({ error: 'Session not found' }, { status: 404 });
     }
 
-    const session = sessionSnap.data() as CheckoutSession;
+    const session = sessionRow as unknown as CheckoutSession;
 
     // 6. Idempotency — already processed by client polling
     if (session.status === 'completed') {
@@ -126,9 +137,12 @@ export async function POST(req: NextRequest) {
     }
 
     // 9. Check session hasn't expired
-    const expiresAt = (session.expiresAt as { toDate?: () => Date } | undefined)?.toDate?.() ?? new Date(0);
+    const expiresAt = session.expiresAt ? new Date(session.expiresAt as unknown as string) : new Date(0);
     if (new Date() > expiresAt) {
-      await sessionRef.update({ status: 'expired', updatedAt: FieldValue.serverTimestamp() });
+      await supabase
+        .from('checkoutSessions')
+        .update({ status: 'expired', updatedAt: new Date().toISOString() })
+        .eq('id', sessionId);
       return NextResponse.json({ error: 'Session expired' }, { status: 410 });
     }
 
@@ -146,10 +160,13 @@ export async function POST(req: NextRequest) {
     });
 
     // 11. Mark session completed
-    await sessionRef.update({
-      status:    'completed',
-      updatedAt: FieldValue.serverTimestamp(),
-    });
+    await supabase
+      .from('checkoutSessions')
+      .update({
+        status:    'completed',
+        updatedAt: new Date().toISOString(),
+      })
+      .eq('id', sessionId);
 
     return NextResponse.json({ received: true });
 

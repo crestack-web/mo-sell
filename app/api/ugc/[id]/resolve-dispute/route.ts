@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerFirestore as getAdminDb, FieldValue } from '@/lib/server-firestore';
+import { getSupabaseServer } from '@/lib/database/postgresql-adapter';
 import { refundToBrand, createTransferRecipient, payoutToCreator } from '@/lib/paystack-ugc';
 import { getCreatorById, incrementCreator } from '@/lib/ugc';
 
@@ -14,14 +14,17 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: 'resolution must be refund_brand, pay_creator, or split' }, { status: 400 });
     }
 
-    const db = getAdminDb();
-    const orderRef = db.collection('ugcOrders').doc(id);
-    const snap = await orderRef.get();
-    if (!snap.exists) {
+    const supabase = getSupabaseServer();
+    const { data: order, error: orderError } = await supabase
+      .from('ugcOrders')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+    if (orderError) throw orderError;
+    if (!order) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 });
     }
 
-    const order = snap.data() as any;
     if (order.status !== 'DISPUTED') {
       return NextResponse.json({ error: 'Order is not in DISPUTED status' }, { status: 400 });
     }
@@ -52,13 +55,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       await payoutToCreator(recipientCode, splitAmount, `UGC Split Payout ${id}`);
     }
 
-    await orderRef.update({
-      disputeResolvedAt: FieldValue.serverTimestamp(),
+    await supabase.from('ugcOrders').update({
+      disputeResolvedAt: new Date().toISOString(),
       disputeResolution: resolution,
       status: resolution === 'refund_brand' ? 'CANCELLED' : 'COMPLETED',
       paymentStatus: resolution === 'refund_brand' ? 'REFUNDED' : 'PAID_OUT',
-      updatedAt: FieldValue.serverTimestamp(),
-    });
+      updatedAt: new Date().toISOString(),
+    }).eq('id', id);
 
     if (resolution === 'pay_creator' || resolution === 'split') {
       await incrementCreator(order.creatorId, {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerFirestore as getAdminDb } from '@/lib/server-firestore';
-import type { CustomerTag, StoreCustomer } from '@/types/mo-sell.types';
+import { getSupabaseServer } from '@/lib/database/postgresql-adapter';
+import type { CustomerTag } from '@/types/mo-sell.types';
 
 /**
  * GET /api/store/customers?businessId=xxx&tag=buyer
@@ -26,30 +26,34 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const db = getAdminDb();
+    const supabase = getSupabaseServer();
 
-    let query: FirebaseFirestore.Query = db
-      .collection('businesses').doc(businessId)
-      .collection('storeCustomers')
-      .orderBy('createdAt', 'desc');
+    const { data: rows, error } = await supabase
+      .from('customers')
+      .select('*')
+      .eq('businessId', businessId);
 
-    // array-contains-any can't filter a single tag easily, so we fetch and filter in-memory
-    const snap = await query.get();
+    if (error) {
+      console.error('[Store Customers] Query error:', error);
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    }
 
-    let customers = snap.docs.map((d: any) => {
-      const data = d.data() as StoreCustomer;
-      return {
-        id: d.id,
-        ...data,
-        createdAt: data.createdAt?.toDate?.()?.toISOString() ?? null,
-        updatedAt: data.updatedAt?.toDate?.()?.toISOString() ?? null,
-        lastOrderAt: data.lastOrderAt?.toDate?.()?.toISOString() ?? null,
-        subscribedAt: data.subscribedAt?.toDate?.()?.toISOString() ?? null,
-      };
-    });
+    let customers = (rows ?? []).map((d: any) => ({
+      id: d.id,
+      ...d,
+      createdAt: d.createdAt ? new Date(d.createdAt).toISOString() : null,
+      updatedAt: d.updatedAt ? new Date(d.updatedAt).toISOString() : null,
+      lastOrderAt: d.lastOrderAt ? new Date(d.lastOrderAt).toISOString() : null,
+      subscribedAt: d.subscribedAt ? new Date(d.subscribedAt).toISOString() : null,
+    }));
+
+    // createdAt desc ordering (sort in JS after select)
+    customers.sort((a: any, b: any) =>
+      String(b.createdAt ?? '').localeCompare(String(a.createdAt ?? '')),
+    );
 
     if (tag) {
-      customers = customers.filter(c => c.tags.includes(tag));
+      customers = customers.filter((c: any) => (c.tags ?? []).includes(tag));
     }
 
     return NextResponse.json({ customers });

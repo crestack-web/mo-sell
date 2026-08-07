@@ -59,9 +59,8 @@ export function SellSettingsPage() {
     (async () => {
       try {
         const db = getDatabase();
-        const { collection, getDocs, query, orderBy } = await import('firebase/firestore');
-        const snap = await getDocs(query(collection(db as any, 'businesses', user.businessId, 'storeEarnings'), orderBy('createdAt', 'desc')));
-        const earnings = snap.docs.map(d => ({ ...d.data() as any, createdAt: d.data().createdAt?.toDate?.() ?? new Date() }));
+        const snap = await db.collection(`businesses/${user.businessId}/storeEarnings`).limit(1000).get();
+        const earnings = snap.docs.map(d => ({ ...d.data() as any, createdAt: new Date(d.data().createdAt || Date.now()) }));
         if (cancelled) return;
         setEarningsStats({
           totalGross:      earnings.reduce((s: number, e: any) => s + (e.grossAmount ?? 0), 0),

@@ -1,7 +1,7 @@
 import React from 'react';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import { getServerFirestore as getAdminDb } from '@/lib/server-firestore';
+import { getSupabaseServer } from '@/lib/database/postgresql-adapter';
 import { getStoreConfigBySlug } from '@/lib/store';
 import { ProductGrid } from '../../components/ProductGrid';
 import type { ProductCardData } from '../../components/ProductCard';
@@ -14,39 +14,44 @@ async function getStoreConfig(storeSlug: string) {
 
 async function getCollection(businessId: string, collectionId: string) {
   try {
-    const db = getAdminDb();
-    const snap = await db.collection('businesses').doc(businessId).collection('storeCollections').doc(collectionId).get();
-    if (!snap.exists) return null;
-    const data = snap.data()!;
-    return { id: snap.id, ...data } as any;
+    const supabase = getSupabaseServer();
+    const { data } = await supabase
+      .from('storeCollections')
+      .select('*')
+      .eq('businessId', businessId)
+      .eq('id', collectionId)
+      .maybeSingle();
+    if (!data) return null;
+    return { id: data.id, ...data, title: data.title ?? data.name ?? '' } as any;
   } catch { return null; }
 }
 
 async function getProducts(businessId: string, collectionId: string) {
   try {
-    const db = getAdminDb();
-    const snap = await db
-      .collection('businesses').doc(businessId)
-      .collection('storeProducts')
-      .where('available', '==', true)
-      .where('collectionIds', 'array-contains', collectionId)
-      .limit(100)
-      .get();
-    return snap.docs.map((d: any) => {
-      const data = d.data();
-      return {
-        id: d.id,
-        displayName: data.displayName ?? '',
-        price: data.price ?? 0,
-        compareAtPrice: data.compareAtPrice ?? null,
-        images: data.images ?? [],
-        category: data.category ?? '',
-        available: data.available ?? true,
-        stock: data.stock ?? 0,
-        productType: data.productType ?? 'physical',
-        description: data.description ?? '',
-      } as ProductCardData;
-    });
+    const supabase = getSupabaseServer();
+    const { data: rows } = await supabase
+      .from('storeProducts')
+      .select('*')
+      .eq('businessId', businessId);
+    return (rows ?? [])
+      .filter((r: any) => r.available === true)
+      .filter((r: any) => (Array.isArray(r.collectionIds) ? r.collectionIds.includes(collectionId) : false))
+      .slice(0, 100)
+      .map((row: any) => {
+        const images = typeof row.images === 'string' ? JSON.parse(row.images || '[]') : (Array.isArray(row.images) ? row.images : []);
+        return {
+          id: row.id,
+          displayName: row.displayName ?? '',
+          price: row.price ?? 0,
+          compareAtPrice: row.compareAtPrice ?? null,
+          images,
+          category: row.category ?? '',
+          available: row.available ?? true,
+          stock: row.stock ?? 0,
+          productType: row.productType ?? 'physical',
+          description: row.description ?? '',
+        } as ProductCardData;
+      });
   } catch { return []; }
 }
 
@@ -92,12 +97,12 @@ export default async function CollectionPage({
 
   // Fire analytics event (fire-and-forget)
   try {
-    const dbAnalytics = getAdminDb();
-    dbAnalytics.collection('businesses').doc(config.businessId).collection('storeAnalytics').add({
+    const supabaseAnalytics = getSupabaseServer();
+    supabaseAnalytics.from('storeAnalytics').insert({
       eventType: 'page_view', storeSlug,
       businessId: config.businessId, pageType: 'collection',
-      collectionId, createdAt: new Date().toISOString(),
-    }).catch(() => {});
+      createdAt: new Date().toISOString(),
+    }).then(() => {}, () => {});
   } catch {}
 
   return (

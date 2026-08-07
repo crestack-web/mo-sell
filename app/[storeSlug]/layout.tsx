@@ -23,7 +23,6 @@ import { CartDrawer } from './components/CartDrawer';
 import type { StorefrontTheme, StoreSection, FooterSectionSettings, HeaderSectionSettings } from '@/types/mo-sell.types';
 import { DEFAULT_SECTIONS } from '@/types/mo-sell.types';
 import { getThemeType } from '@/themes/registry';
-import { getServerFirestore as getAdminDb } from '@/lib/server-firestore';
 import { getStoreConfigBySlug } from '@/lib/store';
 
 // ─── Fetch store config ───────────────────────────────────────────────────────

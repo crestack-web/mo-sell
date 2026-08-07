@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerFirestore as getAdminDb, FieldValue } from '@/lib/server-firestore';
+import { getSupabaseServer } from '@/lib/database/postgresql-adapter';
 import type { AnalyticsEventType } from '@/types/mo-sell.types';
 
 const VALID_EVENT_TYPES: AnalyticsEventType[] = [
@@ -30,16 +30,16 @@ export async function POST(req: NextRequest) {
 
   // Write in background — response is already sent
   try {
-    const db = getAdminDb();
-    await db
-      .collection('businesses').doc(businessId)
-      .collection('storeAnalytics').add({
-        eventType,
-        storeSlug,
-        pageType:  pageType ?? null,
-        productId: productId ?? null,
-        timestamp: FieldValue.serverTimestamp(),
-      });
+    const supabase = getSupabaseServer();
+    await supabase.from('storeAnalytics').insert({
+      id: 'evt_' + crypto.randomUUID(),
+      businessId,
+      eventType,
+      storeSlug,
+      pageType:  pageType ?? null,
+      productId: productId ?? null,
+      timestamp: new Date().toISOString(),
+    });
   } catch {
     // Silent — analytics failures must never surface to customers
   }

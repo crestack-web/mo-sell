@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerFirestore as getAdminDb, FieldValue } from '@/lib/server-firestore';
+import { getSupabaseServer } from '@/lib/database/postgresql-adapter';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const dns = require('dns').promises as { resolveCname(hostname: string): Promise<string[]> };
 
@@ -38,19 +38,25 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const db = getAdminDb();
+    const supabase = getSupabaseServer();
 
     // Confirm domain matches what's stored for this business
-    const configRef = db
-      .collection('businesses').doc(businessId)
-      .collection('store').doc('config');
-    const configSnap = await configRef.get();
+    const { data: config, error: configError } = await supabase
+      .from('businesses')
+      .select('*')
+      .eq('id', businessId)
+      .maybeSingle();
 
-    if (!configSnap.exists) {
+    if (configError) {
+      console.error('[Domain Verify] Config query error:', configError);
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    }
+
+    if (!config) {
       return NextResponse.json({ error: 'Store config not found' }, { status: 404 });
     }
 
-    const storedDomain = configSnap.data()?.customDomain ?? '';
+    const storedDomain = config.customDomain ?? '';
     if (storedDomain.toLowerCase() !== domain) {
       return NextResponse.json(
         { error: 'Domain does not match stored value — save settings first' },
@@ -70,12 +76,20 @@ export async function POST(req: NextRequest) {
       r => r === 'store.busmo.io' || r.endsWith('.busmo.io')
     );
 
-    // Update store config with verification result
-    await configRef.update({
-      customDomainStatus:     verified ? 'verified' : 'failed',
-      customDomainVerifiedAt: verified ? FieldValue.serverTimestamp() : null,
-      updatedAt:              FieldValue.serverTimestamp(),
-    });
+    // Update the businesses row with verification result
+    const { error: updateError } = await supabase
+      .from('businesses')
+      .update({
+        customDomainStatus:     verified ? 'verified' : 'failed',
+        customDomainVerifiedAt: verified ? new Date().toISOString() : null,
+        updatedAt:              new Date().toISOString(),
+      })
+      .eq('id', businessId);
+
+    if (updateError) {
+      console.error('[Domain Verify] Update error:', updateError);
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    }
 
     return NextResponse.json({ verified, resolvedTo: resolved });
   } catch {
