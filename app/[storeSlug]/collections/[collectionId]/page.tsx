@@ -2,39 +2,13 @@ import React from 'react';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { getServerFirestore as getAdminDb } from '@/lib/server-firestore';
+import { getStoreConfigBySlug } from '@/lib/store';
 import { ProductGrid } from '../../components/ProductGrid';
 import type { ProductCardData } from '../../components/ProductCard';
 
 async function getStoreConfig(storeSlug: string) {
   try {
-    const db = getAdminDb();
-    let data: any = null;
-    let businessId = '';
-
-    const idxDoc = await db.collection('storeIndex').doc(storeSlug).get();
-    if (idxDoc.exists) {
-      const bId = idxDoc.data()?.businessId as string | undefined;
-      if (bId) {
-        const configSnap = await db.collection('businesses').doc(bId).collection('store').doc('config').get();
-        if (configSnap.exists) {
-          data = configSnap.data()!;
-          businessId = bId;
-        }
-      }
-    }
-
-    if (!data) {
-      const snap = await db.collectionGroup('store').where('storeSlug', '==', storeSlug).limit(1).get();
-      if (!snap.empty) {
-        const doc = snap.docs[0];
-        data = doc.data();
-        businessId = doc.ref.path.split('/')[1];
-      }
-    }
-
-    if (!data) return null;
-    if ((data.status ?? 'draft') !== 'active') return null;
-    return { ...data, businessId } as Record<string, any>;
+    return await getStoreConfigBySlug(storeSlug);
   } catch { return null; }
 }
 

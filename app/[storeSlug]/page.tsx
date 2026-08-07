@@ -16,65 +16,11 @@ import type {
 } from '@/types/mo-sell.types';
 import { DEFAULT_SECTIONS } from '@/types/mo-sell.types';
 import { getServerFirestore as getAdminDb } from '@/lib/server-firestore';
+import { getStoreConfigBySlug } from '@/lib/store';
 
 async function getStoreConfig(storeSlug: string) {
   try {
-    const db = getAdminDb();
-    let data: FirebaseFirestore.DocumentData | null = null;
-    let businessId = '';
-
-    const idxDoc = await db.collection('storeIndex').doc(storeSlug).get();
-    if (idxDoc.exists) {
-      const bId = idxDoc.data()?.businessId as string | undefined;
-      if (bId) {
-        const configSnap = await db.collection('businesses').doc(bId).collection('store').doc('config').get();
-        if (configSnap.exists) {
-          data = configSnap.data()!;
-          businessId = bId;
-        }
-      }
-    }
-
-    if (!data) {
-      const snap = await db.collectionGroup('store').where('storeSlug', '==', storeSlug).limit(1).get();
-      if (!snap.empty) {
-        const doc = snap.docs[0];
-        data = doc.data();
-        businessId = doc.ref.path.split('/')[1];
-      }
-    }
-
-    if (!data) return null;
-    if ((data.status ?? 'draft') !== 'active') return null;
-
-    return {
-      businessId,
-      storeSlug:           data.storeSlug,
-      storeName:           data.storeName,
-      logoUrl:             data.logoUrl ?? null,
-      primaryColor:        data.primaryColor ?? '#0EA5E9',
-      secondaryColor:      data.secondaryColor ?? '#6366F1',
-      businessCategory:    data.businessCategory ?? '',
-      currency:            data.currency ?? 'NGN',
-      contactEmail:        data.contactEmail ?? '',
-      contactPhone:        data.contactPhone ?? '',
-      status:              data.status,
-      theme:               data.theme ?? 'luxe',
-      tagline:             data.tagline ?? null,
-      storePolicy:         data.storePolicy ?? null,
-      sections:            data.sections ?? null,
-      enabledProductTypes: data.enabledProductTypes ?? ['physical'],
-      pickupLocations:     data.pickupLocations ?? [],
-      customDomain:        data.customDomain ?? null,
-      customDomainStatus:  data.customDomainStatus ?? 'pending',
-      paystackPublicKey:   data.paystackPublicKey ?? '',
-      fontFamily:          data.fontFamily ?? null,
-      bgColor:             data.bgColor ?? null,
-      bodyTextColor:       data.bodyTextColor ?? null,
-      headerStyle:         data.headerStyle ?? 'left',
-      buttonStyle:         data.buttonStyle ?? 'pill',
-      linkBio:             data.linkBio ?? null,
-    };
+    return await getStoreConfigBySlug(storeSlug);
   } catch { return null; }
 }
 
