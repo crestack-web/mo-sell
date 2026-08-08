@@ -1033,7 +1033,7 @@ export default function WelcomePage() {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 20 }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1785078071/mosell_gpzl2q.png" alt="MO Sell" style={{ height: 32, width: 'auto', objectFit: 'contain' }} />
-            <span style={{ fontSize: 14, fontWeight: 800, letterSpacing: '0.06em', color: C.text1, fontFamily: FONT_DISPLAY }}>MO-SELL</span>
+            <span style={{ fontSize: 14, fontWeight: 800, letterSpacing: '0.06em', color: C.text1, fontFamily: FONT_DISPLAY }}>MO-SELL by Busmo</span>
           </div>
           <p style={{ fontSize: 13, color: C.text3, marginBottom: 24 }}>
             You have something to sell. Let's get it flying.
@@ -1050,7 +1050,7 @@ export default function WelcomePage() {
             <a href="/ugc-creators" style={{ color: C.text2, textDecoration: 'none' }}>Discover Creators</a>
           </div>
           <p style={{ fontSize: 12, color: C.text3, marginTop: 32 }}>
-            © 2024 MO Sell. Built for African sellers.
+            © 2026 MO Sell by Busmo. Built for African sellers.
           </p>
         </div>
       </footer>
