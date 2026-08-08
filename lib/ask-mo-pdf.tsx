@@ -9,7 +9,7 @@
  * Errors are surfaced to the user WITHOUT leaking org_id, token limits, or internals.
  */
 
-import { Client } from '@/lib/groq-client';
+import { runAIOnce } from '@/lib/ai';
 import { estimateTokens } from '@/lib/ask-mo-safety';
 import { EbookPdfData, RecipeEbookPages } from '@/components/pdf/ebook_recipe_5page';
 import { EbookCoverCollage, CoverCollageData } from '@/components/pdf/ebook_cover_collage';
@@ -20,7 +20,6 @@ import { getServerFirestore } from '@/lib/server-firestore';
 
 // PDF/ebook generation is a paid (token-consuming) feature → llama-versatile.
 // Chat uses llama-instant via the Ask MO route.
-const PDF_MODEL = process.env.PDF_MODEL || 'llama-3.3-70b-versatile';
 const PDF_TOKEN_COST = TOKEN_COSTS.ebookCreate;
 
 const GEN_SYSTEM_PROMPT = `You are a JSON content generator for Ask MO. Never output markdown, explanations, or apologies.
@@ -80,22 +79,20 @@ function friendlyError(err: unknown): string {
 }
 
 async function summarizeIfNeeded(
-  client: Client,
   systemPrompt: string,
   message: string,
 ): Promise<string> {
   const full = systemPrompt + '\n\n' + message;
   if (estimateTokens(full) <= 6000) return message;
-  const res = await client.chat.completions.create({
-    model: PDF_MODEL,
-    messages: [
-      { role: 'system', content: 'Condense the user request into one short, complete sentence that preserves every specific requirement (subject, count, style, images, colors). Output only the condensed request.' },
-      { role: 'user', content: message },
-    ],
+  const res = await runAIOnce({
+    task: 'history_summary',
+    system: 'Condense the user request into one short, complete sentence that preserves every specific requirement (subject, count, style, images, colors). Output only the condensed request.',
+    user: message,
     temperature: 0,
-    max_tokens: 150,
+    maxTokens: 150,
+    model: process.env.PDF_MODEL || 'llama-3.3-70b-versatile',
   });
-  return res.choices[0]?.message?.content?.trim() || message;
+  return res.text.trim() || message;
 }
 
 export function parseStrictJson(text: string): any {
@@ -212,8 +209,6 @@ export async function generateDesignedPdf(params: {
     return { success: false, error: 'AI service not configured' };
   }
 
-  const client = new Client({ apiKey });
-
   // Paid feature: require tokens BEFORE spending a single versatile call.
   if (businessId) {
     const balance = await getTokenBalance(getServerFirestore(), businessId);
@@ -229,19 +224,18 @@ export async function generateDesignedPdf(params: {
   }
 
   try {
-    const userPrompt = await summarizeIfNeeded(client, GEN_SYSTEM_PROMPT, message);
+    const userPrompt = await summarizeIfNeeded(GEN_SYSTEM_PROMPT, message);
 
-    const contentRes = await client.chat.completions.create({
-      model: PDF_MODEL,
-      messages: [
-        { role: 'system', content: GEN_SYSTEM_PROMPT },
-        { role: 'user', content: userPrompt },
-      ],
+    const contentRes = await runAIOnce({
+      task: 'pdf_ebook',
+      system: GEN_SYSTEM_PROMPT,
+      user: userPrompt,
       temperature: 0.7,
-      max_tokens: 1200,
+      maxTokens: 1200,
+      businessId: businessId || undefined,
     });
 
-    const raw = contentRes.choices[0]?.message?.content;
+    const raw = contentRes.text;
     if (!raw) {
       return { success: false, error: 'Could not generate content for the PDF' };
     }

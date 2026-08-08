@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Client } from '@/lib/groq-client';
-
-const MODEL = process.env.AI_MODEL || 'llama-3.3-70b-versatile';
+import { runAIOnce } from '@/lib/ai';
+import { TASK_MAX_OUTPUT_TOKENS } from '@/lib/ai/types';
 
 const SUPPORT_SYSTEM_PROMPT = `
 You are MO — the AI support agent for MO Sell by Busmo, Africa's business operating system.
@@ -36,19 +35,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 });
     }
 
-    const apiKey = process.env.GROQ_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json(
-        { error: 'AI service not configured' },
-        { status: 503 }
-      );
-    }
-
-    const client = new Client({ apiKey });
-
-    // Convert conversation history to Grok format
+    // Convert conversation history to chat format
     const messages = [
-      { role: 'system' as const, content: SUPPORT_SYSTEM_PROMPT },
       ...conversationHistory.map((h: { role: string; parts: { text: string }[] }) => ({
         role: h.role === 'model' ? 'assistant' : 'user',
         content: h.parts[0]?.text || '',
@@ -56,16 +44,15 @@ export async function POST(request: NextRequest) {
       { role: 'user' as const, content: message },
     ];
 
-    const response = await client.chat.completions.create({
-      model: MODEL,
+    const result = await runAIOnce({
+      task: 'support_chat',
+      system: SUPPORT_SYSTEM_PROMPT,
       messages,
       temperature: 0.7,
-      max_tokens: 1024,
+      maxTokens: TASK_MAX_OUTPUT_TOKENS.support_chat,
     });
 
-    const text = response.choices[0]?.message?.content || '';
-
-    return NextResponse.json({ answer: text, provider: 'grok' });
+    return NextResponse.json({ answer: result.text, provider: result.provider });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error('[SupportChat] Error:', msg);

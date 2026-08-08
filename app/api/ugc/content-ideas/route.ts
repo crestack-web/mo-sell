@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Client } from '@/lib/groq-client';
-
-const MODEL = process.env.AI_MODEL || 'llama-3.3-70b-versatile';
+import { runAIOnce } from '@/lib/ai';
+import { TASK_MAX_OUTPUT_TOKENS } from '@/lib/ai/types';
 
 const UGC_IDEAS_SYSTEM_PROMPT = `
 You are MO — an AI assistant that helps UGC creators generate video content ideas from buyer briefs.
@@ -45,13 +44,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'productName and brief are required' }, { status: 400 });
     }
 
-    const apiKey = process.env.GROQ_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json({ error: 'AI service not configured' }, { status: 503 });
-    }
-
-    const client = new Client({ apiKey });
-
     const context = [
       `Product: ${productName}`,
       `Brief: ${brief}`,
@@ -60,24 +52,22 @@ export async function POST(request: NextRequest) {
 
     const userMessage = `Generate UGC video content ideas for this request:\n${context}`;
 
-    const response = await client.chat.completions.create({
-      model: MODEL,
-      messages: [
-        { role: 'system', content: UGC_IDEAS_SYSTEM_PROMPT },
-        { role: 'user', content: userMessage },
-      ],
+    const result = await runAIOnce({
+      task: 'ugc_content_ideas',
+      system: UGC_IDEAS_SYSTEM_PROMPT,
+      user: userMessage,
       temperature: 0.8,
-      max_tokens: 8192,
+      maxTokens: TASK_MAX_OUTPUT_TOKENS.ugc_content_ideas,
     });
 
-    const raw = response.choices[0]?.message?.content || '';
+    const raw = result.text;
 
     const match = raw.match(/```ugc_ideas\n([\s\S]+?)\n```/);
     let ideas: Record<string, unknown> | null = null;
     if (match) { try { ideas = JSON.parse(match[1]); } catch { /* fall through */ } }
     if (!ideas) { try { ideas = JSON.parse(raw); } catch { /* return null */ } }
 
-    return NextResponse.json({ ideas, provider: 'grok' });
+    return NextResponse.json({ ideas, provider: result.provider });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     const isKeyError = msg.includes('API_KEY') || msg.includes('quota') || msg.includes('permission');
