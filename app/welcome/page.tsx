@@ -493,7 +493,7 @@ export default function WelcomePage() {
             </h1>
             <p style={{
               fontSize: 'clamp(0.9rem, 1.5vw, 1.1rem)',
-              color: C.text2, maxWidth: 480, margin: '0 auto 32',
+              color: C.text2, maxWidth: 480, margin: '0 auto 40',
               lineHeight: 1.6, textAlign: 'center',
             }}>
               MO builds your online store, adds your products and gets you ready to sell — without the usual technical headache.
