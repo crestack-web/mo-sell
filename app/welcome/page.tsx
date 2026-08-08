@@ -483,8 +483,8 @@ export default function WelcomePage() {
               />
             </div>
             <h1 style={{
-              fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 'clamp(1.6rem, 3vw, 2.2rem)',
-              color: C.text1, letterSpacing: '-0.03em', lineHeight: 1.1, marginBottom: 16,
+              fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 'clamp(1.4rem, 2.5vw, 1.8rem)',
+              color: C.text1, letterSpacing: '-0.03em', lineHeight: 1.1, marginBottom: 12,
             }}>
               You have something to sell.<br/>
               <span style={{ background: `linear-gradient(135deg, ${C.primary} 0%, ${C.accent} 100%)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
@@ -492,9 +492,9 @@ export default function WelcomePage() {
               </span>
             </h1>
             <p style={{
-              fontSize: 'clamp(0.9rem, 1.5vw, 1.1rem)',
-              color: C.text2, maxWidth: 480, margin: '0 auto 40',
-              lineHeight: 1.6, textAlign: 'center',
+              fontSize: 'clamp(0.85rem, 1.2vw, 0.95rem)',
+              color: C.text2, maxWidth: 500, margin: '0 auto 36',
+              lineHeight: 1.5, textAlign: 'center',
             }}>
               MO builds your online store, adds your products and gets you ready to sell — without the usual technical headache.
             </p>
@@ -540,6 +540,64 @@ export default function WelcomePage() {
               >
                 See how it works
               </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ════════════════════════════════════════════════════════════════════════
+          STORE SHOWCASE — Examples of stores MO creates
+      ════════════════════════════════════════════════════════════════════════ */}
+      <section style={{ padding: '60px 5%', background: C.bg }}>
+        <div style={{ maxWidth: 1160, margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: 40 }}>
+            <div style={{
+              fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 'clamp(1.5rem, 3vw, 2rem)',
+              color: C.text1, letterSpacing: '-0.025em', marginBottom: 12,
+            }}>
+              See what MO can build for you
+            </div>
+            <p style={{ fontSize: 14, color: C.text2, maxWidth: 420, margin: '0 auto' }}>
+              Beautiful stores, ready to sell. Here are examples of what MO creates.
+            </p>
+          </div>
+          
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', 
+            gap: 32 
+          }}>
+            <div style={{ textAlign: 'center' }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1785152790/Untitled_-_July_27_2026_at_08.12.54-2_vdjaxz.png"
+                alt="MO Sell — store showcase"
+                style={{
+                  width: '100%',
+                  height: 'auto',
+                  borderRadius: 16,
+                  boxShadow: '0 8px 32px rgba(14,88,140,0.12)',
+                }}
+              />
+              <p style={{ fontSize: 13, color: C.text2, marginTop: 12, fontWeight: 600 }}>
+                Fashion & Apparel Store
+              </p>
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1785151499/wlcm_1_ybgv8m.png"
+                alt="MO Sell — store in action"
+                style={{
+                  width: '100%',
+                  height: 'auto',
+                  borderRadius: 16,
+                  boxShadow: '0 8px 32px rgba(14,88,140,0.12)',
+                }}
+              />
+              <p style={{ fontSize: 13, color: C.text2, marginTop: 12, fontWeight: 600 }}>
+                Digital Products Store
+              </p>
             </div>
           </div>
         </div>
