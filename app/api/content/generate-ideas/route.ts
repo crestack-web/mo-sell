@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Client } from '@/lib/groq-client';
+import { runAIOnce } from '@/lib/ai';
+import { TASK_MAX_OUTPUT_TOKENS } from '@/lib/ai/types';
 
 const SYSTEM_PROMPT = `You are MO, an AI content strategist for African e-commerce merchants.
 
@@ -53,14 +54,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'displayName required' }, { status: 400 });
     }
 
-    const apiKey = process.env.GROQ_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json({ error: 'AI service not configured' }, { status: 503 });
-    }
-
-    const client = new Client({ apiKey });
-    const model = process.env.AI_MODEL || 'llama-3.3-70b-versatile';
-
     const productInfo = [
       `Product: ${displayName}`,
       description ? `Description: ${description}` : '',
@@ -82,24 +75,22 @@ export async function POST(req: NextRequest) {
 
     const userMessage = `${SYSTEM_PROMPT}\n\nGenerate content ideas for this product:\n${productInfo}\n\nAudience & store context:\n${audienceInfo || '(none provided — still make reasonable audience assumptions from the product)'}`;
 
-    const response = await client.chat.completions.create({
-      model,
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: userMessage },
-      ],
+    const result = await runAIOnce({
+      task: 'content_generate_ideas',
+      system: SYSTEM_PROMPT,
+      user: userMessage,
       temperature: 0.8,
-      max_tokens: 4096,
+      maxTokens: TASK_MAX_OUTPUT_TOKENS.content_generate_ideas,
     });
 
-    const text = response.choices[0]?.message?.content || '';
+    const text = result.text;
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       throw new Error('AI response was not valid JSON');
     }
 
     const data = JSON.parse(jsonMatch[0]);
-    return NextResponse.json({ ...data, provider: 'grok' });
+    return NextResponse.json({ ...data, provider: result.provider });
   } catch (err) {
     console.error('[generate-ideas] Error:', err);
     const msg = err instanceof Error ? err.message : 'Internal server error';

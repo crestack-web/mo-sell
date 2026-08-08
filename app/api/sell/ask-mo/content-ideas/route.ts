@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Client } from '@/lib/groq-client';
-
-const MODEL = process.env.AI_MODEL || 'llama-3.3-70b-versatile';
+import { runAIOnce } from '@/lib/ai';
+import { TASK_MAX_OUTPUT_TOKENS } from '@/lib/ai/types';
 
 const CONTENT_IDEAS_SYSTEM_PROMPT = `
 You are MO — the AI commerce assistant inside Busmo, Africa's business operating system.
@@ -55,16 +54,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Product displayName is required' }, { status: 400 });
     }
 
-    const apiKey = process.env.GROQ_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json(
-        { error: 'AI service not configured' },
-        { status: 503 }
-      );
-    }
-
-    const client = new Client({ apiKey });
-
     const productContext = [
       `Product Name: ${product.displayName}`,
       `Description: ${product.description || 'Not provided'}`,
@@ -79,17 +68,15 @@ export async function POST(request: NextRequest) {
       ? `PRODUCT DATA:\n${productContext}\n\nREFINEMENT INSTRUCTION:\n${instruction}`
       : `Generate marketing content ideas for this product:\n${productContext}`;
 
-    const response = await client.chat.completions.create({
-      model: MODEL,
-      messages: [
-        { role: 'system', content: CONTENT_IDEAS_SYSTEM_PROMPT },
-        { role: 'user', content: userMessage },
-      ],
+    const result = await runAIOnce({
+      task: 'ask_mo_content_ideas',
+      system: CONTENT_IDEAS_SYSTEM_PROMPT,
+      user: userMessage,
       temperature: 0.8,
-      max_tokens: 8192,
+      maxTokens: TASK_MAX_OUTPUT_TOKENS.ask_mo_content_ideas,
     });
 
-    const raw = response.choices[0]?.message?.content || '';
+    const raw = result.text;
 
     const match = raw.match(/```content_ideas\n([\s\S]+?)\n```/);
     let contentIdeas: Record<string, unknown> | null = null;
@@ -104,7 +91,7 @@ export async function POST(request: NextRequest) {
       catch { /* return null */ }
     }
 
-    return NextResponse.json({ contentIdeas, provider: 'grok' });
+    return NextResponse.json({ contentIdeas, provider: result.provider });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     const isKeyError = msg.includes('API_KEY') || msg.includes('quota') || msg.includes('permission');

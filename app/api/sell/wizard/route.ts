@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServer } from '@/lib/database/postgresql-adapter';
-import { Client } from '@/lib/groq-client';
-
-const MODEL = process.env.AI_MODEL || 'llama-3.3-70b-versatile';
+import { runAIOnce } from '@/lib/ai';
+import { TASK_MAX_OUTPUT_TOKENS } from '@/lib/ai/types';
 
 const WIZARD_SYSTEM_PROMPT = `
 You are MO — the AI commerce architect inside Busmo, Africa's business operating system.
@@ -109,19 +108,8 @@ export async function POST(request: NextRequest) {
       } catch { /* non-fatal */ }
     }
 
-    const apiKey = process.env.GROQ_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json(
-        { error: 'AI service not configured' },
-        { status: 503 }
-      );
-    }
-
-    const client = new Client({ apiKey });
-
-    // Convert conversation history to Grok format
-    const messages: { role: 'system' | 'user' | 'assistant'; content: string }[] = [
-      { role: 'system' as const, content: WIZARD_SYSTEM_PROMPT + inventoryContext },
+    // Convert conversation history to chat format
+    const messages = [
       ...conversationHistory.map((h) => ({
         role: (h.role === 'model' ? 'assistant' : 'user') as 'user' | 'assistant',
         content: h.parts[0]?.text || '',
@@ -129,14 +117,16 @@ export async function POST(request: NextRequest) {
       { role: 'user' as const, content: message },
     ];
 
-    const response = await client.chat.completions.create({
-      model: MODEL,
+    const result = await runAIOnce({
+      task: 'store_wizard',
+      system: WIZARD_SYSTEM_PROMPT + inventoryContext,
       messages,
       temperature: 0.8,
-      max_tokens: 2048,
+      maxTokens: TASK_MAX_OUTPUT_TOKENS.store_wizard,
+      businessId,
     });
 
-    const raw = response.choices[0]?.message?.content || '';
+    const raw = result.text;
 
     const jsonMatch = raw.match(/```json\n([\s\S]+?)\n```/);
     let suggestions = null;
@@ -149,7 +139,7 @@ export async function POST(request: NextRequest) {
 
     const answer = raw.replace(/```json[\s\S]+?```/g, '').trim();
 
-    return NextResponse.json({ answer, suggestions, provider: 'grok' });
+    return NextResponse.json({ answer, suggestions, provider: result.provider });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     const isKeyError = msg.includes('API_KEY') || msg.includes('quota') || msg.includes('permission');
