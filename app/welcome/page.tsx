@@ -316,13 +316,11 @@ function JourneyStage({
   stage, 
   title, 
   description,
-  kite: Kite,
   color 
 }: { 
   stage: string;
   title: string;
   description: string;
-  kite: React.ComponentType<{ size?: number }>;
   color: string;
 }) {
   return (
@@ -331,15 +329,7 @@ function JourneyStage({
       border: `1px solid ${C.border}`,
       boxShadow: '0 2px 12px rgba(14,88,140,0.06)',
       display: 'flex', flexDirection: 'column', gap: 16,
-      position: 'relative',
-      overflow: 'hidden',
     }}>
-      <div style={{
-        position: 'absolute', top: -20, right: -20,
-        opacity: 0.08,
-      }}>
-        <Kite size={120} />
-      </div>
       <div style={{
         display: 'inline-flex', alignItems: 'center', gap: 6,
         padding: '6px 14px', borderRadius: 100,
@@ -498,7 +488,7 @@ export default function WelcomePage() {
             }}>
               MO builds your online store, adds your products and gets you ready to sell — without the usual technical headache.
             </p>
-            <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap', paddingTop: 8 }}>
               <a href="/signup" style={{
                 display: 'inline-flex', alignItems: 'center', gap: 8,
                 padding: '16px 32px', borderRadius: 12,
@@ -540,64 +530,6 @@ export default function WelcomePage() {
               >
                 See how it works
               </a>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ════════════════════════════════════════════════════════════════════════
-          STORE SHOWCASE — Examples of stores MO creates
-      ════════════════════════════════════════════════════════════════════════ */}
-      <section style={{ padding: '60px 5%', background: C.bg }}>
-        <div style={{ maxWidth: 1160, margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: 40 }}>
-            <div style={{
-              fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 'clamp(1.5rem, 3vw, 2rem)',
-              color: C.text1, letterSpacing: '-0.025em', marginBottom: 12,
-            }}>
-              See what MO can build for you
-            </div>
-            <p style={{ fontSize: 14, color: C.text2, maxWidth: 420, margin: '0 auto' }}>
-              Beautiful stores, ready to sell. Here are examples of what MO creates.
-            </p>
-          </div>
-          
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', 
-            gap: 32 
-          }}>
-            <div style={{ textAlign: 'center' }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1785152790/Untitled_-_July_27_2026_at_08.12.54-2_vdjaxz.png"
-                alt="MO Sell — store showcase"
-                style={{
-                  width: '100%',
-                  height: 'auto',
-                  borderRadius: 16,
-                  boxShadow: '0 8px 32px rgba(14,88,140,0.12)',
-                }}
-              />
-              <p style={{ fontSize: 13, color: C.text2, marginTop: 12, fontWeight: 600 }}>
-                Fashion & Apparel Store
-              </p>
-            </div>
-            <div style={{ textAlign: 'center' }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1785151499/wlcm_1_ybgv8m.png"
-                alt="MO Sell — store in action"
-                style={{
-                  width: '100%',
-                  height: 'auto',
-                  borderRadius: 16,
-                  boxShadow: '0 8px 32px rgba(14,88,140,0.12)',
-                }}
-              />
-              <p style={{ fontSize: 13, color: C.text2, marginTop: 12, fontWeight: 600 }}>
-                Digital Products Store
-              </p>
             </div>
           </div>
         </div>
@@ -807,35 +739,30 @@ export default function WelcomePage() {
               stage="Build"
               title="Create your store"
               description="MO builds your storefront, adds products, and sets up payments in minutes, not days."
-              kite={GreenKite}
               color={C.green}
             />
             <JourneyStage
               stage="Launch"
               title="Go live instantly"
               description="Your store is ready to share as soon as MO finishes. No waiting, no deployment headaches."
-              kite={PurpleKite}
               color={C.purple}
             />
             <JourneyStage
               stage="Sell"
               title="Accept payments"
               description="Paystack integration means you can start accepting payments immediately across Africa."
-              kite={RedKite}
               color={C.red}
             />
             <JourneyStage
               stage="Fulfil"
               title="Manage orders"
               description="Track orders, update shipping, and keep customers informed from one simple dashboard."
-              kite={GreenKite}
               color={C.green}
             />
             <JourneyStage
               stage="Grow"
               title="Scale your business"
               description="Analytics, customer insights, and tools to help you understand what's working and grow."
-              kite={PurpleKite}
               color={C.purple}
             />
           </div>
@@ -977,6 +904,64 @@ export default function WelcomePage() {
               quote="The best part is that I can focus on making my products while MO handles the store. My first sale came within 3 days of launching."
               avatarColor={C.red}
             />
+          </div>
+        </div>
+      </section>
+
+      {/* ════════════════════════════════════════════════════════════════════════
+          STORE SHOWCASE — Examples of stores MO creates
+      ════════════════════════════════════════════════════════════════════════ */}
+      <section style={{ padding: '60px 5%', background: C.bg }}>
+        <div style={{ maxWidth: 1160, margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: 40 }}>
+            <div style={{
+              fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 'clamp(1.5rem, 3vw, 2rem)',
+              color: C.text1, letterSpacing: '-0.025em', marginBottom: 12,
+            }}>
+              See what MO can build for you
+            </div>
+            <p style={{ fontSize: 14, color: C.text2, maxWidth: 420, margin: '0 auto' }}>
+              Beautiful stores, ready to sell. Here are examples of what MO creates.
+            </p>
+          </div>
+          
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', 
+            gap: 32 
+          }}>
+            <div style={{ textAlign: 'center' }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1785152790/Untitled_-_July_27_2026_at_08.12.54-2_vdjaxz.png"
+                alt="MO Sell — store showcase"
+                style={{
+                  width: '100%',
+                  height: 'auto',
+                  borderRadius: 16,
+                  boxShadow: '0 8px 32px rgba(14,88,140,0.12)',
+                }}
+              />
+              <p style={{ fontSize: 13, color: C.text2, marginTop: 12, fontWeight: 600 }}>
+                Fashion & Apparel Store
+              </p>
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1785151499/wlcm_1_ybgv8m.png"
+                alt="MO Sell — store in action"
+                style={{
+                  width: '100%',
+                  height: 'auto',
+                  borderRadius: 16,
+                  boxShadow: '0 8px 32px rgba(14,88,140,0.12)',
+                }}
+              />
+              <p style={{ fontSize: 13, color: C.text2, marginTop: 12, fontWeight: 600 }}>
+                Digital Products Store
+              </p>
+            </div>
           </div>
         </div>
       </section>
