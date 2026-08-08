@@ -619,8 +619,6 @@ export default function WelcomePage() {
                     width: '100%',
                     maxWidth: 200,
                     height: 'auto',
-                    borderRadius: 16,
-                    boxShadow: '0 8px 32px rgba(14,88,140,0.12)',
                   }}
                 />
               </div>
