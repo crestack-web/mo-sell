@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import { SupportChatWidget } from '@/components/SupportChatWidget';
 
 // ── Design tokens (MO Sell kite identity palette) ──────────────────────────
@@ -108,6 +108,8 @@ function MOCharacter({ size = 80 }: { size?: number }) {
 
 // ── Nav ───────────────────────────────────────────────────────────────────────
 function TopNav() {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  
   return (
     <nav className="sw-nav" style={{
       position: 'sticky', top: 0, zIndex: 50,
@@ -122,6 +124,8 @@ function TopNav() {
         <img src="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1785078071/mosell_gpzl2q.png" alt="MO Sell" style={{ height: 36, width: 'auto', objectFit: 'contain' }} />
         <span className="sw-nav-brand" style={{ fontSize: 16, fontWeight: 800, letterSpacing: '0.06em', color: C.text1, fontFamily: FONT_DISPLAY }}>MO-SELL</span>
       </a>
+      
+      {/* Desktop nav */}
       <div className="sw-nav-links" style={{ display:'flex', alignItems:'center', gap: 10 }}>
         <a href="/ugc-creators" style={{
           display: 'inline-flex', alignItems: 'center', gap: 6,
@@ -142,6 +146,100 @@ function TopNav() {
           Log in →
         </a>
       </div>
+
+      {/* Mobile menu button */}
+      <button 
+        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+        style={{
+          display: 'none',
+          flexDirection: 'column',
+          gap: 5,
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+          padding: 8,
+        }}
+        className="sw-mobile-menu-btn"
+      >
+        <span style={{ 
+          width: 24, height: 2, background: C.text1, 
+          transition: 'transform 0.3s ease',
+          transform: mobileMenuOpen ? 'rotate(45deg) translate(5px, 5px)' : 'none'
+        }} />
+        <span style={{ 
+          width: 24, height: 2, background: C.text1,
+          opacity: mobileMenuOpen ? 0 : 1,
+          transition: 'opacity 0.3s ease'
+        }} />
+        <span style={{ 
+          width: 24, height: 2, background: C.text1,
+          transition: 'transform 0.3s ease',
+          transform: mobileMenuOpen ? 'rotate(-45deg) translate(5px, -5px)' : 'none'
+        }} />
+      </button>
+
+      {/* Mobile menu */}
+      {mobileMenuOpen && (
+        <div style={{
+          position: 'absolute',
+          top: 64,
+          left: 0,
+          right: 0,
+          background: C.surface,
+          borderBottom: `1px solid ${C.border}`,
+          padding: '20px 5%',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 16,
+          boxShadow: '0 4px 20px rgba(14,88,140,0.1)',
+        }}>
+          <a 
+            href="/ugc-creators"
+            onClick={() => setMobileMenuOpen(false)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '12px 16px',
+              borderRadius: 10,
+              color: C.text2,
+              fontFamily: FONT_BODY,
+              fontWeight: 600,
+              fontSize: 15,
+              textDecoration: 'none',
+            }}
+          >
+            🎬 Discover Creators
+          </a>
+          <a 
+            href="/login"
+            onClick={() => setMobileMenuOpen(false)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '12px 16px',
+              borderRadius: 10,
+              background: `linear-gradient(135deg, ${C.primary} 0%, ${C.accent} 100%)`,
+              color: 'white',
+              fontFamily: FONT_BODY,
+              fontWeight: 700,
+              fontSize: 15,
+              textDecoration: 'none',
+              justifyContent: 'center',
+            }}
+          >
+            Log in →
+          </a>
+        </div>
+      )}
+
+      <style>{`
+        @media (max-width: 768px) {
+          .sw-nav-links { display: none !important; }
+          .sw-mobile-menu-btn { display: flex !important; }
+        }
+      `}</style>
     </nav>
   );
 }
@@ -365,6 +463,21 @@ export default function WelcomePage() {
           <div style={{ textAlign: 'center', marginBottom: 48 }}>
             <div style={{ marginBottom: 32 }}>
               <FlyingKites size={160} />
+            </div>
+            {/* Hero image from cloudinary */}
+            <div style={{ marginBottom: 40, display: 'flex', justifyContent: 'center' }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1785152790/Untitled_-_July_27_2026_at_08.12.54_womtaf.png"
+                alt="MO Sell — AI-powered store builder"
+                style={{
+                  width: '100%',
+                  maxWidth: 500,
+                  height: 'auto',
+                  borderRadius: 16,
+                  boxShadow: '0 8px 32px rgba(14,88,140,0.12)',
+                }}
+              />
             </div>
             <h1 style={{
               fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 'clamp(2.5rem, 5vw, 4rem)',
@@ -801,6 +914,21 @@ export default function WelcomePage() {
         <div style={{ maxWidth: 700, margin: '0 auto', position: 'relative', zIndex: 1, textAlign: 'center' }}>
           <div style={{ marginBottom: 32 }}>
             <FlyingKites size={140} />
+          </div>
+          {/* Footer image from cloudinary */}
+          <div style={{ marginBottom: 40, display: 'flex', justifyContent: 'center' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1785151499/wlcm_1_ybgv8m.png"
+              alt="MO Sell — store in action"
+              style={{
+                width: '100%',
+                maxWidth: 400,
+                height: 'auto',
+                borderRadius: 16,
+                boxShadow: '0 8px 32px rgba(14,88,140,0.12)',
+              }}
+            />
           </div>
           <h2 style={{
             fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 'clamp(2rem, 4vw, 3rem)',
