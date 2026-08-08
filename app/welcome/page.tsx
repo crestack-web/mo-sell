@@ -927,8 +927,8 @@ export default function WelcomePage() {
           
           <div style={{ 
             display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', 
-            gap: 32 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
+            gap: 24 
           }}>
             <div style={{ textAlign: 'center' }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -938,8 +938,8 @@ export default function WelcomePage() {
                 style={{
                   width: '100%',
                   height: 'auto',
-                  borderRadius: 16,
-                  boxShadow: '0 8px 32px rgba(14,88,140,0.12)',
+                  maxHeight: 200,
+                  objectFit: 'contain',
                 }}
               />
               <p style={{ fontSize: 13, color: C.text2, marginTop: 12, fontWeight: 600 }}>
@@ -954,8 +954,8 @@ export default function WelcomePage() {
                 style={{
                   width: '100%',
                   height: 'auto',
-                  borderRadius: 16,
-                  boxShadow: '0 8px 32px rgba(14,88,140,0.12)',
+                  maxHeight: 200,
+                  objectFit: 'contain',
                 }}
               />
               <p style={{ fontSize: 13, color: C.text2, marginTop: 12, fontWeight: 600 }}>
