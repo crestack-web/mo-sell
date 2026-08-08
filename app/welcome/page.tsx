@@ -581,13 +581,13 @@ export default function WelcomePage() {
                 Let's get it flying.
               </span>
             </h1>
-            <p style={{
+            <div style={{
               fontSize: 'clamp(0.85rem, 1.2vw, 0.95rem)',
               color: C.text2, maxWidth: 500, margin: '0 auto 36',
               lineHeight: 1.5, textAlign: 'center',
             }}>
               MO builds your online store, adds your products and gets you ready to sell — without the usual technical headache.
-            </p>
+            </div>
             <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap', paddingTop: 8 }}>
               <a href="/signup" style={{
                 display: 'inline-flex', alignItems: 'center', gap: 8,
