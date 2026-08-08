@@ -574,6 +574,7 @@ export default function WelcomePage() {
             <h1 style={{
               fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 'clamp(1.4rem, 2.5vw, 1.8rem)',
               color: C.text1, letterSpacing: '-0.03em', lineHeight: 1.1, marginBottom: 12,
+              textAlign: 'center',
             }}>
               You have something to sell.<br/>
               <span style={{ background: `linear-gradient(135deg, ${C.primary} 0%, ${C.accent} 100%)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
