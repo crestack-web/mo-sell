@@ -81,6 +81,24 @@ const SUGGESTIONS: Suggestion[] = [
 
 const MO_AVATAR = 'https://res.cloudinary.com/dzjoqbg2u/image/upload/v1784793259/mo_sell_chat_ucbw3x.png';
 
+// MO character SVG component
+function MOAvatar({ size = 40 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="40" cy="40" r="36" fill="url(#moGradient)"/>
+      <circle cx="28" cy="35" r="5" fill="white"/>
+      <circle cx="52" cy="35" r="5" fill="white"/>
+      <path d="M30 52Q40 60 50 52" stroke="white" strokeWidth="3" strokeLinecap="round"/>
+      <defs>
+        <linearGradient id="moGradient" x1="0" y1="0" x2="80" y2="80" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#0EA5E9"/>
+          <stop offset="1" stopColor="#6366F1"/>
+        </linearGradient>
+      </defs>
+    </svg>
+  );
+}
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const CURRENCY_SYMBOL: Record<string, string> = {
@@ -751,8 +769,7 @@ export function SellAskMoPage() {
       <div className={styles.chatContainer}>
         {/* ── Chat Header ── */}
         <div className={styles.chatHeader}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={MO_AVATAR} alt="MO" className={styles.headerAvatar} />
+          <MOAvatar size={40} />
           <div className={styles.headerInfo}>
             <span className={styles.headerName}>MO</span>
             <span className={styles.headerStatus}>AI Commerce Assistant</span>
@@ -798,8 +815,7 @@ export function SellAskMoPage() {
         <div className={styles.messagesArea}>
           {showWelcome ? (
             <div className={styles.welcomeState}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={MO_AVATAR} alt="MO" className={styles.moAvatar} />
+              <MOAvatar size={60} />
               <h2 className={styles.welcomeTitle}>Hey! I&apos;m MO</h2>
               <p className={styles.welcomeSubtitle}>
                 Your AI commerce assistant. I can help you edit your store, create digital products,
@@ -820,7 +836,7 @@ export function SellAskMoPage() {
                 <div key={msg.id} className={`${styles.messageRow} ${styles[msg.role]}`}>
                   {msg.role === 'bot' && (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={MO_AVATAR} alt="MO" className={styles.botAvatar} />
+                    <MOAvatar size={32} />
                   )}
                     <div className={styles.messageContent}>
                       <div className={styles.messageBubble}>
@@ -1053,8 +1069,7 @@ export function SellAskMoPage() {
 
               {loading && (
                 <div className={`${styles.messageRow} ${styles.bot}`}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={MO_AVATAR} alt="MO" className={styles.botAvatar} />
+                  <MOAvatar size={32} />
                   <div className={styles.typingDots}>
                     <div className={styles.typingDot} />
                     <div className={styles.typingDot} />
