@@ -1,9 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { uploadFile } from '@/lib/storage/r2-adapter';
+import { createUploadUrl } from '@/lib/storage/r2-adapter';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
+/**
+ * Issues a short-lived presigned PUT URL for direct browser→R2 upload.
+ *
+ * Relaying files through this route hit Vercel's serverless request-body cap
+ * (~4.5MB → HTTP 413) for large files like product videos. The browser now
+ * PUTs the file straight to R2 and only metadata crosses the function.
+ */
 export async function POST(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -12,14 +19,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'path is required' }, { status: 400 });
     }
 
-    const formData = await request.formData();
-    const file = formData.get('file');
-    if (!(file instanceof File)) {
-      return NextResponse.json({ success: false, error: 'file is required' }, { status: 400 });
+    let contentType = 'application/octet-stream';
+    try {
+      const body = await request.json();
+      if (typeof body?.contentType === 'string' && body.contentType) {
+        contentType = body.contentType;
+      }
+    } catch {
+      // No JSON body — default to octet-stream.
     }
 
-    const url = await uploadFile(file, path);
-    return NextResponse.json({ success: true, url });
+    const { uploadUrl, url } = await createUploadUrl(path, contentType);
+    return NextResponse.json({ success: true, uploadUrl, url });
   } catch (error) {
     console.error('[Storage Upload] Failed:', error);
     return NextResponse.json(
