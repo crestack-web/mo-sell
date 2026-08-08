@@ -446,7 +446,7 @@ export default function WelcomePage() {
           HERO — "You have something to sell. Let's get it flying."
       ════════════════════════════════════════════════════════════════════════ */}
       <section style={{ 
-        padding: '120px 5% 80px', 
+        padding: '40px 5% 50px', 
         background: `linear-gradient(180deg, ${C.bg} 0%, ${C.surface} 100%)`,
         position: 'relative',
         overflow: 'hidden',
@@ -460,19 +460,16 @@ export default function WelcomePage() {
         }} />
         
         <div style={{ maxWidth: 1000, margin: '0 auto', position: 'relative', zIndex: 1 }}>
-          <div style={{ textAlign: 'center', marginBottom: 48 }}>
-            <div style={{ marginBottom: 32 }}>
-              <FlyingKites size={160} />
-            </div>
+          <div style={{ textAlign: 'center', marginBottom: 32 }}>
             {/* Hero image from cloudinary */}
-            <div style={{ marginBottom: 40, display: 'flex', justifyContent: 'center' }}>
+            <div style={{ marginBottom: 32, display: 'flex', justifyContent: 'center' }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1785152790/Untitled_-_July_27_2026_at_08.12.54_womtaf.png"
                 alt="MO Sell — AI-powered store builder"
                 style={{
                   width: '100%',
-                  maxWidth: 500,
+                  maxWidth: 750,
                   height: 'auto',
                   borderRadius: 16,
                   boxShadow: '0 8px 32px rgba(14,88,140,0.12)',
@@ -480,8 +477,8 @@ export default function WelcomePage() {
               />
             </div>
             <h1 style={{
-              fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 'clamp(2.5rem, 5vw, 4rem)',
-              color: C.text1, letterSpacing: '-0.03em', lineHeight: 1.1, marginBottom: 24,
+              fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 'clamp(1.6rem, 3vw, 2.2rem)',
+              color: C.text1, letterSpacing: '-0.03em', lineHeight: 1.1, marginBottom: 16,
             }}>
               You have something to sell.<br/>
               <span style={{ background: `linear-gradient(135deg, ${C.primary} 0%, ${C.accent} 100%)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
@@ -489,9 +486,9 @@ export default function WelcomePage() {
               </span>
             </h1>
             <p style={{
-              fontSize: 'clamp(1rem, 2vw, 1.25rem)',
-              color: C.text2, maxWidth: 540, margin: '0 auto 40',
-              lineHeight: 1.7,
+              fontSize: 'clamp(0.9rem, 1.5vw, 1.1rem)',
+              color: C.text2, maxWidth: 480, margin: '0 auto 32',
+              lineHeight: 1.6, textAlign: 'center',
             }}>
               MO builds your online store, adds your products and gets you ready to sell — without the usual technical headache.
             </p>
@@ -545,16 +542,16 @@ export default function WelcomePage() {
       {/* ════════════════════════════════════════════════════════════════════════
           CATEGORIES — "Whatever you're building, there's a way to sell it."
       ════════════════════════════════════════════════════════════════════════ */}
-      <section style={{ padding: '80px 5%', background: C.surface }}>
+      <section style={{ padding: '60px 5%', background: C.surface }}>
         <div style={{ maxWidth: 1160, margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: 56 }}>
+          <div style={{ textAlign: 'center', marginBottom: 40 }}>
             <div style={{
-              fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 'clamp(1.8rem, 3.5vw, 2.8rem)',
-              color: C.text1, letterSpacing: '-0.025em', marginBottom: 16,
+              fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 'clamp(1.5rem, 3vw, 2rem)',
+              color: C.text1, letterSpacing: '-0.025em', marginBottom: 12,
             }}>
               Whatever you're building, there's a way to sell it.
             </div>
-            <p style={{ fontSize: 16, color: C.text2, maxWidth: 480, margin: '0 auto' }}>
+            <p style={{ fontSize: 14, color: C.text2, maxWidth: 420, margin: '0 auto' }}>
               From physical products to digital downloads, MO adapts to your business.
             </p>
           </div>
@@ -603,27 +600,39 @@ export default function WelcomePage() {
       {/* ════════════════════════════════════════════════════════════════════════
           MEET MO — "Your business sidekick"
       ════════════════════════════════════════════════════════════════════════ */}
-      <section style={{ padding: '100px 5%', background: C.bg }}>
+      <section style={{ padding: '60px 5%', background: C.bg }}>
         <div style={{ maxWidth: 1160, margin: '0 auto' }}>
           <div style={{ 
             display: 'grid', 
             gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
-            gap: 48, 
+            gap: 32, 
             alignItems: 'center' 
           }}>
             <div>
-              <div style={{ marginBottom: 32 }}>
-                <MOCharacter size={120} />
+              {/* MO character image from cloudinary */}
+              <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'center' }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1786184878/Untitled_-_August_08_2026_at_11.22.19_chyoum.png"
+                  alt="MO — Your business sidekick"
+                  style={{
+                    width: '100%',
+                    maxWidth: 200,
+                    height: 'auto',
+                    borderRadius: 16,
+                    boxShadow: '0 8px 32px rgba(14,88,140,0.12)',
+                  }}
+                />
               </div>
               {/* MO AI image from cloudinary */}
-              <div style={{ marginBottom: 32, display: 'flex', justifyContent: 'center' }}>
+              <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'center' }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1785152788/Untitled_-_July_27_2026_at_08.12.54-4_v2ly3f.png"
                   alt="MO AI — builds your store for you"
                   style={{
                     width: '100%',
-                    maxWidth: 400,
+                    maxWidth: 350,
                     height: 'auto',
                     borderRadius: 16,
                     boxShadow: '0 8px 32px rgba(14,88,140,0.12)',
@@ -631,29 +640,29 @@ export default function WelcomePage() {
                 />
               </div>
               <h2 style={{
-                fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 'clamp(2rem, 4vw, 2.8rem)',
-                color: C.text1, letterSpacing: '-0.025em', marginBottom: 20,
+                fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 'clamp(1.8rem, 3.5vw, 2.4rem)',
+                color: C.text1, letterSpacing: '-0.025em', marginBottom: 16,
               }}>
                 Meet MO.
               </h2>
-              <p style={{ fontSize: 18, color: C.text2, lineHeight: 1.7, marginBottom: 16 }}>
+              <p style={{ fontSize: 16, color: C.text2, lineHeight: 1.6, marginBottom: 12 }}>
                 Your business sidekick. MO doesn't just build stores — MO understands what you're selling and makes it look good.
               </p>
-              <p style={{ fontSize: 16, color: C.text2, lineHeight: 1.7 }}>
+              <p style={{ fontSize: 15, color: C.text2, lineHeight: 1.6 }}>
                 Tell MO about your business in plain language. MO handles the technical stuff so you can focus on what you do best.
               </p>
             </div>
             
             <div style={{ 
-              background: C.surface, borderRadius: 24, padding: '32px 28px',
+              background: C.surface, borderRadius: 20, padding: '24px 20px',
               border: `1px solid ${C.border}`,
               boxShadow: '0 4px 24px rgba(14,88,140,0.08)',
             }}>
-              <div style={{ fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 14, color: C.text3, marginBottom: 24, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+              <div style={{ fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 13, color: C.text3, marginBottom: 20, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
                 How MO works
               </div>
               
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
                   <div style={{
                     width: 40, height: 40, borderRadius: 12, flexShrink: 0,
@@ -715,16 +724,16 @@ export default function WelcomePage() {
       {/* ════════════════════════════════════════════════════════════════════════
           JOURNEY — "Everything your business needs to take off"
       ════════════════════════════════════════════════════════════════════════ */}
-      <section id="how-it-works" style={{ padding: '100px 5%', background: C.surface }}>
+      <section id="how-it-works" style={{ padding: '60px 5%', background: C.surface }}>
         <div style={{ maxWidth: 1160, margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: 64 }}>
+          <div style={{ textAlign: 'center', marginBottom: 40 }}>
             <div style={{
-              fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 'clamp(1.8rem, 3.5vw, 2.8rem)',
-              color: C.text1, letterSpacing: '-0.025em', marginBottom: 16,
+              fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 'clamp(1.5rem, 3vw, 2rem)',
+              color: C.text1, letterSpacing: '-0.025em', marginBottom: 12,
             }}>
               Everything your business needs to take off.
             </div>
-            <p style={{ fontSize: 16, color: C.text2, maxWidth: 500, margin: '0 auto' }}>
+            <p style={{ fontSize: 14, color: C.text2, maxWidth: 420, margin: '0 auto' }}>
               From building to growing, MO supports every stage of your business journey.
             </p>
           </div>
@@ -776,28 +785,31 @@ export default function WelcomePage() {
       {/* ════════════════════════════════════════════════════════════════════════
           EMOTIONAL — "Your first sale feels different"
       ════════════════════════════════════════════════════════════════════════ */}
-      <section style={{ padding: '120px 5%', background: `linear-gradient(135deg, ${C.primary} 0%, ${C.accent} 100%)`, position: 'relative', overflow: 'hidden' }}>
-        {/* Background kites */}
-        <div style={{ position: 'absolute', top: -60, right: -60, opacity: 0.1 }}>
-          <GreenKite size={200} />
-        </div>
-        <div style={{ position: 'absolute', bottom: -60, left: -60, opacity: 0.1 }}>
-          <PurpleKite size={200} />
-        </div>
-        
+      <section style={{ padding: '80px 5%', background: `linear-gradient(135deg, ${C.primary} 0%, ${C.accent} 100%)`, position: 'relative', overflow: 'hidden' }}>
         <div style={{ maxWidth: 800, margin: '0 auto', position: 'relative', zIndex: 1, textAlign: 'center' }}>
-          <div style={{ marginBottom: 40 }}>
-            <FlyingKites size={120} />
+          <div style={{ marginBottom: 32 }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1786185319/Untitled_-_August_08_2026_at_11.22.19_czhgm2.png"
+              alt="First sale celebration"
+              style={{
+                width: '100%',
+                maxWidth: 300,
+                height: 'auto',
+                borderRadius: 16,
+                boxShadow: '0 8px 32px rgba(255,255,255,0.2)',
+              }}
+            />
           </div>
           <h2 style={{
-            fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 'clamp(2rem, 4vw, 3rem)',
-            color: 'white', letterSpacing: '-0.025em', lineHeight: 1.2, marginBottom: 24,
+            fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 'clamp(1.8rem, 3.5vw, 2.4rem)',
+            color: 'white', letterSpacing: '-0.025em', lineHeight: 1.2, marginBottom: 20,
           }}>
             Your first sale feels different.
           </h2>
           <p style={{
-            fontSize: 'clamp(1.1rem, 2vw, 1.4rem)',
-            color: 'rgba(255,255,255,0.9)', lineHeight: 1.8,
+            fontSize: 'clamp(1rem, 1.8vw, 1.2rem)',
+            color: 'rgba(255,255,255,0.9)', lineHeight: 1.7,
           }}>
             Because that's when an idea stops being an idea.<br/>
             It becomes a business.
@@ -808,16 +820,16 @@ export default function WelcomePage() {
       {/* ════════════════════════════════════════════════════════════════════════
           EDUCATIONAL — "MO's little lessons"
       ════════════════════════════════════════════════════════════════════════ */}
-      <section style={{ padding: '100px 5%', background: C.bg }}>
+      <section style={{ padding: '60px 5%', background: C.bg }}>
         <div style={{ maxWidth: 1160, margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: 56 }}>
+          <div style={{ textAlign: 'center', marginBottom: 40 }}>
             <div style={{
-              fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 'clamp(1.8rem, 3.5vw, 2.8rem)',
-              color: C.text1, letterSpacing: '-0.025em', marginBottom: 16,
+              fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 'clamp(1.5rem, 3vw, 2rem)',
+              color: C.text1, letterSpacing: '-0.025em', marginBottom: 12,
             }}>
               MO's little lessons
             </div>
-            <p style={{ fontSize: 16, color: C.text2, maxWidth: 500, margin: '0 auto' }}>
+            <p style={{ fontSize: 14, color: C.text2, maxWidth: 420, margin: '0 auto' }}>
               Practical guides to help you sell smarter, not harder.
             </p>
           </div>
@@ -870,16 +882,16 @@ export default function WelcomePage() {
       {/* ════════════════════════════════════════════════════════════════════════
           SOCIAL PROOF — Real stories
       ════════════════════════════════════════════════════════════════════════ */}
-      <section style={{ padding: '100px 5%', background: C.surface }}>
+      <section style={{ padding: '60px 5%', background: C.surface }}>
         <div style={{ maxWidth: 1160, margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: 56 }}>
+          <div style={{ textAlign: 'center', marginBottom: 40 }}>
             <div style={{
-              fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 'clamp(1.8rem, 3.5vw, 2.8rem)',
-              color: C.text1, letterSpacing: '-0.025em', marginBottom: 16,
+              fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 'clamp(1.5rem, 3vw, 2rem)',
+              color: C.text1, letterSpacing: '-0.025em', marginBottom: 12,
             }}>
               Sellers who let their businesses fly
             </div>
-            <p style={{ fontSize: 16, color: C.text2, maxWidth: 500, margin: '0 auto' }}>
+            <p style={{ fontSize: 14, color: C.text2, maxWidth: 420, margin: '0 auto' }}>
               Real stories from real sellers using MO to grow their businesses.
             </p>
           </div>
@@ -914,7 +926,7 @@ export default function WelcomePage() {
       {/* ════════════════════════════════════════════════════════════════════════
           FINAL CTA — "Ready to let your business fly?"
       ════════════════════════════════════════════════════════════════════════ */}
-      <section style={{ padding: '120px 5%', background: C.bg, position: 'relative', overflow: 'hidden' }}>
+      <section style={{ padding: '60px 5%', background: C.bg, position: 'relative', overflow: 'hidden' }}>
         {/* Decorative kites */}
         <div style={{ position: 'absolute', top: 40, left: 60, opacity: 0.06 }}>
           <GreenKite size={100} />
@@ -927,40 +939,25 @@ export default function WelcomePage() {
         </div>
         
         <div style={{ maxWidth: 700, margin: '0 auto', position: 'relative', zIndex: 1, textAlign: 'center' }}>
-          <div style={{ marginBottom: 32 }}>
-            <FlyingKites size={140} />
-          </div>
-          {/* Footer image from cloudinary */}
-          <div style={{ marginBottom: 40, display: 'flex', justifyContent: 'center' }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1785151499/wlcm_1_ybgv8m.png"
-              alt="MO Sell — store in action"
-              style={{
-                width: '100%',
-                maxWidth: 400,
-                height: 'auto',
-                borderRadius: 16,
-                boxShadow: '0 8px 32px rgba(14,88,140,0.12)',
-              }}
-            />
+          <div style={{ marginBottom: 24 }}>
+            <FlyingKites size={100} />
           </div>
           <h2 style={{
-            fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 'clamp(2rem, 4vw, 3rem)',
-            color: C.text1, letterSpacing: '-0.025em', marginBottom: 20,
+            fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 'clamp(1.8rem, 3.5vw, 2.4rem)',
+            color: C.text1, letterSpacing: '-0.025em', marginBottom: 16,
           }}>
             Ready to let your business fly?
           </h2>
           <p style={{
-            fontSize: 18, color: C.text2, marginBottom: 40, lineHeight: 1.7,
+            fontSize: 16, color: C.text2, marginBottom: 32, lineHeight: 1.6,
           }}>
             Create your store with MO and start selling online today.
           </p>
           <a href="/signup" style={{
             display: 'inline-flex', alignItems: 'center', gap: 10,
-            padding: '18px 40px', borderRadius: 14,
+            padding: '16px 36px', borderRadius: 12,
             background: `linear-gradient(135deg, ${C.primary} 0%, ${C.accent} 100%)`,
-            color: 'white', fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 18,
+            color: 'white', fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 16,
             textDecoration: 'none', boxShadow: '0 8px 28px rgba(14,165,233,0.36)',
             transition: 'transform 0.2s ease, box-shadow 0.2s ease',
           }}
