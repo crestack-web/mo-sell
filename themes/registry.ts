@@ -28,12 +28,68 @@ export const THEMES: ThemeMeta[] = [
     dataAttr: 'luxe', type: 'e-commerce',
   },
   {
-    id: 'market', name: 'Market',
-    description: 'Bright, dense, and price-forward. Built for high-volume everyday selling.',
-    previewBg: '#FFF7ED', previewAccent: '#EA580C', previewFont: 'Plus Jakarta Sans',
-    bestFor: ['General', 'Home', 'Lifestyle'],
-    badge: { label: 'Best Seller', color: '#065F46', bg: '#D1FAE5' },
-    dataAttr: 'market', type: 'e-commerce',
+    id: 'atelier', name: 'Atelier Noir',
+    description: 'Quiet luxury fashion. Editorial dark palette, hairline rules and considered typography.',
+    previewBg: '#0B0B0B', previewAccent: '#D4AF6A', previewFont: 'Georgia',
+    bestFor: ['Fashion', 'Luxury', 'Accessories'],
+    badge: { label: 'Luxury', color: '#0B0B0B', bg: '#D4AF6A' },
+    dataAttr: 'atelier', type: 'e-commerce',
+  },
+  {
+    id: 'citrus', name: 'Citrus Market',
+    description: 'Fresh & playful. Warm cream canvas, orange accents and round, friendly cards.',
+    previewBg: '#FFF4DE', previewAccent: '#FF7A1A', previewFont: 'Verdana',
+    bestFor: ['Grocery', 'Food', 'Juice', 'Wellness'],
+    badge: null,
+    dataAttr: 'citrus', type: 'e-commerce',
+  },
+  {
+    id: 'nordly', name: 'Nordic Minimal',
+    description: 'Furniture & home goods. Airy neutrals, hairline grids and restrained muted accents.',
+    previewBg: '#F7F5F0', previewAccent: '#5B6B58', previewFont: 'Century Gothic',
+    bestFor: ['Furniture', 'Home', 'Minimal', 'Lifestyle'],
+    badge: null,
+    dataAttr: 'nordly', type: 'e-commerce',
+  },
+  {
+    id: 'neotech', name: 'Neo Tech',
+    description: 'Electronics & gadgets. Deep blue space, electric accents and spec-card grids.',
+    previewBg: '#0A0E17', previewAccent: '#3D8BFF', previewFont: 'Arial',
+    bestFor: ['Electronics', 'Gadgets', 'Tech'],
+    badge: null,
+    dataAttr: 'neotech', type: 'e-commerce',
+  },
+  {
+    id: 'terra', name: 'Terra Craft',
+    description: 'Artisanal & organic. Warm earthy surface, sage and clay accents, generous radii.',
+    previewBg: '#F1EEE4', previewAccent: '#6B7A4F', previewFont: 'Trebuchet MS',
+    bestFor: ['Handmade', 'Artisan', 'Organic', 'Craft'],
+    badge: { label: 'Handmade', color: '#B5652E', bg: '#F1EEE4' },
+    dataAttr: 'terra', type: 'e-commerce',
+  },
+  {
+    id: 'volt', name: 'Neon Streetwear',
+    description: 'Bold streetwear drops. Hard black, acid-yellow chips and sharp square corners.',
+    previewBg: '#000000', previewAccent: '#E9FF3D', previewFont: 'Arial Narrow',
+    bestFor: ['Streetwear', 'Sneakers', 'Drops', 'Urban'],
+    badge: { label: 'Drop', color: '#000000', bg: '#E9FF3D' },
+    dataAttr: 'volt', type: 'e-commerce',
+  },
+  {
+    id: 'botanica', name: 'Botanica',
+    description: 'Clean beauty & botanicals. Deep green surfaces, gold accents and soft organic cards.',
+    previewBg: '#0F2318', previewAccent: '#D8A667', previewFont: 'Candara',
+    bestFor: ['Beauty', 'Skincare', 'Botanicals', 'Wellness'],
+    badge: null,
+    dataAttr: 'botanica', type: 'e-commerce',
+  },
+  {
+    id: 'prism', name: 'Prism Studio',
+    description: 'Holographic gen-z beauty. Gradient glass, floating thumbnails and glowing pill buttons.',
+    previewBg: '#7B2FF7', previewAccent: '#FFE066', previewFont: 'Arial Rounded MT Bold',
+    bestFor: ['Beauty', 'Makeup', 'Gen-Z', 'Trend'],
+    badge: null,
+    dataAttr: 'prism', type: 'e-commerce',
   },
   {
     id: 'ankara', name: 'Ankara Pop',
@@ -91,15 +147,20 @@ export function getTheme(id?: string): ThemeMeta {
 
 export function suggestTheme(category: string): StorefrontTheme {
   const c = category.toLowerCase();
-  if (['fashion', 'jewellery', 'luxury', 'clothing', 'accessories'].some(k => c.includes(k))) return 'luxe';
-  if (['food', 'grocery', 'market', 'home', 'lifestyle', 'general', 'handmade', 'artisan'].some(k => c.includes(k))) return 'market';
-  if (['beauty', 'cosmetics', 'skincare', 'makeup', 'wellness', 'spa', 'candle', 'fitness', 'pop', 'music', 'creator'].some(k => c.includes(k))) return 'ankara';
+  if (['fashion', 'jewellery', 'luxury', 'clothing', 'accessories'].some(k => c.includes(k))) return 'atelier';
+  if (['food', 'grocery', 'market', 'juice', 'wellness', 'fresh'].some(k => c.includes(k))) return 'citrus';
+  if (['furniture', 'home', 'minimal', 'lifestyle', 'general', 'interior'].some(k => c.includes(k))) return 'nordly';
+  if (['electronics', 'gadget', 'tech', 'device', 'computer', 'audio'].some(k => c.includes(k))) return 'neotech';
+  if (['handmade', 'artisan', 'organic', 'craft', 'ceramic', 'plant'].some(k => c.includes(k))) return 'terra';
+  if (['streetwear', 'sneaker', 'urban', 'drop', 'skate'].some(k => c.includes(k))) return 'volt';
+  if (['beauty', 'cosmetics', 'skincare', 'makeup', 'botanical', 'spa', 'candle', 'fitness', 'pop', 'music', 'creator'].some(k => c.includes(k))) return 'botanica';
+  if (['gen-z', 'holographic', 'trend', 'studio'].some(k => c.includes(k))) return 'prism';
   if (['premium', 'vintage', 'jewellery', 'nightlife', 'bar', 'quiet', 'elegant', 'gold'].some(k => c.includes(k))) return 'midnight';
   if (['editorial', 'art', 'minimal', 'neutral', 'fashion', 'photography'].some(k => c.includes(k))) return 'harmattan';
   if (['night', 'club', 'vibrant', 'bold', 'party', 'event', 'rave', 'dj'].some(k => c.includes(k))) return 'neon';
   if (['warm', 'sunset', 'summer', 'beach', 'travel', 'beauty', 'cosmetics'].some(k => c.includes(k))) return 'sunset';
   if (['design', 'software', 'digital', 'course', 'template', 'ebook', 'developer', 'photographer', 'architect'].some(k => c.includes(k))) return 'mono';
-  return 'luxe';
+  return 'atelier';
 }
 
 // ─── Lazy-load theme components ─────────────────────────────────────────────
@@ -112,13 +173,14 @@ const themeLoader: Record<string, () => Promise<ThemeComponents>> = {
     ProductPage: m.LuxeProductPage,
     cssClass: 'theme-luxe',
   })),
-  market: () => import('./market').then(m => ({
-    ProductCard: m.MarketProductCard,
-    CollectionCard: m.MarketCollectionCard,
-    Hero: m.MarketHero,
-    ProductPage: m.MarketProductPage,
-    cssClass: 'theme-market',
-  })),
+  atelier: () => import('./shared/factory').then(m => m.makeTheme('atelier')),
+  citrus: () => import('./shared/factory').then(m => m.makeTheme('citrus')),
+  nordly: () => import('./shared/factory').then(m => m.makeTheme('nordly')),
+  neotech: () => import('./shared/factory').then(m => m.makeTheme('neotech')),
+  terra: () => import('./shared/factory').then(m => m.makeTheme('terra')),
+  volt: () => import('./shared/factory').then(m => m.makeTheme('volt')),
+  botanica: () => import('./shared/factory').then(m => m.makeTheme('botanica')),
+  prism: () => import('./shared/factory').then(m => m.makeTheme('prism')),
 };
 
 export type ThemeId = keyof typeof themeLoader;

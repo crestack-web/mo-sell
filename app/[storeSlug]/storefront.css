@@ -51,15 +51,108 @@
   --sf-radius:    999px; --sf-radius-sm: 999px; --sf-radius-lg: 999px;
 }
 
-/* ── Market theme (bright, price-forward) ── */
-[data-theme="market"] {
-  --sf-bg:        #FFF7ED;
+/* ── Atelier Noir theme (quiet luxury) ── */
+[data-theme="atelier"] {
+  --sf-primary:   #D4AF6A;
+  --sf-secondary: #FFFFFF;
+  --sf-bg:        #0B0B0B;
+  --sf-surface:   #161616;
+  --sf-border:    #2A2A2A;
+  --sf-text-1:    #F5F5F0;
+  --sf-text-2:    #9C9C94;
+  --sf-text-3:    #5A5A54;
+  --sf-radius:    0px; --sf-radius-sm: 0px; --sf-radius-lg: 0px;
+}
+
+/* ── Citrus Market theme (fresh + playful) ── */
+[data-theme="citrus"] {
+  --sf-bg:        #FFF4DE;
   --sf-surface:   #FFFFFF;
-  --sf-border:    #FFE4C8;
-  --sf-text-1:    #1A0A00;
-  --sf-text-2:    #8B4513;
-  --sf-text-3:    #C47843;
-  --sf-radius:    8px; --sf-radius-sm: 6px; --sf-radius-lg: 14px;
+  --sf-border:    #FFDDA8;
+  --sf-text-1:    #1F2A1A;
+  --sf-text-2:    #5C6B52;
+  --sf-text-3:    #9AAB8C;
+  --sf-accent:    #FF7A1A;
+  --sf-accent-2:  #8BC53F;
+  --sf-radius:    999px; --sf-radius-sm: 999px; --sf-radius-lg: 999px;
+}
+
+/* ── Nordic Minimal theme (airy neutrals) ── */
+[data-theme="nordly"] {
+  --sf-bg:        #F7F5F0;
+  --sf-surface:   #FFFFFF;
+  --sf-border:    #E4DFD3;
+  --sf-text-1:    #22201C;
+  --sf-text-2:    #8A8479;
+  --sf-text-3:    #B7ADA0;
+  --sf-accent:    #5B6B58;
+  --sf-accent-2:  #B7ADA0;
+  --sf-radius:    4px; --sf-radius-sm: 4px; --sf-radius-lg: 8px;
+}
+
+/* ── Neo Tech theme (electronics) ── */
+[data-theme="neotech"] {
+  --sf-bg:        #0A0E17;
+  --sf-surface:   #121826;
+  --sf-border:    #233047;
+  --sf-text-1:    #E8ECFF;
+  --sf-text-2:    #7C879E;
+  --sf-text-3:    #4A5468;
+  --sf-accent:    #3D8BFF;
+  --sf-accent-2:  #00FFC2;
+  --sf-radius:    8px; --sf-radius-sm: 6px; --sf-radius-lg: 12px;
+}
+
+/* ── Terra Craft theme (artisanal + organic) ── */
+[data-theme="terra"] {
+  --sf-bg:        #F1EEE4;
+  --sf-surface:   #FFFFFF;
+  --sf-border:    #E2DCC8;
+  --sf-text-1:    #3A3327;
+  --sf-text-2:    #8A8065;
+  --sf-text-3:    #B0A78C;
+  --sf-accent:    #6B7A4F;
+  --sf-accent-2:  #B5652E;
+  --sf-radius:    12px; --sf-radius-sm: 10px; --sf-radius-lg: 18px;
+}
+
+/* ── Neon Streetwear theme (bold drops) ── */
+[data-theme="volt"] {
+  --sf-bg:        #000000;
+  --sf-surface:   #111111;
+  --sf-border:    #2A2A2A;
+  --sf-text-1:    #FFFFFF;
+  --sf-text-2:    #9A9A9A;
+  --sf-text-3:    #555555;
+  --sf-accent:    #E9FF3D;
+  --sf-accent-2:  #FF3D3D;
+  --sf-radius:    0px; --sf-radius-sm: 0px; --sf-radius-lg: 0px;
+}
+
+/* ── Botanica theme (clean beauty) ── */
+[data-theme="botanica"] {
+  --sf-bg:        #0F2318;
+  --sf-surface:   #17301F;
+  --sf-border:    #274430;
+  --sf-text-1:    #F3EFE4;
+  --sf-text-2:    #A9B8A0;
+  --sf-text-3:    #6E8271;
+  --sf-accent:    #D8A667;
+  --sf-accent-2:  #E8C9D0;
+  --sf-radius:    16px; --sf-radius-sm: 12px; --sf-radius-lg: 24px;
+}
+
+/* ── Prism Studio theme (holographic) ── */
+[data-theme="prism"] {
+  --sf-bg:        linear-gradient(135deg, #7B2FF7 0%, #F72585 50%, #4CC9F0 100%);
+  --sf-surface:   rgba(255,255,255,0.16);
+  --sf-border:    rgba(255,255,255,0.4);
+  --sf-text-1:    #FFFFFF;
+  --sf-text-2:    rgba(255,255,255,0.8);
+  --sf-text-3:    rgba(255,255,255,0.55);
+  --sf-accent:    #FFFFFF;
+  --sf-accent-2:  #FFE066;
+  --sf-radius:    999px; --sf-radius-sm: 999px; --sf-radius-lg: 999px;
 }
 
 /* ── Midnight Gold theme (premium + quiet) ── */
@@ -292,8 +385,8 @@ img { max-width: 100%; height: auto; display: block; }
 .sf-nav-logo img { width: 44px; height: 44px; border-radius: var(--sf-radius-sm); object-fit: cover; }
 
 [data-theme="luxe"] .sf-nav-logo { font-family: 'Playfair Display', Georgia, serif; font-style: italic; letter-spacing: 0.1em; font-size: 1.15rem; }
-[data-theme="market"] .sf-nav { background: var(--sf-primary); border-bottom-color: var(--sf-primary); }
-[data-theme="market"] .sf-nav-logo { color: #fff; }
+[data-theme="citrus"] .sf-nav { background: var(--sf-primary); border-bottom-color: var(--sf-primary); }
+[data-theme="citrus"] .sf-nav-logo { color: #fff; }
 
 .sf-nav-spacer { flex: 1; }
 
@@ -355,7 +448,7 @@ img { max-width: 100%; height: auto; display: block; }
 }
 .sf-nav-cart:hover { opacity: 0.9; }
 [data-theme="luxe"] .sf-nav-cart { background: transparent; border: 1px solid var(--sf-gold); color: var(--sf-gold); }
-[data-theme="market"] .sf-nav-cart { background: #fff; color: var(--sf-primary); }
+[data-theme="citrus"] .sf-nav-cart { background: #fff; color: var(--sf-primary); }
 
 /* Hide cart text on mobile, show icon only */
 .sf-nav-cart-text { display: inline; }

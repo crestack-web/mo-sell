@@ -69,11 +69,62 @@ export function getThemeCssVars(theme: StorefrontTheme, primary: string, seconda
         '--sf-accent': '#FF3E7F', '--sf-accent-2': '#00A896', '--sf-nav-h': '0px',
         '--sf-font': 'system-ui, sans-serif',
       };
-      case 'market': return {
-        '--sf-bg': '#FFF7ED', '--sf-surface': '#FFFFFF', '--sf-border': '#FFE4C8',
-        '--sf-text-1': '#1A0A00', '--sf-text-2': '#8B4513', '--sf-text-3': '#C47843',
-        '--sf-radius': '8px', '--sf-radius-sm': '6px', '--sf-radius-lg': '14px',
-        '--sf-nav-h': '64px', '--sf-font': '"Plus Jakarta Sans",system-ui,sans-serif',
+      case 'atelier': return {
+        '--sf-bg': '#0B0B0B', '--sf-surface': '#161616', '--sf-border': '#2A2A2A',
+        '--sf-text-1': '#F5F5F0', '--sf-text-2': '#9C9C94', '--sf-text-3': '#5A5A54',
+        '--sf-radius': '0px', '--sf-radius-sm': '0px', '--sf-radius-lg': '0px',
+        '--sf-accent': '#D4AF6A', '--sf-accent-2': '#FFFFFF', '--sf-nav-h': '64px',
+        '--sf-font': "Georgia,serif",
+      };
+      case 'citrus': return {
+        '--sf-bg': '#FFF4DE', '--sf-surface': '#FFFFFF', '--sf-border': '#FFDDA8',
+        '--sf-text-1': '#1F2A1A', '--sf-text-2': '#5C6B52', '--sf-text-3': '#9AAB8C',
+        '--sf-radius': '999px', '--sf-radius-sm': '999px', '--sf-radius-lg': '999px',
+        '--sf-accent': '#FF7A1A', '--sf-accent-2': '#8BC53F', '--sf-nav-h': '64px',
+        '--sf-font': 'Verdana,system-ui,sans-serif',
+      };
+      case 'nordly': return {
+        '--sf-bg': '#F7F5F0', '--sf-surface': '#FFFFFF', '--sf-border': '#E4DFD3',
+        '--sf-text-1': '#22201C', '--sf-text-2': '#8A8479', '--sf-text-3': '#B7ADA0',
+        '--sf-radius': '4px', '--sf-radius-sm': '4px', '--sf-radius-lg': '8px',
+        '--sf-accent': '#5B6B58', '--sf-accent-2': '#B7ADA0', '--sf-nav-h': '64px',
+        '--sf-font': "'Century Gothic',system-ui,sans-serif",
+      };
+      case 'neotech': return {
+        '--sf-bg': '#0A0E17', '--sf-surface': '#121826', '--sf-border': '#233047',
+        '--sf-text-1': '#E8ECFF', '--sf-text-2': '#7C879E', '--sf-text-3': '#4A5468',
+        '--sf-radius': '8px', '--sf-radius-sm': '6px', '--sf-radius-lg': '12px',
+        '--sf-accent': '#3D8BFF', '--sf-accent-2': '#00FFC2', '--sf-nav-h': '64px',
+        '--sf-font': "'Courier New',monospace",
+      };
+      case 'terra': return {
+        '--sf-bg': '#F1EEE4', '--sf-surface': '#FFFFFF', '--sf-border': '#E2DCC8',
+        '--sf-text-1': '#3A3327', '--sf-text-2': '#8A8065', '--sf-text-3': '#B0A78C',
+        '--sf-radius': '12px', '--sf-radius-sm': '10px', '--sf-radius-lg': '18px',
+        '--sf-accent': '#6B7A4F', '--sf-accent-2': '#B5652E', '--sf-nav-h': '64px',
+        '--sf-font': "'Trebuchet MS',system-ui,sans-serif",
+      };
+      case 'volt': return {
+        '--sf-bg': '#000000', '--sf-surface': '#111111', '--sf-border': '#2A2A2A',
+        '--sf-text-1': '#FFFFFF', '--sf-text-2': '#9A9A9A', '--sf-text-3': '#555555',
+        '--sf-radius': '0px', '--sf-radius-sm': '0px', '--sf-radius-lg': '0px',
+        '--sf-accent': '#E9FF3D', '--sf-accent-2': '#FF3D3D', '--sf-nav-h': '64px',
+        '--sf-font': "'Arial Narrow',Impact,sans-serif",
+      };
+      case 'botanica': return {
+        '--sf-bg': '#0F2318', '--sf-surface': '#17301F', '--sf-border': '#274430',
+        '--sf-text-1': '#F3EFE4', '--sf-text-2': '#A9B8A0', '--sf-text-3': '#6E8271',
+        '--sf-radius': '16px', '--sf-radius-sm': '12px', '--sf-radius-lg': '24px',
+        '--sf-accent': '#D8A667', '--sf-accent-2': '#E8C9D0', '--sf-nav-h': '64px',
+        '--sf-font': "Candara,'Segoe UI',sans-serif",
+      };
+      case 'prism': return {
+        '--sf-bg': 'linear-gradient(135deg, #7B2FF7 0%, #F72585 50%, #4CC9F0 100%)',
+        '--sf-surface': 'rgba(255,255,255,0.16)', '--sf-border': 'rgba(255,255,255,0.4)',
+        '--sf-text-1': '#FFFFFF', '--sf-text-2': 'rgba(255,255,255,0.8)', '--sf-text-3': 'rgba(255,255,255,0.55)',
+        '--sf-radius': '999px', '--sf-radius-sm': '999px', '--sf-radius-lg': '999px',
+        '--sf-accent': '#FFFFFF', '--sf-accent-2': '#FFE066', '--sf-nav-h': '0px',
+        '--sf-font': "'Arial Rounded MT Bold','Helvetica Neue',sans-serif",
       };
       case 'midnight': return {
         '--sf-bg': '#0B0B0F', '--sf-surface': '#151319', '--sf-border': '#C9A227',
@@ -132,18 +183,18 @@ function SfNav({ theme, storeName, logoUrl, primary, storeSlug, hideStoreNameWit
   hideStoreNameWithLogo?: boolean; width?: number;
 }) {
   const isLuxe = theme === 'luxe';
-  const isMarket = theme === 'market';
+  const isCitrus = theme === 'citrus';
   const isCompact = (width ?? 600) < 480;
   return (
     <nav style={{
-      background: isMarket ? 'var(--sf-primary)' : 'var(--sf-surface)',
+      background: isCitrus ? 'var(--sf-primary)' : 'var(--sf-surface)',
       borderBottom: '1px solid var(--sf-border)',
       display: 'flex', alignItems: 'center',
       padding: isCompact ? '0 14px' : '0 28px', gap: isCompact ? 10 : 24, height: 'var(--sf-nav-h)',
       position: 'sticky', top: 0, zIndex: 20, flexShrink: 0,
     }}>
       {isCompact && (
-        <button style={{ background: 'none', border: 'none', padding: 6, cursor: 'pointer', color: isMarket ? '#fff' : 'var(--sf-text-1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} aria-label="Menu">
+        <button style={{ background: 'none', border: 'none', padding: 6, cursor: 'pointer', color: isCitrus ? '#fff' : 'var(--sf-text-1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} aria-label="Menu">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
         </button>
       )}
@@ -152,7 +203,7 @@ function SfNav({ theme, storeName, logoUrl, primary, storeSlug, hideStoreNameWit
           ? <img src={logoUrl} alt={storeName} style={{ height: 32, width: 'auto', maxWidth: 120, objectFit: 'contain', borderRadius: 'var(--sf-radius-sm)' }} />
           : <span style={{
               width: 36, height: 36, borderRadius: 8,
-              background: isMarket ? '#fff' : primary, color: isMarket ? primary : '#fff',
+              background: isCitrus ? '#fff' : primary, color: isCitrus ? primary : '#fff',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontWeight: 800, fontSize: '1rem', flexShrink: 0,
             }}>{storeName.charAt(0).toUpperCase()}</span>
@@ -161,22 +212,22 @@ function SfNav({ theme, storeName, logoUrl, primary, storeSlug, hideStoreNameWit
           fontFamily: isLuxe ? '"Playfair Display",Georgia,serif' : 'var(--sf-font)',
           fontStyle: isLuxe ? 'italic' : 'normal', fontWeight: isLuxe ? 400 : 800,
           fontSize: isLuxe ? '1.1rem' : '1rem', letterSpacing: isLuxe ? '0.12em' : '-0.01em',
-          color: isMarket ? '#fff' : 'var(--sf-text-1)',
+          color: isCitrus ? '#fff' : 'var(--sf-text-1)',
         }}>{storeName}</span>}
       </div>
       {!isCompact && (
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 24 }}>
           {['Shop', 'Collections', 'About', 'Contact'].map(l => (
-            <span key={l} style={{ fontSize: '0.8rem', fontWeight: 500, color: isMarket ? 'rgba(255,255,255,0.85)' : 'var(--sf-text-2)', cursor: 'pointer' }}>{l}</span>
+            <span key={l} style={{ fontSize: '0.8rem', fontWeight: 500, color: isCitrus ? 'rgba(255,255,255,0.85)' : 'var(--sf-text-2)', cursor: 'pointer' }}>{l}</span>
           ))}
         </div>
       )}
       {!isCompact && <div style={{ flex: 1 }} />}
       <div style={{
         padding: isCompact ? '6px 12px' : '8px 16px', borderRadius: 'var(--sf-radius-sm)',
-        background: isLuxe ? 'transparent' : isMarket ? '#fff' : 'var(--sf-primary)',
+        background: isLuxe ? 'transparent' : isCitrus ? '#fff' : 'var(--sf-primary)',
         border: isLuxe ? '1px solid #C9A84C' : 'none',
-        color: isLuxe ? '#C9A84C' : isMarket ? primary : '#fff',
+        color: isLuxe ? '#C9A84C' : isCitrus ? primary : '#fff',
         fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer',
         display: 'flex', alignItems: 'center', gap: 6,
         position: 'relative', flexShrink: 0,
@@ -208,9 +259,9 @@ function SfHero({ theme, storeName, tagline, settings, primary, secondary, butto
   const heroBg = bgImg ? `url(${bgImg}) center/cover` :
     theme === 'luxe'   ? '#111111' :
     theme === 'ankara' ? `linear-gradient(135deg,${primary}22 0%,${secondary}18 100%)` :
-    theme === 'market' ? `linear-gradient(135deg,${primary} 0%,${secondary} 100%)` :
+    theme === 'citrus' ? `linear-gradient(135deg,${primary} 0%,${secondary} 100%)` :
                          `linear-gradient(135deg,${primary}28 0%,${secondary}18 100%)`;
-  const isLuxe = theme === 'luxe'; const isMarket = theme === 'market'; const isMono = theme === 'mono';
+  const isLuxe = theme === 'luxe'; const isCitrus = theme === 'citrus'; const isMono = theme === 'mono';
   const alignMap = { left: 'flex-start' as const, center: 'center' as const, right: 'flex-end' as const };
   const align = alignMap[textAlign] ?? 'flex-start';
 
@@ -218,7 +269,7 @@ function SfHero({ theme, storeName, tagline, settings, primary, secondary, butto
   if (buttonStyle === 'pill') radius = 100;
   else if (buttonStyle === 'square') radius = 0;
   else if (buttonStyle === 'rounded') radius = 8;
-  else radius = isMarket ? 100 : isLuxe ? 0 : 'var(--sf-radius-sm)' as unknown as number;
+  else radius = isCitrus ? 100 : isLuxe ? 0 : 'var(--sf-radius-sm)' as unknown as number;
 
   return (
       <section style={{ background: heroBg, padding: isLuxe ? '72px 48px' : '60px 32px', display: 'flex', flexDirection: 'column', gap: 16, minHeight: 340, justifyContent: 'center', alignItems: align, textAlign }}>
@@ -226,7 +277,7 @@ function SfHero({ theme, storeName, tagline, settings, primary, secondary, butto
         {badgeText && <p style={{
           fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase',
           fontWeight: 700, marginBottom: 0,
-          color: isMarket ? 'rgba(255,255,255,0.7)' : isLuxe ? '#C9A84C' : isMono ? '#555555' : 'var(--sf-text-2)',
+          color: isCitrus ? 'rgba(255,255,255,0.7)' : isLuxe ? '#C9A84C' : isMono ? '#555555' : 'var(--sf-text-2)',
         }}>{badgeText}</p>}
 
         <h1 style={{
@@ -234,18 +285,18 @@ function SfHero({ theme, storeName, tagline, settings, primary, secondary, butto
         fontSize: isMono ? 'clamp(2.4rem,6vw,4.2rem)' : isLuxe ? 'clamp(2.2rem,5.5vw,3.5rem)' : 'clamp(2rem,5vw,3.2rem)',
         fontWeight: isLuxe ? 400 : 800, fontStyle: isLuxe ? 'italic' : 'normal',
         letterSpacing: isLuxe ? '0.04em' : isMono ? '-0.03em' : '-0.02em',
-        color: isLuxe ? '#F5F0E8' : isMarket ? '#fff' : isMono ? '#000000' : 'var(--sf-text-1)',
+        color: isLuxe ? '#F5F0E8' : isCitrus ? '#fff' : isMono ? '#000000' : 'var(--sf-text-1)',
         lineHeight: 1.1, margin: 0,
       }}>{heading}</h1>
 
       {sub && <p style={{ fontSize: '1.05rem', lineHeight: 1.65, maxWidth: 520, margin: 0,
-        color: isLuxe ? '#A89878' : isMarket ? 'rgba(255,255,255,0.88)' : isMono ? '#555555' : 'var(--sf-text-2)' }}>{sub}</p>}
+        color: isLuxe ? '#A89878' : isCitrus ? 'rgba(255,255,255,0.88)' : isMono ? '#555555' : 'var(--sf-text-2)' }}>{sub}</p>}
 
       <a href="#" style={{
         display: 'inline-flex', alignItems: 'center', gap: 8, marginTop: 8,
         padding: isLuxe ? '13px 38px' : '13px 32px',
-        background: isLuxe ? 'transparent' : isMarket ? '#fff' : primary,
-        color: isLuxe ? '#C9A84C' : isMarket ? primary : '#fff',
+        background: isLuxe ? 'transparent' : isCitrus ? '#fff' : primary,
+        color: isLuxe ? '#C9A84C' : isCitrus ? primary : '#fff',
         border: isLuxe ? '1px solid #C9A84C' : 'none',
         borderRadius: radius,
         fontWeight: 700, fontSize: '0.9rem', textDecoration: 'none', cursor: 'pointer',
@@ -294,7 +345,7 @@ function SfFeatured({ theme, settings, primary, products, storeSlug }: {
         {visible.map((p, i) => (
           <div key={i} style={{ background: 'var(--sf-surface)', border: '1px solid var(--sf-border)', borderRadius: 'var(--sf-radius)', overflow: 'hidden', cursor: 'pointer', transition: 'transform 0.18s' }} onClick={() => handleProductClick(p.productId)}>
             <div style={{ aspectRatio: isLuxe ? '3/4' : '1/1', background: p.images?.[0] ? `url(${p.images[0]}) center/cover` : `${primary}${['20','16','12','0e'][i] || '10'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-              {p.compareAtPrice && p.compareAtPrice > p.price && <span style={{ position: 'absolute', top: 8, left: 8, fontSize: '0.65rem', fontWeight: 700, padding: '2px 8px', borderRadius: 'var(--sf-radius-sm)', background: theme === 'ankara' ? '#FFE28C' : theme === 'market' ? '#FEE2E2' : primary, color: theme === 'ankara' ? '#1A1A1A' : theme === 'market' ? '#991B1B' : '#fff' }}>Sale</span>}
+              {p.compareAtPrice && p.compareAtPrice > p.price && <span style={{ position: 'absolute', top: 8, left: 8, fontSize: '0.65rem', fontWeight: 700, padding: '2px 8px', borderRadius: 'var(--sf-radius-sm)', background: theme === 'ankara' ? '#FFE28C' : theme === 'citrus' ? '#FEE2E2' : primary, color: theme === 'ankara' ? '#1A1A1A' : theme === 'citrus' ? '#991B1B' : '#fff' }}>Sale</span>}
               {!p.images?.[0] && <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={primary} strokeWidth="1.5" opacity="0.35"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>}
             </div>
             <div style={{ padding: '10px 12px' }}>
@@ -608,7 +659,14 @@ export function StorefrontCanvas({
   // Fall back to theme defaults if no colors provided
   const defaultColors: Record<StorefrontTheme, [string, string]> = {
     luxe:    ['#C9A84C', '#8B7355'],
-    market:  ['#EA580C', '#C2410C'],
+    citrus:  ['#FF7A1A', '#8BC53F'],
+    atelier: ['#D4AF6A', '#FFFFFF'],
+    nordly:  ['#5B6B58', '#B7ADA0'],
+    neotech: ['#3D8BFF', '#00FFC2'],
+    terra:   ['#6B7A4F', '#B5652E'],
+    volt:    ['#E9FF3D', '#FF3D3D'],
+    botanica: ['#D8A667', '#E8C9D0'],
+    prism:   ['#FFFFFF', '#FFE066'],
     ankara:  ['#FF3E7F', '#00A896'],
     midnight: ['#C9A227', '#7A6A2E'],
     harmattan: ['#4C6B8A', '#8A7A62'],

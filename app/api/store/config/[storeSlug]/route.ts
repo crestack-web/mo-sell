@@ -21,8 +21,17 @@ export async function GET(
       return NextResponse.json({ error: 'Store not found' }, { status: 404 });
     }
 
+    // Redact seller payout details before exposing config publicly
+    const {
+      payoutBankName: _payoutBankName,
+      payoutBankCode: _payoutBankCode,
+      payoutAccountName: _payoutAccountName,
+      payoutAccountNumber: _payoutAccountNumber,
+      ...publicConfig
+    } = config;
+
     return NextResponse.json({
-      ...config,
+      ...publicConfig,
       whopEnabled: false,
     }, {
       headers: { 'Cache-Control': 'no-store' },

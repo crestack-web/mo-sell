@@ -293,6 +293,85 @@
   border-bottom-right-radius: 4px;
 }
 
+/* ── Markdown text styling inside MO bubbles ── */
+
+.messageBubble :global(p) {
+  margin: 0 0 6px;
+}
+
+.messageBubble :global(p:last-child) {
+  margin-bottom: 0;
+}
+
+.messageBubble :global(ul),
+.messageBubble :global(ol) {
+  margin: 4px 0 6px;
+  padding-left: 18px;
+}
+
+.messageBubble :global(li) {
+  margin: 2px 0;
+}
+
+.messageBubble :global(strong) {
+  font-weight: 700;
+}
+
+.messageBubble :global(em) {
+  font-style: italic;
+}
+
+.messageBubble :global(h1),
+.messageBubble :global(h2),
+.messageBubble :global(h3) {
+  font-size: 14px;
+  font-weight: 700;
+  margin: 8px 0 4px;
+}
+
+.messageBubble :global(blockquote) {
+  border-left: 3px solid var(--sell-accent, #6366f1);
+  padding-left: 10px;
+  margin: 6px 0;
+  color: var(--sell-text-muted, #6b7280);
+}
+
+.messageBubble :global(code) {
+  background: color-mix(in srgb, var(--sell-text, #1a1a1a) 8%, transparent);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.messageBubble :global(pre) {
+  background: var(--sell-bg-alt, #f9fafb);
+  border-radius: 8px;
+  padding: 10px;
+  overflow-x: auto;
+  margin: 6px 0;
+}
+
+.messageBubble :global(pre code) {
+  background: transparent;
+  padding: 0;
+}
+
+.messageBubble :global(a) {
+  color: var(--sell-accent, #6366f1);
+}
+
+.msgLink {
+  color: var(--sell-accent, #6366f1);
+}
+
+.messageRow.user .messageBubble :global(code),
+.messageRow.user .messageBubble :global(pre),
+.messageRow.user .messageBubble :global(a) {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.16);
+}
+
 .botAvatar {
   width: 30px;
   height: 30px;

@@ -14,7 +14,9 @@ export interface DomainPurchaseRecord {
 }
 
 export type StorefrontTheme =
-  | 'luxe' | 'market'
+  | 'luxe'
+  | 'atelier' | 'citrus' | 'nordly' | 'neotech'
+  | 'terra' | 'volt' | 'botanica' | 'prism'
   | 'ankara' | 'midnight' | 'harmattan' | 'neon' | 'sunset' | 'mono';
 
 // ─── Theme Section Editor ─────────────────────────────────────────────────────

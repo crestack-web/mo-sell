@@ -23,7 +23,6 @@ function btnRadius(style?: 'pill' | 'square' | 'rounded', theme?: string): numbe
   if (style === 'rounded') return 8;
   // default per theme
   if (theme === 'ankara') return 999;
-  if (theme === 'market') return 100;
   if (theme === 'midnight') return 12;
   if (theme === 'harmattan') return 6;
   if (theme === 'neon') return 6;
@@ -75,42 +74,6 @@ export function ThemedHero({
           onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = 'transparent'; (e.currentTarget as HTMLAnchorElement).style.color = '#C9A84C'; }}
         >
           {ctaLabel}
-        </a>
-      </section>
-    );
-  }
-
-  // ── Glow ──────────────────────────────────────────────────────────────────
-  // ── Market ─────────────────────────────────────────────────────────────────
-  if (theme === 'market') {
-    return (
-      <section className="sf-hero" style={{
-        background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)`,
-        ...bgStyle, alignItems: align, textAlign: textAl,
-      } as React.CSSProperties}>
-        {logoUrl && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={logoUrl}
-            alt={storeName}
-            style={{ width: 52, height: 52, borderRadius: 12, objectFit: 'cover', marginBottom: 14 }}
-          />
-        )}
-        <p style={{ fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.85)', marginBottom: 8 }}>
-          🛍️ Fresh arrivals daily
-        </p>
-        <h1 style={{ color: '#fff', fontSize: 'clamp(1.8rem, 4.5vw, 2.8rem)', fontWeight: 800, lineHeight: 1.15 }}>
-          {storeName}
-        </h1>
-        {tagline && <p style={{ color: 'rgba(255,255,255,0.88)', maxWidth: 460, fontSize: '1.05rem', marginTop: 8, lineHeight: 1.6 }}>{tagline}</p>}
-        <a href={ctaUrl} style={{
-          display: 'inline-flex', alignItems: 'center', gap: 8,
-          marginTop: 22, padding: '13px 32px',
-          background: '#fff', color: primaryColor,
-          borderRadius: radius, fontWeight: 800, fontSize: '0.92rem',
-          textDecoration: 'none', transition: 'box-shadow 0.18s', width: 'fit-content',
-        }}>
-          {ctaLabel} →
         </a>
       </section>
     );

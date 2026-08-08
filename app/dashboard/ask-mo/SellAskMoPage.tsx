@@ -1,6 +1,8 @@
 ﻿'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { useSell } from '@/context/SellContext';
 import { getDatabase } from '@/lib/database/adapter';
 import { EbookPreviewModal } from '@/app/store-components/EbookPreviewModal';
@@ -230,6 +232,23 @@ function timeAgo(ts: number): string {
   if (hours < 24) return `${hours}h ago`;
   const days = Math.floor(hours / 24);
   return `${days}d ago`;
+}
+
+// Render MO's reply as markdown so bold/lists/links display as styled text
+// instead of raw asterisks.
+function MoMarkdown({ text }: { text: string }) {
+  return (
+    <ReactMarkdown
+      remarkPlugins={[remarkGfm]}
+      components={{
+        a: ({ node, ...props }) => (
+          <a {...props} target="_blank" rel="noopener noreferrer" className={styles.msgLink} />
+        ),
+      }}
+    >
+      {text}
+    </ReactMarkdown>
+  );
 }
 
 // Conversations are stored in the dedicated ai_conversations table (one row per
@@ -953,7 +972,11 @@ export function SellAskMoPage() {
                             )}
                           </div>
                         ))}
-                        {msg.text}
+                        {msg.role === 'bot' ? (
+                          <MoMarkdown text={msg.text} />
+                        ) : (
+                          msg.text
+                        )}
                       </div>
 
                     {/* ── Store Update Card ── */}

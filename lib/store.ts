@@ -29,6 +29,11 @@ export interface PublicStoreConfig {
   linkBio: any;
   useOwnPaystack: boolean;
   whopEnabled: boolean;
+  managedPayments: boolean;
+  payoutBankName: string | null;
+  payoutBankCode: string | null;
+  payoutAccountName: string | null;
+  payoutAccountNumber: string | null;
 }
 
 /**
@@ -95,5 +100,10 @@ export async function getStoreConfigBySlug(storeSlug: string): Promise<PublicSto
     linkBio: row.linkBio ?? null,
     useOwnPaystack: row.useOwnPaystack ?? false,
     whopEnabled: row.whopEnabled ?? false,
+    managedPayments: row.managedPayments ?? true,
+    payoutBankName: row.payoutBankName ?? null,
+    payoutBankCode: row.payoutBankCode ?? null,
+    payoutAccountName: row.payoutAccountName ?? null,
+    payoutAccountNumber: row.payoutAccountNumber ?? null,
   };
 }

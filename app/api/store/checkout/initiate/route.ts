@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Failed to create checkout session' }, { status: 500 });
     }
 
-    // 2. Verify store has bank account set up for payouts
+    // 2. Verify store has a payment path set up
     const { data: configRow } = await supabase
       .from('businesses')
       .select('*')
@@ -95,16 +95,19 @@ export async function POST(req: NextRequest) {
       .maybeSingle();
     const storeConfig = configRow ?? null;
     const hasPayoutBank = storeConfig?.payoutAccountName && storeConfig?.payoutAccountNumber && storeConfig?.payoutBankCode;
-    if (!hasPayoutBank) {
-      return NextResponse.json({ error: 'Store owner has not configured payout bank account. Payments are disabled.' }, { status: 503 });
+    const usesOwnPaystack = Boolean(storeConfig?.useOwnPaystack && storeConfig?.paystackSecretKey);
+
+    // Managed payments use Busmo's key once the store has a verified payout bank;
+    // otherwise fall back to the seller's own Paystack key if they configured one.
+    let paystackSecretKey: string | undefined;
+    if (hasPayoutBank) {
+      paystackSecretKey = process.env.PAYSTACK_SECRET_KEY;
+    } else if (usesOwnPaystack) {
+      paystackSecretKey = storeConfig.paystackSecretKey;
     }
 
-    // 3. Initialise Paystack transaction
-    // If store has verified bank account, use Busmo's keys (managed payments)
-    // Otherwise, allow using their own keys if configured
-    let paystackSecretKey = process.env.PAYSTACK_SECRET_KEY;
-    if (!hasPayoutBank && storeConfig?.useOwnPaystack && storeConfig?.paystackSecretKey) {
-      paystackSecretKey = storeConfig.paystackSecretKey;
+    if (!hasPayoutBank && !usesOwnPaystack) {
+      return NextResponse.json({ error: 'Store owner has not configured payout bank account. Payments are disabled.' }, { status: 503 });
     }
 
     if (!paystackSecretKey) {

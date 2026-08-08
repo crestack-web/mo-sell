@@ -120,17 +120,39 @@ export function SellSettingsPage() {
         showToast(data.error ?? 'Could not verify account', 'error');
         return;
       }
-      setPayoutAccountName(data.accountName);
       const bank = banks.find(b => b.code === payoutBankCode);
+      const bankName = bank?.name ?? payoutBankName;
+      setPayoutAccountName(data.accountName);
       if (bank) setPayoutBankName(bank.name);
+
+      // Persist the verified bank details so payments are enabled immediately,
+      // even if the seller doesn't hit "Save changes" afterwards.
+      let paymentsEnabled = false;
+      if (user?.businessId) {
+        try {
+          const db = getDatabase();
+          await db.doc(`businesses/${user.businessId}/store/config`).set({
+            managedPayments: true,
+            payoutBankName: bankName.trim(),
+            payoutBankCode: payoutBankCode.trim(),
+            payoutAccountNumber: payoutAccountNumber.trim(),
+            payoutAccountName: data.accountName.trim(),
+          }, { merge: true });
+          await refreshStoreConfig();
+          paymentsEnabled = true;
+        } catch (e) {
+          console.error('Failed to persist verified bank account', e);
+        }
+      }
+
       mark();
-      showToast('Account verified!', 'success');
+      showToast(paymentsEnabled ? 'Account verified — payments enabled!' : 'Account verified!', 'success');
     } catch {
       showToast('Verification failed. Try again.', 'error');
     } finally {
       setVerifyingAccount(false);
     }
-  }, [payoutAccountNumber, payoutBankCode, banks, showToast]);
+  }, [payoutAccountNumber, payoutBankCode, payoutBankName, banks, user, refreshStoreConfig, showToast]);
 
   const mark = () => setDirty(true);
 
