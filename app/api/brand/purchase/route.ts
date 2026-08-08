@@ -24,7 +24,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify user is authenticated
+    // Verify user is authenticated via the access token sent by the client
+    const token = request.headers.get('authorization')?.replace(/^Bearer\s+/i, '') || '';
+    if (!token) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const supabase = await import('@/lib/supabase-server').then(m => m.supabaseServer);
     if (!supabase) {
       return NextResponse.json(
@@ -33,7 +41,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (authError || !user) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
@@ -110,9 +118,7 @@ export async function POST(request: NextRequest) {
       });
 
       // Create transaction record
-      const transactionRef = db.collection('wallet_transactions').doc();
-      await transactionRef.set({
-        id: transactionRef.id,
+      const addedTx = await db.collection('wallet_transactions').add({
         brandId,
         type: 'purchase',
         amount: -price,
@@ -126,9 +132,7 @@ export async function POST(request: NextRequest) {
       });
 
       // Create purchased video record
-      const purchasedVideoRef = db.collection('purchased_videos').doc();
-      await purchasedVideoRef.set({
-        id: purchasedVideoRef.id,
+      const addedVideo = await db.collection('purchased_videos').add({
         brandId,
         videoId,
         creatorId,
@@ -150,14 +154,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: true,
         purchasedVideo: {
-          id: purchasedVideoRef.id,
+          id: addedVideo.id,
           ...videoData,
           price,
           paymentMethod: 'wallet',
           purchaseDate: new Date().toISOString(),
         },
         transaction: {
-          id: transactionRef.id,
+          id: addedTx.id,
           amount: -price,
           balanceAfter: newBalance,
         },
@@ -169,37 +173,9 @@ export async function POST(request: NextRequest) {
       const reference = `VIDEO_PURCHASE_${Date.now()}_${brandId}_${videoId}`;
       const amountInNaira = convertFromUsd(price, 'NG');
 
-      const response = await fetch('https://us-central1-bizassistant2-62305643-adad7.cloudfunctions.net/initializePayment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          plan: 'video-purchase',
-          userId: brandId,
-          email: brandData.email,
-          amount: amountInNaira,
-          currency: 'NGN',
-          billing: 'onetime',
-          callback_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/brand/purchase/verify?reference=${reference}`,
-          metadata: {
-            type: 'video_purchase',
-            brandId,
-            videoId,
-            creatorId,
-            price,
-            reference,
-          },
-        }),
-      });
-
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to initialize payment');
-      }
-
-      // Create pending transaction
-      const transactionRef = db.collection('wallet_transactions').doc();
-      await transactionRef.set({
-        id: transactionRef.id,
+      // Create pending transaction BEFORE initializing payment so the verify
+      // route can resolve it when Paystack redirects back.
+      const addedTx = await db.collection('wallet_transactions').add({
         brandId,
         type: 'purchase',
         amount: -price,
@@ -211,17 +187,53 @@ export async function POST(request: NextRequest) {
         paymentReference: reference,
         status: 'pending',
         createdAt: new Date().toISOString(),
-        metadata: {
-          paystackReference: data.data?.reference,
-          isDirectPayment: true,
-        },
       });
+      const transactionId = addedTx.id;
+
+      const paystackSecret = process.env.PAYSTACK_SECRET_KEY;
+      if (!paystackSecret) {
+        await db.doc(`wallet_transactions/${transactionId}`).update({ status: 'failed' });
+        return NextResponse.json(
+          { success: false, error: 'Paystack not configured' },
+          { status: 503 },
+        );
+      }
+
+      const response = await fetch('https://api.paystack.co/transaction/initialize', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${paystackSecret}`,
+        },
+        body: JSON.stringify({
+          email: brandData.email,
+          amount: Math.round(amountInNaira * 100),
+          currency: 'NGN',
+          reference,
+          callback_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/brand/purchase/verify?reference=${reference}`,
+          metadata: {
+            type: 'video_purchase',
+            brandId,
+            videoId,
+            creatorId,
+            price,
+            reference,
+            transactionId,
+          },
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok || !data.status) {
+        await db.doc(`wallet_transactions/${transactionId}`).update({ status: 'failed' });
+        throw new Error(data.message || 'Failed to initialize payment');
+      }
 
       return NextResponse.json({
         success: true,
         authorizationUrl: data.data?.authorization_url,
         reference,
-        transactionId: transactionRef.id,
+        transactionId,
       });
     }
 

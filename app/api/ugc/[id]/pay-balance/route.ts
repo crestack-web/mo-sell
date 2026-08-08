@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerFirestore as getAdminDb } from '@/lib/server-firestore';
+import { getSupabaseServer } from '@/lib/database/postgresql-adapter';
 import { initializeBalance } from '@/lib/paystack-ugc';
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -10,24 +10,27 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: 'brandEmail required' }, { status: 400 });
     }
 
-    const db = getAdminDb();
-    const orderRef = db.collection('ugcOrders').doc(id);
-    const snap = await orderRef.get();
-    if (!snap.exists) {
+    const supabase = getSupabaseServer();
+    const { data: order, error: orderError } = await supabase
+      .from('ugcOrders')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+    if (orderError) throw orderError;
+    if (!order) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 });
     }
 
-    const order = snap.data() as any;
     if (order.status !== 'DRAFT_SUBMITTED' && order.status !== 'APPROVED') {
       return NextResponse.json({ error: 'Order must be in DRAFT_SUBMITTED or APPROVED status' }, { status: 400 });
     }
 
     const result = await initializeBalance(id, brandEmail, order.agreedPrice);
 
-    await orderRef.update({
+    await supabase.from('ugcOrders').update({
       paystackRefBalance: result.reference,
-      updatedAt: new Date(),
-    });
+      updatedAt: new Date().toISOString(),
+    }).eq('id', id);
 
     return NextResponse.json({ paystackUrl: result.authorization_url, reference: result.reference });
   } catch (err) {

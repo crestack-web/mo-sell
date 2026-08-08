@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerFirestore as getAdminDb, FieldValue } from '@/lib/server-firestore';
+import { getSupabaseServer } from '@/lib/database/postgresql-adapter';
 import { initializeDeposit, calculateUGCPayment } from '@/lib/paystack-ugc';
 import { sendPortfolioRequestToCreator, sendPortfolioRequestToGuest } from '@/lib/email-portfolio';
+import { getCreatorById, getCreatorByUsername } from '@/lib/ugc';
 
 export async function POST(req: NextRequest) {
   try {
@@ -20,31 +21,26 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Email required' }, { status: 400 });
     }
 
-    const db = getAdminDb();
+    const supabase = getSupabaseServer();
 
     let creator;
     if (creatorUsername) {
-      const snap = await db.collection('ugcCreators')
-        .where('username', '==', creatorUsername)
-        .where('isActive', '==', true)
-        .limit(1)
-        .get();
-      if (snap.empty) return NextResponse.json({ error: 'Creator not found' }, { status: 404 });
-      creator = snap.docs[0].data() as any;
+      creator = await getCreatorByUsername(creatorUsername, { activeOnly: true });
     } else {
-      const creatorSnap = await db.collection('ugcCreators').doc(creatorId).get();
-      if (!creatorSnap.exists) return NextResponse.json({ error: 'Creator not found' }, { status: 404 });
-      creator = creatorSnap.data() as any;
+      creator = await getCreatorById(creatorId);
+    }
+    if (!creator || creator.isBanned === true) {
+      return NextResponse.json({ error: 'Creator not found' }, { status: 404 });
     }
 
-    const basePrice = videoLength === '60s' ? creator.price60s : creator.price30s;
+    const basePrice = videoLength === '60s' ? (creator.price60s ?? 0) : (creator.price30s ?? 0);
     const agreedPrice = bidAmount ? Math.round(Number(bidAmount) * 100) : basePrice;
     const { platformFee, creatorPayout, deposit, balance } = calculateUGCPayment(agreedPrice);
 
-    const orderRef = db.collection('ugcOrders').doc();
-    const orderId = orderRef.id;
+    const orderId = 'ugc_' + crypto.randomUUID();
 
     const order: Record<string, any> = {
+      id: orderId,
       brandId: brandId ?? null,
       creatorId: creator.userId,
       bidAmount: bidAmount ? Math.round(Number(bidAmount) * 100) : null,
@@ -79,23 +75,24 @@ export async function POST(req: NextRequest) {
       disputeResolution: null,
       rating: null,
       review: null,
-      requestedAt: FieldValue.serverTimestamp(),
+      requestedAt: new Date().toISOString(),
       acceptedAt: null,
       draftSubmittedAt: null,
       completedAt: null,
-      createdAt: FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
 
-    await orderRef.set(order);
+    const { error: insertError } = await supabase.from('ugcOrders').insert(order);
+    if (insertError) throw insertError;
 
     let paystackResult: { authorization_url: string; reference: string } | null = null;
     try {
       paystackResult = await initializeDeposit(orderId, email, agreedPrice);
-      await orderRef.update({
+      await supabase.from('ugcOrders').update({
         paystackRefDeposit: paystackResult.reference,
         paymentStatus: 'PENDING_DEPOSIT',
-      });
+      }).eq('id', orderId);
     } catch {
       // Payment init failed, order stays at REQUESTED
     }

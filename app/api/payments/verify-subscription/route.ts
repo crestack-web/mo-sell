@@ -5,6 +5,7 @@ import { sendSubscriptionReceiptEmail } from '@/lib/services/email/subscription-
 import { sendSubscriptionRenewedEmail } from '@/lib/services/email/subscription-lifecycle-emails';
 import { sendReferralConvertedToPaidEmail, sendReferralRewardEarnedEmail } from '@/lib/services/email/referral-emails';
 import { createPostHogClient } from '@/lib/posthog-server';
+import { getSupabaseServer } from '@/lib/database/postgresql-adapter';
 
 const COMMISSION_RATE = 0.20; // 20% referral commission
 
@@ -52,16 +53,6 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ [verify-subscription] Payment verified, updating user plan:', { userId, plan, billing });
 
-    // Update user's plan in Firestore
-    const { firestore } = initializeFirebase();
-    const userRef = doc(firestore, 'users', userId);
-    const userDoc = await getDoc(userRef);
-
-    if (!userDoc.exists()) {
-      console.error('❌ [verify-subscription] User not found:', userId);
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
-
     // Calculate subscription end date
     const subscriptionEndDate = new Date();
     if (billing === 'monthly') {
@@ -73,17 +64,75 @@ export async function POST(request: NextRequest) {
 
     const paymentAmount = transaction.amount / 100; // Convert from kobo to Naira
 
-    // Update user document
-    await updateDoc(userRef, {
-      plan: plan,
-      subscriptionStatus: 'active',
-      subscriptionStartDate: new Date(),
-      subscriptionEndDate: subscriptionEndDate,
-      lastPaymentReference: reference,
-      lastPaymentAmount: paymentAmount,
-      lastPaymentDate: new Date(),
-      updatedAt: new Date(),
-    });
+    let userEmail = transaction.customer?.email || '';
+    let userName = 'User';
+    let userBusinessName = 'Your Business';
+    let previousPlan: string | undefined;
+
+    // 1) Update the Supabase users row (primary - this is what MO Sell reads)
+    try {
+      const supabase = getSupabaseServer();
+      const { data: supabaseUser, error: lookupError } = await supabase
+        .from('users')
+        .select('"displayName","businessName",email,plan')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (!lookupError && supabaseUser) {
+        userEmail = supabaseUser.email || userEmail;
+        userName = supabaseUser.displayName || supabaseUser.businessName || userName;
+        userBusinessName = supabaseUser.businessName || userBusinessName;
+        previousPlan = supabaseUser.plan || undefined;
+      }
+
+      const { error: subErr } = await supabase.from('users').upsert({
+        id: userId,
+        plan,
+        subscriptionStatus: 'active',
+        subscriptionStartDate: new Date().toISOString(),
+        subscriptionEndDate: subscriptionEndDate.toISOString(),
+        lastPaymentReference: reference,
+        lastPaymentAmount: paymentAmount,
+        lastPaymentDate: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        moSellSubscription: {
+          status: 'active',
+          plan,
+          startDate: new Date().toISOString(),
+          endDate: subscriptionEndDate.toISOString(),
+          reference,
+        },
+      });
+
+      if (subErr) {
+        console.error('❌ [verify-subscription] Supabase user update failed:', subErr);
+      } else {
+        console.log('✅ [verify-subscription] Supabase user plan updated');
+      }
+    } catch (supabaseError) {
+      console.error('❌ [verify-subscription] Supabase update error:', supabaseError);
+    }
+
+    // 2) Mirror to Firestore (legacy busmo owner app) - best-effort, never fatal
+    const { firestore } = initializeFirebase();
+    const userRef = doc(firestore, 'users', userId);
+    const userDoc = await getDoc(userRef);
+
+    if (userDoc.exists()) {
+      await updateDoc(userRef, {
+        plan,
+        subscriptionStatus: 'active',
+        subscriptionStartDate: new Date(),
+        subscriptionEndDate,
+        lastPaymentReference: reference,
+        lastPaymentAmount: paymentAmount,
+        lastPaymentDate: new Date(),
+        updatedAt: new Date(),
+      });
+      console.log('✅ [verify-subscription] Firestore user plan updated');
+    } else {
+      console.log('ℹ️ [verify-subscription] No Firestore user found for', userId, '- skipping mirror (Supabase is primary)');
+    }
 
     console.log('✅ [verify-subscription] User plan updated successfully');
 
@@ -124,11 +173,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Send subscription receipt email (non-blocking)
-    const userData = userDoc.data();
-    const userEmail = userData.email;
-    const userName = userData.name || userData.displayName || 'User';
-    const businessName = userData.businessName || 'Your Business';
-    const previousPlan = userData.plan;
+    const businessName = userBusinessName;
 
     // Calculate next billing date
     const nextBillingDate = new Date(subscriptionEndDate);

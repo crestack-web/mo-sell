@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerFirestore as getAdminDb, FieldValue } from '@/lib/server-firestore';
+import { getSupabaseServer } from '@/lib/database/postgresql-adapter';
 
 const PAYSTACK_SECRET = () => process.env.PAYSTACK_SECRET_KEY ?? '';
 
@@ -24,20 +24,21 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ status: 'pending' });
     }
 
-    const db = getAdminDb();
-    const snap = await db.collection('ugcOrders')
-      .where('paystackRefDeposit', '==', reference)
-      .limit(1)
-      .get();
-    if (!snap.empty) {
-      const order = snap.docs[0].data() as any;
+    const supabase = getSupabaseServer();
+    const { data: orders, error } = await supabase
+      .from('ugcOrders')
+      .select('*')
+      .eq('paystackRefDeposit', reference)
+      .limit(1);
+    if (!error && orders && orders.length > 0) {
+      const order = orders[0];
       if (order.paymentStatus !== 'DEPOSIT_HELD') {
-        await snap.docs[0].ref.update({
+        await supabase.from('ugcOrders').update({
           paymentStatus: 'DEPOSIT_HELD',
           status: 'IN_PROGRESS',
-          acceptedAt: FieldValue.serverTimestamp(),
-          updatedAt: FieldValue.serverTimestamp(),
-        });
+          acceptedAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }).eq('id', order.id);
       }
     }
 

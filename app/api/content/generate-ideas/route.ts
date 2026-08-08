@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Client } from 'xai-sdk';
+import { Client } from '@/lib/groq-client';
 
 const SYSTEM_PROMPT = `You are MO, an AI content strategist for African e-commerce merchants.
 
@@ -53,13 +53,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'displayName required' }, { status: 400 });
     }
 
-    const apiKey = process.env.GROK_API_KEY;
+    const apiKey = process.env.GROQ_API_KEY;
     if (!apiKey) {
       return NextResponse.json({ error: 'AI service not configured' }, { status: 503 });
     }
 
     const client = new Client({ apiKey });
-    const model = process.env.AI_MODEL || 'grok-4';
+    const model = process.env.AI_MODEL || 'llama-3.3-70b-versatile';
 
     const productInfo = [
       `Product: ${displayName}`,

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerFirestore as getAdminDb, FieldValue } from '@/lib/server-firestore';
+import { getSupabaseServer } from '@/lib/database/postgresql-adapter';
 import type { BookingAvailability } from '@/types/mo-sell.types';
 
 /**
@@ -14,23 +14,28 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const db = getAdminDb();
-    const snap = await db
-      .collection('businesses').doc(businessId)
-      .collection('storeBookingAvailability').doc('config')
-      .get();
+    const supabase = getSupabaseServer();
 
-    if (!snap.exists) {
-      return NextResponse.json({ availability: null }, { status: 200 });
+    const { data, error } = await supabase
+      .from('storeBookingAvailability')
+      .select('*')
+      .eq('businessId', businessId)
+      .maybeSingle();
+
+    if (error) {
+      console.error('[Availability] Query error:', error);
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 
-    const data = snap.data() as BookingAvailability;
+    if (!data) {
+      return NextResponse.json({ availability: null }, { status: 200 });
+    }
 
     return NextResponse.json({
       availability: {
         ...data,
-        createdAt: data.createdAt?.toDate?.()?.toISOString() ?? null,
-        updatedAt: data.updatedAt?.toDate?.()?.toISOString() ?? null,
+        createdAt: data.createdAt ? new Date(data.createdAt).toISOString() : null,
+        updatedAt: data.updatedAt ? new Date(data.updatedAt).toISOString() : null,
       },
     }, {
       headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=30' },
@@ -69,28 +74,47 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const db = getAdminDb();
-    const docRef = db
-      .collection('businesses').doc(businessId)
-      .collection('storeBookingAvailability').doc('config');
+    const supabase = getSupabaseServer();
 
-    const existing = await docRef.get();
-    const data: Partial<BookingAvailability> = {
+    const { data: existing, error: lookupError } = await supabase
+      .from('storeBookingAvailability')
+      .select('id')
+      .eq('businessId', businessId)
+      .maybeSingle();
+
+    if (lookupError) {
+      console.error('[Availability] Lookup error:', lookupError);
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    }
+
+    const data = {
       businessId,
       slots,
       slotDurationMinutes,
       bufferMinutes,
       blockedDates,
-      updatedAt: FieldValue.serverTimestamp() as any,
+      updatedAt: new Date().toISOString(),
     };
 
-    if (existing.exists) {
-      await docRef.update(data);
+    let writeError: { message: string } | null;
+    if (existing) {
+      ({ error: writeError } = await supabase
+        .from('storeBookingAvailability')
+        .update(data)
+        .eq('id', existing.id));
     } else {
-      await docRef.set({
-        ...data,
-        createdAt: FieldValue.serverTimestamp(),
-      } as Omit<BookingAvailability, 'createdAt' | 'updatedAt'> & { createdAt: any; updatedAt: any });
+      ({ error: writeError } = await supabase
+        .from('storeBookingAvailability')
+        .insert({
+          id: 'avail_' + crypto.randomUUID(),
+          ...data,
+          createdAt: new Date().toISOString(),
+        }));
+    }
+
+    if (writeError) {
+      console.error('[Availability] Write error:', writeError);
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 
     return NextResponse.json({ success: true });

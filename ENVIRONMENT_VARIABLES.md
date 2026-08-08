@@ -1,18 +1,24 @@
 # Environment Variables
 
-## AI Provider - Grok (xAI)
+## AI Provider - Groq
 
-The mo-sell application now uses Grok (xAI) for all AI features.
+The mo-sell application uses Groq for all AI features (Ask Mo, content hub, support chat, UGC ideas, store wizard). Groq's API is OpenAI-compatible.
 
 ```env
-GROK_API_KEY=your_grok_api_key_here
-AI_PROVIDER=grok
-AI_MODEL=grok-4
+GROQ_API_KEY=your_groq_api_key_here
+AI_MODEL=llama-3.3-70b-versatile
+PEXELS_API_KEY=your_pexels_api_key_here   # optional — images for Ask MO designed PDF ebooks
 ```
 
-### Getting a Grok API Key
+### Getting a Pexels API Key (Ask MO PDF images)
 
-1. Go to https://console.x.ai/
+1. Go to https://www.pexels.com/api/
+2. Sign in and create an API key
+3. Add `PEXELS_API_KEY` to your environment. If it is missing, Ask MO still generates the PDF using colored placeholders instead of photos.
+
+### Getting a Groq API Key
+
+1. Go to https://console.groq.com/
 2. Create an account or sign in
 3. Navigate to API Keys
 4. Generate a new API key
@@ -31,8 +37,20 @@ DATABASE_PROVIDER=firebase  # Options: firebase, supabase
 ```env
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+SUPABASE_SERVICE_KEY=your_supabase_service_role_key
 ```
+
+### Brand Auth setup (Supabase)
+
+Run these in the Supabase SQL Editor once, then redeploy:
+- `supabase/migrations/001_email_otps.sql` — OTP table (brand email verification)
+- `supabase/migrations/002_brands.sql` — `brands` table + RLS policies
+
+Then in Supabase Dashboard → Authentication:
+1. **Settings → Email** — turn OFF "Confirm email" (the app verifies emails itself via OTP).
+2. **Providers → Google** — enable it and add your Google OAuth Client ID/Secret.
+3. **URL Configuration → Redirect URLs** — add `https://your-domain.com/brand-auth/callback`.
+4. Add the same redirect URL to the Google OAuth console's authorized redirect URIs.
 
 ### Firebase Configuration (if using DATABASE_PROVIDER=firebase)
 

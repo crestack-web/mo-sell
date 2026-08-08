@@ -15,91 +15,41 @@ import type {
   FooterSectionSettings,
 } from '@/types/mo-sell.types';
 import { DEFAULT_SECTIONS } from '@/types/mo-sell.types';
-import { getServerFirestore as getAdminDb } from '@/lib/server-firestore';
+import { getSupabaseServer } from '@/lib/database/postgresql-adapter';
+import { getStoreConfigBySlug } from '@/lib/store';
 
 async function getStoreConfig(storeSlug: string) {
   try {
-    const db = getAdminDb();
-    let data: FirebaseFirestore.DocumentData | null = null;
-    let businessId = '';
-
-    const idxDoc = await db.collection('storeIndex').doc(storeSlug).get();
-    if (idxDoc.exists) {
-      const bId = idxDoc.data()?.businessId as string | undefined;
-      if (bId) {
-        const configSnap = await db.collection('businesses').doc(bId).collection('store').doc('config').get();
-        if (configSnap.exists) {
-          data = configSnap.data()!;
-          businessId = bId;
-        }
-      }
-    }
-
-    if (!data) {
-      const snap = await db.collectionGroup('store').where('storeSlug', '==', storeSlug).limit(1).get();
-      if (!snap.empty) {
-        const doc = snap.docs[0];
-        data = doc.data();
-        businessId = doc.ref.path.split('/')[1];
-      }
-    }
-
-    if (!data) return null;
-    if ((data.status ?? 'draft') !== 'active') return null;
-
-    return {
-      businessId,
-      storeSlug:           data.storeSlug,
-      storeName:           data.storeName,
-      logoUrl:             data.logoUrl ?? null,
-      primaryColor:        data.primaryColor ?? '#0EA5E9',
-      secondaryColor:      data.secondaryColor ?? '#6366F1',
-      businessCategory:    data.businessCategory ?? '',
-      currency:            data.currency ?? 'NGN',
-      contactEmail:        data.contactEmail ?? '',
-      contactPhone:        data.contactPhone ?? '',
-      status:              data.status,
-      theme:               data.theme ?? 'luxe',
-      tagline:             data.tagline ?? null,
-      storePolicy:         data.storePolicy ?? null,
-      sections:            data.sections ?? null,
-      enabledProductTypes: data.enabledProductTypes ?? ['physical'],
-      pickupLocations:     data.pickupLocations ?? [],
-      customDomain:        data.customDomain ?? null,
-      customDomainStatus:  data.customDomainStatus ?? 'pending',
-      paystackPublicKey:   data.paystackPublicKey ?? '',
-      fontFamily:          data.fontFamily ?? null,
-      bgColor:             data.bgColor ?? null,
-      bodyTextColor:       data.bodyTextColor ?? null,
-      headerStyle:         data.headerStyle ?? 'left',
-      buttonStyle:         data.buttonStyle ?? 'pill',
-      linkBio:             data.linkBio ?? null,
-    };
+    return await getStoreConfigBySlug(storeSlug);
   } catch { return null; }
 }
 
 async function getProducts(businessId: string, filter?: { featured?: boolean }) {
   try {
-    const db = getAdminDb();
-    let query = db.collection('businesses').doc(businessId).collection('storeProducts') as FirebaseFirestore.Query;
-    query = query.where('available', '==', true);
-    if (filter?.featured) query = query.where('featured', '==', true);
-    const snap = await query.limit(100).get();
-    return snap.docs.map((d: any) => {
-      const data = d.data();
+    const supabase = getSupabaseServer();
+    const { data: rows } = await supabase
+      .from('storeProducts')
+      .select('*')
+      .eq('businessId', businessId);
+    const products = (rows ?? [])
+      .filter((r: any) => r.available === true)
+      .filter((r: any) => (filter?.featured ? r.featured === true : true))
+      .slice(0, 100);
+    return products.map((row: any) => {
+      const images = typeof row.images === 'string' ? JSON.parse(row.images || '[]') : (Array.isArray(row.images) ? row.images : []);
       return {
-        id: d.id,
-        displayName: data.displayName ?? '',
-        price: data.price ?? 0,
-        compareAtPrice: data.compareAtPrice ?? null,
-        images: data.images ?? [],
-        category: data.category ?? '',
-        available: data.available ?? true,
-        stock: data.stock ?? 0,
-        productType: data.productType ?? 'physical',
-        description: data.description ?? '',
-        rating: typeof data.rating === 'number' ? data.rating : undefined,
-        reviewCount: typeof data.reviewCount === 'number' ? data.reviewCount : undefined,
+        id: row.id,
+        displayName: row.displayName ?? '',
+        price: row.price ?? 0,
+        compareAtPrice: row.compareAtPrice ?? null,
+        images,
+        category: row.category ?? '',
+        available: row.available ?? true,
+        stock: row.stock ?? 0,
+        productType: row.productType ?? 'physical',
+        description: row.description ?? '',
+        rating: typeof row.rating === 'number' ? row.rating : undefined,
+        reviewCount: typeof row.reviewCount === 'number' ? row.reviewCount : undefined,
       } as ProductCardData;
     });
   } catch { return []; }
@@ -107,16 +57,18 @@ async function getProducts(businessId: string, filter?: { featured?: boolean }) 
 
 async function getCollections(businessId: string) {
   try {
-    const db = getAdminDb();
-    const snap = await db.collection('businesses').doc(businessId).collection('storeCollections').limit(20).get();
-    return snap.docs.map((d: any) => {
-      const data = d.data();
+    const supabase = getSupabaseServer();
+    const { data: rows } = await supabase
+      .from('storeCollections')
+      .select('*')
+      .eq('businessId', businessId);
+    return (rows ?? []).slice(0, 20).map((row: any) => {
       return {
-        id: d.id,
-        title: data.title ?? '',
-        coverImageUrl: data.coverImageUrl ?? null,
-        description: data.description ?? '',
-        productCount: data.productCount ?? undefined,
+        id: row.id,
+        title: row.title ?? row.name ?? '',
+        coverImageUrl: row.coverImageUrl ?? null,
+        description: row.description ?? '',
+        productCount: row.productCount ?? undefined,
       };
     });
   } catch { return []; }
@@ -197,11 +149,11 @@ export default async function StorefrontHomePage({
 
   // Fire analytics
   try {
-    const dbAnalytics = getAdminDb();
-    dbAnalytics.collection('businesses').doc(config.businessId).collection('storeAnalytics').add({
+    const supabaseAnalytics = getSupabaseServer();
+    supabaseAnalytics.from('storeAnalytics').insert({
       eventType: 'page_view', storeSlug, businessId: config.businessId, pageType: 'home',
       createdAt: new Date().toISOString(),
-    }).catch(() => {});
+    }).then(() => {}, () => {});
   } catch {}
 
   const Hero = components.Hero;

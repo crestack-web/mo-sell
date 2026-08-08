@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerFirestore as getAdminDb } from '@/lib/server-firestore';
-import { Client } from 'xai-sdk';
+import { getSupabaseServer } from '@/lib/database/postgresql-adapter';
+import { Client } from '@/lib/groq-client';
 
-const MODEL = process.env.AI_MODEL || 'grok-4';
+const MODEL = process.env.AI_MODEL || 'llama-3.3-70b-versatile';
 
 const WIZARD_SYSTEM_PROMPT = `
 You are MO — the AI commerce architect inside Busmo, Africa's business operating system.
@@ -89,15 +89,16 @@ export async function POST(request: NextRequest) {
     let inventoryContext = '';
     if (businessId) {
       try {
-        const db = getAdminDb();
-        const snap = await db
-          .collection('businesses').doc(businessId)
-          .collection('storeProducts')
-          .where('available', '==', true)
-          .limit(20).get();
-        if (!snap.empty) {
-          const names = snap.docs
-            .map((d: any) => (d.data().displayName ?? d.data().name ?? '') as string)
+        const supabase = getSupabaseServer();
+        const { data: rows, error } = await supabase
+          .from('storeProducts')
+          .select('*')
+          .eq('businessId', businessId)
+          .eq('available', true)
+          .limit(20);
+        if (!error && rows && rows.length > 0) {
+          const names = rows
+            .map((d: any) => (d.displayName ?? d.name ?? '') as string)
             .filter(Boolean)
             .slice(0, 10)
             .join(', ');
@@ -108,7 +109,7 @@ export async function POST(request: NextRequest) {
       } catch { /* non-fatal */ }
     }
 
-    const apiKey = process.env.GROK_API_KEY;
+    const apiKey = process.env.GROQ_API_KEY;
     if (!apiKey) {
       return NextResponse.json(
         { error: 'AI service not configured' },

@@ -237,7 +237,8 @@ function JourneyStage({
       <div style={{
         display: 'inline-flex', alignItems: 'center', gap: 6,
         padding: '6px 14px', borderRadius: 100,
-        background: bg, color: color,
+        background: color === C.green ? C.greenBg : color === C.purple ? C.purpleBg : C.redBg,
+        color: color,
         fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
         width: 'fit-content',
       }}>
@@ -793,7 +794,7 @@ export default function WelcomePage() {
         <div style={{ position: 'absolute', top: 120, right: 80, opacity: 0.06 }}>
           <PurpleKite size={120} />
         </div>
-        <div style={{ position: 'absolute', bottom: 60, left: 1/3, opacity: 0.06 }}>
+        <div style={{ position: 'absolute', bottom: 60, left: '33%', opacity: 0.06 }}>
           <RedKite size={90} />
         </div>
         

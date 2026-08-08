@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerFirestore as getAdminDb, FieldValue } from '@/lib/server-firestore';
+import { getSupabaseServer } from '@/lib/database/postgresql-adapter';
 import { whopClient } from '@/lib/whop-sdk';
 import { processConfirmedOrder } from '@/lib/services/mo-sell-integration-bridge';
 
@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
       return new Response('Invalid signature', { status: 401 });
     }
 
-    const db = getAdminDb();
+    const supabase = getSupabaseServer();
 
     if (webhookData.type === 'payment.succeeded') {
       const payment = webhookData.data as any;
@@ -24,16 +24,18 @@ export async function POST(req: NextRequest) {
       const businessId = metadata.businessId as string | undefined;
 
       if (sessionId && businessId) {
-        const sessionRef = db
-          .collection('businesses').doc(businessId)
-          .collection('checkoutSessions').doc(sessionId);
-        const sessionSnap = await sessionRef.get();
+        const { data: sessionRow } = await supabase
+          .from('checkoutSessions')
+          .select('*')
+          .eq('id', sessionId)
+          .eq('businessId', businessId)
+          .maybeSingle();
 
-        if (!sessionSnap.exists) {
+        if (!sessionRow) {
           return new Response('Session not found', { status: 200 });
         }
 
-        const session = sessionSnap.data()!;
+        const session = sessionRow as any;
         if (session.status === 'completed') {
           return new Response('Already completed', { status: 200 });
         }
@@ -66,10 +68,13 @@ export async function POST(req: NextRequest) {
           },
         });
 
-        await sessionRef.update({
-          status: 'completed',
-          updatedAt: FieldValue.serverTimestamp(),
-        });
+        await supabase
+          .from('checkoutSessions')
+          .update({
+            status: 'completed',
+            updatedAt: new Date().toISOString(),
+          })
+          .eq('id', sessionId);
       }
     }
 

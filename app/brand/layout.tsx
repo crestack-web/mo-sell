@@ -17,7 +17,6 @@ import {
   LogOut,
   Menu,
   X,
-  Building,
   Bell
 } from 'lucide-react';
 
@@ -74,22 +73,22 @@ export default function BrandDashboardLayout({ children }: { children: React.Rea
     try {
       const { data: { user } } = await supabaseClient.auth.getUser();
       if (!user) {
-        router.push('/brand/login');
+        router.push('/brand-auth/login');
         return;
       }
 
       const db = getDatabase();
-      const brandDoc = await db.collection('brands').where('userId', '==', user.id).limit(1).get();
-      
-      if (brandDoc.docs.length === 0) {
-        router.push('/brand/register');
+      const brandDoc = await db.doc(`brands/${user.id}`).get();
+
+      if (!brandDoc.exists) {
+        router.push('/brand-auth/register');
         return;
       }
 
-      setBrand(brandDoc.docs[0].data());
+      setBrand(brandDoc.data());
     } catch (error) {
       console.error('Auth check error:', error);
-      router.push('/brand/login');
+      router.push('/brand-auth/login');
     } finally {
       setLoading(false);
     }
@@ -97,7 +96,7 @@ export default function BrandDashboardLayout({ children }: { children: React.Rea
 
   const handleLogout = async () => {
     await supabaseClient.auth.signOut();
-    router.push('/brand/login');
+    router.push('/brand-auth/login');
   };
 
   if (loading) {
@@ -113,7 +112,7 @@ export default function BrandDashboardLayout({ children }: { children: React.Rea
 
   return (
     <ToastProvider>
-      <div style={{ minHeight: '100vh', display: 'flex', background: THEME.bg, fontFamily: FONTS.body }}>
+      <div style={{ height: '100vh', overflow: 'hidden', display: 'flex', background: THEME.bg, fontFamily: FONTS.body, width: '100%', maxWidth: '100vw' }}>
       {/* Mobile Menu Button */}
       <button
         onClick={() => setSidebarOpen(true)}
@@ -160,6 +159,9 @@ export default function BrandDashboardLayout({ children }: { children: React.Rea
           top: 0,
           bottom: 0,
           width: 280,
+          height: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
           background: THEME.surface,
           borderRight: `1px solid ${THEME.border}`,
           zIndex: 45,
@@ -194,12 +196,11 @@ export default function BrandDashboardLayout({ children }: { children: React.Rea
         {/* Logo */}
         <div style={{ padding: 24, borderBottom: `1px solid ${THEME.border}` }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 40, height: 40, borderRadius: 8, background: THEME.primary, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Building size={24} color="white" />
-            </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1785078071/mosell_gpzl2q.png" alt="MO Sell" style={{ height: 32, width: 'auto', objectFit: 'contain' }} />
             <div>
               <div style={{ fontSize: 16, fontWeight: 700, color: THEME.text1, fontFamily: FONTS.display }}>
-                UGC Marketplace
+                MO Sell
               </div>
               <div style={{ fontSize: 12, color: THEME.text3 }}>Brand Dashboard</div>
             </div>
@@ -331,7 +332,7 @@ export default function BrandDashboardLayout({ children }: { children: React.Rea
       </aside>
 
       {/* Main Content */}
-      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
         {/* Top Bar */}
         <header style={{ 
           height: 64, 
@@ -354,8 +355,10 @@ export default function BrandDashboardLayout({ children }: { children: React.Rea
         </header>
 
         {/* Page Content */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
-          {children}
+        <div className="brand-content" style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: 24 }}>
+          <div style={{ maxWidth: 900, width: '100%', margin: '0 auto', minWidth: 0 }}>
+            {children}
+          </div>
         </div>
       </main>
 
@@ -383,6 +386,20 @@ export default function BrandDashboardLayout({ children }: { children: React.Rea
           }
           .header {
             padding-left: 0 !important;
+          }
+        }
+        @media (max-width: 640px) {
+          .brand-content {
+            padding: 16px !important;
+          }
+          .header {
+            padding: 0 16px !important;
+          }
+          .mobile-menu-button {
+            top: 12px;
+            left: 12px;
+            width: 36px;
+            height: 36px;
           }
         }
       `}</style>

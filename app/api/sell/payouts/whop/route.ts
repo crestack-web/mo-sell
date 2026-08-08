@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerFirestore as getAdminDb, FieldValue } from '@/lib/server-firestore';
+import { getSupabaseServer } from '@/lib/database/postgresql-adapter';
 import { whopClient } from '@/lib/whop-sdk';
 
 export async function POST(req: NextRequest) {
@@ -16,17 +16,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Whop not configured. Contact support.' }, { status: 500 });
     }
 
-    const db = getAdminDb();
-    const configRef = db
-      .collection('businesses').doc(businessId)
-      .collection('store').doc('config');
-    const configSnap = await configRef.get();
+    const supabase = getSupabaseServer();
+    const { data: configRow } = await supabase
+      .from('businesses')
+      .select('*')
+      .eq('id', businessId)
+      .maybeSingle();
 
-    if (!configSnap.exists) {
+    if (!configRow) {
       return NextResponse.json({ error: 'Store config not found' }, { status: 404 });
     }
 
-    const config = configSnap.data()!;
+    const config = configRow as any;
     let whopCompanyId = config.whopCompanyId as string | undefined;
 
     // Step 1: If no Whop sub-merchant exists, create one + generate onboarding link
@@ -44,10 +45,13 @@ export async function POST(req: NextRequest) {
       whopCompanyId = (subMerchant as any).id;
 
       // Store the Whop company ID
-      await configRef.update({
-        whopCompanyId,
-        updatedAt: FieldValue.serverTimestamp(),
-      });
+      await supabase
+        .from('businesses')
+        .update({
+          whopCompanyId,
+          updatedAt: new Date().toISOString(),
+        })
+        .eq('id', businessId);
 
       // Generate onboarding link for KYC
       const accountLink = await whopClient.accountLinks.create({
@@ -57,10 +61,13 @@ export async function POST(req: NextRequest) {
         refresh_url: `${process.env.PUBLIC_APP_URL ?? 'http://localhost:3000'}/dashboard/earnings`,
       });
 
-      await configRef.update({
-        whopOnboardingUrl: (accountLink as any).url,
-        updatedAt: FieldValue.serverTimestamp(),
-      });
+      await supabase
+        .from('businesses')
+        .update({
+          whopOnboardingUrl: (accountLink as any).url,
+          updatedAt: new Date().toISOString(),
+        })
+        .eq('id', businessId);
 
       return NextResponse.json({
         whopOnboardingUrl: (accountLink as any).url,
@@ -100,20 +107,20 @@ export async function POST(req: NextRequest) {
     }
 
     // Step 3: Create withdrawal
-    const earningsSnap = await db
-      .collection('businesses').doc(businessId)
-      .collection('storeEarnings')
-      .where('status', '==', 'available')
-      .get();
+    const { data: earnings } = await supabase
+      .from('storeEarnings')
+      .select('*')
+      .eq('businessId', businessId)
+      .eq('status', 'available');
 
     const earningIds: string[] = [];
     let totalAvailable = 0;
-    earningsSnap.forEach((d: any) => {
-      const data = d.data();
-      if (data.type === 'ask_mo_commission') return;
-      earningIds.push(d.id);
+    for (const d of earnings ?? []) {
+      const data = d as any;
+      if (data.type === 'ask_mo_commission') continue;
+      earningIds.push(data.id);
       totalAvailable += data.netAmount ?? 0;
-    });
+    }
 
     if (earningIds.length === 0 || totalAvailable <= 0) {
       return NextResponse.json({ error: 'No available earnings to withdraw' }, { status: 400 });
@@ -127,12 +134,9 @@ export async function POST(req: NextRequest) {
       platform_covers_fees: true,
     });
 
-    const batch = db.batch();
-    const payoutRef = db
-      .collection('businesses').doc(businessId)
-      .collection('payoutRequests').doc();
-
-    batch.set(payoutRef, {
+    const payoutRequestId = 'pr_' + crypto.randomUUID();
+    const { error: payoutError } = await supabase.from('payoutRequests').insert({
+      id: payoutRequestId,
       businessId,
       amount: totalAvailable,
       currency: 'usd',
@@ -144,22 +148,22 @@ export async function POST(req: NextRequest) {
       whopWithdrawalId: (withdrawal as any).id,
       rejectionReason: null,
       processedAt: null,
-      createdAt: FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     });
+    if (payoutError) throw payoutError;
 
     for (const earningId of earningIds) {
-      const ref = db
-        .collection('businesses').doc(businessId)
-        .collection('storeEarnings').doc(earningId);
-      batch.update(ref, {
-        status: 'paid_out',
-        payoutRequestId: payoutRef.id,
-        updatedAt: FieldValue.serverTimestamp(),
-      });
+      const { error: updateError } = await supabase
+        .from('storeEarnings')
+        .update({
+          status: 'paid_out',
+          payoutRequestId,
+          updatedAt: new Date().toISOString(),
+        })
+        .eq('id', earningId);
+      if (updateError) throw updateError;
     }
-
-    await batch.commit();
 
     return NextResponse.json({
       success: true,

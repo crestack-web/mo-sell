@@ -115,6 +115,7 @@ export function UGCMarketplacePage() {
   const [selectedVideo, setSelectedVideo] = useState<{ url: string } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const [form, setForm] = useState({
     productName: '',
@@ -165,6 +166,20 @@ export function UGCMarketplacePage() {
       if (nicheTimer.current) clearTimeout(nicheTimer.current);
     };
   }, [nicheInput]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (!(e.target as HTMLElement | null)?.closest?.('.ugc-nav-menu')) setMenuOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMenuOpen(false); };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [menuOpen]);
 
   const openModal = useCallback((creator: Creator) => {
     setError('');
@@ -343,64 +358,116 @@ export function UGCMarketplacePage() {
 
   return (
     <div style={containerStyle}>
+      <style>{`
+        .ugc-nav-menu-btn { display: none; }
+        @media (max-width: 640px) {
+          .ugc-nav-btns { display: none !important; }
+          .ugc-nav-menu-btn { display: inline-flex !important; }
+        }
+        @media (min-width: 641px) {
+          .ugc-nav-dropdown { display: none !important; }
+        }
+      `}</style>
       <div style={innerStyle}>
         {/* Header */}
         <div style={headerStyle}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, position: 'relative' }}>
             <img
               src="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1785078071/mosell_gpzl2q.png"
               alt="MO Sell"
               style={{ height: 40, width: 'auto', objectFit: 'contain' }}
             />
-            <div style={{ display: 'flex', gap: 12 }}>
-              <a
-                href="/brand-auth/register"
+            <div className="ugc-nav-menu" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div className="ugc-nav-btns" style={{ display: 'flex', gap: 12 }}>
+                <a
+                  href="/brand-auth/login"
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: 8,
+                    border: '1px solid #E0F2FE',
+                    background: '#F0F9FF',
+                    color: '#0C4A6E',
+                    fontSize: 14,
+                    fontWeight: 600,
+                    textDecoration: 'none',
+                  }}
+                >
+                  Brand Login
+                </a>
+                <a
+                  href="/brand-auth/register"
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: 8,
+                    background: 'linear-gradient(135deg, #0EA5E9 0%, #6366F1 100%)',
+                    color: 'white',
+                    fontSize: 14,
+                    fontWeight: 700,
+                    textDecoration: 'none',
+                    boxShadow: '0 4px 12px rgba(14,165,233,0.28)',
+                  }}
+                >
+                  Brand Register →
+                </a>
+              </div>
+
+              <button
+                type="button"
+                className="ugc-nav-menu-btn"
+                aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+                aria-expanded={menuOpen}
+                onClick={() => setMenuOpen(o => !o)}
                 style={{
-                  padding: '8px 16px',
-                  borderRadius: 8,
-                  border: '1px solid #E0F2FE',
-                  background: '#F0F9FF',
-                  color: '#0C4A6E',
-                  fontSize: 14,
-                  fontWeight: 600,
-                  textDecoration: 'none',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 6,
+                  display: 'none',
+                  alignItems: 'center', justifyContent: 'center',
+                  width: 40, height: 40, borderRadius: 8,
+                  background: '#FFFFFF', border: '1px solid #E0F2FE',
+                  cursor: 'pointer', color: '#0C4A6E',
                 }}
               >
-                🏢 For Brands
-              </a>
-              <a
-                href="/brand-auth/login"
-                style={{
-                  padding: '8px 16px',
-                  borderRadius: 8,
-                  border: '1px solid #E0F2FE',
-                  background: '#F0F9FF',
-                  color: '#0C4A6E',
-                  fontSize: 14,
-                  fontWeight: 600,
-                  textDecoration: 'none',
-                }}
-              >
-                Brand Login
-              </a>
-              <a
-                href="/brand-auth/register"
-                style={{
-                  padding: '8px 16px',
-                  borderRadius: 8,
-                  background: 'linear-gradient(135deg, #0EA5E9 0%, #6366F1 100%)',
-                  color: 'white',
-                  fontSize: 14,
-                  fontWeight: 700,
-                  textDecoration: 'none',
-                  boxShadow: '0 4px 12px rgba(14,165,233,0.28)',
-                }}
-              >
-                Brand Register →
-              </a>
+                {menuOpen ? (
+                  <X size={18} />
+                ) : (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                    <line x1="3" y1="8" x2="21" y2="8" /><line x1="3" y1="16" x2="21" y2="16" />
+                  </svg>
+                )}
+              </button>
+
+              {menuOpen && (
+                <div className="ugc-nav-dropdown" style={{
+                  position: 'absolute', top: 'calc(100% + 8px)', left: 0, right: 0,
+                  background: '#FFFFFF', border: '1px solid #E0F2FE', borderRadius: 12,
+                  boxShadow: '0 12px 32px rgba(12,74,110,0.12)',
+                  padding: 10, display: 'flex', flexDirection: 'column', gap: 6, zIndex: 40,
+                }}>
+                  <a
+                    href="/brand-auth/login"
+                    onClick={() => setMenuOpen(false)}
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      padding: '11px 16px', borderRadius: 8,
+                      border: '1px solid #E0F2FE', background: '#F0F9FF',
+                      color: '#0C4A6E', fontSize: 14, fontWeight: 600, textDecoration: 'none',
+                    }}
+                  >
+                    Brand Login
+                  </a>
+                  <a
+                    href="/brand-auth/register"
+                    onClick={() => setMenuOpen(false)}
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      padding: '11px 16px', borderRadius: 8,
+                      background: 'linear-gradient(135deg, #0EA5E9 0%, #6366F1 100%)',
+                      color: 'white', fontSize: 14, fontWeight: 700, textDecoration: 'none',
+                      boxShadow: '0 4px 12px rgba(14,165,233,0.28)',
+                    }}
+                  >
+                    Brand Register →
+                  </a>
+                </div>
+              )}
             </div>
           </div>
           <h1 style={titleStyle}>Hire UGC Creators</h1>

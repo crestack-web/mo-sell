@@ -8,52 +8,25 @@ import '../../themes/market.css';
 import '../../themes/studio.css';
 import '../../themes/bold.css';
 import '../../themes/minimal.css';
-import '../../themes/glow.css';
-import '../../themes/creator.css';
-import '../../themes/pulse.css';
-import '../../themes/vault.css';
-import '../../themes/atlas.css';
-import '../../themes/spark.css';
-import '../../themes/bazaar.css';
-import '../../themes/link.css';
-import '../../themes/abby.css';
+import '../../themes/ankara.css';
+import '../../themes/midnight.css';
+import '../../themes/harmattan.css';
+import '../../themes/neon.css';
+import '../../themes/sunset.css';
+import '../../themes/mono.css';
 import { CartProvider } from './context/CartContext';
 import { StorefrontNav } from './components/StorefrontNav';
 import { CartDrawer } from './components/CartDrawer';
 import type { StorefrontTheme, StoreSection, FooterSectionSettings, HeaderSectionSettings } from '@/types/mo-sell.types';
 import { DEFAULT_SECTIONS } from '@/types/mo-sell.types';
 import { getThemeType } from '@/themes/registry';
-import { getServerFirestore as getAdminDb } from '@/lib/server-firestore';
+import { getStoreConfigBySlug } from '@/lib/store';
 
 // ─── Fetch store config ───────────────────────────────────────────────────────
 
 async function getStoreConfig(storeSlug: string) {
   try {
-    const db = getAdminDb();
-    let data: FirebaseFirestore.DocumentData | null = null;
-
-    const idxDoc = await db.collection('storeIndex').doc(storeSlug).get();
-    if (idxDoc.exists) {
-      const bId = idxDoc.data()?.businessId as string | undefined;
-      if (bId) {
-        const configSnap = await db.collection('businesses').doc(bId).collection('store').doc('config').get();
-        if (configSnap.exists) {
-          data = { ...configSnap.data()!, businessId: bId };
-        }
-      }
-    }
-
-    if (!data) {
-      const snap = await db.collectionGroup('store').where('storeSlug', '==', storeSlug).limit(1).get();
-      if (!snap.empty) {
-        const doc = snap.docs[0];
-        data = { ...doc.data(), businessId: doc.ref.path.split('/')[1] };
-      }
-    }
-
-    if (!data) return null;
-    if ((data.status ?? 'draft') !== 'active') return null;
-    return data;
+    return await getStoreConfigBySlug(storeSlug);
   } catch { return null; }
 }
 

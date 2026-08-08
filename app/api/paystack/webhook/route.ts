@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerFirestore as getAdminDb, FieldValue } from '@/lib/server-firestore';
+import { getSupabaseServer } from '@/lib/database/postgresql-adapter';
 
 export async function POST(req: NextRequest) {
   const signature = req.headers.get('x-paystack-signature');
@@ -34,32 +34,39 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ received: true });
   }
 
-  const db = getAdminDb();
+  const supabase = getSupabaseServer();
 
   if (metadata.type === 'deposit' || metadata.type === 'balance') {
     const orderId = metadata.orderId as string;
     if (!orderId) return NextResponse.json({ received: true });
 
-    const orderRef = db.collection('ugcOrders').doc(orderId);
-    const snap = await orderRef.get();
-    if (!snap.exists) return NextResponse.json({ received: true });
-
-    const order = snap.data() as any;
+    const { data: order } = await supabase
+      .from('ugcOrders')
+      .select('*')
+      .eq('id', orderId)
+      .maybeSingle();
+    if (!order) return NextResponse.json({ received: true });
 
     if (metadata.type === 'deposit') {
-      await orderRef.update({
-        paymentStatus: 'DEPOSIT_HELD',
-        status: 'IN_PROGRESS',
-        acceptedAt: FieldValue.serverTimestamp(),
-        updatedAt: FieldValue.serverTimestamp(),
-      });
+      const { error: updateError } = await supabase
+        .from('ugcOrders')
+        .update({
+          paymentStatus: 'DEPOSIT_HELD',
+          status: 'IN_PROGRESS',
+          acceptedAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        })
+        .eq('id', orderId);
+      if (updateError) {
+        return NextResponse.json({ received: true, note: 'order_update_failed' });
+      }
 
       // Send "accepted" email to guest if this is a portfolio order
       if (order.guestEmail) {
         try {
           const { sendCreatorAcceptedEmailToGuest } = await import('@/lib/email-portfolio');
-          const creatorSnap = await db.collection('ugcCreators').doc(order.creatorId).get();
-          const creator = creatorSnap.exists ? creatorSnap.data() as any : {};
+          const { getCreatorById } = await import('@/lib/ugc');
+          const creator = (await getCreatorById(order.creatorId)) ?? ({} as any);
           await sendCreatorAcceptedEmailToGuest({
             guestName: order.guestName ?? 'there',
             guestEmail: order.guestEmail,
@@ -76,10 +83,16 @@ export async function POST(req: NextRequest) {
         }
       }
     } else if (metadata.type === 'balance') {
-      await orderRef.update({
-        paymentStatus: 'PENDING_BALANCE',
-        updatedAt: FieldValue.serverTimestamp(),
-      });
+      const { error: updateError } = await supabase
+        .from('ugcOrders')
+        .update({
+          paymentStatus: 'PENDING_BALANCE',
+          updatedAt: new Date().toISOString(),
+        })
+        .eq('id', orderId);
+      if (updateError) {
+        return NextResponse.json({ received: true, note: 'order_update_failed' });
+      }
     }
   }
 

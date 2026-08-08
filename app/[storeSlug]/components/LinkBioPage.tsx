@@ -61,7 +61,8 @@ export function LinkBioPage({ theme, config, products, linkBio }: LinkBioPagePro
   const displayType = bio.displayType || 'button';
   const bgType = bio.backgroundType || 'solid';
   const bgValue = bio.backgroundValue || '#0A0A0A';
-  const isLightBg = bgType === 'solid' && (bgValue === '#F9FAFB' || bgValue === '#FFF7ED' || bgValue === '#ECFDF5' || bgValue === '#F0F9FF');
+  const LIGHT_BGS = ['#FFFFFF', '#F9FAFB', '#FFF7ED', '#ECFDF5', '#F0F9FF', '#FFC93C', '#EDE7D9'];
+  const isLightBg = bgType === 'solid' && LIGHT_BGS.includes(bgValue);
   const textColor = isLightBg ? '#0f172a' : '#fff';
   const textColor2 = isLightBg ? '#64748b' : 'rgba(255,255,255,0.7)';
   const textColor3 = isLightBg ? '#94a3b8' : 'rgba(255,255,255,0.4)';
@@ -76,8 +77,12 @@ export function LinkBioPage({ theme, config, products, linkBio }: LinkBioPagePro
     return filtered;
   }, [products, bio.productVisibility, bio.productOrder]);
 
+  // Default solid backgrounds fall back to the theme palette bg so each theme
+  // renders with its design look out of the box. Custom backgrounds still win.
+  const isDefaultSolid = bgType === 'solid' && (!bgValue || bgValue === '#0A0A0A');
   const bgStyle: React.CSSProperties = bgType === 'image' ? { backgroundColor: '#111' } :
     bgType === 'pattern' ? { backgroundColor: '#111' } :
+    isDefaultSolid ? { background: 'var(--sf-bg, #0A0A0A)' } :
     { background: bgValue };
 
   const Layout = getLinkBioLayout(theme);

@@ -1,13 +1,13 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { onAuthStateChanged } from 'firebase/auth';
 import type { User } from 'firebase/auth';
 import { initializeFirebase } from '@/lib/firebase';
 import { supabaseClient } from '@/lib/supabase-client';
 import { ToastProvider, useToast } from '@/components/brand/ToastProvider';
-import { Star, Clock, Play, Filter, Search, X, Loader2, User as UserIcon, ChevronRight, Building, ShoppingBag, Wallet, CreditCard } from 'lucide-react';
+import { Star, Clock, Play, Search, X, Loader2, User as UserIcon, ChevronRight, ShoppingBag, Wallet, CreditCard, Sparkles } from 'lucide-react';
 
 // ── Theme ────────────────────────────────────────────────────────────────────
 const THEME = {
@@ -50,6 +50,19 @@ const YouTubeIconCustom = ({ size = 14, color = 'currentColor' }: { size?: numbe
   </svg>
 );
 
+const formatFollowerCount = (num: number): string => {
+  if (num >= 1000000) return (num / 1000000).toFixed(num % 1000000 === 0 ? 0 : 1) + 'M';
+  if (num >= 1000) return (num / 1000).toFixed(num % 1000 === 0 ? 0 : 1) + 'K';
+  return num.toString();
+};
+
+const currencySymbol = (currency?: string): string => {
+  if (currency === 'NGN') return '₦';
+  if (currency === 'USD') return '$';
+  if (currency === 'GHS') return 'GH₵';
+  return currency ? `${currency} ` : '₦';
+};
+
 interface Creator {
   id: string;
   userId: string;
@@ -60,6 +73,7 @@ interface Creator {
   niches: string[];
   price30s: number;
   price60s: number;
+  currency?: string;
   price30sDisplay: number;
   price60sDisplay: number;
   deliveryDays: number;
@@ -69,9 +83,40 @@ interface Creator {
   socialLinks?: Record<string, string>;
   socialVerified?: Record<string, string>;
   followerCounts?: Record<string, number>;
+  socialStats?: Record<string, { followerCount?: number; followingCount?: number; likesCount?: number; postsCount?: number; verified?: boolean; verifiedAt?: string }>;
+  score?: number | null;
+  grade?: string | null;
+  metrics?: {
+    er?: number | null;
+    avgViews?: number | null;
+    topHashtags?: { name: string; count: number }[];
+    audienceGuess?: { primary: string; confidence: number } | null;
+    followers?: number | null;
+  } | null;
 }
 
 type SortOption = 'rating' | 'price' | 'orders';
+
+function RatingStars({ rating }: { rating: number }) {
+  const full = Math.floor(rating);
+  const half = rating - full >= 0.5;
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+      {Array.from({ length: 5 }, (_, i) => (
+        <Star
+          key={i}
+          size={14}
+          fill={i < full || (i === full && half) ? '#F59E0B' : 'none'}
+          color={i < full || (i === full && half) ? '#F59E0B' : '#3F3F46'}
+          strokeWidth={i < full || (i === full && half) ? 0 : 1.5}
+        />
+      ))}
+      <span style={{ fontSize: 12, color: THEME.text2, marginLeft: 4, fontWeight: 500 }}>
+        {rating.toFixed(1)}
+      </span>
+    </div>
+  );
+}
 
 function BrandDiscoverPageContent() {
   const router = useRouter();
@@ -85,22 +130,20 @@ function BrandDiscoverPageContent() {
   const [priceMax, setPriceMax] = useState('');
   const [sort, setSort] = useState<SortOption>('rating');
   const [selectedCreator, setSelectedCreator] = useState<Creator | null>(null);
-  const [selectedVideo, setSelectedVideo] = useState<{ url: string; price: number; title: string } | null>(null);
+  const [selectedVideo, setSelectedVideo] = useState<{ url: string; price: number; title: string; currency?: string } | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'wallet' | 'direct'>('wallet');
+  const [analyzingId, setAnalyzingId] = useState<string | null>(null);
 
   useEffect(() => {
     const { auth } = initializeFirebase();
     const unsub = onAuthStateChanged(auth, async (u) => {
       setUser(u);
       if (u) {
-        // Check if user has brand account
         try {
           const { data: { user: supabaseUser } } = await supabaseClient.auth.getUser();
           if (supabaseUser) {
-            // We'll need to implement brand check via Supabase
-            // For now, we'll assume brand account exists
             setBrand({ id: supabaseUser.id, email: supabaseUser.email });
           }
         } catch (error) {
@@ -121,7 +164,7 @@ function BrandDiscoverPageContent() {
     try {
       const params = new URLSearchParams();
       if (niche) params.set('niche', niche);
-      if (priceMax) params.set('priceMax', String(parseFloat(priceMax) * 100));
+      if (priceMax) params.set('priceMax', String((parseFloat(priceMax) || 0) * 100));
       params.set('sort', sort);
       const res = await fetch(`/api/ugc/creators?${params.toString()}`);
       const data = await res.json();
@@ -133,7 +176,72 @@ function BrandDiscoverPageContent() {
     }
   };
 
-  const handleBuyVideo = (video: { url: string; price: number; title: string }) => {
+  const handleAnalyze = async (creator: Creator) => {
+    if (analyzingId) return;
+    const tiktok = creator.socialLinks?.tiktok;
+    const instagram = creator.socialLinks?.instagram;
+    if (!tiktok && !instagram) {
+      showError('This creator has no TikTok or Instagram link to analyze.');
+      return;
+    }
+    setAnalyzingId(creator.id);
+    try {
+      const res = await fetch('/api/apify/creator-score', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...(tiktok ? { tiktokUrl: tiktok } : {}),
+          ...(instagram ? { igHandle: instagram } : {}),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || 'Analysis failed');
+      }
+      setCreators(prev =>
+        prev.map(c =>
+          c.id === creator.id
+            ? {
+                ...c,
+                score: data.score,
+                grade: data.grade,
+                metrics: {
+                  er: data.er,
+                  avgViews: data.avgViews,
+                  topHashtags: data.topHashtags,
+                  audienceGuess: data.audienceGuess,
+                  followers: data.followers,
+                },
+              }
+            : c,
+        ),
+      );
+      showInfo(`@${creator.username} score: ${data.score}/100 (${data.grade}) — avg views ${formatViews(data.avgViews)}, ER ${data.er ?? 0}%`);
+    } catch (error: any) {
+      showError(error.message || 'Failed to analyze creator');
+    } finally {
+      setAnalyzingId(null);
+    }
+  };
+
+  const formatViews = (v: number | null | undefined) => {
+    if (v == null) return 'n/a';
+    if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
+    if (v >= 1_000) return `${(v / 1_000).toFixed(1)}k`;
+    return String(v);
+  };
+
+  const scoreColor = (grade: string | null | undefined) => {
+    switch (grade) {
+      case 'A': return THEME.success;
+      case 'B': return '#22C55E';
+      case 'C': return '#F59E0B';
+      case 'D': return '#F97316';
+      default: return THEME.error;
+    }
+  };
+
+  const handleBuyVideo = (video: { url: string; price: number; title: string; currency?: string }) => {
     if (!brand) {
       setSelectedVideo(video);
       setShowAuthModal(true);
@@ -147,11 +255,15 @@ function BrandDiscoverPageContent() {
     if (!selectedVideo || !brand) return;
 
     try {
+      const { data: { session } } = await supabaseClient.auth.getSession();
       const response = await fetch('/api/brand/purchase', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
         body: JSON.stringify({
-          videoId: selectedVideo.url, // This should be the actual video ID
+          videoId: selectedVideo.url,
           creatorId: selectedCreator?.id,
           paymentMethod,
           brandId: brand.id,
@@ -170,7 +282,6 @@ function BrandDiscoverPageContent() {
       if (data.authorizationUrl) {
         window.location.href = data.authorizationUrl;
       } else {
-        // Wallet payment successful
         showSuccess('Purchase successful! Video added to your library.');
         setShowCheckoutModal(false);
         router.push('/brand/videos');
@@ -190,96 +301,436 @@ function BrandDiscoverPageContent() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: THEME.bg, fontFamily: FONTS.body }}>
-      {/* Header */}
-      <header style={{ 
-        position: 'sticky', 
-        top: 0, 
-        zIndex: 50, 
-        background: `${THEME.surface}80`, 
-        backdropFilter: 'blur(12px)',
-        borderBottom: `1px solid ${THEME.border}`,
-        padding: '16px 24px',
+    <div style={{ fontFamily: FONTS.body }}>
+      {/* Page header */}
+      <div style={{ marginBottom: 28 }}>
+        <h1 style={{ fontSize: 24, fontWeight: 700, color: THEME.text1, fontFamily: FONTS.display, margin: 0, marginBottom: 6 }}>
+          Discover Creators
+        </h1>
+        <p style={{ fontSize: 14, color: THEME.text2, margin: 0 }}>
+          Find UGC creators for your brand — check scores, then buy their videos instantly.
+        </p>
+      </div>
+
+      {/* How it works */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(min(200px, 100%), 1fr))',
+        gap: 14,
+        marginBottom: 24,
+        padding: 18,
+        background: THEME.surface,
+        borderRadius: 16,
+        border: `1px solid ${THEME.border}`,
       }}>
-        <div style={{ maxWidth: 1400, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 40, height: 40, borderRadius: 8, background: THEME.primary, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Building size={24} color="white" />
-            </div>
-            <span style={{ fontSize: 20, fontWeight: 700, color: THEME.text1, fontFamily: FONTS.display }}>
-              UGC Marketplace
-            </span>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+          <Search size={18} color={THEME.primary} style={{ flexShrink: 0, marginTop: 2 }} />
+          <div style={{ minWidth: 0 }}>
+            <p style={{ fontSize: 13.5, fontWeight: 700, color: THEME.text1, margin: '0 0 3px' }}>Browse creators</p>
+            <p style={{ fontSize: 12.5, color: THEME.text3, margin: 0, lineHeight: 1.45 }}>Find creators whose style fits your brand</p>
           </div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+          <Sparkles size={18} color={THEME.primary} style={{ flexShrink: 0, marginTop: 2 }} />
+          <div style={{ minWidth: 0 }}>
+            <p style={{ fontSize: 13.5, fontWeight: 700, color: THEME.text1, margin: '0 0 3px' }}>Check scores</p>
+            <p style={{ fontSize: 12.5, color: THEME.text3, margin: 0, lineHeight: 1.45 }}>Analyze views, engagement and audience</p>
+          </div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+          <Play size={18} color={THEME.primary} style={{ flexShrink: 0, marginTop: 2 }} />
+          <div style={{ minWidth: 0 }}>
+            <p style={{ fontSize: 13.5, fontWeight: 700, color: THEME.text1, margin: '0 0 3px' }}>Buy videos</p>
+            <p style={{ fontSize: 12.5, color: THEME.text3, margin: 0, lineHeight: 1.45 }}>Pay with wallet or card — instant delivery</p>
+          </div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+          <ShoppingBag size={18} color={THEME.primary} style={{ flexShrink: 0, marginTop: 2 }} />
+          <div style={{ minWidth: 0 }}>
+            <p style={{ fontSize: 13.5, fontWeight: 700, color: THEME.text1, margin: '0 0 3px' }}>Reuse &amp; grow</p>
+            <p style={{ fontSize: 12.5, color: THEME.text3, margin: 0, lineHeight: 1.45 }}>Download and run your UGC ads</p>
+          </div>
+        </div>
+      </div>
 
-          <nav style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      {/* Filters */}
+      <div style={{
+        padding: 16,
+        borderRadius: 12,
+        background: THEME.surface,
+        border: `1px solid ${THEME.border}`,
+        marginBottom: 24,
+        display: 'flex',
+        gap: 12,
+        flexWrap: 'wrap',
+        alignItems: 'center',
+      }}>
+        <div style={{ flex: 1, minWidth: 180, position: 'relative' }}>
+          <Search size={16} color={THEME.text3} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+          <input
+            type="text"
+            placeholder="Search creators or niches..."
+            value={niche}
+            onChange={(e) => setNiche(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '10px 12px 10px 38px',
+              boxSizing: 'border-box',
+              background: THEME.bg,
+              border: `1px solid ${THEME.border}`,
+              borderRadius: 8,
+              color: THEME.text1,
+              fontSize: 14,
+              outline: 'none',
+            }}
+            onFocus={(e) => e.target.style.borderColor = THEME.primary}
+            onBlur={(e) => e.target.style.borderColor = THEME.border}
+          />
+          {niche && (
             <button
-              onClick={() => router.push('/brand/discover')}
+              onClick={() => setNiche('')}
+              style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', color: THEME.text3 }}
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
+
+        <input
+          type="number"
+          placeholder="Max Price ($)"
+          value={priceMax}
+          onChange={(e) => setPriceMax(e.target.value)}
+          style={{
+            padding: '10px 12px',
+            boxSizing: 'border-box',
+            background: THEME.bg,
+            border: `1px solid ${THEME.border}`,
+            borderRadius: 8,
+            color: THEME.text1,
+            fontSize: 14,
+            width: 140,
+          }}
+          onFocus={(e) => e.target.style.borderColor = THEME.primary}
+          onBlur={(e) => e.target.style.borderColor = THEME.border}
+        />
+
+        <select
+          value={sort}
+          onChange={(e) => setSort(e.target.value as SortOption)}
+          style={{
+            padding: '10px 12px',
+            background: THEME.bg,
+            border: `1px solid ${THEME.border}`,
+            borderRadius: 8,
+            color: THEME.text1,
+            fontSize: 14,
+            cursor: 'pointer',
+          }}
+        >
+          <option value="rating">Highest Rated</option>
+          <option value="price">Price: Low to High</option>
+          <option value="orders">Most Orders</option>
+        </select>
+      </div>
+
+      {/* Creators Grid */}
+      {loading ? (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 320 }}>
+          <Loader2 size={36} style={{ animation: 'spin 1s linear infinite', color: THEME.primary }} />
+        </div>
+      ) : creators.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: 64, color: THEME.text3 }}>
+          <UserIcon size={56} style={{ margin: '0 auto 16px', opacity: 0.5 }} />
+          <h3 style={{ fontSize: 18, fontWeight: 600, color: THEME.text1, margin: '0 0 6px' }}>
+            No creators found
+          </h3>
+          <p style={{ fontSize: 13.5, margin: 0 }}>Try adjusting your filters</p>
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(300px, 100%), 1fr))', gap: 20 }}>
+          {creators.map((creator) => (
+            <div
+              key={creator.id}
               style={{
-                padding: '10px 20px',
-                background: `${THEME.primary}20`,
-                border: 'none',
-                borderRadius: 8,
-                color: THEME.primary,
-                fontSize: 14,
-                fontWeight: 600,
-                cursor: 'pointer',
+                borderRadius: 16,
+                background: THEME.surface,
+                border: `1px solid ${THEME.border}`,
+                overflow: 'hidden',
+                transition: 'transform 0.2s, box-shadow 0.2s',
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-3px)';
+                e.currentTarget.style.boxShadow = '0 12px 28px rgba(0,0,0,0.35)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = 'none';
               }}
             >
-              Browse
-            </button>
-            <button
-              onClick={() => router.push('/ugc-creators')}
-              style={{
-                padding: '10px 20px',
-                background: 'transparent',
-                border: 'none',
-                borderRadius: 8,
-                color: THEME.text2,
-                fontSize: 14,
-                fontWeight: 500,
-                cursor: 'pointer',
-              }}
-            >
-              Creators
-            </button>
-
-            {brand ? (
-              <button
-                onClick={() => router.push('/brand/dashboard')}
+              {/* Card Top - Avatar + Info */}
+              <div
+                onClick={() => { if (creator.username) router.push(`/u/creator/${encodeURIComponent(creator.username)}`); }}
                 style={{
-                  padding: '10px 20px',
-                  background: THEME.primary,
-                  border: 'none',
-                  borderRadius: 8,
-                  color: 'white',
-                  fontSize: 14,
-                  fontWeight: 600,
-                  cursor: 'pointer',
+                  padding: '18px 18px 10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 14,
+                  cursor: creator.username ? 'pointer' : 'default',
                 }}
+                onMouseEnter={(e) => { if (creator.username) e.currentTarget.style.background = THEME.surfaceHover; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
               >
-                Dashboard
-              </button>
-            ) : (
-              <>
+                {creator.avatarUrl ? (
+                  <img
+                    src={creator.avatarUrl}
+                    alt={creator.displayName ?? creator.name}
+                    style={{ width: 52, height: 52, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
+                  />
+                ) : (
+                  <div style={{
+                    width: 52, height: 52, borderRadius: '50%',
+                    background: `linear-gradient(135deg, ${THEME.primary}, #8B5CF6)`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                  }}>
+                    <UserIcon size={22} color="#FFFFFF" />
+                  </div>
+                )}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <h3 style={{
+                    fontSize: 15.5, fontWeight: 600, margin: '0 0 4px',
+                    color: THEME.text1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                  }}>
+                    {creator.displayName ?? creator.name ?? 'Creator'}
+                  </h3>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                    <RatingStars rating={Number(creator.rating) || 0} />
+                    {creator.username ? (
+                      <span style={{ fontSize: 12, color: THEME.primary, fontWeight: 600, whiteSpace: 'nowrap' }}>
+                        View Profile →
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+
+              {/* Score badge */}
+              {creator.score != null && creator.grade && (
+                <div style={{ padding: '0 18px 10px' }}>
+                  <span
+                    title={`Creator score: ${creator.score}/100 — avg views ${formatViews(creator.metrics?.avgViews)}, ER ${creator.metrics?.er ?? 0}%`}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 6,
+                      padding: '4px 10px', borderRadius: 999,
+                      background: `${scoreColor(creator.grade)}18`,
+                      border: `1px solid ${scoreColor(creator.grade)}50`,
+                      color: scoreColor(creator.grade),
+                      fontSize: 12, fontWeight: 700,
+                    }}
+                  >
+                    {creator.grade} · {creator.score}
+                    <span style={{ fontWeight: 500, opacity: 0.8 }}>avg views {formatViews(creator.metrics?.avgViews)} · ER {creator.metrics?.er ?? 0}%</span>
+                  </span>
+                </div>
+              )}
+
+              {/* Niches */}
+              <div style={{ padding: '0 18px 10px', display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {(creator.niches ?? []).slice(0, 3).map((n, idx) => (
+                  <span
+                    key={idx}
+                    style={{
+                      fontSize: 11, fontWeight: 500, color: THEME.primary,
+                      background: `${THEME.primary}15`, padding: '3px 10px',
+                      borderRadius: 100, whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {n}
+                  </span>
+                ))}
+              </div>
+
+              {/* Social links row */}
+              {creator.socialLinks && Object.keys(creator.socialLinks).some(k => creator.socialLinks![k]) && (
+                <div style={{ padding: '0 18px 10px', display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+                  {([
+                    ['instagram', 'Instagram', InstagramIconCustom, '#E1306C'],
+                    ['tiktok', 'TikTok', TikTokIcon, '#FFFFFF'],
+                    ['youtube', 'YouTube', YouTubeIconCustom, '#FF0000'],
+                  ] as [string, string, React.FC<{ size?: number; color?: string }>, string][]).map(([key, label, Icon, brandColor]) => {
+                    const url = creator.socialLinks![key];
+                    if (!url) return null;
+                    const count = creator.socialStats?.[key]?.followerCount ?? creator.followerCounts?.[key];
+                    const isVerified = creator.socialVerified?.[key] === 'verified';
+                    return (
+                      <a
+                        key={key}
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 4,
+                          padding: '4px 10px', borderRadius: 100,
+                          border: `1px solid ${THEME.border}`,
+                          background: THEME.bg,
+                          fontSize: 11, fontWeight: 600,
+                          color: THEME.text2, textDecoration: 'none', cursor: 'pointer',
+                          transition: 'all 0.15s',
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.borderColor = brandColor;
+                          e.currentTarget.style.color = brandColor;
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.borderColor = THEME.border;
+                          e.currentTarget.style.color = THEME.text2;
+                        }}
+                      >
+                        <Icon size={12} color={brandColor} />
+                        <span style={{ fontSize: 11 }}>{label}</span>
+                        {isVerified && (
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="#059669" style={{ display: 'inline-block', verticalAlign: 'middle' }}>
+                            <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                          </svg>
+                        )}
+                        {count ? (
+                          <span style={{ fontSize: 10, color: THEME.text3, fontWeight: 500 }}>
+                            ({formatFollowerCount(count)})
+                          </span>
+                        ) : null}
+                      </a>
+                    );
+                  })}
+                  <button
+                    onClick={() => handleAnalyze(creator)}
+                    disabled={analyzingId !== null}
+                    style={{
+                      marginLeft: 'auto',
+                      padding: '5px 10px',
+                      background: 'transparent',
+                      border: `1px solid ${THEME.border}`,
+                      borderRadius: 100,
+                      color: THEME.text2,
+                      fontSize: 11,
+                      fontWeight: 600,
+                      cursor: analyzingId !== null ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      transition: 'all 0.2s',
+                      opacity: analyzingId !== null && analyzingId !== creator.id ? 0.5 : 1,
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = THEME.primary; e.currentTarget.style.color = THEME.primary; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = THEME.border; e.currentTarget.style.color = THEME.text2; }}
+                  >
+                    {analyzingId === creator.id ? (
+                      <>
+                        <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} />
+                        Analyzing…
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles size={12} />
+                        Analyze
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
+
+              {/* Price + Delivery */}
+              <div style={{
+                padding: '12px 18px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                borderTop: `1px solid ${THEME.border}`,
+                borderBottom: `1px solid ${THEME.border}`,
+                gap: 8,
+                flexWrap: 'wrap',
+              }}>
+                <div>
+                  <div style={{ fontSize: 15, fontWeight: 600, color: THEME.text1 }}>
+                    From {currencySymbol(creator.currency)}{creator.price30sDisplay ?? 0}/30s
+                  </div>
+                  <div style={{ fontSize: 12.5, color: THEME.text3, marginTop: 2 }}>
+                    {currencySymbol(creator.currency)}{creator.price60sDisplay ?? 0}/60s
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: THEME.text3, fontSize: 13 }}>
+                  <Clock size={14} />
+                  <span>Delivers in {creator.deliveryDays}d</span>
+                </div>
+              </div>
+
+              {/* Sample videos */}
+              <div style={{ padding: '12px 18px', display: 'flex', gap: 8 }}>
+                {(creator.sampleVideos ?? []).slice(0, 3).map((video, idx) => {
+                  const thumb = video.thumbnailUrl || video.thumbnail || '';
+                  return (
+                    <div
+                      key={video.id || idx}
+                      style={{
+                        flex: 1, aspectRatio: '9 / 16', maxWidth: '33%',
+                        borderRadius: 8, background: 'linear-gradient(135deg, #1E293B, #334155)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        position: 'relative', overflow: 'hidden',
+                        cursor: 'pointer',
+                      }}
+                      onClick={() => {
+                        setSelectedCreator(creator);
+                        handleBuyVideo({
+                          url: video.url,
+                          price: creator.price30sDisplay,
+                          currency: creator.currency,
+                          title: `${creator.displayName || creator.name}'s Video`,
+                        });
+                      }}
+                    >
+                      {thumb ? (
+                        <img
+                          src={thumb}
+                          alt=""
+                          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+                          loading="lazy"
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                        />
+                      ) : null}
+                      <div style={{
+                        width: 30, height: 30, borderRadius: '50%',
+                        background: 'rgba(0,0,0,0.55)',
+                        backdropFilter: 'blur(4px)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        position: 'relative', zIndex: 1,
+                        border: '1px solid rgba(255,255,255,0.3)',
+                      }}>
+                        <Play size={13} color="#FFFFFF" fill="#FFFFFF" style={{ marginLeft: 2 }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Buy Button */}
+              <div style={{ padding: '0 18px 16px', marginTop: 'auto' }}>
                 <button
-                  onClick={() => router.push('/brand/login')}
-                  style={{
-                    padding: '10px 20px',
-                    background: 'transparent',
-                    border: `1px solid ${THEME.border}`,
-                    borderRadius: 8,
-                    color: THEME.text2,
-                    fontSize: 14,
-                    fontWeight: 500,
-                    cursor: 'pointer',
+                  onClick={() => {
+                    setSelectedCreator(creator);
+                    if (creator.sampleVideos?.[0]) {
+                      handleBuyVideo({
+                        url: creator.sampleVideos[0].url,
+                        price: creator.price30sDisplay,
+                        currency: creator.currency,
+                        title: `${creator.displayName || creator.name}'s Video`,
+                      });
+                    }
                   }}
-                >
-                  Login
-                </button>
-                <button
-                  onClick={() => router.push('/brand/register')}
                   style={{
-                    padding: '10px 20px',
+                    width: '100%',
+                    padding: 12,
                     background: THEME.primary,
                     border: 'none',
                     borderRadius: 8,
@@ -287,297 +738,50 @@ function BrandDiscoverPageContent() {
                     fontSize: 14,
                     fontWeight: 600,
                     cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8,
+                    transition: 'background 0.2s',
                   }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = THEME.primaryHover}
+                  onMouseLeave={(e) => e.currentTarget.style.background = THEME.primary}
                 >
-                  Register as Brand
+                  <ShoppingBag size={17} />
+                  Buy Video {currencySymbol(creator.currency)}{creator.price30sDisplay ?? 0}
                 </button>
-              </>
-            )}
-          </nav>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main style={{ maxWidth: 1400, margin: '0 auto', padding: 32 }}>
-        {/* Filters */}
-        <div style={{ 
-          padding: 20, 
-          borderRadius: 12, 
-          background: THEME.surface, 
-          border: `1px solid ${THEME.border}`,
-          marginBottom: 32,
-          display: 'flex',
-          gap: 16,
-          flexWrap: 'wrap',
-          alignItems: 'center',
-        }}>
-          <div style={{ flex: 1, minWidth: 200, position: 'relative' }}>
-            <Search size={18} color={THEME.text3} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
-            <input
-              type="text"
-              placeholder="Search creators or niches..."
-              value={niche}
-              onChange={(e) => setNiche(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '10px 12px 10px 40px',
-                background: THEME.bg,
-                border: `1px solid ${THEME.border}`,
-                borderRadius: 8,
-                color: THEME.text1,
-                fontSize: 14,
-                outline: 'none',
-              }}
-            />
-          </div>
-
-          <input
-            type="number"
-            placeholder="Max Price ($)"
-            value={priceMax}
-            onChange={(e) => setPriceMax(e.target.value)}
-            style={{
-              padding: '10px 16px',
-              background: THEME.bg,
-              border: `1px solid ${THEME.border}`,
-              borderRadius: 8,
-              color: THEME.text1,
-              fontSize: 14,
-              width: 140,
-            }}
-          />
-
-          <select
-            value={sort}
-            onChange={(e) => setSort(e.target.value as SortOption)}
-            style={{
-              padding: '10px 16px',
-              background: THEME.bg,
-              border: `1px solid ${THEME.border}`,
-              borderRadius: 8,
-              color: THEME.text1,
-              fontSize: 14,
-              cursor: 'pointer',
-            }}
-          >
-            <option value="rating">Highest Rated</option>
-            <option value="price">Price: Low to High</option>
-            <option value="orders">Most Orders</option>
-          </select>
-        </div>
-
-        {/* Creators Grid */}
-        {loading ? (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 400 }}>
-            <Loader2 size={40} style={{ animation: 'spin 1s linear infinite', color: THEME.primary }} />
-          </div>
-        ) : creators.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: 80, color: THEME.text3 }}>
-            <UserIcon size={64} style={{ margin: '0 auto 16px', opacity: 0.5 }} />
-            <h3 style={{ fontSize: 20, fontWeight: 600, color: THEME.text1, marginBottom: 8 }}>
-              No creators found
-            </h3>
-            <p style={{ fontSize: 14 }}>Try adjusting your filters</p>
-          </div>
-        ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 24 }}>
-            {creators.map((creator) => (
-              <div
-                key={creator.id}
-                style={{
-                  borderRadius: 16,
-                  background: THEME.surface,
-                  border: `1px solid ${THEME.border}`,
-                  overflow: 'hidden',
-                  transition: 'transform 0.2s, box-shadow 0.2s',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-4px)';
-                  e.currentTarget.style.boxShadow = '0 12px 24px rgba(0,0,0,0.3)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = 'none';
-                }}
-              >
-                {/* Sample Video */}
-                {creator.sampleVideos?.[0] && (
-                  <div style={{ position: 'relative', aspectRatio: '9/16', background: THEME.bg, cursor: 'pointer' }}>
-                    <img
-                      src={creator.sampleVideos[0].thumbnailUrl || creator.sampleVideos[0].thumbnail || ''}
-                      alt={creator.name}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                    />
-                    <div style={{ 
-                      position: 'absolute', 
-                      inset: 0, 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'center',
-                      background: 'rgba(0,0,0,0.3)',
-                    }}>
-                      <div style={{ 
-                        width: 56, 
-                        height: 56, 
-                        borderRadius: '50%', 
-                        background: 'rgba(255,255,255,0.9)',
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center',
-                      }}>
-                        <Play size={24} color={THEME.bg} fill={THEME.bg} />
-                      </div>
-                    </div>
-                    <div style={{ 
-                      position: 'absolute', 
-                      bottom: 12, 
-                      right: 12, 
-                      padding: '6px 12px', 
-                      borderRadius: 6, 
-                      background: `${THEME.primary}90`,
-                      fontSize: 14,
-                      fontWeight: 600,
-                      color: 'white',
-                    }}>
-                      ${creator.price30sDisplay}
-                    </div>
-                  </div>
-                )}
-
-                {/* Creator Info */}
-                <div style={{ padding: 16 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-                    <div style={{ 
-                      width: 44, 
-                      height: 44, 
-                      borderRadius: '50%', 
-                      background: THEME.surfaceHover,
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'center',
-                      fontSize: 18,
-                      fontWeight: 700,
-                      color: THEME.text2,
-                    }}>
-                      {creator.name.charAt(0)}
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <h3 style={{ fontSize: 16, fontWeight: 600, color: THEME.text1, marginBottom: 2 }}>
-                        {creator.displayName || creator.name}
-                      </h3>
-                      <p style={{ fontSize: 13, color: THEME.text3 }}>
-                        @{creator.username}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Rating */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 12 }}>
-                    <Star size={14} fill={THEME.success} color={THEME.success} />
-                    <span style={{ fontSize: 14, fontWeight: 600, color: THEME.text1 }}>
-                      {creator.rating.toFixed(1)}
-                    </span>
-                    <span style={{ fontSize: 13, color: THEME.text3 }}>
-                      ({creator.totalOrders} orders)
-                    </span>
-                  </div>
-
-                  {/* Niches */}
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
-                    {creator.niches.slice(0, 3).map((niche, idx) => (
-                      <span
-                        key={idx}
-                        style={{
-                          padding: '4px 10px',
-                          borderRadius: 4,
-                          background: `${THEME.primary}15`,
-                          color: THEME.primary,
-                          fontSize: 12,
-                          fontWeight: 500,
-                        }}
-                      >
-                        {niche}
-                      </span>
-                    ))}
-                  </div>
-
-                  {/* Social Links */}
-                  <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-                    {creator.socialLinks?.tiktok && (
-                      <TikTokIcon size={16} color={THEME.text3} />
-                    )}
-                    {creator.socialLinks?.instagram && (
-                      <InstagramIconCustom size={16} color={THEME.text3} />
-                    )}
-                    {creator.socialLinks?.youtube && (
-                      <YouTubeIconCustom size={16} color={THEME.text3} />
-                    )}
-                  </div>
-
-                  {/* Buy Button */}
-                  <button
-                    onClick={() => {
-                      setSelectedCreator(creator);
-                      if (creator.sampleVideos?.[0]) {
-                        handleBuyVideo({
-                          url: creator.sampleVideos[0].url,
-                          price: creator.price30sDisplay,
-                          title: `${creator.displayName || creator.name}'s Video`,
-                        });
-                      }
-                    }}
-                    style={{
-                      width: '100%',
-                      padding: 12,
-                      background: THEME.primary,
-                      border: 'none',
-                      borderRadius: 8,
-                      color: 'white',
-                      fontSize: 14,
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 8,
-                      transition: 'background 0.2s',
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.background = THEME.primaryHover}
-                    onMouseLeave={(e) => e.currentTarget.style.background = THEME.primary}
-                  >
-                    <ShoppingBag size={18} />
-                    Buy Video ${creator.price30sDisplay}
-                  </button>
-                </div>
               </div>
-            ))}
-          </div>
-        )}
-      </main>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Auth Modal */}
       {showAuthModal && (
-        <div style={{ 
-          position: 'fixed', 
-          inset: 0, 
-          background: 'rgba(0,0,0,0.7)', 
-          display: 'flex', 
-          alignItems: 'center', 
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0,0,0,0.7)',
+          display: 'flex',
+          alignItems: 'center',
           justifyContent: 'center',
+          padding: 20,
           zIndex: 100,
         }}>
-          <div style={{ 
-            padding: 32, 
-            borderRadius: 16, 
-            background: THEME.surface, 
+          <div style={{
+            padding: 28,
+            borderRadius: 16,
+            background: THEME.surface,
             border: `1px solid ${THEME.border}`,
-            maxWidth: 440,
-            width: '90%',
+            maxWidth: 420,
+            width: '100%',
+            maxHeight: '90dvh',
+            overflowY: 'auto',
           }}>
-            <h2 style={{ fontSize: 24, fontWeight: 700, color: THEME.text1, fontFamily: FONTS.display, marginBottom: 12 }}>
+            <h2 style={{ fontSize: 22, fontWeight: 700, color: THEME.text1, fontFamily: FONTS.display, margin: 0, marginBottom: 10 }}>
               Create a Brand Account
             </h2>
-            <p style={{ fontSize: 14, color: THEME.text2, marginBottom: 24 }}>
+            <p style={{ fontSize: 14, color: THEME.text2, margin: '0 0 20px' }}>
               To purchase UGC content, you need to register as a brand
             </p>
 
@@ -585,7 +789,7 @@ function BrandDiscoverPageContent() {
               <button
                 onClick={() => {
                   setShowAuthModal(false);
-                  router.push('/brand/register');
+                  router.push('/brand-auth/register');
                 }}
                 style={{
                   padding: 14,
@@ -607,7 +811,7 @@ function BrandDiscoverPageContent() {
               <button
                 onClick={() => {
                   setShowAuthModal(false);
-                  router.push('/brand/login');
+                  router.push('/brand-auth/login');
                 }}
                 style={{
                   padding: 14,
@@ -652,45 +856,48 @@ function BrandDiscoverPageContent() {
 
       {/* Checkout Modal */}
       {showCheckoutModal && selectedVideo && (
-        <div style={{ 
-          position: 'fixed', 
-          inset: 0, 
-          background: 'rgba(0,0,0,0.7)', 
-          display: 'flex', 
-          alignItems: 'center', 
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0,0,0,0.7)',
+          display: 'flex',
+          alignItems: 'center',
           justifyContent: 'center',
+          padding: 20,
           zIndex: 100,
         }}>
-          <div style={{ 
-            padding: 32, 
-            borderRadius: 16, 
-            background: THEME.surface, 
+          <div style={{
+            padding: 28,
+            borderRadius: 16,
+            background: THEME.surface,
             border: `1px solid ${THEME.border}`,
-            maxWidth: 480,
-            width: '90%',
+            maxWidth: 440,
+            width: '100%',
+            maxHeight: '90dvh',
+            overflowY: 'auto',
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
-              <h2 style={{ fontSize: 24, fontWeight: 700, color: THEME.text1, fontFamily: FONTS.display }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+              <h2 style={{ fontSize: 22, fontWeight: 700, color: THEME.text1, fontFamily: FONTS.display, margin: 0 }}>
                 Checkout
               </h2>
               <button
                 onClick={() => setShowCheckoutModal(false)}
-                style={{ background: 'none', border: 'none', color: THEME.text3, cursor: 'pointer' }}
+                style={{ background: 'none', border: 'none', color: THEME.text3, cursor: 'pointer', padding: 4 }}
               >
-                <X size={24} />
+                <X size={22} />
               </button>
             </div>
 
-            <div style={{ marginBottom: 24 }}>
-              <p style={{ fontSize: 14, color: THEME.text2, marginBottom: 8 }}>
+            <div style={{ marginBottom: 20 }}>
+              <p style={{ fontSize: 14, color: THEME.text2, margin: '0 0 6px' }}>
                 {selectedVideo.title}
               </p>
-              <div style={{ fontSize: 32, fontWeight: 700, color: THEME.text1, fontFamily: FONTS.display }}>
-                ${selectedVideo.price.toFixed(2)}
+              <div style={{ fontSize: 30, fontWeight: 700, color: THEME.text1, fontFamily: FONTS.display }}>
+                {currencySymbol(selectedVideo.currency)}{selectedVideo.price.toFixed(2)}
               </div>
             </div>
 
-            <div style={{ marginBottom: 24 }}>
+            <div style={{ marginBottom: 20 }}>
               <label style={{ display: 'block', fontSize: 14, fontWeight: 500, color: THEME.text2, marginBottom: 12 }}>
                 Choose Payment Method
               </label>
@@ -708,10 +915,11 @@ function BrandDiscoverPageContent() {
                     alignItems: 'center',
                     gap: 12,
                     transition: 'all 0.2s',
+                    textAlign: 'left',
                   }}
                 >
-                  <Wallet size={24} color={paymentMethod === 'wallet' ? THEME.primary : THEME.text2} />
-                  <div style={{ textAlign: 'left' }}>
+                  <Wallet size={22} color={paymentMethod === 'wallet' ? THEME.primary : THEME.text2} />
+                  <div style={{ minWidth: 0 }}>
                     <div style={{ fontSize: 15, fontWeight: 600, color: paymentMethod === 'wallet' ? THEME.primary : THEME.text1 }}>
                       Pay From Wallet
                     </div>
@@ -733,10 +941,11 @@ function BrandDiscoverPageContent() {
                     alignItems: 'center',
                     gap: 12,
                     transition: 'all 0.2s',
+                    textAlign: 'left',
                   }}
                 >
-                  <CreditCard size={24} color={paymentMethod === 'direct' ? THEME.primary : THEME.text2} />
-                  <div style={{ textAlign: 'left' }}>
+                  <CreditCard size={22} color={paymentMethod === 'direct' ? THEME.primary : THEME.text2} />
+                  <div style={{ minWidth: 0 }}>
                     <div style={{ fontSize: 15, fontWeight: 600, color: paymentMethod === 'direct' ? THEME.primary : THEME.text1 }}>
                       Pay Direct
                     </div>
@@ -749,7 +958,7 @@ function BrandDiscoverPageContent() {
 
               {paymentMethod === 'wallet' && brand?.walletBalance < selectedVideo.price && (
                 <div style={{ marginTop: 12, padding: 12, borderRadius: 8, background: `${THEME.error}15`, border: `1px solid ${THEME.error}30` }}>
-                  <p style={{ fontSize: 13, color: THEME.error }}>
+                  <p style={{ fontSize: 13, color: THEME.error, margin: 0 }}>
                     Insufficient funds. Top up ${(selectedVideo.price - brand.walletBalance).toFixed(2)} or switch to direct payment.
                   </p>
                 </div>

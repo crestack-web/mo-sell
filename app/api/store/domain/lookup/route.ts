@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerFirestore as getAdminDb } from '@/lib/server-firestore';
+import { getSupabaseServer } from '@/lib/database/postgresql-adapter';
 
 /**
  * GET /api/store/domain/lookup?domain=shop.mybrand.com
@@ -16,26 +16,29 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const db = getAdminDb();
+    const supabase = getSupabaseServer();
 
-    // Query the 'store' collectionGroup for docs with matching verified custom domain
-    // Path: businesses/{businessId}/store/config — 'store' is the subcollection
-    const snap = await db.collectionGroup('store')
-      .where('customDomain', '==', domain)
-      .where('customDomainStatus', '==', 'verified')
+    // Store config lives on the businesses row: find a business whose custom
+    // domain is set to `domain` and has been verified.
+    const { data, error } = await supabase
+      .from('businesses')
+      .select('id, storeSlug')
+      .eq('customDomain', domain)
+      .eq('customDomainStatus', 'verified')
       .limit(1)
-      .get();
+      .maybeSingle();
 
-    if (snap.empty) {
+    if (error) {
+      console.error('[Domain Lookup] Query error:', error);
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    }
+
+    if (!data) {
       return NextResponse.json({ error: 'Domain not found or not verified' }, { status: 404 });
     }
 
-    const doc = snap.docs[0];
-    const data = doc.data();
-    const businessId = doc.ref.path.split('/')[1];
-
     return NextResponse.json(
-      { storeSlug: data.storeSlug, businessId },
+      { storeSlug: data.storeSlug, businessId: data.id },
       {
         headers: {
           'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=60',

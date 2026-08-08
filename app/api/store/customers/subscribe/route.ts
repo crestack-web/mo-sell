@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerFirestore as getAdminDb, FieldValue } from '@/lib/server-firestore';
-import type { StoreCustomer, CustomerTag } from '@/types/mo-sell.types';
+import { getSupabaseServer } from '@/lib/database/postgresql-adapter';
 
 /**
  * POST /api/store/customers/subscribe
@@ -40,66 +39,84 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const db = getAdminDb();
+    const supabase = getSupabaseServer();
+    const normalizedEmail = email.toLowerCase().trim();
 
-    // Check if customer already exists with this email
-    const existingSnap = await db
-      .collection('businesses').doc(businessId)
-      .collection('storeCustomers')
-      .where('email', '==', email.toLowerCase().trim())
-      .limit(1)
-      .get();
+    // Check if customer already exists with this email for this business
+    const { data: existing, error: lookupError } = await supabase
+      .from('customers')
+      .select('*')
+      .eq('email', normalizedEmail)
+      .eq('businessId', businessId)
+      .maybeSingle();
 
-    if (!existingSnap.empty) {
+    if (lookupError) {
+      console.error('[Subscribe] Customer lookup error:', lookupError);
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    }
+
+    if (existing) {
       // Update existing customer
-      const customerDoc = existingSnap.docs[0];
-      const customerData = customerDoc.data() as StoreCustomer;
-      const currentTags = customerData.tags ?? [];
+      const currentTags: string[] = Array.isArray(existing.tags) ? existing.tags : [];
 
       const updates: Record<string, any> = {
-        subscribedAt: FieldValue.serverTimestamp(),
-        updatedAt: FieldValue.serverTimestamp(),
+        subscribedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       };
 
-      if (name && !customerData.name) {
+      if (name && !existing.name) {
         updates.name = name;
       }
 
       // Add 'subscriber' tag if not already present
       if (!currentTags.includes('subscriber')) {
-        updates.tags = FieldValue.arrayUnion('subscriber');
+        updates.tags = [...currentTags, 'subscriber'];
       }
 
-      await customerDoc.ref.update(updates);
+      const { error: updateError } = await supabase
+        .from('customers')
+        .update(updates)
+        .eq('id', existing.id);
+
+      if (updateError) {
+        console.error('[Subscribe] Customer update error:', updateError);
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+      }
 
       return NextResponse.json({
-        customerId: customerDoc.id,
+        customerId: existing.id,
         updated: true,
       });
     } else {
       // Create new customer
-      const newCustomer: Omit<StoreCustomer, 'createdAt' | 'updatedAt'> & { createdAt: any; updatedAt: any } = {
-        businessId,
-        storeSlug,
-        name: name ?? '',
-        email: email.toLowerCase().trim(),
-        phone: null,
-        tags: ['subscriber'] as CustomerTag[],
-        totalOrders: 0,
-        totalSpent: 0,
-        lastOrderAt: null,
-        subscribedAt: FieldValue.serverTimestamp() as any,
-        createdAt: FieldValue.serverTimestamp(),
-        updatedAt: FieldValue.serverTimestamp(),
-      };
+      const customerId = 'cus_' + crypto.randomUUID();
+      const now = new Date().toISOString();
 
-      const docRef = await db
-        .collection('businesses').doc(businessId)
-        .collection('storeCustomers')
-        .add(newCustomer);
+      const { error: insertError } = await supabase
+        .from('customers')
+        .insert({
+          id: customerId,
+          businessId,
+          storeSlug,
+          name: name ?? '',
+          email: normalizedEmail,
+          phone: null,
+          tags: ['subscriber'],
+          totalOrders: 0,
+          totalSpent: 0,
+          lastOrderAt: null,
+          subscribedAt: now,
+          createdAt: now,
+          updatedAt: now,
+        });
+
+      if (insertError) {
+        console.error('[Subscribe] Customer insert error:', insertError);
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+      }
 
       return NextResponse.json({
-        customerId: docRef.id,
+        customerId,
         updated: false,
       }, { status: 201 });
     }

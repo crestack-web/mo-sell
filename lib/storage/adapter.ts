@@ -26,8 +26,24 @@ export function getStorage(): StorageAdapter {
 // R2 Storage Adapter
 export class R2StorageAdapter implements StorageAdapter {
   async upload(file: File, path: string): Promise<string> {
-    const { uploadFile } = await import('./r2-adapter');
-    return await uploadFile(file, path);
+    // R2 credentials are server-only env vars, so uploads must go through a
+    // server API route from the browser. On the server we upload directly.
+    if (typeof window === 'undefined') {
+      const { uploadFile } = await import('./r2-adapter');
+      return await uploadFile(file, path);
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await fetch(`/api/storage/upload?path=${encodeURIComponent(path)}`, {
+      method: 'POST',
+      body: formData,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.url) {
+      throw new Error(data.error || 'Upload failed');
+    }
+    return data.url;
   }
 
   async delete(path: string): Promise<void> {

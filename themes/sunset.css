@@ -1,0 +1,30 @@
+/* ═══════════════════════════════════════════
+   LAGOS SUNSET — Soft gradient glow
+   Purple-to-coral gradient, blurred blobs, glassy cards
+═══════════════════════════════════════════ */
+
+[data-theme="sunset"] {
+  --sf-font:         system-ui, sans-serif;
+  --sf-font-display: Verdana, system-ui, sans-serif;
+  --sf-bg:           linear-gradient(165deg, #6E3AFF 0%, #FF4D9D 55%, #FF7A45 100%);
+  --sf-surface:      rgba(255,255,255,0.14);
+  --sf-surface-2:    rgba(255,255,255,0.22);
+  --sf-border:       rgba(255,255,255,0.45);
+  --sf-text-1:       #FFFFFF;
+  --sf-text-2:       rgba(255,255,255,0.78);
+  --sf-text-3:       rgba(255,255,255,0.5);
+  --sf-accent:       #FFFFFF;
+  --sf-accent-2:     #FFD24C;
+  --sf-radius:       999px;
+  --sf-radius-sm:    999px;
+  --sf-radius-lg:    999px;
+  --sf-shadow:       0 8px 28px rgba(0,0,0,0.22);
+  --sf-shadow-sm:    0 2px 10px rgba(0,0,0,0.16);
+  --sf-nav-h:        0px;
+}
+
+[data-theme="sunset"] body {
+  font-family: var(--sf-font);
+  background: var(--sf-bg);
+  color: var(--sf-text-1);
+}

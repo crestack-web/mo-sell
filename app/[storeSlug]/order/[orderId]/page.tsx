@@ -1,9 +1,12 @@
 import React from 'react';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { getServerFirestore as getAdminDb } from '@/lib/server-firestore';
+import { getSupabaseServer } from '@/lib/database/postgresql-adapter';
+import { getStoreConfigBySlug } from '@/lib/store';
 
 interface LineItem {
+  productId?: string;
+  productType?: string;
   displayName: string;
   quantity: number;
   unitPrice: number;
@@ -26,46 +29,31 @@ interface Order {
 
 async function getStoreConfig(storeSlug: string) {
   try {
-    const db = getAdminDb();
-    let data: any = null;
-    let businessId = '';
-
-    const idxDoc = await db.collection('storeIndex').doc(storeSlug).get();
-    if (idxDoc.exists) {
-      const bId = idxDoc.data()?.businessId as string | undefined;
-      if (bId) {
-        const configSnap = await db.collection('businesses').doc(bId).collection('store').doc('config').get();
-        if (configSnap.exists) {
-          data = configSnap.data()!;
-          businessId = bId;
-        }
-      }
-    }
-
-    if (!data) {
-      const snap = await db.collectionGroup('store').where('storeSlug', '==', storeSlug).limit(1).get();
-      if (!snap.empty) {
-        const doc = snap.docs[0];
-        data = doc.data();
-        businessId = doc.ref.path.split('/')[1];
-      }
-    }
-
-    if (!data) return null;
-    if ((data.status ?? 'draft') !== 'active') return null;
-    return { ...data, businessId } as Record<string, any>;
+    return await getStoreConfigBySlug(storeSlug);
   } catch { return null; }
 }
 
 async function getOrder(businessId: string, orderId: string): Promise<Order | null> {
   try {
-    const db = getAdminDb();
-    const snap = await db
-      .collection('businesses').doc(businessId)
-      .collection('storeOrders').doc(orderId)
-      .get();
-    if (!snap.exists) return null;
-    return { ...snap.data() as Order };
+    const supabase = getSupabaseServer();
+    const byId = await supabase
+      .from('storeOrders')
+      .select('*')
+      .eq('businessId', businessId)
+      .eq('id', orderId)
+      .maybeSingle();
+    let row = byId.data;
+    if (!row) {
+      const byNumber = await supabase
+        .from('storeOrders')
+        .select('*')
+        .eq('businessId', businessId)
+        .eq('orderNumber', orderId)
+        .maybeSingle();
+      row = byNumber.data;
+    }
+    if (!row) return null;
+    return { ...row as Order };
   } catch { return null; }
 }
 
@@ -159,6 +147,41 @@ export default async function OrderConfirmationPage({
           </div>
         </div>
       </div>
+
+      {/* Digital downloads */}
+      {order.lineItems.some(item => item.productType === 'digital') && (
+        <div style={{
+          background: 'var(--sf-surface)', border: '1px solid var(--sf-border)',
+          borderRadius: 'var(--sf-radius)', padding: '16px 20px', marginBottom: 16,
+        }}>
+          <p style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--sf-text-1)' }}>
+            📥 Your digital downloads
+          </p>
+          <p style={{ fontSize: '0.85rem', color: 'var(--sf-text-3)', marginTop: 4, marginBottom: 12 }}>
+            Your files are ready. Click below to download (links were also emailed to {order.customerEmail}).
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {order.lineItems.filter(item => item.productType === 'digital').map((item, i) => (
+              <a
+                key={i}
+                href={`/api/store/digital/download?orderNumber=${encodeURIComponent(order.orderNumber)}&productId=${encodeURIComponent(item.productId ?? '')}&email=${encodeURIComponent(order.customerEmail)}`}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  padding: '11px 18px', background: 'var(--sf-primary)', color: '#fff',
+                  borderRadius: 8, fontWeight: 700, fontSize: '0.9rem', textDecoration: 'none',
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                Download: {item.displayName}
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Delivery info */}
       <div style={{

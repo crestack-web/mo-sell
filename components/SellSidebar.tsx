@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { signOut } from '@/lib/auth';
+import { supabaseClient } from '@/lib/supabase-client';
 import { useSell } from '../context/SellContext';
 import type { SellPageId } from '../context/SellContext';
 import styles from './SellSidebar.module.css';
@@ -178,7 +178,7 @@ export function SellSidebar() {
 
   const handleLogout = async () => {
     try {
-      await signOut();
+      await supabaseClient.auth.signOut();
     } catch {
       // ignore
     }

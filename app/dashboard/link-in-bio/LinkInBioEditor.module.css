@@ -6,6 +6,16 @@
   background: var(--sell-bg, #f8fafc);
 }
 
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 200px;
+  color: var(--sell-text-2, #64748b);
+  font-size: 0.88rem;
+}
+
 .previewCol {
   flex-shrink: 0;
   width: 375px;
@@ -267,6 +277,36 @@
 .editorTabActive {
   color: var(--sell-primary, #0ea5e9);
   border-bottom-color: var(--sell-primary, #0ea5e9);
+}
+
+.typeSwitch {
+  display: flex;
+  gap: 3px;
+  background: var(--sell-surface-2, #f1f5f9);
+  border-radius: 8px;
+  padding: 3px;
+}
+
+.typeSwitchOpt {
+  padding: 4px 12px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--sell-text-2, #64748b);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.typeSwitchOpt:hover {
+  color: var(--sell-text, #0f172a);
+}
+
+.typeSwitchOptActive {
+  background: var(--sell-surface, #fff);
+  color: var(--sell-text, #0f172a);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
 }
 
 .editorContent {
@@ -700,6 +740,39 @@
   font-weight: 800;
 }
 
+.mobileFab {
+  display: none;
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 90;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 18px;
+  border: none;
+  border-radius: 100px;
+  background: var(--sell-primary, #0ea5e9);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(14, 165, 233, 0.4);
+}
+
+.mobileClose {
+  display: none;
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  margin-left: auto;
+  border: none;
+  background: transparent;
+  color: var(--sell-text-2, #64748b);
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+}
+
 @media (max-width: 900px) {
   .page {
     flex-direction: column;
@@ -804,5 +877,28 @@
 
   .pMinimal {
     padding: 4px 8px;
+  }
+}
+
+@media (max-width: 640px) {
+  .editorCol {
+    display: none;
+  }
+
+  .editorColOpen {
+    display: flex;
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    border-radius: 0;
+    border: none;
+  }
+
+  .mobileFab {
+    display: flex;
+  }
+
+  .mobileClose {
+    display: flex;
   }
 }

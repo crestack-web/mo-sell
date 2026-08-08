@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerFirestore as getAdminDb, FieldValue } from '@/lib/server-firestore';
 import { TOKEN_PACKAGES, TOKEN_DOC_PATH, TOKEN_BALANCE_FIELD, TOKEN_PURCHASED_FIELD } from '@/lib/ask-mo-tokens';
 
 export async function POST(request: NextRequest) {
@@ -19,8 +18,6 @@ export async function POST(request: NextRequest) {
     if (!pkg) {
       return NextResponse.json({ error: 'Invalid package' }, { status: 400 });
     }
-
-    const db = getAdminDb();
 
     // Use Busmo's Paystack key for token purchases
     const paystackSecretKey = process.env.PAYSTACK_SECRET_KEY;

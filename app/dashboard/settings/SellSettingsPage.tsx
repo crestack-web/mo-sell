@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef, ChangeEvent } from 'react';
 import { getDatabase } from '@/lib/database/adapter';
 import { getStorage } from '@/lib/storage/adapter';
-import { signOut } from '@/lib/auth';
+import { supabaseClient } from '@/lib/supabase-client';
 import { useSell } from '@/context/SellContext';
 
 import styles from './SellSettingsPage.module.css';
@@ -59,9 +59,8 @@ export function SellSettingsPage() {
     (async () => {
       try {
         const db = getDatabase();
-        const { collection, getDocs, query, orderBy } = await import('firebase/firestore');
-        const snap = await getDocs(query(collection(db as any, 'businesses', user.businessId, 'storeEarnings'), orderBy('createdAt', 'desc')));
-        const earnings = snap.docs.map(d => ({ ...d.data() as any, createdAt: d.data().createdAt?.toDate?.() ?? new Date() }));
+        const snap = await db.collection(`businesses/${user.businessId}/storeEarnings`).limit(1000).get();
+        const earnings = snap.docs.map(d => ({ ...d.data() as any, createdAt: new Date(d.data().createdAt || Date.now()) }));
         if (cancelled) return;
         setEarningsStats({
           totalGross:      earnings.reduce((s: number, e: any) => s + (e.grossAmount ?? 0), 0),
@@ -124,6 +123,7 @@ export function SellSettingsPage() {
       setPayoutAccountName(data.accountName);
       const bank = banks.find(b => b.code === payoutBankCode);
       if (bank) setPayoutBankName(bank.name);
+      mark();
       showToast('Account verified!', 'success');
     } catch {
       showToast('Verification failed. Try again.', 'error');
@@ -146,7 +146,7 @@ export function SellSettingsPage() {
   };
 
   const handleSave = useCallback(async () => {
-    if (!user?.businessId || !storeName.trim()) return;
+    if (!user?.businessId) return;
     setSaving(true);
     try {
       const db = getDatabase();
@@ -160,7 +160,7 @@ export function SellSettingsPage() {
 
       const finalSlug = slugify(storeSlug || storeName);
 
-      await db.collection('businesses').doc(user.businessId).set({
+      await db.doc(`businesses/${user.businessId}/store/config`).set({
         storeName: storeName.trim(),
         storeSlug: finalSlug,
         primaryColor, secondaryColor,
@@ -192,11 +192,13 @@ export function SellSettingsPage() {
       }, { merge: true });
 
       // Keep storeIndex in sync for O(1) slug -> businessId lookup
-      await db.collection('storeIndex').doc(finalSlug).set({
-        businessId: user.businessId,
-        storeName: storeName.trim(),
-        updatedAt: new Date().toISOString(),
-      }, { merge: true });
+      if (finalSlug) {
+        await db.collection('storeIndex').doc(finalSlug).set({
+          businessId: user.businessId,
+          storeName: storeName.trim(),
+          updatedAt: new Date().toISOString(),
+        }, { merge: true });
+      }
 
       await refreshStoreConfig();
       setImageFile(null);
@@ -250,7 +252,7 @@ export function SellSettingsPage() {
     try {
       const db = getDatabase();
       const slug = storeConfig?.storeSlug;
-      await db.collection('businesses').doc(user.businessId).set({
+      await db.doc(`businesses/${user.businessId}/store/config`).set({
         status,
         updatedAt: new Date().toISOString(),
       }, { merge: true });
@@ -643,13 +645,53 @@ export function SellSettingsPage() {
 
 
       {/* Save bar */}
-      <div className={styles.saveBar}>
-        <span className={styles.saveBarMsg}>{dirty ? 'You have unsaved changes' : 'All changes saved'}</span>
-        <button className={`${styles.btn} ${styles.btnPrimary}`} onClick={handleSave} disabled={saving || !dirty || !storeName.trim()}>
-          {saving
-            ? <><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ animation: 'spin 0.7s linear infinite' }}><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>Saving…</>
-            : <><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>Save settings</>}
-        </button>
+      <div className={styles.card}>
+        <div className={styles.cardHeader}>
+          <div>
+            <div className={styles.cardTitle}>Save changes</div>
+            <div className={styles.cardSub}>Publish your updated store settings</div>
+          </div>
+          <span className={styles.saveBarMsg}>{dirty ? 'You have unsaved changes' : 'All changes saved'}</span>
+        </div>
+        <div className={styles.cardBody}>
+          <div className={styles.saveRow}>
+            <button className={`${styles.btn} ${styles.btnPrimary}`} onClick={handleSave} disabled={saving || !dirty}>
+              {saving
+                ? <><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ animation: 'spin 0.7s linear infinite' }}><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>Saving…</>
+                : <><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>Save settings</>}
+            </button>
+            {dirty && (
+              <button
+                className={`${styles.btn} ${styles.btnGhost}`}
+                onClick={() => {
+                  if (!storeConfig) { setDirty(false); return; }
+                  setStoreName(storeConfig.storeName ?? '');
+                  setStoreSlug(storeConfig.storeSlug ?? '');
+                  setPrimary(storeConfig.primaryColor ?? '#0EA5E9');
+                  setSecondary(storeConfig.secondaryColor ?? '#6366F1');
+                  setCurrency(storeConfig.currency ?? 'NGN');
+                  setEmail(storeConfig.contactEmail ?? '');
+                  setPhone(storeConfig.contactPhone ?? '');
+                  setPaystackKey((storeConfig as any).paystackPublicKey ?? '');
+                  setPayoutBankName((storeConfig as any).payoutBankName ?? '');
+                  setPayoutBankCode((storeConfig as any).payoutBankCode ?? '');
+                  setPayoutAccountNum((storeConfig as any).payoutAccountNumber ?? '');
+                  setPayoutAccountName((storeConfig as any).payoutAccountName ?? '');
+                  setUseOwnPaystack((storeConfig as any).useOwnPaystack ?? false);
+                  setPaystackSecretKey((storeConfig as any).paystackSecretKey ?? '');
+                  setCustomDomain(storeConfig.customDomain ?? '');
+                  setLogoUrl(storeConfig.logoUrl ?? null);
+                  setImagePreview(storeConfig.logoUrl ?? null);
+                  setImageFile(null);
+                  setDirty(false);
+                }}
+                disabled={saving}
+              >
+                Discard
+              </button>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Logout */}
@@ -662,7 +704,7 @@ export function SellSettingsPage() {
           <button
             className={`${styles.btn} ${styles.btnDanger}`}
             onClick={async () => {
-              await signOut();
+              await supabaseClient.auth.signOut();
               window.location.href = '/login';
             }}
             style={{ alignSelf: 'flex-start' }}

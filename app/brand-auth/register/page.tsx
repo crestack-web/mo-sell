@@ -3,7 +3,6 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabaseClient } from '@/lib/supabase-client';
-import { getDatabase } from '@/lib/database/adapter';
 import { ArrowRight, Mail, Lock, Building, Phone, Globe, Briefcase, CheckCircle, Loader2 } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
@@ -121,18 +120,7 @@ function BrandRegisterPageContent() {
         await supabaseClient.auth.signOut();
       }
 
-      // Check if brand already exists with this email
-      const db = getDatabase();
-      const brandsRef = db.collection('brands');
-      const existingBrand = await brandsRef.where('email', '==', formData.email.toLowerCase()).limit(1).get();
-      
-      if (existingBrand.docs.length > 0) {
-        setError('An account with this email already exists');
-        setLoading(false);
-        return;
-      }
-
-      // Send OTP via email (using your existing OTP system)
+      // Send OTP via email (server generates + stores the code)
       const response = await fetch('/api/send-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -164,43 +152,49 @@ function BrandRegisterPageContent() {
     setError('');
 
     try {
-      // Verify OTP
-      const verifyResponse = await fetch('/api/verify-otp', {
+      // Create the account + brand profile server-side (bypasses RLS)
+      const response = await fetch('/api/brand/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: formData.email, code: otp }),
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+          code: otp,
+          brandName: formData.brandName,
+          phone: formData.phone,
+          website: formData.website,
+          industry: formData.industry,
+        }),
       });
 
-      if (!verifyResponse.ok) {
-        const data = await verifyResponse.json();
-        throw new Error(data.error || 'Invalid verification code');
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to create account');
       }
 
-      // Create Supabase user
-      const { data: authData, error: authError } = await supabaseClient.auth.signUp({
+      // Establish the client session so dashboard reads work
+      const { error: signInError } = await supabaseClient.auth.signInWithPassword({
         email: formData.email,
         password: formData.password,
       });
 
-      if (authError) throw authError;
-
-      if (!authData.user) {
-        throw new Error('Failed to create account');
+      if (signInError) {
+        setError(signInError.message || 'Account created. Please sign in.');
+        setLoading(false);
+        return;
       }
 
-      // Create brand profile in database
-      const db = getDatabase();
-      await db.collection('brands').doc(authData.user.id).set({
-        brandName: formData.brandName,
-        email: formData.email.toLowerCase(),
-        phone: formData.phone,
-        website: formData.website,
-        industry: formData.industry,
-        walletBalance: 0,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        status: 'active',
-      });
+      // Send brand welcome email (non-blocking)
+      fetch('/api/email/welcome', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          role: 'brand',
+          email: formData.email,
+          name: formData.brandName,
+          brandName: formData.brandName,
+        }),
+      }).catch(() => {});
 
       setStep('success');
       
@@ -234,6 +228,35 @@ function BrandRegisterPageContent() {
     }
   };
 
+  const handleGoogleAuth = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const { error } = await supabaseClient.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/brand-auth/callback${redirectTo && redirectTo !== '/brand/dashboard' ? `?redirect=${encodeURIComponent(redirectTo)}` : ''}`,
+        },
+      });
+      if (error) throw error;
+    } catch (err: any) {
+      console.error('Google auth error:', err);
+      setError('Google sign-in failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const GoogleMark = () => (
+    <svg width="18" height="18" viewBox="0 0 18 18">
+      <path d="M17.64 9.205c0-.639-.057-1.252-.164-1.841H9v3.481h4.844a4.14 4.14 0 01-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4" />
+      <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z" fill="#34A853" />
+      <path d="M3.964 10.71A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05" />
+      <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335" />
+    </svg>
+  );
+
+
   if (step === 'success') {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: THEME.bg, fontFamily: FONTS.body }}>
@@ -260,11 +283,10 @@ function BrandRegisterPageContent() {
         <div style={{ width: '100%', maxWidth: 480 }}>
           {/* Logo */}
           <div style={{ marginBottom: 40, display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 40, height: 40, borderRadius: 8, background: THEME.primary, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Building size={24} color="white" />
-            </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1785078071/mosell_gpzl2q.png" alt="MO Sell" style={{ height: 40, width: 'auto', objectFit: 'contain' }} />
             <span style={{ fontSize: 24, fontWeight: 700, color: THEME.text1, fontFamily: FONTS.display }}>
-              UGC Marketplace
+              MO Sell
             </span>
           </div>
 
@@ -493,6 +515,38 @@ function BrandRegisterPageContent() {
                   </div>
                 </div>
 
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '4px 0' }}>
+                  <div style={{ flex: 1, height: 1, background: THEME.border }} />
+                  <span style={{ fontSize: 12, color: THEME.text3 }}>or</span>
+                  <div style={{ flex: 1, height: 1, background: THEME.border }} />
+                </div>
+
+                <button
+                  onClick={handleGoogleAuth}
+                  disabled={loading}
+                  style={{
+                    width: '100%',
+                    padding: 14,
+                    background: THEME.surface,
+                    border: `1px solid ${THEME.border}`,
+                    borderRadius: 8,
+                    color: THEME.text1,
+                    fontSize: 16,
+                    fontWeight: 600,
+                    cursor: loading ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 10,
+                    transition: 'all 0.2s',
+                  }}
+                  onMouseEnter={(e) => !loading && (e.currentTarget.style.background = THEME.surfaceHover)}
+                  onMouseLeave={(e) => !loading && (e.currentTarget.style.background = THEME.surface)}
+                >
+                  <GoogleMark />
+                  Sign up with Google
+                </button>
+
                 <button
                   onClick={handleSendOTP}
                   disabled={loading}
@@ -532,7 +586,7 @@ function BrandRegisterPageContent() {
               <p style={{ fontSize: 14, color: THEME.text3, textAlign: 'center', marginTop: 24 }}>
                 Already have an account?{' '}
                 <button
-                  onClick={() => router.push('/brand/login' + (redirectTo ? `?redirect=${encodeURIComponent(redirectTo)}` : ''))}
+                  onClick={() => router.push('/brand-auth/login' + (redirectTo ? `?redirect=${encodeURIComponent(redirectTo)}` : ''))}
                   style={{ background: 'none', border: 'none', color: THEME.primary, fontSize: 14, fontWeight: 500, cursor: 'pointer' }}
                 >
                   Sign In

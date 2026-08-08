@@ -64,7 +64,7 @@ export function SellAuthGuard({ children }: Props) {
   useEffect(() => {
     if (userLoading || !subscriptionChecked) return;
     if (!user) {
-      router.replace('/sell-login');
+      router.replace('/login');
     } else if (!hasAccess) {
       router.replace('/subscribe');
     }

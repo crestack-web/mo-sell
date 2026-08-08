@@ -1,0 +1,30 @@
+/* ═══════════════════════════════════════════
+   MIDNIGHT GOLD — Premium and quiet
+   Near-black framed in gold, serif display
+═══════════════════════════════════════════ */
+
+[data-theme="midnight"] {
+  --sf-font:         system-ui, sans-serif;
+  --sf-font-display: Georgia, 'Times New Roman', serif;
+  --sf-bg:           #0B0B0F;
+  --sf-surface:      #151319;
+  --sf-surface-2:    #1E1A24;
+  --sf-border:       #C9A227;
+  --sf-text-1:       #F5F0E6;
+  --sf-text-2:       #B8AF9C;
+  --sf-text-3:       #6E6555;
+  --sf-accent:       #C9A227;
+  --sf-accent-2:     #7A6A2E;
+  --sf-radius:       12px;
+  --sf-radius-sm:    8px;
+  --sf-radius-lg:    16px;
+  --sf-shadow:       0 8px 28px rgba(0,0,0,0.45);
+  --sf-shadow-sm:    0 2px 8px rgba(0,0,0,0.35);
+  --sf-nav-h:        0px;
+}
+
+[data-theme="midnight"] body {
+  font-family: var(--sf-font);
+  background: var(--sf-bg);
+  color: var(--sf-text-1);
+}

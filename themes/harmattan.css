@@ -1,0 +1,30 @@
+/* ═══════════════════════════════════════════
+   HARMATTAN SAND — Dry-season minimal
+   Sand-toned, horizon bar, steel-blue accent
+═══════════════════════════════════════════ */
+
+[data-theme="harmattan"] {
+  --sf-font:         'Courier New', monospace;
+  --sf-font-display: Georgia, serif;
+  --sf-bg:           #EDE7D9;
+  --sf-surface:      #F8F5EC;
+  --sf-surface-2:    #E2DAC6;
+  --sf-border:       #D8CFB8;
+  --sf-text-1:       #2E2A22;
+  --sf-text-2:       #6B6353;
+  --sf-text-3:       #9A9182;
+  --sf-accent:       #4C6B8A;
+  --sf-accent-2:     #8A7A62;
+  --sf-radius:       6px;
+  --sf-radius-sm:    6px;
+  --sf-radius-lg:    10px;
+  --sf-shadow:       0 8px 24px rgba(76,107,138,0.10);
+  --sf-shadow-sm:    0 2px 8px rgba(76,107,138,0.06);
+  --sf-nav-h:        0px;
+}
+
+[data-theme="harmattan"] body {
+  font-family: var(--sf-font);
+  background: var(--sf-bg);
+  color: var(--sf-text-1);
+}

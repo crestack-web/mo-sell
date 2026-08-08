@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerFirestore as getAdminDb, FieldValue } from '@/lib/server-firestore';
-import type { Booking, BookingStatus } from '@/types/mo-sell.types';
+import { getSupabaseServer } from '@/lib/database/postgresql-adapter';
+import type { BookingStatus } from '@/types/mo-sell.types';
 
 /**
  * GET /api/store/bookings?businessId=xxx&status=pending
@@ -15,28 +15,33 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const db = getAdminDb();
-    let query = db
-      .collection('businesses').doc(businessId)
-      .collection('storeBookings') as FirebaseFirestore.Query;
+    const supabase = getSupabaseServer();
 
-    if (status) {
-      query = query.where('status', '==', status);
+    const { data: rows, error } = await supabase
+      .from('storeBookings')
+      .select('*')
+      .eq('businessId', businessId);
+
+    if (error) {
+      console.error('[Bookings] Query error:', error);
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 
-    query = query.orderBy('date', 'desc');
+    let bookings = (rows ?? []).map((d: any) => ({
+      id: d.id,
+      ...d,
+      createdAt: d.createdAt ? new Date(d.createdAt).toISOString() : null,
+      updatedAt: d.updatedAt ? new Date(d.updatedAt).toISOString() : null,
+    }));
 
-    const snap = await query.get();
+    if (status) {
+      bookings = bookings.filter((b: any) => b.status === status);
+    }
 
-    const bookings = snap.docs.map((d: any) => {
-      const data = d.data();
-      return {
-        id: d.id,
-        ...data,
-        createdAt: data.createdAt?.toDate?.()?.toISOString() ?? null,
-        updatedAt: data.updatedAt?.toDate?.()?.toISOString() ?? null,
-      };
-    });
+    // orderBy date desc (sort in JS after select)
+    bookings.sort((a: any, b: any) =>
+      String(b.date ?? '').localeCompare(String(a.date ?? '')),
+    );
 
     return NextResponse.json({ bookings });
   } catch {
@@ -96,67 +101,84 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const db = getAdminDb();
+    const supabase = getSupabaseServer();
 
     // Check slot is still available (no duplicate bookings)
-    const existingSnap = await db
-      .collection('businesses').doc(businessId)
-      .collection('storeBookings')
-      .where('date', '==', date)
-      .where('startTime', '==', startTime)
-      .where('status', 'in', ['pending', 'confirmed'])
-      .get();
+    const { data: existingBookings, error: existingError } = await supabase
+      .from('storeBookings')
+      .select('id')
+      .eq('businessId', businessId)
+      .eq('date', date)
+      .eq('startTime', startTime)
+      .in('status', ['pending', 'confirmed']);
 
-    if (!existingSnap.empty) {
+    if (existingError) {
+      console.error('[Bookings] Slot check error:', existingError);
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    }
+
+    if (existingBookings && existingBookings.length > 0) {
       return NextResponse.json(
         { error: 'This time slot is no longer available' },
         { status: 409 },
       );
     }
 
-    const bookingData: Omit<Booking, 'createdAt' | 'updatedAt'> & { createdAt: any; updatedAt: any } = {
-      businessId,
-      storeSlug,
-      productId,
-      productName,
-      customerName,
-      customerEmail,
-      customerPhone,
-      date,
-      startTime,
-      endTime,
-      notes: notes ?? null,
-      status: 'pending' as BookingStatus,
-      orderId: null,
-      createdAt: FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp(),
-    };
+    const bookingId = 'bk_' + crypto.randomUUID();
+    const now = new Date().toISOString();
 
-    const docRef = await db
-      .collection('businesses').doc(businessId)
-      .collection('storeBookings')
-      .add(bookingData);
+    const { error: insertError } = await supabase
+      .from('storeBookings')
+      .insert({
+        id: bookingId,
+        businessId,
+        storeSlug,
+        productId,
+        productName,
+        customerName,
+        customerEmail,
+        customerPhone,
+        date,
+        startTime,
+        endTime,
+        notes: notes ?? null,
+        status: 'pending',
+        orderId: null,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+    if (insertError) {
+      console.error('[Bookings] Booking insert error:', insertError);
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    }
 
     // Tag the customer with 'booking'
     try {
-      const customersSnap = await db
-        .collection('businesses').doc(businessId)
-        .collection('storeCustomers')
-        .where('email', '==', customerEmail)
-        .limit(1)
-        .get();
+      const { data: existingCustomer } = await supabase
+        .from('customers')
+        .select('*')
+        .eq('email', customerEmail)
+        .eq('businessId', businessId)
+        .maybeSingle();
 
-      if (!customersSnap.empty) {
-        const customerDoc = customersSnap.docs[0];
-        await customerDoc.ref.update({
-          tags: FieldValue.arrayUnion('booking'),
-          updatedAt: FieldValue.serverTimestamp(),
-        });
+      if (existingCustomer) {
+        const currentTags: string[] = Array.isArray(existingCustomer.tags) ? existingCustomer.tags : [];
+        const updates: Record<string, any> = {
+          updatedAt: new Date().toISOString(),
+        };
+        if (!currentTags.includes('booking')) {
+          updates.tags = [...currentTags, 'booking'];
+        }
+        await supabase
+          .from('customers')
+          .update(updates)
+          .eq('id', existingCustomer.id);
       } else {
-        await db
-          .collection('businesses').doc(businessId)
-          .collection('storeCustomers')
-          .add({
+        await supabase
+          .from('customers')
+          .insert({
+            id: 'cus_' + crypto.randomUUID(),
             businessId,
             storeSlug,
             name: customerName,
@@ -167,15 +189,15 @@ export async function POST(req: NextRequest) {
             totalSpent: 0,
             lastOrderAt: null,
             subscribedAt: null,
-            createdAt: FieldValue.serverTimestamp(),
-            updatedAt: FieldValue.serverTimestamp(),
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
           });
       }
     } catch {
       // Customer tagging is best-effort; don't fail the booking
     }
 
-    return NextResponse.json({ bookingId: docRef.id }, { status: 201 });
+    return NextResponse.json({ bookingId }, { status: 201 });
   } catch {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }

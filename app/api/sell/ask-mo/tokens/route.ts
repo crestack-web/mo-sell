@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerFirestore as getAdminDb, FieldValue } from '@/lib/server-firestore';
+import { getSupabaseServer } from '@/lib/database/postgresql-adapter';
 import {
   TOKEN_COSTS,
   getMonthlyAllowance,
-  TOKEN_DOC_PATH,
   TOKEN_BALANCE_FIELD,
   TOKEN_MONTH_USAGE_FIELD,
   TOKEN_MONTH_RESET_FIELD,
-  ensureFreeTokens,
 } from '@/lib/ask-mo-tokens';
 
 // ─── GET: balance + costs + packages ─────────────────────────────────────────
@@ -22,14 +20,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'businessId required' }, { status: 400 });
     }
 
-    const db = getAdminDb();
-    const docRef = db.doc(TOKEN_DOC_PATH(businessId));
+    const supabase = getSupabaseServer();
+    const { data: cfgData } = await supabase
+      .from('businesses')
+      .select('*')
+      .eq('id', businessId)
+      .maybeSingle();
 
-    const balance = await ensureFreeTokens(db, businessId);
-    const cfgSnap = await docRef.get();
-    const cfgData = cfgSnap.data() ?? {};
-    const monthUsage = (cfgData[TOKEN_MONTH_USAGE_FIELD] as number) ?? 0;
-    const monthReset = (cfgData[TOKEN_MONTH_RESET_FIELD] as number) ?? 0;
+    const balance = (cfgData?.[TOKEN_BALANCE_FIELD] as number) ?? 0;
+    const monthUsage = (cfgData?.[TOKEN_MONTH_USAGE_FIELD] as number) ?? 0;
+    const monthReset = (cfgData?.[TOKEN_MONTH_RESET_FIELD] as number) ?? 0;
     const monthlyAllowance = getMonthlyAllowance(plan);
 
     // Auto-reset monthly usage if new month
@@ -66,35 +66,39 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'businessId and valid amount required' }, { status: 400 });
     }
 
-    const db = getAdminDb();
-    const docRef = db.doc(TOKEN_DOC_PATH(businessId));
+    const supabase = getSupabaseServer();
 
-    // Run in a transaction to avoid race conditions
-    const result = await db.runTransaction(async (tx: any) => {
-      const snap = await tx.get(docRef);
-      const data = snap.data() ?? {};
-      const currentBalance = (data[TOKEN_BALANCE_FIELD] as number) ?? 0;
-      const currentMonthUsage = (data[TOKEN_MONTH_USAGE_FIELD] as number) ?? 0;
-      const monthReset = (data[TOKEN_MONTH_RESET_FIELD] as number) ?? 0;
+    // Read-modify-write to avoid clobbering concurrent updates
+    const { data: row } = await supabase
+      .from('businesses')
+      .select('*')
+      .eq('id', businessId)
+      .maybeSingle();
+    const data = row ?? {};
+    const currentBalance = (data[TOKEN_BALANCE_FIELD] as number) ?? 0;
+    const currentMonthUsage = (data[TOKEN_MONTH_USAGE_FIELD] as number) ?? 0;
+    const monthReset = (data[TOKEN_MONTH_RESET_FIELD] as number) ?? 0;
 
-      if (currentBalance < amount) {
-        throw new Error('Insufficient tokens');
-      }
+    if (currentBalance < amount) {
+      throw new Error('Insufficient tokens');
+    }
 
-      const now = Date.now();
-      const currentMonth = new Date(now).toISOString().slice(0, 7);
-      const resetMonth = monthReset ? new Date(monthReset).toISOString().slice(0, 7) : '';
+    const now = Date.now();
+    const currentMonth = new Date(now).toISOString().slice(0, 7);
+    const resetMonth = monthReset ? new Date(monthReset).toISOString().slice(0, 7) : '';
 
-      tx.update(docRef, {
-        [TOKEN_BALANCE_FIELD]: FieldValue.increment(-amount),
+    const { error: updateError } = await supabase
+      .from('businesses')
+      .update({
+        [TOKEN_BALANCE_FIELD]: currentBalance - amount,
         [TOKEN_MONTH_USAGE_FIELD]: (resetMonth === currentMonth ? currentMonthUsage : 0) + amount,
         [TOKEN_MONTH_RESET_FIELD]: now,
-      });
+        updatedAt: new Date().toISOString(),
+      })
+      .eq('id', businessId);
+    if (updateError) throw updateError;
 
-      return { newBalance: currentBalance - amount };
-    });
-
-    return NextResponse.json({ success: true, balance: result.newBalance });
+    return NextResponse.json({ success: true, balance: currentBalance - amount });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     if (msg === 'Insufficient tokens') {

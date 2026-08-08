@@ -1,51 +1,30 @@
 import React from 'react';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import { getServerFirestore as getAdminDb } from '@/lib/server-firestore';
+import { getSupabaseServer } from '@/lib/database/postgresql-adapter';
+import { getStoreConfigBySlug } from '@/lib/store';
 import { ProductDetailClient } from './ProductDetailClient';
 
 // ─── Data fetching ─────────────────────────────────────────────────────────────
 
 async function getStoreConfig(storeSlug: string) {
   try {
-    const db = getAdminDb();
-    let data: any = null;
-    let businessId = '';
-
-    const idxDoc = await db.collection('storeIndex').doc(storeSlug).get();
-    if (idxDoc.exists) {
-      const bId = idxDoc.data()?.businessId as string | undefined;
-      if (bId) {
-        const configSnap = await db.collection('businesses').doc(bId).collection('store').doc('config').get();
-        if (configSnap.exists) {
-          data = configSnap.data()!;
-          businessId = bId;
-        }
-      }
-    }
-
-    if (!data) {
-      const snap = await db.collectionGroup('store').where('storeSlug', '==', storeSlug).limit(1).get();
-      if (!snap.empty) {
-        const doc = snap.docs[0];
-        data = doc.data();
-        businessId = doc.ref.path.split('/')[1];
-      }
-    }
-
-    if (!data) return null;
-    if ((data.status ?? 'draft') !== 'active') return null;
-    return { ...data, businessId } as Record<string, any>;
+    return await getStoreConfigBySlug(storeSlug);
   } catch { return null; }
 }
 
 async function getProduct(businessId: string, productId: string) {
   try {
-    const db = getAdminDb();
-    const snap = await db.collection('businesses').doc(businessId).collection('storeProducts').doc(productId).get();
-    if (!snap.exists) return null;
-    const data = snap.data()!;
-    return { id: snap.id, ...data } as any;
+    const supabase = getSupabaseServer();
+    const { data } = await supabase
+      .from('storeProducts')
+      .select('*')
+      .eq('businessId', businessId)
+      .eq('id', productId)
+      .maybeSingle();
+    if (!data) return null;
+    const images = typeof data.images === 'string' ? JSON.parse(data.images || '[]') : (Array.isArray(data.images) ? data.images : []);
+    return { id: data.id, ...data, images } as any;
   } catch { return null; }
 }
 
@@ -89,13 +68,13 @@ export default async function ProductDetailPage({
 
   // Fire page_view analytics (fire-and-forget)
   try {
-    const dbAnalytics = getAdminDb();
-    dbAnalytics.collection('businesses').doc(config.businessId).collection('storeAnalytics').add({
+    const supabaseAnalytics = getSupabaseServer();
+    supabaseAnalytics.from('storeAnalytics').insert({
       eventType: 'page_view', storeSlug,
       businessId: config.businessId,
       pageType: 'product', productId,
       createdAt: new Date().toISOString(),
-    }).catch(() => {});
+    }).then(() => {}, () => {});
   } catch {}
 
   return (

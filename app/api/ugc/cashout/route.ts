@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerFirestore as getAdminDb, FieldValue } from '@/lib/server-firestore';
+import { getSupabaseServer } from '@/lib/database/postgresql-adapter';
 import { createTransferRecipient, payoutToCreator } from '@/lib/paystack-ugc';
+import { getCreatorById, updateCreator, incrementCreator } from '@/lib/ugc';
 
 export async function POST(req: NextRequest) {
   try {
@@ -9,22 +10,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'userId, accountNumber and bankCode required' }, { status: 400 });
     }
 
-    const db = getAdminDb();
+    const supabase = getSupabaseServer();
 
-    const ordersSnap = await db.collection('ugcOrders')
-      .where('creatorId', '==', userId)
-      .get();
+    const { data: ordersRows, error: ordersError } = await supabase
+      .from('ugcOrders')
+      .select('*')
+      .eq('creatorId', userId);
+    if (ordersError) throw ordersError;
 
-    const eligible = ordersSnap.docs
-      .map((d: any): { id: string; data: any } => ({ id: d.id, data: d.data() }))
-      .filter((o: { data: any }) => o.data.status === 'COMPLETED' && o.data.paymentStatus !== 'PAID_OUT');
+    const eligible = (ordersRows ?? [])
+      .filter((o: any) => o.status === 'COMPLETED' && o.paymentStatus !== 'PAID_OUT')
+      .map((o: any) => ({ id: o.id, data: o }));
 
     if (eligible.length === 0) {
       return NextResponse.json({ error: 'No completed orders available to cash out' }, { status: 400 });
     }
 
-    const creatorSnap = await db.collection('ugcCreators').doc(userId).get();
-    const creator = creatorSnap.exists ? creatorSnap.data() as any : {};
+    const creator = (await getCreatorById(userId)) ?? ({} as any);
     const displayName = creator.displayName ?? accountName ?? 'Creator';
 
     const recipientCode = await createTransferRecipient(displayName, accountNumber, bankCode);
@@ -36,25 +38,24 @@ export async function POST(req: NextRequest) {
       `UGC payout for ${eligible.length} order(s)`
     );
 
-    const batch = db.batch();
     for (const o of eligible) {
-      batch.update(db.collection('ugcOrders').doc(o.id), {
+      const { error: updateError } = await supabase.from('ugcOrders').update({
         paystackTransferCode: transferCode,
         paymentStatus: 'PAID_OUT',
-        paidOutAt: FieldValue.serverTimestamp(),
-        updatedAt: FieldValue.serverTimestamp(),
-      });
+        paidOutAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }).eq('id', o.id);
+      if (updateError) throw updateError;
     }
-    await batch.commit();
 
-    await db.collection('ugcCreators').doc(userId).update({
-      totalEarnings: FieldValue.increment(totalPayout),
+    await updateCreator(userId, {
       bankName: bankName ?? creator.bankName ?? null,
       bankCode,
       accountNumber,
       accountName: accountName ?? null,
-      updatedAt: FieldValue.serverTimestamp(),
+      updatedAt: new Date().toISOString(),
     });
+    await incrementCreator(userId, { totalEarnings: totalPayout });
 
     return NextResponse.json({ success: true, ordersPaid: eligible.length, amount: totalPayout, transferCode });
   } catch (err) {

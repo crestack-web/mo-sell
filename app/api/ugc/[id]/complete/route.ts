@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerFirestore as getAdminDb, FieldValue } from '@/lib/server-firestore';
+import { getSupabaseServer } from '@/lib/database/postgresql-adapter';
 import { createTransferRecipient, payoutToCreator, calculateUGCPayment } from '@/lib/paystack-ugc';
+import { getCreatorById, incrementCreator } from '@/lib/ugc';
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -10,14 +11,17 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: 'accountNumber and bankCode required' }, { status: 400 });
     }
 
-    const db = getAdminDb();
-    const orderRef = db.collection('ugcOrders').doc(id);
-    const snap = await orderRef.get();
-    if (!snap.exists) {
+    const supabase = getSupabaseServer();
+    const { data: order, error: orderError } = await supabase
+      .from('ugcOrders')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+    if (orderError) throw orderError;
+    if (!order) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 });
     }
 
-    const order = snap.data() as any;
     if (order.status !== 'COMPLETED') {
       return NextResponse.json({ error: 'Order must be COMPLETED' }, { status: 400 });
     }
@@ -25,8 +29,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: 'Already paid out' }, { status: 400 });
     }
 
-    const creatorSnap = await db.collection('ugcCreators').doc(order.creatorId).get();
-    const creator = creatorSnap.data() as any;
+    const creator = (await getCreatorById(order.creatorId)) as any;
     const displayName = creator?.displayName ?? accountName ?? 'Creator';
 
     const recipientCode = await createTransferRecipient(displayName, accountNumber, bankCode);
@@ -36,16 +39,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       `UGC Payout for Order ${id}`
     );
 
-    await orderRef.update({
+    await supabase.from('ugcOrders').update({
       paystackTransferCode: transferCode,
       paymentStatus: 'PAID_OUT',
-      updatedAt: FieldValue.serverTimestamp(),
-    });
+      updatedAt: new Date().toISOString(),
+    }).eq('id', id);
 
-    await db.collection('ugcCreators').doc(order.creatorId).update({
-      totalEarnings: FieldValue.increment(order.creatorPayout),
-      updatedAt: FieldValue.serverTimestamp(),
-    });
+    await incrementCreator(order.creatorId, { totalEarnings: order.creatorPayout });
 
     return NextResponse.json({ success: true, transferCode });
   } catch (err) {

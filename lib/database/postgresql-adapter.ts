@@ -17,16 +17,28 @@ import {
 // Lazy initialization of Supabase client to avoid build-time errors
 let supabaseServerInstance: SupabaseClient | null = null;
 
+function readAccessToken(supabaseUrl: string): string | null {
+  try {
+    const ref = supabaseUrl.replace('https://', '').split('.')[0];
+    const raw = window.localStorage.getItem(`sb-${ref}-auth-token`);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed?.access_token || null;
+  } catch {
+    return null;
+  }
+}
+
 export function getSupabaseServer(): SupabaseClient {
   if (supabaseServerInstance) {
     return supabaseServerInstance;
   }
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
 
   if (!supabaseUrl || !supabaseServiceKey) {
-    throw new Error('Missing Supabase environment variables. Please set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_KEY');
+    throw new Error('Missing Supabase environment variables. Please set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY');
   }
 
   supabaseServerInstance = createClient(supabaseUrl, supabaseServiceKey, {
@@ -54,26 +66,59 @@ export class SupabaseAdapter implements DatabaseAdapter {
   constructor() {
     // Initialize with mock client during build time
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://mock.supabase.co';
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || 'mock-key';
+    const isClient = typeof window !== 'undefined';
+    const supabaseKey = isClient
+      ? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'mock-key'
+      : process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || 'mock-key';
 
-    this.supabase = createClient(supabaseUrl, supabaseServiceKey, {
+    // On the client, attach the signed-in user's access token so RLS
+    // policies (e.g. `id = auth.uid()`) resolve correctly for own rows.
+    const headers: Record<string, string> = {};
+    if (isClient && supabaseUrl && !supabaseUrl.includes('mock')) {
+      const token = readAccessToken(supabaseUrl);
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+    }
+
+    this.supabase = createClient(supabaseUrl, supabaseKey, {
       auth: {
         autoRefreshToken: false,
         persistSession: false,
+      },
+      global: {
+        headers,
       },
     });
   }
 
   collection(name: string): CollectionAdapter {
-    return new SupabaseCollection(this.supabase, name);
+    // Normalize Firestore subcollection paths to flat tables:
+    //   "businesses/{businessId}/storeOrders" -> table "storeOrders"
+    let tableName = name;
+    const sub = name.match(/^businesses\/[^/]+\/(.+)$/);
+    if (sub) {
+      tableName = sub[1];
+    }
+    return new SupabaseCollection(this.supabase, tableName);
   }
 
   doc(path: string): DocumentAdapter {
     // Parse path like "businesses/{businessId}/store/config"
     const parts = path.split('/');
+
+    if (parts.length === 4) {
+      // "businesses/{businessId}/store/config" maps to the businesses row;
+      // "businesses/{businessId}/storeOrders/{orderId}" maps to the storeOrders row.
+      if (parts[2] === 'store' && parts[3] === 'config') {
+        return new SupabaseDocument(this.supabase, parts[0], parts[1], path);
+      }
+      return new SupabaseDocument(this.supabase, parts[2], parts[3], path);
+    }
+
     const collectionName = parts[0];
     const docId = parts[1] || '';
-    
+
     return new SupabaseDocument(
       this.supabase,
       collectionName,

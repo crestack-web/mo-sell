@@ -63,11 +63,16 @@
   --sell-bg:           #F0F9FF;   /* sky-50 tint — distinct from Busmo's grey */
   --sell-surface:      #FFFFFF;
   --sell-surface-2:    #F8FBFF;
+  --sell-card:         #FFFFFF;
+  --sell-bg-alt:       #F4F8FC;
   --sell-border:       #E0EFFA;
   --sell-border-subtle:#EBF5FC;
+  --sell-border-hover: #B9CADD;
   --sell-text-1:       #0C1A2E;
+  --sell-text:         #0C1A2E;   /* alias for --sell-text-1 */
   --sell-text-2:       #3D5A7A;
   --sell-text-3:       #8AAABF;
+  --sell-text-muted:   #64748B;
   --sell-shadow-sm:    0 1px 3px rgba(14, 88, 140, 0.07);
   --sell-shadow:       0 4px 16px rgba(14, 88, 140, 0.09);
   --sell-shadow-lg:    0 16px 48px rgba(14, 165, 233, 0.18);
@@ -79,11 +84,16 @@
   --sell-bg:           #070E1A;
   --sell-surface:      #0D1829;
   --sell-surface-2:    #122033;
+  --sell-card:         #101E33;
+  --sell-bg-alt:       #0A1524;
   --sell-border:       #1A2D45;
   --sell-border-subtle:#152438;
+  --sell-border-hover: #2C4460;
   --sell-text-1:       #EFF7FF;
+  --sell-text:         #EFF7FF;   /* alias for --sell-text-1 */
   --sell-text-2:       #7AABCC;
   --sell-text-3:       #3D6685;
+  --sell-text-muted:   #94A8BE;
   --sell-shadow-sm:    0 1px 3px rgba(0, 0, 0, 0.4);
   --sell-shadow:       0 4px 16px rgba(0, 0, 0, 0.45);
   --sell-shadow-lg:    0 16px 48px rgba(14, 165, 233, 0.22);

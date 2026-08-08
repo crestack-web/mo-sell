@@ -1,5 +1,5 @@
 import { ImageResponse } from 'next/og';
-import { getServerFirestore as getAdminDb } from '@/lib/server-firestore';
+import { getCreatorByUsername } from '@/lib/ugc';
 
 export async function GET(
   _req: Request,
@@ -8,9 +8,8 @@ export async function GET(
   const { username } = await params;
 
   try {
-    const db = getAdminDb();
-    const snap = await db.collection('ugcCreators').where('username', '==', username).where('isActive', '==', true).limit(1).get();
-    if (snap.empty) {
+    const creator = (await getCreatorByUsername(username, { activeOnly: true })) as any;
+    if (!creator || creator.isBanned === true) {
       return new ImageResponse(
         (
           <div style={{ display: 'flex', width: 1200, height: 630, background: '#0f172a', color: '#fff', alignItems: 'center', justifyContent: 'center', fontFamily: 'system-ui' }}>
@@ -20,8 +19,8 @@ export async function GET(
         { width: 1200, height: 630 }
       );
     }
-    const creator = snap.docs[0].data() as any;
-    const priceDisplay = `₦${Math.round((creator.price30s ?? 0) / 100).toLocaleString()}`;
+    const symbol = creator.currency === 'NGN' ? '₦' : '$';
+    const priceDisplay = `${symbol}${Math.round((creator.price30s ?? 0) / 100).toLocaleString()}`;
 
     return new ImageResponse(
       (

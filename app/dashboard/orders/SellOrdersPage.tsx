@@ -72,7 +72,16 @@ export function SellOrdersPage() {
               {orders.map(order => (
                 <tr key={order.id}>
                   <td>#{order.orderNumber}</td>
-                  <td>{order.customerName}</td>
+                  <td>
+                    <div className={styles.customer}>{order.customerName}</div>
+                    {order.customerEmailStatus && order.customerEmailStatus !== 'sent' && (
+                      <div className={styles.emailWarn}>
+                        {order.customerEmailStatus === 'stub'
+                          ? '⚠️ Email not configured'
+                          : '⚠️ Delivery email failed'}
+                      </div>
+                    )}
+                  </td>
                   <td>₦{order.total?.toLocaleString()}</td>
                   <td>
                     <span className={`${styles.status} ${styles[order.status]}`}>
