@@ -26,23 +26,35 @@ export function getStorage(): StorageAdapter {
 // R2 Storage Adapter
 export class R2StorageAdapter implements StorageAdapter {
   async upload(file: File, path: string): Promise<string> {
-    // R2 credentials are server-only env vars, so uploads must go through a
-    // server API route from the browser. On the server we upload directly.
+    // R2 credentials are server-only env vars, so the browser asks the server
+    // for a short-lived presigned PUT URL, then uploads directly to R2. On the
+    // server we upload directly without a round trip.
     if (typeof window === 'undefined') {
       const { uploadFile } = await import('./r2-adapter');
       return await uploadFile(file, path);
     }
 
-    const formData = new FormData();
-    formData.append('file', file);
+    // 1. Ask the server for a presigned PUT URL (small JSON request).
     const res = await fetch(`/api/storage/upload?path=${encodeURIComponent(path)}`, {
       method: 'POST',
-      body: formData,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contentType: file.type || 'application/octet-stream' }),
     });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok || !data.url) {
+    if (!res.ok || !data.uploadUrl) {
       throw new Error(data.error || 'Upload failed');
     }
+
+    // 2. PUT the file straight to R2 — no serverless body-size limits.
+    const putRes = await fetch(data.uploadUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': file.type || 'application/octet-stream' },
+      body: file,
+    });
+    if (!putRes.ok) {
+      throw new Error(`Upload failed (${putRes.status})`);
+    }
+
     return data.url;
   }
 
