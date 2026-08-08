@@ -246,14 +246,14 @@ function TopNav() {
 
 // ── Category card with kite ───────────────────────────────────────────────────
 function CategoryCard({ 
-  kite: Kite, 
+  imageUrl, 
   title, 
   subtitle, 
   items,
   color,
   bg 
 }: { 
-  kite: React.ComponentType<{ size?: number }>;
+  imageUrl: string;
   title: string;
   subtitle: string;
   items: string[];
@@ -280,9 +280,17 @@ function CategoryCard({
       <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
         <div style={{ 
           padding: 12, borderRadius: 16, 
-          background: bg,
         }}>
-          <Kite size={48} />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={imageUrl}
+            alt={title}
+            style={{
+              width: 48,
+              height: 48,
+              objectFit: 'contain',
+            }}
+          />
         </div>
         <div>
           <div style={{ fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 18, color: C.text1 }}>{title}</div>
@@ -471,8 +479,6 @@ export default function WelcomePage() {
                   width: '100%',
                   maxWidth: 750,
                   height: 'auto',
-                  borderRadius: 16,
-                  boxShadow: '0 8px 32px rgba(14,88,140,0.12)',
                 }}
               />
             </div>
@@ -562,7 +568,7 @@ export default function WelcomePage() {
             gap: 24 
           }}>
             <CategoryCard
-              kite={GreenKite}
+              imageUrl="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1786186523/Untitled_-_August_08_2026_at_11.22.19_wdgobj.png"
               title="Physical Products"
               subtitle="Tangible goods, delivered"
               items={['Fashion & apparel', 'Food & beverages', 'Home & living', 'Handmade crafts']}
@@ -570,7 +576,7 @@ export default function WelcomePage() {
               bg={C.greenBg}
             />
             <CategoryCard
-              kite={PurpleKite}
+              imageUrl="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1786186523/Untitled_-_August_08_2026_at_11.22.19_kunvlj.png"
               title="Digital Products"
               subtitle="Instant delivery, zero logistics"
               items={['Ebooks & guides', 'Templates & tools', 'Courses & workshops', 'Software & apps']}
@@ -578,7 +584,7 @@ export default function WelcomePage() {
               bg={C.purpleBg}
             />
             <CategoryCard
-              kite={RedKite}
+              imageUrl="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1786186523/Untitled_-_August_08_2026_at_11.22.19_ftbtyx.png"
               title="Services"
               subtitle="Your expertise, packaged"
               items={['Consulting & coaching', 'Freelance services', 'Professional advice', 'Custom work']}
@@ -586,7 +592,7 @@ export default function WelcomePage() {
               bg={C.redBg}
             />
             <CategoryCard
-              kite={GreenKite}
+              imageUrl="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1786186522/Untitled_-_August_08_2026_at_11.22.19_lt7hsx.png"
               title="Creator Businesses"
               subtitle="Monetize your audience"
               items={['Merchandise', 'Exclusive content', 'Fan communities', 'Brand partnerships']}
@@ -632,8 +638,6 @@ export default function WelcomePage() {
                     width: '100%',
                     maxWidth: 350,
                     height: 'auto',
-                    borderRadius: 16,
-                    boxShadow: '0 8px 32px rgba(14,88,140,0.12)',
                   }}
                 />
               </div>
@@ -794,8 +798,6 @@ export default function WelcomePage() {
                 width: '100%',
                 maxWidth: 300,
                 height: 'auto',
-                borderRadius: 16,
-                boxShadow: '0 8px 32px rgba(255,255,255,0.2)',
               }}
             />
           </div>
