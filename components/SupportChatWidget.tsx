@@ -32,6 +32,24 @@ const SUGGESTIONS = [
 
 const MO_AVATAR = '🤖';
 
+// MO character SVG component
+function MOIcon({ size = 24 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="40" cy="40" r="36" fill="url(#moGradient)"/>
+      <circle cx="28" cy="35" r="5" fill="white"/>
+      <circle cx="52" cy="35" r="5" fill="white"/>
+      <path d="M30 52Q40 60 50 52" stroke="white" strokeWidth="3" strokeLinecap="round"/>
+      <defs>
+        <linearGradient id="moGradient" x1="0" y1="0" x2="80" y2="80" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#0EA5E9"/>
+          <stop offset="1" stopColor="#6366F1"/>
+        </linearGradient>
+      </defs>
+    </svg>
+  );
+}
+
 let msgCounter = 0;
 const nextId = () => `sc_${Date.now()}_${++msgCounter}`;
 
@@ -143,9 +161,7 @@ export function SupportChatWidget() {
             <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
           </svg>
         ) : (
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
-          </svg>
+          <MOIcon size={28} />
         )}
       </button>
 
@@ -181,9 +197,8 @@ export function SupportChatWidget() {
               width: 36, height: 36, borderRadius: 10,
               background: 'rgba(255,255,255,0.2)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '1.1rem',
             }}>
-              🛟
+              <MOIcon size={28} />
             </div>
             <div style={{ flex: 1 }}>
               <div style={{ color: 'white', fontWeight: 700, fontSize: 15, fontFamily: FONT_DISPLAY }}>
