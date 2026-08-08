@@ -615,6 +615,21 @@ export default function WelcomePage() {
               <div style={{ marginBottom: 32 }}>
                 <MOCharacter size={120} />
               </div>
+              {/* MO AI image from cloudinary */}
+              <div style={{ marginBottom: 32, display: 'flex', justifyContent: 'center' }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1785152788/Untitled_-_July_27_2026_at_08.12.54-4_v2ly3f.png"
+                  alt="MO AI — builds your store for you"
+                  style={{
+                    width: '100%',
+                    maxWidth: 400,
+                    height: 'auto',
+                    borderRadius: 16,
+                    boxShadow: '0 8px 32px rgba(14,88,140,0.12)',
+                  }}
+                />
+              </div>
               <h2 style={{
                 fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 'clamp(2rem, 4vw, 2.8rem)',
                 color: C.text1, letterSpacing: '-0.025em', marginBottom: 20,
