@@ -73,9 +73,9 @@ function makeManagementApiExecutor(
       method: 'POST',
       headers: {
         Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/sql',
+        'Content-Type': 'application/json',
       },
-      body: sql,
+      body: JSON.stringify({ query: sql }),
     });
     if (!res.ok) {
       const text = await res.text();
