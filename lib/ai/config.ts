@@ -44,9 +44,16 @@ export const AI_CONFIG: Record<ProviderId, ProviderConfig> = {
   },
 };
 
-/** Master switch. When false (default) every route uses Groq as today. */
+/**
+ * Master switch for task/complexity routing.
+ *
+ * Defaults to ON so the router picks the best provider (Mistral first). Set
+ * AI_ROUTING_ENABLED=false to force everything back to Groq. Providers without
+ * a configured key are filtered out, so enabling routing is safe even when
+ * only one provider is available.
+ */
 export const AI_ROUTING_ENABLED =
-  process.env.AI_ROUTING_ENABLED === 'true';
+  process.env.AI_ROUTING_ENABLED !== 'false';
 
 /**
  * Optional global override: 'auto' (router) | 'groq' | 'mistral' | 'openai'.
@@ -100,12 +107,11 @@ export const ROUTING_POLICY: Record<
   'LOW' | 'MEDIUM' | 'HIGH',
   ProviderId[]
 > = {
-  // LOW: Mistral or Groq (cheap + fast).
+  // Mistral is the default provider for all tiers (cost + speed). Groq and
+  // OpenAI remain as fallbacks if the primary fails or is disabled.
   LOW: ['mistral', 'groq'],
-  // MEDIUM: Mistral by default.
   MEDIUM: ['mistral', 'groq'],
-  // HIGH: OpenAI premium, then Mistral/Groq fallback.
-  HIGH: ['openai', 'mistral', 'groq'],
+  HIGH: ['mistral', 'openai', 'groq'],
 };
 
 /** Tasks that prefer a specific provider regardless of complexity. */

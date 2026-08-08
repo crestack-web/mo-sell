@@ -17,17 +17,20 @@ PEXELS_API_KEY=your_pexels_api_key_here   # optional — images for Ask MO desig
 ## AI Providers — Mistral & OpenAI (optional, router-aware)
 
 MO-sell has a provider-agnostic AI layer (`lib/ai/`). The model router classifies
-every request by task + complexity and picks a provider chain. **Routing is
-disabled by default**, so Groq stays the only active provider until the
-benchmark passes (`npx tsx scripts/ai-benchmark.ts`).
+every request by task + complexity and picks a provider chain. **Routing is on
+by default** and **Mistral is the default provider** for all tiers (create
+product, edit store, chat, content ideas). Groq remains the PDF/ebook and
+history-summary provider, and Groq/OpenAI act as fallbacks when the primary
+fails. Set `AI_ROUTING_ENABLED=false` to force everything back to Groq.
 
 ```env
-# Keys (add these to Vercel when you are ready to enable routing)
+# Keys (Mistral is required for Mistral-first routing)
 MISTRAL_API_KEY=your_mistral_api_key_here
-OPENAI_API_KEY=your_openai_api_key_here
+GROQ_API_KEY=your_groq_api_key_here
+OPENAI_API_KEY=your_openai_api_key_here     # optional — HIGH-complexity fallback
 
 # Switches (all optional; defaults shown)
-AI_ROUTING_ENABLED=false          # 'true' activates task/complexity-based routing
+AI_ROUTING_ENABLED=true           # 'false' forces everything back to Groq
 AI_PROVIDER=auto                  # 'auto' | 'groq' | 'mistral' | 'openai' (manual override)
 MISTRAL_ENABLED=true              # 'false' to disable even with a key set
 OPENAI_ENABLED=true               # 'false' to disable even with a key set
@@ -44,11 +47,11 @@ MAX_OPENAI_REQUESTS_PER_USER_PER_DAY=20
 MAX_OPENAI_REQUESTS_PER_BUSINESS_PER_DAY=40
 ```
 
-Routing policy (see `lib/ai/config.ts`): LOW → Mistral/Groq, MEDIUM → Mistral,
-HIGH → OpenAI → Mistral → Groq. Hausa + HIGH → OpenAI first. PDF ebooks and
-history summaries stay pinned to Groq. Every call is logged to the `ai_usage`
-table (migration 015) — never throws, and OpenAI requests are capped per
-business/day before spend.
+Routing policy (see `lib/ai/config.ts`): Mistral first for LOW/MEDIUM/HIGH,
+then Groq (LOW/MEDIUM) or OpenAI → Groq (HIGH). Hausa + HIGH prefers OpenAI.
+PDF ebooks and history summaries stay pinned to Groq. Every call is logged to
+the `ai_usage` table (migration 015) — never throws, and OpenAI requests are
+capped per business/day before spend.
 
 ### Getting a Pexels API Key (Ask MO PDF images)
 
