@@ -10,6 +10,7 @@
  */
 
 import { getSupabaseServer } from '@/lib/database/postgresql-adapter';
+import { getCommissionRate, isPlatformManaged, currentMonthKey } from '@/lib/pricing';
 import type {
   IntegrationBridgeParams,
   IntegrationBridgeResult,
@@ -225,10 +226,12 @@ export async function processConfirmedOrder(
       if (custError) throw custError;
     }
 
-    // ── Write 4: Store earnings (only when managedPayments is enabled) ─────────
-    const COMMISSION_RATE = 0.05; // 5% platform commission
-    if (config?.managedPayments === true) {
-      const commissionAmount = Math.round(verifiedTotal * COMMISSION_RATE * 100) / 100;
+    // ── Write 4: Store earnings + commission (managed payments / billing model) ─
+    const commissionRate = getCommissionRate(config);
+    const platformManaged = isPlatformManaged(config);
+    let commissionAmount = 0;
+    if (platformManaged) {
+      commissionAmount = Math.round(verifiedTotal * commissionRate * 100) / 100;
       const netAmount        = Math.round((verifiedTotal - commissionAmount) * 100) / 100;
       const { error: earningError } = await supabase.from('storeEarnings').insert({
         businessId,
@@ -236,10 +239,10 @@ export async function processConfirmedOrder(
         orderNumber,
         customerName:     session.customerName,
         grossAmount:      verifiedTotal,
-        commissionRate:   COMMISSION_RATE,
+        commissionRate,
         commissionAmount,
         netAmount,
-        currency:         config.currency ?? 'NGN',
+        currency:         config?.currency ?? 'NGN',
         status:           'available',
         payoutRequestId:  null,
         settlementDate:   settlementDate ?? null,
@@ -247,7 +250,33 @@ export async function processConfirmedOrder(
         updatedAt:        timestamp,
       });
       if (earningError) throw earningError;
+
+      // Snapshot the commission on the order row
+      const { error: commissionError } = await supabase
+        .from('storeOrders')
+        .update({
+          commissionRate,
+          commissionAmount,
+          netAmount,
+          updatedAt: timestamp,
+        })
+        .eq('id', orderId);
+      if (commissionError) throw commissionError;
     }
+
+    // ── Write 4b: Revenue rollup (feeds conditional monthly billing) ─────────
+    const monthKey = currentMonthKey();
+    const { error: rollupError } = await supabase
+      .from('businessMonthlyRevenue')
+      .upsert({
+        businessId,
+        month: monthKey,
+        revenue: verifiedTotal,
+        commission: commissionAmount,
+        orders: 1,
+        updatedAt: timestamp,
+      }, { onConflict: 'businessId,month' });
+    if (rollupError) throw rollupError;
 
     // ── Write 5: Ask MO commission (20% on AI-generated ebook sales) ────────────
     const ASK_MO_COMMISSION_RATE = 0.20;

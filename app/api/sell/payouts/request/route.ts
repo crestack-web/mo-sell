@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServer } from '@/lib/database/postgresql-adapter';
-
-const COMMISSION_RATE = 0.05;
+import { isPlatformManaged, getCommissionRate } from '@/lib/pricing';
 
 /**
  * POST /api/sell/payouts/request
@@ -35,7 +34,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Store not found' }, { status: 404 });
     }
 
-    if (!config.managedPayments) {
+    if (!isPlatformManaged(config)) {
       return NextResponse.json({ error: 'Managed payments not enabled for this store' }, { status: 403 });
     }
 
@@ -70,7 +69,7 @@ export async function POST(req: NextRequest) {
       bankName:        config.payoutBankName,
       accountNumber:   config.payoutAccountNumber,
       accountName:     config.payoutAccountName,
-      commissionRate:  COMMISSION_RATE,
+      commissionRate:  getCommissionRate(config),
       earningIds,
       status:          'requested',
       rejectionReason: null,
