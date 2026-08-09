@@ -307,9 +307,9 @@ export function ProductDetailClient({ product, storeSlug, currency, theme, busin
               });
               const data = await res.json() as { orderId?: string; error?: string };
               if (res.ok && data.orderId) {
-                setOrderId(data.orderId);
-                setSuccess(true);
                 document.cookie = `customer_email=${encodeURIComponent(email.trim())}; path=/; max-age=2592000`;
+                window.location.href = `/${storeSlug}/order/${data.orderId}`;
+                return;
               } else {
                 setError(data.error || 'Payment confirmation failed. Contact support with your payment reference.');
               }
