@@ -84,6 +84,7 @@ export default async function ProductDetailPage({
       currency={config.currency}
       theme={config.theme ?? 'luxe'}
       businessId={config.businessId}
+      paystackPublicKey={config.paystackPublicKey}
     />
   );
 }

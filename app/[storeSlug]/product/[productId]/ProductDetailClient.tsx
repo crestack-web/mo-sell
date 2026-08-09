@@ -30,6 +30,7 @@ interface Props {
   currency: string;
   theme: string;
   businessId?: string;
+  paystackPublicKey?: string;
 }
 
 interface TimeSlot {
@@ -114,7 +115,7 @@ function GenericProductPage({ product, storeSlug, currency }: ThemeProductPagePr
   );
 }
 
-export function ProductDetailClient({ product, storeSlug, currency, theme, businessId }: Props) {
+export function ProductDetailClient({ product, storeSlug, currency, theme, businessId, paystackPublicKey: paystackKeyProp }: Props) {
   const [ThemeComponents, setThemeComponents] = useState<ThemeComponents | null>(null);
   const [errorTheme, setErrorTheme] = useState(false);
   const [storeConfig, setStoreConfig] = useState<any>(null);
@@ -233,7 +234,7 @@ export function ProductDetailClient({ product, storeSlug, currency, theme, busin
     setError('');
 
     try {
-      const activeKey = storeConfig?.paystackPublicKey || process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || '';
+      const activeKey = paystackKeyProp || storeConfig?.paystackPublicKey || process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || '';
       if (!activeKey) {
         setError('Payment is temporarily unavailable. Please try again later.');
         setProcessing(false);
