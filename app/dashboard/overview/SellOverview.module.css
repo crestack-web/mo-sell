@@ -292,6 +292,14 @@
 
 .actionEmoji { font-size: 1.4rem; }
 
+.actionImg {
+  width: 124px;
+  height: 110px;
+  object-fit: cover;
+  border-radius: 10px;
+  display: block;
+}
+
 .actionLabel {
   font-size: 0.72rem;
   font-weight: 600;
@@ -372,7 +380,8 @@
   .heading { font-size: 1.2rem; }
   .headerActions { display: none; }
   .actionsGrid { gap: 8px; }
-  .actionTile { min-width: 76px; padding: 12px 12px; }
+  .actionTile { min-width: 76px; padding: 10px; }
+  .actionImg { width: 96px; height: 88px; }
   
   /* Fix overflow issues */
   .overview { padding: 0 4px; }
