@@ -210,7 +210,14 @@
   text-align: center;
   color: var(--sell-text-3);
   font-size: 0.875rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
 }
+
+.tableEmpty .emptyTitle { font-family: var(--sell-font-display); font-size: 1.1rem; font-weight: 700; color: var(--sell-text-1); }
+.emptyImg { width: 200px; max-width: 70%; height: auto; margin-bottom: 4px; }
 
 /* ── Empty card (not opted in) ── */
 .emptyCard {

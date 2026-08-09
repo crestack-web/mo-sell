@@ -119,6 +119,7 @@
 
 /* ── Empty ── */
 .emptyChart { height: 200px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; color: var(--sell-text-3); font-size: 0.85rem; }
+.emptyImg { width: 160px; max-width: 70%; height: auto; margin-bottom: 4px; }
 
 @media (max-width: 640px) { 
   .kpiGrid { grid-template-columns: 1fr 1fr; }

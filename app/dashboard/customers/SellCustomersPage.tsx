@@ -183,7 +183,7 @@ export function SellCustomersPage() {
           </div>
         ) : filtered.length === 0 ? (
           <div className={styles.emptyState}>
-            <div className={styles.emptyIcon}>👥</div>
+            <img className={styles.emptyImg} src="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1786280720/Untitled_-_August_08_2026_at_11.22.19_smrxuk.png" alt="No customers" />
             <p className={styles.emptyTitle}>{customers.length === 0 ? 'No customers yet' : 'No results'}</p>
             <p className={styles.emptySub}>
               {customers.length === 0

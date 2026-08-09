@@ -346,7 +346,7 @@ export function SellShippingPage() {
             </div>
           ) : zones.length === 0 ? (
             <div className={styles.empty}>
-              <div className={styles.emptyIcon}>🚚</div>
+              <img className={styles.emptyImg} src="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1786280721/Untitled_-_August_08_2026_at_11.22.19_dctokv.png" alt="No shipping zones" />
               <p className={styles.emptyTitle}>No shipping zones</p>
               <p className={styles.emptySub}>Add your first delivery zone to start accepting orders from customers across different regions.</p>
               <button className={`${styles.btn} ${styles.btnPrimary}`} onClick={() => setSlideOver('add')}>

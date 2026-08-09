@@ -56,7 +56,11 @@ export function SellOrdersPage() {
 
       <div className={styles.tableWrap}>
         {orders.length === 0 ? (
-          <div className={styles.empty}>No orders yet</div>
+          <div className={styles.empty}>
+            <img className={styles.emptyImg} src="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1786280719/Untitled_-_August_08_2026_at_11.22.19_yjkgz1.png" alt="No orders yet" />
+            <p className={styles.emptyTitle}>No orders yet</p>
+            <p className={styles.emptySub}>Orders will show up here once your first customer checks out.</p>
+          </div>
         ) : (
           <table className={styles.table}>
             <thead>

@@ -458,12 +458,7 @@ export function SellEarningsPage() {
           <p className={styles.sub}>Track sales commissions and request payouts.</p>
         </div>
         <div className={styles.emptyCard}>
-          <div className={styles.emptyIcon}>
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="12" y1="1" x2="12" y2="23"/>
-              <path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
-            </svg>
-          </div>
+          <img className={styles.emptyImg} src="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1786280721/Untitled_-_August_08_2026_at_11.22.19_ezut7a.png" alt="Enable Managed Payments first" />
           <p className={styles.emptyTitle}>Enable Managed Payments first</p>
           <p className={styles.emptySub}>
             Turn on Managed Payments in Settings to let Busmo collect payments on your behalf.
@@ -643,7 +638,9 @@ export function SellEarningsPage() {
       {activeTab === 'earnings' && (
         earnings.length === 0 ? (
           <div className={styles.tableEmpty}>
-            <p>No earnings yet. Sales will appear here once orders are paid.</p>
+            <img className={styles.emptyImg} src="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1786280721/Untitled_-_August_08_2026_at_11.22.19_ezut7a.png" alt="No earnings yet" />
+            <p className={styles.emptyTitle}>No earnings yet</p>
+            <p>Sales will appear here once orders are paid.</p>
           </div>
         ) : (
           <div className={styles.tableWrap}>
@@ -681,7 +678,9 @@ export function SellEarningsPage() {
       {activeTab === 'payouts' && (
         payouts.length === 0 ? (
           <div className={styles.tableEmpty}>
-            <p>No payout requests yet. Click &quot;Request payout&quot; when you have available earnings.</p>
+            <img className={styles.emptyImg} src="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1786280721/Untitled_-_August_08_2026_at_11.22.19_ezut7a.png" alt="No payout requests" />
+            <p className={styles.emptyTitle}>No payout requests yet</p>
+            <p>Click &quot;Request payout&quot; when you have available earnings.</p>
           </div>
         ) : (
           <div className={styles.tableWrap}>
@@ -722,7 +721,9 @@ export function SellEarningsPage() {
       {activeTab === 'ugc' && (
         ugcOrders.length === 0 ? (
           <div className={styles.tableEmpty}>
-            <p>No UGC orders yet. Orders appear here once a brand books you and pays the deposit.</p>
+            <img className={styles.emptyImg} src="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1786280721/Untitled_-_August_08_2026_at_11.22.19_ezut7a.png" alt="No UGC orders" />
+            <p className={styles.emptyTitle}>No UGC orders yet</p>
+            <p>Orders appear here once a brand books you and pays the deposit.</p>
           </div>
         ) : (
           <div className={styles.tableWrap}>

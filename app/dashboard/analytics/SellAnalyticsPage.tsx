@@ -481,7 +481,7 @@ export function SellAnalyticsPage() {
         </div>
         {totalRevenue === 0 ? (
           <div className={styles.emptyChart}>
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            <img className={styles.emptyImg} src="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1786280717/Untitled_-_August_08_2026_at_11.22.19_qtubsr.png" alt="No revenue data" />
             <p>No revenue data for this period yet</p>
           </div>
         ) : (
