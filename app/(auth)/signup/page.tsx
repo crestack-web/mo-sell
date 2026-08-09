@@ -368,7 +368,7 @@ export default function SellSignupPage() {
 
       const businessName = pendingStore.storeName || userData?.businessName || 'My Store';
 
-      // Create store config from pending data (pay-as-you-go: 10% commission, no monthly fee)
+      // Create store config from pending data (pay-as-you-go: 30% commission, no monthly fee)
       const configData = {
         storeSlug: pendingStore.storeSlug,
         storeName: businessName,
@@ -393,7 +393,7 @@ export default function SellSignupPage() {
         onboardingAnswers: pendingStore.onboardingAnswers || {},
         billingModel: 'pay_as_you_go',
         billingStatus: 'active',
-        commissionRate: 0.1,
+        commissionRate: 0.3,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
@@ -986,7 +986,7 @@ export default function SellSignupPage() {
                     Start Selling with MO
                   </h1>
                   <p style={{ color: C.text2, maxWidth: 400, margin: '0 auto', fontSize: 14 }}>
-                    Start selling free. Pay 10% only when you sell.
+                    Start selling free. Pay 30% only when you sell.
                   </p>
                 </div>
 
@@ -1026,7 +1026,7 @@ export default function SellSignupPage() {
                   </div>
 
                   <div className="text-center text-xs" style={{ color: C.text3 }}>
-                    Pay 10% commission per sale · No card required · Cancel anytime
+                    Pay 30% commission per sale · No card required · Cancel anytime
                   </div>
                 </div>
 
