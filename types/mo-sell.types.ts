@@ -17,7 +17,8 @@ export type StorefrontTheme =
   | 'luxe'
   | 'atelier' | 'citrus' | 'nordly' | 'neotech'
   | 'terra' | 'volt' | 'botanica' | 'prism'
-  | 'ankara' | 'midnight' | 'harmattan' | 'neon' | 'sunset' | 'mono';
+  | 'ankara' | 'midnight' | 'harmattan' | 'neon' | 'sunset' | 'mono'
+  | 'blush' | 'rose' | 'pearl' | 'cherry' | 'quiet' | 'concrete' | 'chrome';
 
 // ─── Theme Section Editor ─────────────────────────────────────────────────────
 

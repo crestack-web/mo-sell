@@ -493,6 +493,362 @@ function LinkRows({ theme, config, bio, visibleProducts, isLightBg, textColor, t
   );
 }
 
+/* ─── New link-style themes (fixed page structure) ────────────────────────── */
+
+interface LinkItem {
+  key: string;
+  label: string;
+  sub: string;
+  product?: ProductCardData & { description?: string; digitalFileUrl?: string | null };
+  url?: string;
+}
+
+function buildLinkItems(p: LayoutProps): LinkItem[] {
+  const { config, bio, visibleProducts } = p;
+  return [
+    ...visibleProducts.map(pd => ({ key: 'p_' + pd.id, label: pd.displayName, sub: fmtPrice(pd.price, config.currency), product: pd })),
+    ...bio.customLinks.filter(cl => cl.label && cl.url).map(cl => ({ key: 'cl_' + cl.id, label: cl.label, sub: 'Open ↗', url: cl.url })),
+  ];
+}
+
+function Tile({ item, onProductClick, children, style }: {
+  item: LinkItem;
+  onProductClick: LayoutProps['onProductClick'];
+  children: React.ReactNode;
+  style?: React.CSSProperties;
+}) {
+  if (item.url) {
+    return (
+      <a href={item.url} target="_blank" rel="noopener noreferrer" style={{ ...style, cursor: 'pointer' }}>
+        {children}
+      </a>
+    );
+  }
+  return (
+    <div onClick={() => item.product && onProductClick(item.product)} style={{ ...style, cursor: 'pointer' }}>
+      {children}
+    </div>
+  );
+}
+
+function LinkBioDeco({ theme }: { theme: string }) {
+  const fill: React.CSSProperties = { position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0 };
+  if (theme === 'rose') {
+    return (
+      <>
+        <div style={{ position: 'absolute', top: 24, left: 24, right: 24, height: 1, background: 'var(--sf-accent, #C97B8B)', opacity: 0.5, pointerEvents: 'none', zIndex: 0 }} />
+        <div style={{ position: 'absolute', top: 32, left: 40, right: 40, height: 1, background: 'var(--sf-accent, #C97B8B)', opacity: 0.25, pointerEvents: 'none', zIndex: 0 }} />
+      </>
+    );
+  }
+  if (theme === 'pearl') {
+    return <div style={{ ...fill, opacity: 0.4, background: 'repeating-linear-gradient(115deg, rgba(255,255,255,0.6) 0px, rgba(255,255,255,0.6) 2px, transparent 2px, transparent 18px)' }} />;
+  }
+  if (theme === 'cherry') {
+    return <div style={{ ...fill, opacity: 0.25, backgroundImage: 'radial-gradient(#fff 1.5px, transparent 1.5px)', backgroundSize: '14px 14px' }} />;
+  }
+  if (theme === 'quiet') {
+    return <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, background: 'var(--sf-accent, #B08968)', opacity: 0.5, pointerEvents: 'none', zIndex: 0 }} />;
+  }
+  if (theme === 'concrete') {
+    return <div style={{ ...fill, opacity: 0.5, backgroundImage: 'linear-gradient(var(--sf-border, #D4D1C8) 1px, transparent 1px), linear-gradient(90deg, var(--sf-border, #D4D1C8) 1px, transparent 1px)', backgroundSize: '22px 22px' }} />;
+  }
+  if (theme === 'chrome') {
+    return <div style={{ ...fill, opacity: 0.1, background: 'repeating-linear-gradient(0deg, #fff 0px, #fff 1px, transparent 1px, transparent 3px)' }} />;
+  }
+  return null;
+}
+
+/* ─── 7. blush — soft grid layout ─────────────────────────────────────────── */
+
+export function BlushLayout(p: LayoutProps) {
+  const { config, bio, textColor, textColor2, textColor3, onProductClick } = p;
+  const items = buildLinkItems(p);
+  return (
+    <div style={{ width: '100%', maxWidth: 600, margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '48px 24px 32px', gap: 14 }}>
+      <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ position: 'absolute', width: 96, height: 96, borderRadius: '50%', border: '1px solid var(--sf-accent, #D88C9A)' }} />
+        <Avatar bio={bio} config={config} theme="blush" isLightBg={true} size={80} />
+      </div>
+      <h1 style={{ margin: 0, fontFamily: 'var(--sf-font, Georgia, serif)', fontSize: '1.05rem', fontWeight: 700, color: 'var(--sf-text-1, ' + textColor + ')' }}>{bio.name}</h1>
+      <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--sf-text-2, ' + textColor2 + ')' }}>{bio.bio || ('@' + config.storeSlug)}</p>
+      <div><SocialRow socials={bio.socials} isLightBg={true} textColor={textColor} /></div>
+      {items.length > 0 && (
+        <div style={{ width: '100%', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 8 }}>
+          {items.map(item => (
+            <Tile key={item.key} item={item} onProductClick={onProductClick} style={{ background: 'var(--sf-surface, #FFFFFF)', border: '1px solid var(--sf-border, #F4D4DA)', borderRadius: 'var(--sf-radius, 16px)', padding: '12px 10px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, textDecoration: 'none', color: 'inherit' }}>
+              {item.product?.images?.[0]
+                ? <img src={item.product.images[0]} alt="" style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover' }} />
+                : <span style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--sf-accent-2, #E8B4BC)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: 'var(--sf-text-1, #4A2E35)' }}>✦</span>}
+              <span style={{ display: 'block', fontSize: '0.7rem', fontWeight: 600, lineHeight: 1.25, color: 'var(--sf-text-1, ' + textColor + ')' }}>{item.label}</span>
+              <span style={{ display: 'block', fontSize: '0.62rem', color: 'var(--sf-text-2, ' + textColor2 + ')' }}>{item.sub}</span>
+            </Tile>
+          ))}
+        </div>
+      )}
+      <p style={{ marginTop: 8, fontSize: '0.68rem', color: 'var(--sf-text-3, ' + textColor3 + ')' }}>@{config.storeSlug} — Powered by MO Sell</p>
+    </div>
+  );
+}
+
+/* ─── 8. rose — masthead + numbered index ─────────────────────────────────── */
+
+export function RoseLayout(p: LayoutProps) {
+  const { config, bio, textColor, textColor2, textColor3, onProductClick } = p;
+  const items = buildLinkItems(p);
+  return (
+    <div style={{ width: '100%', maxWidth: 600, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 18, padding: '56px 24px 32px', position: 'relative', overflow: 'hidden' }}>
+      <LinkBioDeco theme="rose" />
+      <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', gap: 18 }}>
+        <div style={{ textAlign: 'center', paddingTop: 8 }}>
+          <p style={{ margin: 0, fontFamily: 'var(--sf-font, Georgia, serif)', fontSize: '22px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', lineHeight: 1, color: 'var(--sf-text-1, ' + textColor + ')' }}>{bio.name}</p>
+          <p style={{ margin: '8px 0 0', fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.15em', color: 'var(--sf-text-2, ' + textColor2 + ')' }}>{bio.bio || ('@' + config.storeSlug)}</p>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14 }}>
+          <Avatar bio={bio} config={config} theme="rose" isLightBg={false} size={36} />
+          <SocialRow socials={bio.socials} isLightBg={false} textColor={textColor} />
+        </div>
+        {items.length > 0 && (
+          <div style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
+            {items.map((item, i) => (
+              <Tile key={item.key} item={item} onProductClick={onProductClick} style={{ display: 'flex', alignItems: 'baseline', gap: 12, padding: '14px 0', borderBottom: '1px solid var(--sf-border, #3A2E31)', textDecoration: 'none', color: 'inherit' }}>
+                <span style={{ fontSize: 9, color: 'var(--sf-accent, #C97B8B)', fontFamily: 'system-ui, sans-serif' }}>{String(i + 1).padStart(2, '0')}</span>
+                <span style={{ flex: 1, textAlign: 'left' }}>
+                  <span style={{ display: 'block', fontSize: '11.5px', fontWeight: 600, color: 'var(--sf-text-1, ' + textColor + ')', fontFamily: 'var(--sf-font, Georgia, serif)' }}>{item.label}</span>
+                  <span style={{ display: 'block', fontSize: 9, marginTop: 2, color: 'var(--sf-text-2, ' + textColor2 + ')' }}>{item.sub}</span>
+                </span>
+              </Tile>
+            ))}
+          </div>
+        )}
+        <p style={{ margin: 0, textAlign: 'center', fontSize: '0.68rem', color: 'var(--sf-text-3, ' + textColor3 + ')' }}>— @{config.storeSlug} —</p>
+      </div>
+    </div>
+  );
+}
+
+/* ─── 9. pearl — glass hero + floating tile grid ──────────────────────────── */
+
+export function PearlLayout(p: LayoutProps) {
+  const { config, bio, textColor, textColor2, textColor3, onProductClick } = p;
+  const items = buildLinkItems(p);
+  return (
+    <div style={{ width: '100%', maxWidth: 600, margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20, padding: '56px 24px 32px', position: 'relative', overflow: 'hidden' }}>
+      <LinkBioDeco theme="pearl" />
+      <div style={{ position: 'relative', zIndex: 1, width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
+        <div style={{ position: 'relative', width: '100%' }}>
+          <div style={{ borderRadius: 'var(--sf-radius-lg, 24px)', padding: '52px 16px 16px', textAlign: 'center', background: 'var(--sf-surface, rgba(255,255,255,0.4))', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', border: '1px solid var(--sf-border, rgba(255,255,255,0.6))' }}>
+            <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: 'var(--sf-text-1, ' + textColor + ')', fontFamily: 'var(--sf-font, Verdana, sans-serif)' }}>{bio.name}</p>
+            <p style={{ margin: '2px 0 0', fontSize: 10, color: 'var(--sf-text-2, ' + textColor2 + ')' }}>{bio.bio || ('@' + config.storeSlug)}</p>
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: 8 }}><SocialRow socials={bio.socials} isLightBg={true} textColor={textColor} /></div>
+          </div>
+          <div style={{ position: 'absolute', top: -28, left: '50%', transform: 'translateX(-50%)' }}>
+            <Avatar bio={bio} config={config} theme="pearl" isLightBg={true} size={64} />
+          </div>
+        </div>
+        {items.length > 0 && (
+          <div style={{ width: '100%', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            {items.map(item => (
+              <Tile key={item.key} item={item} onProductClick={onProductClick} style={{ borderRadius: 'var(--sf-radius, 16px)', padding: 14, display: 'flex', flexDirection: 'column', gap: 6, background: 'var(--sf-surface, rgba(255,255,255,0.4))', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', border: '1px solid var(--sf-border, rgba(255,255,255,0.6))', textDecoration: 'none', color: 'inherit' }}>
+                {item.product?.images?.[0]
+                  ? <img src={item.product.images[0]} alt="" style={{ width: 20, height: 20, borderRadius: 6, objectFit: 'cover' }} />
+                  : <span style={{ fontSize: 14, lineHeight: 1 }}>✦</span>}
+                <span style={{ display: 'block', fontSize: '9.5px', fontWeight: 600, lineHeight: 1.3, marginTop: 2, color: 'var(--sf-text-1, ' + textColor + ')', fontFamily: 'var(--sf-font, Verdana, sans-serif)' }}>{item.label}</span>
+                <span style={{ display: 'block', fontSize: 8, color: 'var(--sf-text-2, ' + textColor2 + ')' }}>{item.sub}</span>
+              </Tile>
+            ))}
+          </div>
+        )}
+        <p style={{ margin: 0, fontSize: '0.68rem', color: 'var(--sf-text-3, ' + textColor3 + ')' }}>@{config.storeSlug} — Powered by MO Sell</p>
+      </div>
+    </div>
+  );
+}
+
+/* ─── 10. cherry — asymmetric sticker collage ─────────────────────────────── */
+
+export function CherryLayout(p: LayoutProps) {
+  const { config, bio, textColor, textColor3, onProductClick } = p;
+  const items = buildLinkItems(p);
+  const rotations = [-2, 1.5, -1, 2];
+  const socials = bio.socials.filter(s => s.url);
+  return (
+    <div style={{ width: '100%', maxWidth: 600, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16, padding: '56px 24px 32px', position: 'relative', overflow: 'hidden' }}>
+      <LinkBioDeco theme="cherry" />
+      <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+          <div style={{ transform: 'rotate(-6deg)' }}><Avatar bio={bio} config={config} theme="cherry" isLightBg={false} size={56} /></div>
+          <div style={{ paddingTop: 4, textAlign: 'left' }}>
+            <p style={{ margin: 0, fontSize: '18px', fontWeight: 900, textTransform: 'uppercase', lineHeight: 1.1, color: '#FFFFFF', fontFamily: 'var(--sf-font, Arial Black, Impact, sans-serif)' }}>{bio.name}</p>
+            <p style={{ margin: '6px 0 0', fontSize: 10, color: '#FFFFFF', opacity: 0.8 }}>{bio.bio || ('@' + config.storeSlug)}</p>
+          </div>
+        </div>
+        {socials.length > 0 && (
+          <div style={{ display: 'flex', gap: 8 }}>
+            {socials.map((s, i) => (
+              <div key={i} style={{ width: 28, height: 28, borderRadius: '50%', background: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', transform: 'rotate(' + (i % 2 === 0 ? -8 : 8) + 'deg)' }}>
+                {SOCIAL_ICONS[s.platform]}
+              </div>
+            ))}
+          </div>
+        )}
+        {items.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 4 }}>
+            {items.map((item, i) => (
+              <Tile key={item.key} item={item} onProductClick={onProductClick} style={{ borderRadius: 16, padding: '13px 16px', display: 'flex', alignItems: 'center', gap: 12, background: '#FFFFFF', transform: 'rotate(' + rotations[i % rotations.length] + 'deg)', boxShadow: '0 3px 0 #C81E45', textDecoration: 'none', color: 'inherit' }}>
+                {item.product?.images?.[0]
+                  ? <img src={item.product.images[0]} alt="" style={{ width: 20, height: 20, borderRadius: '50%', objectFit: 'cover' }} />
+                  : <span style={{ width: 20, height: 20, borderRadius: '50%', background: '#FFD400', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11 }}>✦</span>}
+                <span style={{ flex: 1, textAlign: 'left' }}>
+                  <span style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#1A1A1A', fontFamily: 'var(--sf-font, Arial Black, Impact, sans-serif)' }}>{item.label}</span>
+                  <span style={{ display: 'block', fontSize: 9, color: '#1A1A1A', opacity: 0.55 }}>{item.sub}</span>
+                </span>
+              </Tile>
+            ))}
+          </div>
+        )}
+        <p style={{ margin: 0, textAlign: 'center', fontSize: '0.68rem', color: 'var(--sf-text-3, ' + textColor3 + ')' }}>@{config.storeSlug} — Powered by MO Sell</p>
+      </div>
+    </div>
+  );
+}
+
+/* ─── 11. quiet — left-aligned minimal list ───────────────────────────────── */
+
+export function QuietLayout(p: LayoutProps) {
+  const { config, bio, textColor, textColor2, textColor3, onProductClick } = p;
+  const items = buildLinkItems(p);
+  const socials = bio.socials.filter(s => s.url);
+  const initials = bio.name.charAt(0).toUpperCase();
+  return (
+    <div style={{ width: '100%', maxWidth: 600, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 28, padding: '56px 24px 32px', position: 'relative' }}>
+      <LinkBioDeco theme="quiet" />
+      <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', gap: 28 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 600, border: '1px solid var(--sf-accent, #B08968)', color: 'var(--sf-accent, #B08968)', fontFamily: 'var(--sf-font, Helvetica Neue, sans-serif)' }}>{initials}</div>
+          <div>
+            <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--sf-text-1, ' + textColor + ')', fontFamily: 'var(--sf-font, Helvetica Neue, sans-serif)' }}>{bio.name}</p>
+            <p style={{ margin: 0, fontSize: 10, color: 'var(--sf-text-2, ' + textColor2 + ')' }}>{bio.bio || ('@' + config.storeSlug)}</p>
+          </div>
+        </div>
+        {items.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            {items.map((item, i) => (
+              <Tile key={item.key} item={item} onProductClick={onProductClick} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 0', borderBottom: '1px solid var(--sf-border, #2A2A2A)', textDecoration: 'none', color: 'inherit' }}>
+                <span style={{ textAlign: 'left' }}>
+                  <span style={{ display: 'block', fontSize: 9, color: 'var(--sf-accent, #B08968)' }}>{String(i + 1).padStart(2, '0')}</span>
+                  <span style={{ display: 'block', fontSize: '11.5px', fontWeight: 500, color: 'var(--sf-text-1, ' + textColor + ')', fontFamily: 'var(--sf-font, Helvetica Neue, sans-serif)' }}>{item.label}</span>
+                </span>
+                <span style={{ fontSize: 9, color: 'var(--sf-text-2, ' + textColor2 + ')' }}>{item.sub}</span>
+              </Tile>
+            ))}
+          </div>
+        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '9.5px', color: 'var(--sf-text-2, ' + textColor2 + ')' }}>
+          {socials.length > 0
+            ? socials.map((s, i) => (
+                <span key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <a href={s.url} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'none' }}>{s.platform}</a>
+                  {i < socials.length - 1 && <span>·</span>}
+                </span>
+              ))
+            : <span>@{config.storeSlug}</span>}
+        </div>
+        <p style={{ margin: 0, fontSize: '0.68rem', color: 'var(--sf-text-3, ' + textColor3 + ')' }}>@{config.storeSlug} — Powered by MO Sell</p>
+      </div>
+    </div>
+  );
+}
+
+/* ─── 12. concrete — header row + block grid ──────────────────────────────── */
+
+export function ConcreteLayout(p: LayoutProps) {
+  const { config, bio, textColor, textColor2, textColor3, onProductClick } = p;
+  const items = buildLinkItems(p);
+  const socials = bio.socials.filter(s => s.url);
+  const initials = bio.name.charAt(0).toUpperCase();
+  return (
+    <div style={{ width: '100%', maxWidth: 600, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16, padding: '56px 24px 32px', position: 'relative', overflow: 'hidden' }}>
+      <LinkBioDeco theme="concrete" />
+      <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingBottom: 12, borderBottom: '1px solid var(--sf-border, #D4D1C8)' }}>
+          <div style={{ width: 56, height: 56, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, background: 'var(--sf-accent, #8C8A82)', color: '#FFFFFF', fontFamily: 'var(--sf-font, Arial, sans-serif)', border: '2px solid var(--sf-text-1, #2B2A28)' }}>{initials}</div>
+          <div>
+            <p style={{ margin: 0, fontSize: 13, fontWeight: 700, textTransform: 'uppercase', color: 'var(--sf-text-1, ' + textColor + ')', fontFamily: 'var(--sf-font, Arial, sans-serif)' }}>{bio.name}</p>
+            <p style={{ margin: 0, fontSize: '9.5px', fontFamily: 'Courier New, monospace', color: 'var(--sf-text-2, ' + textColor2 + ')' }}>{bio.bio || ('@' + config.storeSlug)}</p>
+          </div>
+        </div>
+        {items.length > 0 && (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', border: '1px solid var(--sf-border, #D4D1C8)' }}>
+            {items.map((item, i) => (
+              <Tile key={item.key} item={item} onProductClick={onProductClick} style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 8, borderRight: i % 2 === 0 ? '1px solid var(--sf-border, #D4D1C8)' : 'none', borderBottom: i < 2 ? '1px solid var(--sf-border, #D4D1C8)' : 'none', textDecoration: 'none', color: 'inherit' }}>
+                {item.product?.images?.[0]
+                  ? <img src={item.product.images[0]} alt="" style={{ width: 18, height: 18, objectFit: 'cover' }} />
+                  : <span style={{ width: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11 }}>◆</span>}
+                <span style={{ display: 'block', fontSize: '9.5px', fontWeight: 600, textTransform: 'uppercase', lineHeight: 1.25, color: 'var(--sf-text-1, ' + textColor + ')', fontFamily: 'var(--sf-font, Arial, sans-serif)' }}>{item.label}</span>
+                <span style={{ display: 'block', fontSize: 8, fontFamily: 'Courier New, monospace', color: 'var(--sf-text-2, ' + textColor2 + ')' }}>{item.sub}</span>
+              </Tile>
+            ))}
+          </div>
+        )}
+        {socials.length > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, padding: '10px 0', border: '1px solid var(--sf-border, #D4D1C8)' }}>
+            {socials.map((s, i) => <span key={i}>{SOCIAL_ICONS[s.platform]}</span>)}
+          </div>
+        )}
+        <p style={{ margin: 0, textAlign: 'center', fontSize: '0.68rem', fontFamily: 'Courier New, monospace', color: 'var(--sf-text-3, ' + textColor3 + ')' }}>@{config.storeSlug} — Powered by MO Sell</p>
+      </div>
+    </div>
+  );
+}
+
+/* ─── 13. chrome — HUD list, offset rows ──────────────────────────────────── */
+
+export function ChromeLayout(p: LayoutProps) {
+  const { config, bio, textColor, textColor2, textColor3, onProductClick } = p;
+  const items = buildLinkItems(p);
+  const socials = bio.socials.filter(s => s.url);
+  return (
+    <div style={{ width: '100%', maxWidth: 600, margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, padding: '56px 24px 32px', position: 'relative', overflow: 'hidden' }}>
+      <LinkBioDeco theme="chrome" />
+      <div style={{ position: 'relative', zIndex: 1, width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
+        <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ position: 'absolute', width: 92, height: 92, borderRadius: '50%', border: '1px solid var(--sf-accent, #00E5FF)' }} />
+          <Avatar bio={bio} config={config} theme="chrome" isLightBg={false} size={80} />
+        </div>
+        <div style={{ textAlign: 'center' }}>
+          <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: 'var(--sf-text-1, ' + textColor + ')', fontFamily: 'var(--sf-font, Arial, sans-serif)' }}>{bio.name}</p>
+          <p style={{ margin: '2px 0 0', fontSize: 10, color: 'var(--sf-text-2, ' + textColor2 + ')' }}>{bio.bio || ('@' + config.storeSlug)}</p>
+        </div>
+        {socials.length > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 10, color: 'var(--sf-text-2, ' + textColor2 + ')' }}>
+            {socials.map((s, i) => (
+              <span key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>{SOCIAL_ICONS[s.platform]}{i < socials.length - 1 && <span>•</span>}</span>
+            ))}
+          </div>
+        )}
+        {items.length > 0 && (
+          <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
+            {items.map((item, i) => (
+              <Tile key={item.key} item={item} onProductClick={onProductClick} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 'var(--sf-radius, 8px)', background: 'var(--sf-surface, rgba(255,255,255,0.14))', border: '1px solid var(--sf-border, rgba(255,255,255,0.35))', marginLeft: i % 2 === 0 ? 0 : 10, marginRight: i % 2 === 0 ? 10 : 0, textDecoration: 'none', color: 'inherit' }}>
+                <span style={{ fontSize: 9, fontFamily: 'Courier New, monospace', color: 'var(--sf-accent, #00E5FF)' }}>{String(i + 1).padStart(2, '0')}</span>
+                <span style={{ flex: 1, textAlign: 'left' }}>
+                  <span style={{ display: 'block', fontSize: '10.5px', fontWeight: 600, color: 'var(--sf-text-1, ' + textColor + ')', fontFamily: 'var(--sf-font, Arial, sans-serif)' }}>{item.label}</span>
+                  <span style={{ display: 'block', fontSize: '8.5px', color: 'var(--sf-text-2, ' + textColor2 + ')' }}>{item.sub}</span>
+                </span>
+                {item.product?.images?.[0]
+                  ? <img src={item.product.images[0]} alt="" style={{ width: 18, height: 18, borderRadius: 4, objectFit: 'cover' }} />
+                  : <span style={{ fontSize: 13 }}>✦</span>}
+              </Tile>
+            ))}
+          </div>
+        )}
+        <p style={{ margin: 0, fontSize: '0.68rem', fontFamily: 'Courier New, monospace', color: 'var(--sf-text-3, ' + textColor3 + ')' }}>@{config.storeSlug} — Powered by MO Sell</p>
+      </div>
+    </div>
+  );
+}
+
 /* ─── Registry ─── */
 const LAYOUTS: Record<string, React.ComponentType<LayoutProps>> = {
   ankara: AnkaraLayout,
@@ -501,6 +857,13 @@ const LAYOUTS: Record<string, React.ComponentType<LayoutProps>> = {
   neon: NeonLayout,
   sunset: SunsetLayout,
   mono: MonoLayout,
+  blush: BlushLayout,
+  rose: RoseLayout,
+  pearl: PearlLayout,
+  cherry: CherryLayout,
+  quiet: QuietLayout,
+  concrete: ConcreteLayout,
+  chrome: ChromeLayout,
 };
 
 export function getLinkBioLayout(theme: string): React.ComponentType<LayoutProps> {

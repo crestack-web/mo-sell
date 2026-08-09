@@ -165,6 +165,57 @@ export function getThemeCssVars(theme: StorefrontTheme, primary: string, seconda
         '--sf-accent': '#FF0000', '--sf-accent-2': '#000000', '--sf-nav-h': '0px',
         '--sf-font': "'Helvetica Neue', Arial, sans-serif",
       };
+      case 'blush': return {
+        '--sf-bg': '#FCE8EC', '--sf-surface': '#FFFFFF', '--sf-border': '#F4D4DA',
+        '--sf-text-1': '#4A2E35', '--sf-text-2': '#9C7A82', '--sf-text-3': '#BBA0A7',
+        '--sf-radius': '16px', '--sf-radius-sm': '10px', '--sf-radius-lg': '20px',
+        '--sf-accent': '#D88C9A', '--sf-accent-2': '#E8B4BC', '--sf-nav-h': '0px',
+        '--sf-font': "Georgia, 'Times New Roman', serif",
+      };
+      case 'rose': return {
+        '--sf-bg': '#171114', '--sf-surface': '#221A1D', '--sf-border': '#3A2E31',
+        '--sf-text-1': '#F2E9EA', '--sf-text-2': '#B79CA0', '--sf-text-3': '#7A6569',
+        '--sf-radius': '0px', '--sf-radius-sm': '0px', '--sf-radius-lg': '0px',
+        '--sf-accent': '#C97B8B', '--sf-accent-2': '#E8C4CB', '--sf-nav-h': '0px',
+        '--sf-font': "Georgia, serif",
+      };
+      case 'pearl': return {
+        '--sf-bg': 'linear-gradient(160deg, #F7D9E3 0%, #E0C3FC 50%, #C9E4F6 100%)',
+        '--sf-surface': 'rgba(255,255,255,0.4)', '--sf-border': 'rgba(255,255,255,0.6)',
+        '--sf-text-1': '#4A3B52', '--sf-text-2': 'rgba(74,59,82,0.7)', '--sf-text-3': 'rgba(74,59,82,0.45)',
+        '--sf-radius': '16px', '--sf-radius-sm': '12px', '--sf-radius-lg': '24px',
+        '--sf-accent': '#FFFFFF', '--sf-accent-2': '#F5A6C9', '--sf-nav-h': '0px',
+        '--sf-font': "Verdana, system-ui, sans-serif",
+      };
+      case 'cherry': return {
+        '--sf-bg': '#FF4D6D', '--sf-surface': '#FFFFFF', '--sf-border': '#C81E45',
+        '--sf-text-1': '#1A1A1A', '--sf-text-2': '#FFE3EA', '--sf-text-3': '#F6B7C5',
+        '--sf-radius': '16px', '--sf-radius-sm': '10px', '--sf-radius-lg': '20px',
+        '--sf-accent': '#FFFFFF', '--sf-accent-2': '#FFD400', '--sf-nav-h': '0px',
+        '--sf-font': "'Arial Black', Impact, sans-serif",
+      };
+      case 'quiet': return {
+        '--sf-bg': '#111111', '--sf-surface': '#1A1A1A', '--sf-border': '#2A2A2A',
+        '--sf-text-1': '#F0F0F0', '--sf-text-2': '#8A8A8A', '--sf-text-3': '#5A5A5A',
+        '--sf-radius': '0px', '--sf-radius-sm': '0px', '--sf-radius-lg': '0px',
+        '--sf-accent': '#B08968', '--sf-accent-2': '#3A3A3A', '--sf-nav-h': '0px',
+        '--sf-font': "'Helvetica Neue', Arial, sans-serif",
+      };
+      case 'concrete': return {
+        '--sf-bg': '#E5E3DE', '--sf-surface': '#FFFFFF', '--sf-border': '#D4D1C8',
+        '--sf-text-1': '#2B2A28', '--sf-text-2': '#7A776E', '--sf-text-3': '#A5A29A',
+        '--sf-radius': '0px', '--sf-radius-sm': '0px', '--sf-radius-lg': '0px',
+        '--sf-accent': '#8C8A82', '--sf-accent-2': '#C9C6BC', '--sf-nav-h': '0px',
+        '--sf-font': "Arial, 'Helvetica Neue', sans-serif",
+      };
+      case 'chrome': return {
+        '--sf-bg': 'linear-gradient(160deg, #3A3D42 0%, #6E7378 50%, #B8BCC2 100%)',
+        '--sf-surface': 'rgba(255,255,255,0.14)', '--sf-border': 'rgba(255,255,255,0.35)',
+        '--sf-text-1': '#FFFFFF', '--sf-text-2': 'rgba(255,255,255,0.7)', '--sf-text-3': 'rgba(255,255,255,0.45)',
+        '--sf-radius': '8px', '--sf-radius-sm': '6px', '--sf-radius-lg': '12px',
+        '--sf-accent': '#00E5FF', '--sf-accent-2': '#FFFFFF', '--sf-nav-h': '0px',
+        '--sf-font': "Arial, 'Helvetica Neue', sans-serif",
+      };
       default: return {
         '--sf-bg': '#FFC93C', '--sf-surface': '#FFFFFF', '--sf-border': '#1A1A1A',
         '--sf-text-1': '#1A1A1A', '--sf-text-2': '#4A4A4A', '--sf-text-3': '#6B6B6B',
@@ -676,6 +727,13 @@ export function StorefrontCanvas({
     neon:    ['#FF2E9A', '#00F0FF'],
     sunset:  ['#FFFFFF', '#FFD24C'],
     mono:    ['#FF0000', '#000000'],
+    blush:   ['#D88C9A', '#E8B4BC'],
+    rose:    ['#C97B8B', '#E8C4CB'],
+    pearl:   ['#F5A6C9', '#E0C3FC'],
+    cherry:  ['#FF4D6D', '#FFD400'],
+    quiet:   ['#B08968', '#3A3A3A'],
+    concrete: ['#8C8A82', '#C9C6BC'],
+    chrome:  ['#00E5FF', '#FFFFFF'],
   };
   const [defPrimary, defSecondary] = defaultColors[theme];
   const primary   = primaryColor   ?? defPrimary;

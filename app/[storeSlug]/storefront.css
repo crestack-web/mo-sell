@@ -220,6 +220,97 @@
   --sf-radius:    0px; --sf-radius-sm: 0px; --sf-radius-lg: 0px;
 }
 
+/* ── Blush Silk theme (soft grid layout) ── */
+[data-theme="blush"] {
+  --sf-bg:        #FCE8EC;
+  --sf-surface:   #FFFFFF;
+  --sf-border:    #F4D4DA;
+  --sf-text-1:    #4A2E35;
+  --sf-text-2:    #9C7A82;
+  --sf-text-3:    #BBA0A7;
+  --sf-accent:    #D88C9A;
+  --sf-accent-2:  #E8B4BC;
+  --sf-radius:    16px; --sf-radius-sm: 10px; --sf-radius-lg: 20px;
+}
+
+/* ── Rosé Editorial theme (masthead + numbered index) ── */
+[data-theme="rose"] {
+  --sf-bg:        #171114;
+  --sf-surface:   #221A1D;
+  --sf-border:    #3A2E31;
+  --sf-text-1:    #F2E9EA;
+  --sf-text-2:    #B79CA0;
+  --sf-text-3:    #7A6569;
+  --sf-accent:    #C97B8B;
+  --sf-accent-2:  #E8C4CB;
+  --sf-radius:    0px; --sf-radius-sm: 0px; --sf-radius-lg: 0px;
+}
+
+/* ── Pearl Glow theme (floating card + tile grid) ── */
+[data-theme="pearl"] {
+  --sf-bg:        linear-gradient(160deg, #F7D9E3 0%, #E0C3FC 50%, #C9E4F6 100%);
+  --sf-surface:   rgba(255,255,255,0.4);
+  --sf-border:    rgba(255,255,255,0.6);
+  --sf-text-1:    #4A3B52;
+  --sf-text-2:    rgba(74,59,82,0.7);
+  --sf-text-3:    rgba(74,59,82,0.45);
+  --sf-accent:    #FFFFFF;
+  --sf-accent-2:  #F5A6C9;
+  --sf-radius:    16px; --sf-radius-sm: 12px; --sf-radius-lg: 24px;
+}
+
+/* ── Cherry Pop theme (asymmetric sticker collage) ── */
+[data-theme="cherry"] {
+  --sf-bg:        #FF4D6D;
+  --sf-surface:   #FFFFFF;
+  --sf-border:    #C81E45;
+  --sf-text-1:    #1A1A1A;
+  --sf-text-2:    #FFE3EA;
+  --sf-text-3:    #F6B7C5;
+  --sf-accent:    #FFFFFF;
+  --sf-accent-2:  #FFD400;
+  --sf-radius:    16px; --sf-radius-sm: 10px; --sf-radius-lg: 20px;
+}
+
+/* ── Quiet Creator theme (left-aligned minimal list) ── */
+[data-theme="quiet"] {
+  --sf-bg:        #111111;
+  --sf-surface:   #1A1A1A;
+  --sf-border:    #2A2A2A;
+  --sf-text-1:    #F0F0F0;
+  --sf-text-2:    #8A8A8A;
+  --sf-text-3:    #5A5A5A;
+  --sf-accent:    #B08968;
+  --sf-accent-2:  #3A3A3A;
+  --sf-radius:    0px; --sf-radius-sm: 0px; --sf-radius-lg: 0px;
+}
+
+/* ── Concrete Studio theme (header row + block grid) ── */
+[data-theme="concrete"] {
+  --sf-bg:        #E5E3DE;
+  --sf-surface:   #FFFFFF;
+  --sf-border:    #D4D1C8;
+  --sf-text-1:    #2B2A28;
+  --sf-text-2:    #7A776E;
+  --sf-text-3:    #A5A29A;
+  --sf-accent:    #8C8A82;
+  --sf-accent-2:  #C9C6BC;
+  --sf-radius:    0px; --sf-radius-sm: 0px; --sf-radius-lg: 0px;
+}
+
+/* ── Chrome Nova theme (HUD list, offset rows) ── */
+[data-theme="chrome"] {
+  --sf-bg:        linear-gradient(160deg, #3A3D42 0%, #6E7378 50%, #B8BCC2 100%);
+  --sf-surface:   rgba(255,255,255,0.14);
+  --sf-border:    rgba(255,255,255,0.35);
+  --sf-text-1:    #FFFFFF;
+  --sf-text-2:    rgba(255,255,255,0.7);
+  --sf-text-3:    rgba(255,255,255,0.45);
+  --sf-accent:    #00E5FF;
+  --sf-accent-2:  #FFFFFF;
+  --sf-radius:    8px; --sf-radius-sm: 6px; --sf-radius-lg: 12px;
+}
+
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
