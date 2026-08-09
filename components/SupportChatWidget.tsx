@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 const C = {
   primary: '#0EA5E9',
@@ -264,6 +266,20 @@ export function SupportChatWidget() {
         )}
       </button>
 
+      <style>{`
+        .support-chat-md p { margin: 0 0 6px; }
+        .support-chat-md p:last-child { margin-bottom: 0; }
+        .support-chat-md ul, .support-chat-md ol { margin: 0 0 6px; padding-left: 18px; }
+        .support-chat-md li { margin-bottom: 2px; }
+        .support-chat-md a { color: ${C.primary}; font-weight: 600; }
+        .support-chat-md strong { font-weight: 700; }
+        .support-chat-md em { font-style: italic; }
+        .support-chat-md h1, .support-chat-md h2, .support-chat-md h3 { font-size: 13px; font-weight: 700; margin: 8px 0 4px; }
+        .support-chat-md code { background: rgba(14,165,233,0.1); padding: 1px 5px; border-radius: 4px; font-size: 0.85em; }
+        .support-chat-md pre { background: rgba(12,26,46,0.05); padding: 8px; border-radius: 8px; overflow-x: auto; margin: 0 0 6px; }
+        .support-chat-md blockquote { margin: 0 0 6px; padding-left: 10px; border-left: 3px solid ${C.border}; color: ${C.text2}; }
+      `}</style>
+
       {open && (
         <div
           style={{
@@ -406,7 +422,6 @@ export function SupportChatWidget() {
                   borderRadius: 14,
                   fontSize: 13,
                   lineHeight: 1.55,
-                  whiteSpace: 'pre-wrap',
                   ...(msg.role === 'user' ? {
                     background: `linear-gradient(135deg, ${C.primary}, ${C.accent})`,
                     color: 'white',
@@ -418,7 +433,22 @@ export function SupportChatWidget() {
                     borderTopLeftRadius: 4,
                   }),
                 }}>
-                  {msg.text}
+                  {msg.role === 'bot' ? (
+                    <div className="support-chat-md">
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        components={{
+                          a: ({ node: _node, ...props }) => (
+                            <a {...props} target="_blank" rel="noopener noreferrer" />
+                          ),
+                        }}
+                      >
+                        {msg.text}
+                      </ReactMarkdown>
+                    </div>
+                  ) : (
+                    <span style={{ whiteSpace: 'pre-wrap' }}>{msg.text}</span>
+                  )}
                 </div>
               </div>
             ))}

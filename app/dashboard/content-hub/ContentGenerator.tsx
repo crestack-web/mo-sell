@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { Lightbulb, Video, Copy, Sparkles, Check, X, AlertCircle, RefreshCw, CalendarClock } from 'lucide-react';
 import styles from './ContentHub.module.css';
 
@@ -44,6 +46,14 @@ const PLATFORM_ICONS: Record<string, string> = {
   tiktok: '🎵', ig: '📷', youtube: '▶️', twitter: '🐦',
   pinterest: '📌', fb: '👍', linkedin: '💼',
 };
+
+function Md({ text }: { text: string }) {
+  return (
+    <div className="content-md">
+      <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
+    </div>
+  );
+}
 
 interface Props {
   product: Product;
@@ -147,7 +157,7 @@ export function ContentGenerator({ product, onClose, currency, audienceContext, 
         {(data as any)?.audienceNote && !loading && !error && (
           <div className={styles.audienceNote}>
             <Sparkles className={styles.audienceNoteIcon} size={15} />
-            <span className={styles.audienceNoteText}>{(data as any).audienceNote}</span>
+            <div className={styles.audienceNoteText}><Md text={(data as any).audienceNote} /></div>
           </div>
         )}
         {loading ? (
@@ -177,7 +187,7 @@ export function ContentGenerator({ product, onClose, currency, audienceContext, 
                 {data.ideas.map((idea, i) => (
                   <div key={i} className={styles.ideaCard}>
                     <span className={styles.ideaNumber}>Idea #{i + 1}</span>
-                    <div className={styles.ideaHook}>{idea.hook}</div>
+                    <div className={styles.ideaHook}><Md text={idea.hook} /></div>
                     <div className={styles.ideaMeta}>
                       <span className={styles.ideaFormat}>{idea.format}</span>
                       <span className={styles.ideaCta}>CTA: {idea.cta}</span>
@@ -220,9 +230,9 @@ export function ContentGenerator({ product, onClose, currency, audienceContext, 
                 {data.scripts.map((script, i) => (
                   <div key={i} className={styles.scriptBlock}>
                     <span className={styles.scriptLabel}>Script {i + 1} — 20-30 second video</span>
-                    <div className={styles.scriptContent}>{script.text}</div>
+                    <div className={styles.scriptContent}><Md text={script.text} /></div>
                     <span className={styles.scriptLabel}>Caption</span>
-                    <div className={styles.scriptContent}>{script.caption}</div>
+                    <div className={styles.scriptContent}><Md text={script.caption} /></div>
                     <span className={styles.scriptLabel}>Hashtags</span>
                     <div className={styles.scriptContent}>{script.hashtags.join('  ')}</div>
                     <button
@@ -247,7 +257,7 @@ export function ContentGenerator({ product, onClose, currency, audienceContext, 
                 {data.tips.map((tip, i) => (
                   <div key={i} className={styles.tipCard}>
                     <span className={styles.tipIcon}>{tip.icon}</span>
-                    <span className={styles.tipText}>{tip.text}</span>
+                    <div className={styles.tipText}><Md text={tip.text} /></div>
                   </div>
                 ))}
               </>

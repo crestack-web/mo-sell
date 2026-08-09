@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { getDatabase } from '@/lib/database/adapter';
 import {
   Lightbulb, Calendar, TrendingUp, Megaphone, BarChart3, Users,
@@ -15,10 +17,17 @@ import { ContentGenerator } from './ContentGenerator';
 import { ProductContentCard } from './ProductContentCard';
 import generatorStyles from './ContentHub.module.css';
 
+function Md({ text }: { text: string }) {
+  return (
+    <div className="content-md">
+      <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
+    </div>
+  );
+}
+
 const TABS = [
   { id: 'ideas',     label: 'Ideas',     icon: Lightbulb },
-  { id: 'calendar',  label: 'Calendar',  icon: Calendar },
-  { id: 'trends',    label: 'Trends',    icon: TrendingUp },
+  { id: 'calendar',  label: 'Calendar',  icon: Calendar },  { id: 'trends',    label: 'Trends',    icon: TrendingUp },
   { id: 'campaigns', label: 'Campaigns', icon: Megaphone },
   { id: 'analytics', label: 'Analytics', icon: BarChart3 },
   { id: 'ugc',       label: 'UGC',       icon: Users },
@@ -2199,7 +2208,8 @@ export function ContentHub() {
                               <p style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--sell-text-2)', marginBottom: 6 }}>Video Hooks</p>
                               {generatedIdeas.videoHooks.map((h: string, i: number) => (
                                 <div key={i} style={{ padding: '8px 12px', background: 'var(--sell-bg)', borderRadius: 8, marginBottom: 6, fontSize: '0.82rem', color: 'var(--sell-text-1)', border: '1px solid var(--sell-border-subtle)' }}>
-                                  <span style={{ fontWeight: 700, color: 'var(--sell-accent)', marginRight: 8 }}>#{i + 1}</span>{h}
+                                  <span style={{ fontWeight: 700, color: 'var(--sell-accent)', marginRight: 8 }}>#{i + 1}</span>
+                                  <Md text={h} />
                                 </div>
                               ))}
                             </div>
@@ -2209,9 +2219,9 @@ export function ContentHub() {
                               <p style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--sell-text-2)', marginBottom: 6 }}>Content Angles</p>
                               {generatedIdeas.contentAngles.map((a: any, i: number) => (
                                 <div key={i} style={{ padding: '10px 12px', background: 'var(--sell-bg)', borderRadius: 8, marginBottom: 6, border: '1px solid var(--sell-border-subtle)' }}>
-                                  <p style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--sell-primary)', marginBottom: 4 }}>{a.angle}</p>
-                                  <p style={{ fontSize: '0.78rem', color: 'var(--sell-text-2)', marginBottom: 4 }}>{a.description}</p>
-                                  {a.suggestedScript && <p style={{ fontSize: '0.75rem', color: 'var(--sell-text-3)', fontStyle: 'italic' }}>{a.suggestedScript}</p>}
+                                  <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--sell-primary)', marginBottom: 4 }}><Md text={a.angle} /></div>
+                                  <div style={{ fontSize: '0.78rem', color: 'var(--sell-text-2)', marginBottom: 4 }}><Md text={a.description} /></div>
+                                  {a.suggestedScript && <div style={{ fontSize: '0.75rem', color: 'var(--sell-text-3)', fontStyle: 'italic' }}><Md text={a.suggestedScript} /></div>}
                                 </div>
                               ))}
                             </div>
@@ -2235,7 +2245,7 @@ export function ContentHub() {
                           {generatedIdeas.callToAction && (
                             <div style={{ padding: '10px 12px', background: 'var(--sell-green-bg)', borderRadius: 8, border: '1px solid var(--sell-green)' }}>
                               <p style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--sell-green)', marginBottom: 2 }}>Suggested CTA</p>
-                              <p style={{ fontSize: '0.82rem', color: 'var(--sell-text-1)' }}>{generatedIdeas.callToAction}</p>
+                              <div style={{ fontSize: '0.82rem', color: 'var(--sell-text-1)' }}><Md text={generatedIdeas.callToAction} /></div>
                             </div>
                           )}
                         </div>
