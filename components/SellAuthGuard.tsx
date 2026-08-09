@@ -49,6 +49,21 @@ export function SellAuthGuard({ children }: Props) {
           }
         }
 
+        // Check pay-as-you-go / monthly billing store (no legacy subscription required)
+        if (userData.businessId) {
+          const businessSnap = await db.doc(`businesses/${userData.businessId}`).get();
+          const businessData = businessSnap.exists ? businessSnap.data() : {};
+          const billingModel = businessData.billingModel;
+          const billingStatus = businessData.billingStatus;
+          if (billingModel === 'pay_as_you_go' || billingModel === 'monthly') {
+            if (billingStatus !== 'canceled') {
+              setHasAccess(true);
+              setSubscriptionChecked(true);
+              return;
+            }
+          }
+        }
+
         setHasAccess(false);
         setSubscriptionChecked(true);
       } catch (err) {

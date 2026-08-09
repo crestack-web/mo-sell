@@ -11,6 +11,8 @@ const PAGE_LABELS: Record<string, string> = {
   orders:      'Orders',
   shipping:    'Shipping & Delivery',
   analytics:   'Analytics',
+  earnings:    'Earnings',
+  billing:     'Billing',
   settings:    'Store Settings',
   'setup-wizard': 'Store Setup',
   'ask-mo':    'Ask Mo',

@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { getDatabase } from '@/lib/database/adapter';
 import { useSell } from '@/context/SellContext';
+import { isPlatformManaged, getCommissionRate } from '@/lib/pricing';
 import styles from './SellEarningsPage.module.css';
 
 export const dynamic = 'force-dynamic';
@@ -53,8 +54,6 @@ interface UgcEarningOrder {
 }
 
 // â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-const COMMISSION_RATE = 0.05;
 
 function fmt(n: number, currency = 'NGN') {
   const sym = currency === 'NGN' ? '₦' : currency === 'USD' ? '$' : currency + ' ';
@@ -171,6 +170,9 @@ export function SellEarningsPage() {
   const [verifyingBank, setVerifyingBank] = useState(false);
 
   const managedPayments = (storeConfig as any)?.managedPayments === true;
+  const platformManaged = isPlatformManaged(storeConfig as any);
+  const commissionRate = getCommissionRate(storeConfig as any);
+  const billingModel = (storeConfig as any)?.billingModel;
   const currency = storeConfig?.currency ?? 'NGN';
 
   // Promote pending -> available after 24 h (client-side convenience update)
@@ -289,10 +291,10 @@ export function SellEarningsPage() {
       .catch(() => {});
   }, []);
 
-  // Default to UGC tab when user has a UGC profile but no managed payments
+  // Default to UGC tab when user has a UGC profile but no store earnings tracking
   useEffect(() => {
-    if (!managedPayments && hasUgcProfile) setTab('ugc');
-  }, [managedPayments, hasUgcProfile]);
+    if (!platformManaged && hasUgcProfile) setTab('ugc');
+  }, [platformManaged, hasUgcProfile]);
 
   // Stats
   const totalGross     = earnings.reduce((s, e) => s + e.grossAmount, 0);
@@ -450,7 +452,7 @@ export function SellEarningsPage() {
     );
   }
 
-  if (!managedPayments && !hasUgcProfile) {
+  if (!platformManaged && !hasUgcProfile) {
     return (
       <div className={styles.page}>
         <div className={styles.header}>
@@ -462,7 +464,7 @@ export function SellEarningsPage() {
           <p className={styles.emptyTitle}>Enable Managed Payments first</p>
           <p className={styles.emptySub}>
             Turn on Managed Payments in Settings to let Busmo collect payments on your behalf.
-            A 5% commission is charged per sale — your net earnings appear here and you can request a payout anytime.
+            A {pct(commissionRate || 0.05)} commission is charged per sale — your net earnings appear here and you can request a payout anytime.
           </p>
           <button
             className={styles.btnPrimary}
@@ -475,7 +477,7 @@ export function SellEarningsPage() {
     );
   }
 
-  const showStoreTabs = managedPayments;
+  const showStoreTabs = platformManaged;
   let activeTab: 'earnings' | 'payouts' | 'ugc' = tab;
   if (!hasUgcProfile && activeTab === 'ugc') activeTab = 'earnings';
   if (!showStoreTabs && (activeTab === 'earnings' || activeTab === 'payouts')) activeTab = 'ugc';
@@ -489,8 +491,12 @@ export function SellEarningsPage() {
           <h2 className={styles.heading}>Earnings</h2>
           {activeTab === 'ugc' ? (
             <p className={styles.sub}>Track payments from your UGC orders and cash out once a purchase is delivered and completed.</p>
+          ) : commissionRate > 0 ? (
+            <p className={styles.sub}>Busmo collects on your behalf and charges {pct(commissionRate)} commission per sale.</p>
+          ) : billingModel === 'monthly' ? (
+            <p className={styles.sub}>No per-sale commission — your monthly plan fee is only deducted when your revenue reaches the plan fee.</p>
           ) : (
-            <p className={styles.sub}>Busmo collects on your behalf and charges {pct(COMMISSION_RATE)} commission per sale.</p>
+            <p className={styles.sub}>Busmo collects on your behalf and charges {pct(commissionRate)} commission per sale.</p>
           )}
         </div>
         {activeTab === 'ugc' ? (
@@ -541,14 +547,14 @@ export function SellEarningsPage() {
           <p className={styles.statSub}>{earnings.length} order{earnings.length !== 1 ? 's' : ''}</p>
         </div>
         <div className={styles.statCard}>
-          <p className={styles.statLabel}>Commission ({pct(COMMISSION_RATE)})</p>
+          <p className={styles.statLabel}>Commission ({pct(commissionRate)})</p>
           <p className={[styles.statValue, styles.statValueRed].join(' ')}>-{fmt(totalCommission, currency)}</p>
           <p className={styles.statSub}>Platform fee deducted</p>
         </div>
         <div className={styles.statCard}>
           <p className={styles.statLabel}>Total Earnings</p>
           <p className={[styles.statValue, styles.statValueGreen].join(' ')}>{fmt(totalNet, currency)}</p>
-          <p className={styles.statSub}>After {pct(COMMISSION_RATE)} commission</p>
+          <p className={styles.statSub}>After {pct(commissionRate)} commission</p>
         </div>
         <div className={[styles.statCard, styles.statCardHighlight].join(' ')}>
           <p className={styles.statLabel}>Available to Payout</p>
