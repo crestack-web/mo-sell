@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import type { ThemeComponents, ThemeProductPageProps } from '@/themes/types';
 import { BookingPicker } from './BookingPicker';
+import { PLATFORM_PAYSTACK_PUBLIC_KEY } from '@/lib/paystack';
 
 interface Product {
   id: string;
@@ -235,7 +236,7 @@ export function ProductDetailClient({ product, storeSlug, currency, theme, busin
     setError('');
 
     try {
-      const activeKey = paystackKeyProp || storeConfig?.paystackPublicKey || process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || '';
+      const activeKey = paystackKeyProp || storeConfig?.paystackPublicKey || process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || PLATFORM_PAYSTACK_PUBLIC_KEY;
       if (!activeKey) {
         setError('Payment is temporarily unavailable. Please try again later.');
         setProcessing(false);

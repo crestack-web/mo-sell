@@ -1,4 +1,5 @@
 import { getSupabaseServer } from '@/lib/database/postgresql-adapter';
+import { PLATFORM_PAYSTACK_PUBLIC_KEY } from '@/lib/paystack';
 
 export interface PublicStoreConfig {
   businessId: string;
@@ -93,7 +94,7 @@ export async function getStoreConfigBySlug(storeSlug: string): Promise<PublicSto
     customDomainStatus: row.customDomainStatus ?? 'pending',
     paystackPublicKey: row.useOwnPaystack && row.paystackPublicKey
       ? row.paystackPublicKey
-      : (process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || process.env.PAYSTACK_PUBLIC_KEY || ''),
+      : (process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || process.env.PAYSTACK_PUBLIC_KEY || PLATFORM_PAYSTACK_PUBLIC_KEY),
     fontFamily: row.fontFamily ?? null,
     bgColor: row.bgColor ?? null,
     bodyTextColor: row.bodyTextColor ?? null,

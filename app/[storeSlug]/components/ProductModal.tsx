@@ -3,6 +3,7 @@
 import React, { useState, useCallback } from 'react';
 import { X, ShoppingCart, CheckCircle, Loader2 } from 'lucide-react';
 import type { ProductCardData } from '@/themes/types';
+import { PLATFORM_PAYSTACK_PUBLIC_KEY } from '@/lib/paystack';
 
 interface ProductModalProps {
   product: ProductCardData & { description?: string; digitalFileUrl?: string | null; callToAction?: string | null };
@@ -65,7 +66,7 @@ export function ProductModal({ product, storeSlug, currency, primaryColor, payst
     setError('');
 
     try {
-      const activeKey = paystackPublicKey || process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || '';
+      const activeKey = paystackPublicKey || process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || PLATFORM_PAYSTACK_PUBLIC_KEY;
       if (!activeKey) {
         setError('Payment is temporarily unavailable. Please try again later.');
         setProcessing(false);
