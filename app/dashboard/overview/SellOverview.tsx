@@ -271,17 +271,11 @@ export function SellOverview() {
               { label: 'Add product',     img: 'https://res.cloudinary.com/dzjoqbg2u/image/upload/v1786280719/Untitled_-_August_08_2026_at_11.22.19_g5daal.png', page: 'products' as const },
               { label: 'View orders',     img: 'https://res.cloudinary.com/dzjoqbg2u/image/upload/v1786280713/Untitled_-_August_08_2026_at_11.22.19_cw6drr.png', page: 'orders' as const },
               { label: 'Manage shipping', img: 'https://res.cloudinary.com/dzjoqbg2u/image/upload/v1786280714/Untitled_-_August_08_2026_at_11.22.19_grw18t.png', page: 'shipping' as const },
-              { label: 'See analytics',   icon: '📊', page: 'analytics' as const },
+              { label: 'See analytics',   img: 'https://res.cloudinary.com/dzjoqbg2u/image/upload/v1786280714/Untitled_-_August_08_2026_at_11.22.19_geseuq.png', page: 'analytics' as const },
               { label: 'Store settings',  img: 'https://res.cloudinary.com/dzjoqbg2u/image/upload/v1786280708/Untitled_-_August_08_2026_at_11.22.19_mats40.png', page: 'settings' as const },
             ].map(a => (
               <button key={a.page} className={styles.actionTile} onClick={() => navigateTo(a.page)}>
-                {a.img
-                  ? <img className={styles.actionImg} src={a.img} alt={a.label} />
-                  : <>
-                      <span className={styles.actionEmoji}>{a.icon}</span>
-                      <span className={styles.actionLabel}>{a.label}</span>
-                    </>
-                }
+                <img className={styles.actionImg} src={a.img} alt={a.label} />
               </button>
             ))}
           </div>
