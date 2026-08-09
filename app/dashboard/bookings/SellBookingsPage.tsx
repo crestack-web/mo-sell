@@ -388,7 +388,7 @@ export function SellBookingsPage() {
                 </div>
               ) : filtered.length === 0 ? (
                 <div className={styles.empty}>
-                  <div className={styles.emptyIcon}>📅</div>
+                  <img className={styles.emptyImg} src="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1786280714/Untitled_-_August_08_2026_at_11.22.19_yhdstd.png" alt={bookings.length === 0 ? 'No bookings yet' : 'No results'} />
                   <p className={styles.emptyTitle}>{bookings.length === 0 ? 'No bookings yet' : 'No results'}</p>
                   <p className={styles.emptySub}>
                     {bookings.length === 0
