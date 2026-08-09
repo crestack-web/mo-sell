@@ -70,6 +70,8 @@ interface StoreProduct {
   bufferTime: number | null;
   // Multiple digital files
   digitalFiles?: Array<{ url: string; name: string }>;
+  // Custom buy-button text shown on the storefront product page
+  callToAction: string | null;
 }
 
 interface InventoryProduct {
@@ -128,6 +130,7 @@ type FormData = {
   // Service slot config
   slotDuration: string;
   bufferTime: string;
+  callToAction: string;
 };
 
 const EMPTY_FORM: FormData = {
@@ -142,6 +145,7 @@ const EMPTY_FORM: FormData = {
   eventDate: '', eventTime: '', venue: '', ticketType: 'general', capacity: '',
   sessionType: '', sessionDuration: '', sessionFormat: '', numberOfSessions: '', coachingDeliverable: '',
   slotDuration: '60', bufferTime: '15',
+  callToAction: '',
 };
 
 const CATEGORIES = [
@@ -284,6 +288,7 @@ function ProductSlideOver({ product, onClose, onSaved, businessId, currency, sto
       coachingDeliverable: product.coachingDeliverable ?? '',
       slotDuration: product.slotDuration ? String(product.slotDuration) : '60',
       bufferTime: product.bufferTime != null ? String(product.bufferTime) : '15',
+      callToAction: product.callToAction ?? '',
     };
   });
 
@@ -521,6 +526,7 @@ function ProductSlideOver({ product, onClose, onSaved, businessId, currency, sto
       // Add digital subtype and specific fields
       if (form.productType === 'digital') {
         payload.digitalSubtype = form.digitalSubtype;
+        payload.callToAction = form.callToAction.trim() || null;
         
         // Ebook specific
         if (form.digitalSubtype === 'ebook') {
@@ -821,6 +827,21 @@ function ProductSlideOver({ product, onClose, onSaved, businessId, currency, sto
                   <option value="ticket">🎫 Event Ticket</option>
                   <option value="coaching">🎯 Coaching / Consultation</option>
                 </select>
+              </div>
+
+              {/* Buy button text */}
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Buy button text</label>
+                <input
+                  className={styles.formInput}
+                  placeholder="e.g. Get Instant Access, Download Now, Enroll Now"
+                  value={form.callToAction}
+                  onChange={e => set('callToAction', e.target.value)}
+                  maxLength={40}
+                />
+                <p className={styles.formHint}>
+                  The text buyers tap to start the payment. Defaults to “Buy Now” if left empty.
+                </p>
               </div>
 
               {/* File upload or URL */}

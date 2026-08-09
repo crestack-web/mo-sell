@@ -5,7 +5,7 @@ import { X, ShoppingCart, CheckCircle, Loader2 } from 'lucide-react';
 import type { ProductCardData } from '@/themes/types';
 
 interface ProductModalProps {
-  product: ProductCardData & { description?: string; digitalFileUrl?: string | null };
+  product: ProductCardData & { description?: string; digitalFileUrl?: string | null; callToAction?: string | null };
   storeSlug: string;
   currency: string;
   primaryColor: string;
@@ -253,7 +253,7 @@ export function ProductModal({ product, storeSlug, currency, primaryColor, payst
                 {processing ? (
                   <><Loader2 size={18} style={{ animation: 'spin 0.7s linear infinite' }} /> Processing...</>
                 ) : (
-                  <><ShoppingCart size={18} /> Buy Now with Paystack</>
+                  <><ShoppingCart size={18} /> {product.callToAction?.trim() || 'Buy Now with Paystack'}</>
                 )}
               </button>
 

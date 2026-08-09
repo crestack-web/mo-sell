@@ -22,6 +22,7 @@ interface Product {
   eventTime?: string | null;
   venue?: string | null;
   capacity?: number | string | null;
+  callToAction?: string | null;
 }
 
 interface Props {
@@ -710,7 +711,7 @@ export function ProductDetailClient({ product, storeSlug, currency, theme, busin
                     Processing Payment…
                   </>
                 ) : (
-                  needsSlot ? 'Confirm Booking & Pay Now' : 'Buy Now with Paystack'
+                  product.callToAction?.trim() || (needsSlot ? 'Confirm Booking & Pay Now' : 'Buy Now with Paystack')
                 )}
               </button>
 
