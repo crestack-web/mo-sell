@@ -91,7 +91,9 @@ export async function getStoreConfigBySlug(storeSlug: string): Promise<PublicSto
     pickupLocations: row.pickupLocations ?? [],
     customDomain: row.customDomain ?? null,
     customDomainStatus: row.customDomainStatus ?? 'pending',
-    paystackPublicKey: row.paystackPublicKey ?? '',
+    paystackPublicKey: row.useOwnPaystack && row.paystackPublicKey
+      ? row.paystackPublicKey
+      : (process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || process.env.PAYSTACK_PUBLIC_KEY || ''),
     fontFamily: row.fontFamily ?? null,
     bgColor: row.bgColor ?? null,
     bodyTextColor: row.bodyTextColor ?? null,
