@@ -10,7 +10,7 @@
  */
 
 import { getSupabaseServer } from '@/lib/database/postgresql-adapter';
-import { getCommissionRate, isPlatformManaged, currentMonthKey } from '@/lib/pricing';
+import { computeOrderCommission, isPlatformManaged, currentMonthKey } from '@/lib/pricing';
 import type {
   IntegrationBridgeParams,
   IntegrationBridgeResult,
@@ -227,11 +227,13 @@ export async function processConfirmedOrder(
     }
 
     // ── Write 4: Store earnings + commission (managed payments / billing model) ─
-    const commissionRate = getCommissionRate(config);
     const platformManaged = isPlatformManaged(config);
+    let commissionRate = 0;
     let commissionAmount = 0;
     if (platformManaged) {
-      commissionAmount = Math.round(verifiedTotal * commissionRate * 100) / 100;
+      const commission = computeOrderCommission(session.lineItems, config, verifiedTotal);
+      commissionRate = commission.effectiveRate;
+      commissionAmount = commission.commissionAmount;
       const netAmount        = Math.round((verifiedTotal - commissionAmount) * 100) / 100;
       const { error: earningError } = await supabase.from('storeEarnings').insert({
         businessId,

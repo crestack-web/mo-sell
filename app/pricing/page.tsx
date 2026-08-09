@@ -87,7 +87,7 @@ function PricingPage() {
           Start free. Only pay for what you <span style={{ color: C.primary }}>sell.</span>
         </h1>
         <p style={{ color: C.text2, fontSize: 17, maxWidth: 620, margin: '0 auto', lineHeight: 1.7 }}>
-          Two ways to sell with MO Sell. Pay as you go with a 10% commission on sales, or
+          Two ways to sell with MO Sell. Pay as you go with a 30% commission on sales, or
           switch to a monthly plan — the fee only applies when your store actually earns it.
         </p>
 
@@ -142,20 +142,20 @@ function PricingPage() {
                 No monthly fee
               </span>
               <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, marginBottom: 8 }}>
-                <span style={{ fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 44, color: C.primary }}>10%</span>
+                <span style={{ fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 44, color: C.primary }}>30%</span>
                 <span style={{ color: C.text2, fontSize: 15, fontWeight: 600, paddingBottom: 8 }}>
                   commission per sale
                 </span>
               </div>
               <p style={{ color: C.text2, fontSize: 15, lineHeight: 1.7, marginBottom: 24 }}>
-                No upfront cost, no monthly fee, no card required. You keep 90% of every sale —
+                No upfront cost, no monthly fee, no card required. You keep 70% of every sale —
                 MO Sell only takes its cut when you actually sell.
               </p>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12, marginBottom: 24 }}>
                 {[
                   'Free forever',
                   'No card required at signup',
-                  'Keep 90% of every sale',
+                  'Keep 70% of every sale',
                   'All themes & features included',
                   'Paystack payments built in',
                   'Cancel anytime',
@@ -243,7 +243,8 @@ function PricingPage() {
               <div style={{ fontWeight: 800, color: C.amber, marginBottom: 4 }}>💡 Conditional billing — you only pay when you earn</div>
               <div style={{ fontSize: 14, color: C.text2, lineHeight: 1.6 }}>
                 The monthly fee is deducted from your earnings balance <strong>only in months where your revenue is at least the plan fee</strong>.
-                If you make less, that month&apos;s fee is simply waived. No commission is charged on sales.
+                If you make less, that month&apos;s fee is simply waived. The Standard plan charges a small 5% commission
+                (10% on digital products); Pro and Enterprise charge no commission at all.
               </div>
             </div>
 
@@ -311,15 +312,16 @@ function PricingPage() {
           <div style={{ background: C.surface, borderRadius: 16, padding: 24, border: `1px solid ${C.border}` }}>
             <div style={{ fontWeight: 800, marginBottom: 6 }}>🪙 Pay-as-you-go</div>
             <div style={{ fontSize: 14, color: C.text2, lineHeight: 1.7 }}>
-              Best for <strong>just starting out</strong> or selling occasionally. Pay 10% per sale,
+              Best for <strong>just starting out</strong> or selling occasionally. Pay 30% per sale,
               nothing when you don&apos;t sell. No commitment, no card.
             </div>
           </div>
           <div style={{ background: C.surface, borderRadius: 16, padding: 24, border: `1px solid ${C.border}` }}>
             <div style={{ fontWeight: 800, marginBottom: 6 }}>📈 Monthly plan</div>
             <div style={{ fontSize: 14, color: C.text2, lineHeight: 1.7 }}>
-              Best for <strong>steady sellers</strong> who want to keep 100% of each sale. Pay a flat fee
-              only in months you hit it. Switch anytime from your dashboard.
+              Best for <strong>steady sellers</strong>. Keep more of each sale — pay 5% commission on the
+              Standard plan (10% on digital) or none on Pro/Enterprise, plus a flat fee only in months you hit it.
+              Switch anytime from your dashboard.
             </div>
           </div>
           <div style={{ background: C.surface, borderRadius: 16, padding: 24, border: `1px solid ${C.border}` }}>

@@ -173,7 +173,10 @@ export function SellEarningsPage() {
   const platformManaged = isPlatformManaged(storeConfig as any);
   const commissionRate = getCommissionRate(storeConfig as any);
   const billingModel = (storeConfig as any)?.billingModel;
+  const billingPlan = (storeConfig as any)?.billingPlan;
   const currency = storeConfig?.currency ?? 'NGN';
+  const isStandardPlan = billingModel === 'monthly' && billingPlan === 'standard';
+  const commissionLabel = isStandardPlan ? '5% · 10% digital' : pct(commissionRate);
 
   // Promote pending -> available after 24 h (client-side convenience update)
   const promoteEarnings = useCallback(async (biz: string, items: Earning[]) => {
@@ -491,6 +494,8 @@ export function SellEarningsPage() {
           <h2 className={styles.heading}>Earnings</h2>
           {activeTab === 'ugc' ? (
             <p className={styles.sub}>Track payments from your UGC orders and cash out once a purchase is delivered and completed.</p>
+          ) : isStandardPlan ? (
+            <p className={styles.sub}>Busmo collects on your behalf and charges 5% commission (10% on digital products). Your monthly fee is only deducted when revenue reaches the plan fee.</p>
           ) : commissionRate > 0 ? (
             <p className={styles.sub}>Busmo collects on your behalf and charges {pct(commissionRate)} commission per sale.</p>
           ) : billingModel === 'monthly' ? (
@@ -547,14 +552,14 @@ export function SellEarningsPage() {
           <p className={styles.statSub}>{earnings.length} order{earnings.length !== 1 ? 's' : ''}</p>
         </div>
         <div className={styles.statCard}>
-          <p className={styles.statLabel}>Commission ({pct(commissionRate)})</p>
+          <p className={styles.statLabel}>Commission ({commissionLabel})</p>
           <p className={[styles.statValue, styles.statValueRed].join(' ')}>-{fmt(totalCommission, currency)}</p>
           <p className={styles.statSub}>Platform fee deducted</p>
         </div>
         <div className={styles.statCard}>
           <p className={styles.statLabel}>Total Earnings</p>
           <p className={[styles.statValue, styles.statValueGreen].join(' ')}>{fmt(totalNet, currency)}</p>
-          <p className={styles.statSub}>After {pct(commissionRate)} commission</p>
+          <p className={styles.statSub}>After {commissionLabel} commission</p>
         </div>
         <div className={[styles.statCard, styles.statCardHighlight].join(' ')}>
           <p className={styles.statLabel}>Available to Payout</p>
