@@ -91,31 +91,33 @@ export function ProductModal({ product, storeSlug, currency, primaryColor, payst
           product_type: product.productType,
           store_slug: storeSlug,
         },
-        callback: async (response: { reference: string }) => {
-          try {
-            const res = await fetch('/api/store/link-purchase/confirm', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                storeSlug,
-                productId: product.id,
-                paystackReference: response.reference,
-                customerEmail: email.trim(),
-              }),
-            });
-            const data = await res.json();
-            if (res.ok && data.orderId) {
-              setSuccess(true);
-            } else {
-              setError(data.error || 'Order confirmation failed. Contact support with your payment reference.');
+        callback: (response: { reference: string }) => {
+          void (async () => {
+            try {
+              const res = await fetch('/api/store/link-purchase/confirm', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  storeSlug,
+                  productId: product.id,
+                  paystackReference: response.reference,
+                  customerEmail: email.trim(),
+                }),
+              });
+              const data = await res.json();
+              if (res.ok && data.orderId) {
+                setSuccess(true);
+              } else {
+                setError(data.error || 'Order confirmation failed. Contact support with your payment reference.');
+                setShowEmailForm(true);
+              }
+            } catch {
+              setError('Order confirmation failed. Contact support with your payment reference.');
               setShowEmailForm(true);
             }
-          } catch {
-            setError('Order confirmation failed. Contact support with your payment reference.');
-            setShowEmailForm(true);
-          }
-          setProcessing(false);
-          document.cookie = `customer_email=${encodeURIComponent(email.trim())}; path=/; max-age=2592000`;
+            setProcessing(false);
+            document.cookie = `customer_email=${encodeURIComponent(email.trim())}; path=/; max-age=2592000`;
+          })();
         },
         onClose: () => {
           setShowEmailForm(true);

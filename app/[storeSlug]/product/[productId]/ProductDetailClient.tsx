@@ -289,33 +289,35 @@ export function ProductDetailClient({ product, storeSlug, currency, theme, busin
           store_slug: storeSlug,
           ...(bookingId ? { bookingId } : {}),
         },
-        callback: async (response: { reference: string }) => {
-          try {
-            const res = await fetch('/api/store/link-purchase/confirm', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                storeSlug,
-                productId: product.id,
-                paystackReference: response.reference,
-                customerEmail: email.trim(),
-                customerName: name.trim(),
-                customerPhone: phone.trim(),
-                ...(bookingId ? { bookingId } : {}),
-              }),
-            });
-            const data = await res.json() as { orderId?: string; error?: string };
-            if (res.ok && data.orderId) {
-              setOrderId(data.orderId);
-              setSuccess(true);
-              document.cookie = `customer_email=${encodeURIComponent(email.trim())}; path=/; max-age=2592000`;
-            } else {
-              setError(data.error || 'Payment confirmation failed. Contact support with your payment reference.');
+        callback: (response: { reference: string }) => {
+          void (async () => {
+            try {
+              const res = await fetch('/api/store/link-purchase/confirm', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  storeSlug,
+                  productId: product.id,
+                  paystackReference: response.reference,
+                  customerEmail: email.trim(),
+                  customerName: name.trim(),
+                  customerPhone: phone.trim(),
+                  ...(bookingId ? { bookingId } : {}),
+                }),
+              });
+              const data = await res.json() as { orderId?: string; error?: string };
+              if (res.ok && data.orderId) {
+                setOrderId(data.orderId);
+                setSuccess(true);
+                document.cookie = `customer_email=${encodeURIComponent(email.trim())}; path=/; max-age=2592000`;
+              } else {
+                setError(data.error || 'Payment confirmation failed. Contact support with your payment reference.');
+              }
+            } catch {
+              setError('Payment confirmation failed. Contact support with your payment reference.');
             }
-          } catch {
-            setError('Payment confirmation failed. Contact support with your payment reference.');
-          }
-          setProcessing(false);
+            setProcessing(false);
+          })();
         },
         onClose: () => {
           setProcessing(false);
