@@ -40,12 +40,15 @@ export async function generateMetadata({
   if (!config) return {};
   const product = await getProduct(config.businessId, productId);
   if (!product) return { title: config.storeName };
+  const plainDescription = product.description
+    ? product.description.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 200)
+    : `Buy ${product.displayName} at ${config.storeName}`;
   return {
     title: `${product.displayName} — ${config.storeName}`,
-    description: product.description ?? `Buy ${product.displayName} at ${config.storeName}`,
+    description: plainDescription,
     openGraph: {
       title: `${product.displayName} — ${config.storeName}`,
-      description: product.description ?? '',
+      description: plainDescription,
       images: product.images?.[0] ? [product.images[0]] : [],
     },
   };

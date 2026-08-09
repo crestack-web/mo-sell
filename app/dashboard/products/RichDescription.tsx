@@ -10,7 +10,7 @@ import Placeholder from '@tiptap/extension-placeholder';
 import YoutubeExtension from '@tiptap/extension-youtube';
 import {
   Bold, Italic, Underline, Heading1, Heading2, List, ListOrdered,
-  Image, Link as LinkIcon, Youtube, X,
+  Image, Link as LinkIcon, Youtube, Video, X,
 } from 'lucide-react';
 
 interface RichDescriptionProps {
@@ -37,8 +37,15 @@ const toolbarBtn = (active = false): React.CSSProperties => ({
 
 export function RichDescription({ value, onChange, placeholder }: RichDescriptionProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoFileInputRef = useRef<HTMLInputElement>(null);
   const isExternalUpdate = useRef(false);
-  const [uploading, setUploading] = React.useState(false);
+  const [uploading, setUploading] = React.useState<'image' | 'video' | null>(null);
+  const [notice, setNotice] = React.useState<string | null>(null);
+
+  const notify = useCallback((message: string) => {
+    setNotice(message);
+    window.setTimeout(() => setNotice(null), 4000);
+  }, []);
 
   const editor = useEditor({
     extensions: [
@@ -74,35 +81,84 @@ export function RichDescription({ value, onChange, placeholder }: RichDescriptio
 
   const handleImageUpload = useCallback(async (file: File) => {
     if (!editor) return;
-    if (!file.type.startsWith('image/')) return;
-    if (file.size > 5 * 1024 * 1024) return;
-    setUploading(true);
+    if (!file.type.startsWith('image/')) {
+      notify('Please choose an image file.');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      notify('Image is too large. Max 10MB.');
+      return;
+    }
+    setUploading('image');
     try {
       const { getStorage } = await import('@/lib/storage/adapter');
       const storage = getStorage();
       const path = `product-descriptions/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
       const url = await storage.upload(file, path);
-      editor.chain().focus().setImage({ src: url }).run();
+      editor.chain().focus().setImage({ src: url, alt: file.name.replace(/\.[^.]+$/, '') }).run();
     } catch (error) {
       console.error('Image upload failed:', error);
+      notify('Image upload failed. Please try again.');
     } finally {
-      setUploading(false);
+      setUploading(null);
     }
-  }, [editor]);
+  }, [editor, notify]);
+
+  const handleVideoUpload = useCallback(async (file: File) => {
+    if (!editor) return;
+    if (!file.type.startsWith('video/')) {
+      notify('Please choose a video file (MP4, WebM, MOV, etc).');
+      return;
+    }
+    if (file.size > 50 * 1024 * 1024) {
+      notify('Video is too large. Max 50MB.');
+      return;
+    }
+    setUploading('video');
+    try {
+      const { getStorage } = await import('@/lib/storage/adapter');
+      const storage = getStorage();
+      const path = `product-descriptions/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+      const url = await storage.upload(file, path);
+      editor.chain().focus().insertContent(`<video src="${url}" controls playsinline></video>`).run();
+    } catch (error) {
+      console.error('Video upload failed:', error);
+      notify('Video upload failed. Please try again.');
+    } finally {
+      setUploading(null);
+    }
+  }, [editor, notify]);
 
   const handleVideoEmbed = useCallback(() => {
     if (!editor) return;
-    const url = window.prompt('Enter YouTube or video URL:');
+    const url = (window.prompt('Paste a YouTube, Vimeo or direct video link:') || '').trim();
     if (!url) return;
-    if (url.includes('youtube.com') || url.includes('youtu.be') || url.includes('vimeo.com')) {
-      const videoId = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|vimeo\.com\/)([a-zA-Z0-9_-]+)/)?.[1];
-      if (videoId) {
-        editor.chain().focus().setYoutubeVideo({ src: url }).run();
-        return;
-      }
+
+    // YouTube → native TipTap youtube embed
+    if (/youtube\.com|youtu\.be/.test(url)) {
+      const ok = editor.chain().focus().setYoutubeVideo({ src: url }).run();
+      if (ok) return;
     }
+
+    // Vimeo → generic iframe embed
+    const vimeoMatch = url.match(/vimeo\.com\/(?:video\/)?(\d+)/);
+    if (vimeoMatch) {
+      editor.chain().focus()
+        .insertContent(`<div data-video-embed><iframe src="https://player.vimeo.com/video/${vimeoMatch[1]}" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe></div>`)
+        .run();
+      return;
+    }
+
+    // Direct link to a video file → native <video>
+    if (/\.(mp4|webm|ogg|mov|m4v)(\?.*)?$/i.test(url)) {
+      editor.chain().focus().insertContent(`<video src="${url}" controls playsinline></video>`).run();
+      return;
+    }
+
+    // Fall back to a regular link
     editor.chain().focus().setLink({ href: url }).run();
-  }, [editor]);
+    notify('Added as a link. Tip: use a YouTube/Vimeo link to embed a playable video.');
+  }, [editor, notify]);
 
   const handleAddLink = useCallback(() => {
     if (!editor) return;
@@ -144,14 +200,21 @@ export function RichDescription({ value, onChange, placeholder }: RichDescriptio
         <button style={toolbarBtn(editor.isActive('orderedList'))} onClick={() => editor.chain().focus().toggleOrderedList().run()} title="Ordered List"><ListOrdered size={15} /></button>
         <span style={{ width: 1, height: 20, background: 'var(--sell-border)', margin: '0 4px' }} />
         <button style={toolbarBtn(editor.isActive('link'))} onClick={handleAddLink} title="Add Link"><LinkIcon size={15} /></button>
-        <button style={{ ...toolbarBtn(), position: 'relative' }} onClick={() => fileInputRef.current?.click()} disabled={uploading} title="Upload Image">
-          {uploading ? (
+        <button style={{ ...toolbarBtn(), position: 'relative' }} onClick={() => fileInputRef.current?.click()} disabled={uploading !== null} title="Upload Image">
+          {uploading === 'image' ? (
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ width: 15, height: 15, animation: 'spin 0.7s linear infinite' }}>
               <path d="M21 12a9 9 0 11-6.219-8.56"/>
             </svg>
           ) : <Image size={15} />}
         </button>
-        <button style={toolbarBtn()} onClick={handleVideoEmbed} title="Embed Video"><Youtube size={15} /></button>
+        <button style={toolbarBtn()} onClick={handleVideoEmbed} title="Embed Video (YouTube / Vimeo / link)"><Youtube size={15} /></button>
+        <button style={{ ...toolbarBtn(), position: 'relative' }} onClick={() => videoFileInputRef.current?.click()} disabled={uploading !== null} title="Upload Video (MP4, WebM, etc.)">
+          {uploading === 'video' ? (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ width: 15, height: 15, animation: 'spin 0.7s linear infinite' }}>
+              <path d="M21 12a9 9 0 11-6.219-8.56"/>
+            </svg>
+          ) : <Video size={15} />}
+        </button>
         <input
           ref={fileInputRef}
           type="file"
@@ -163,7 +226,27 @@ export function RichDescription({ value, onChange, placeholder }: RichDescriptio
             e.target.value = '';
           }}
         />
+        <input
+          ref={videoFileInputRef}
+          type="file"
+          accept="video/*"
+          style={{ display: 'none' }}
+          onChange={e => {
+            const file = e.target.files?.[0];
+            if (file) handleVideoUpload(file);
+            e.target.value = '';
+          }}
+        />
       </div>
+      {notice && (
+        <div style={{
+          margin: '6px 8px', padding: '6px 10px', borderRadius: 6,
+          background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.4)',
+          color: '#B45309', fontSize: '0.75rem',
+        }}>
+          ⚠️ {notice}
+        </div>
+      )}
       <EditorContent editor={editor} />
       <style>{`
         .rich-description-editor p { margin: 0 0 8px; }
@@ -172,6 +255,13 @@ export function RichDescription({ value, onChange, placeholder }: RichDescriptio
         .rich-description-editor ul, .rich-description-editor ol { margin: 0 0 8px; padding-left: 20px; }
         .rich-description-editor li { margin-bottom: 4px; }
         .rich-description-editor img { max-width: 100%; border-radius: 8px; margin: 8px 0; }
+        .rich-description-editor video { max-width: 100%; border-radius: 8px; margin: 8px 0; background: #000; }
+        .rich-description-editor [data-youtube-video], .rich-description-editor [data-video-embed] {
+          position: relative; width: 100%; padding-top: 56.25%; height: 0; margin: 8px 0; background: #000; border-radius: 8px; overflow: hidden;
+        }
+        .rich-description-editor [data-youtube-video] iframe, .rich-description-editor [data-video-embed] iframe {
+          position: absolute; inset: 0; width: 100%; height: 100%; border: 0;
+        }
         .rich-description-editor a { color: var(--sell-primary); text-decoration: underline; }
         .rich-description-editor p.is-editor-empty:first-child::before {
           content: attr(data-placeholder);

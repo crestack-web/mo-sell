@@ -96,7 +96,7 @@ export function ProductPageWithTheme({ themeId, product, storeSlug, currency }: 
           <div style={{ height: 1, background: t.border }} />
 
           {product.description && (
-            <div style={{ fontSize: '0.95rem', color: t.subtext, lineHeight: 1.75, overflowWrap: 'break-word', fontFamily: t.fontBody }} dangerouslySetInnerHTML={{ __html: product.description }} />
+            <div className="product-rich-description" style={{ fontSize: '0.95rem', color: t.subtext, lineHeight: 1.75, overflowWrap: 'break-word', fontFamily: t.fontBody }} dangerouslySetInnerHTML={{ __html: product.description }} />
           )}
 
           {product.productType === 'physical' && (
