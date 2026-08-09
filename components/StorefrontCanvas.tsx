@@ -24,6 +24,9 @@ import type {
 import { DEFAULT_SECTIONS } from '@/types/mo-sell.types';
 import { isLinkTheme } from '@/themes/registry';
 
+const MOBILE_BREAKPOINT = 560;
+const isMobile = (width?: number) => (width ?? 1000) < MOBILE_BREAKPOINT;
+
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 export interface StorefrontCanvasProps {
@@ -245,10 +248,10 @@ function SfNav({ theme, storeName, logoUrl, primary, storeSlug, hideStoreNameWit
   );
 }
 
-function SfHero({ theme, storeName, tagline, settings, primary, secondary, buttonStyle }: {
+function SfHero({ theme, storeName, tagline, settings, primary, secondary, buttonStyle, width }: {
   theme: StorefrontTheme; storeName: string; tagline: string;
   settings: HeroSectionSettings; primary: string; secondary: string;
-  buttonStyle?: 'pill' | 'square' | 'rounded';
+  buttonStyle?: 'pill' | 'square' | 'rounded'; width?: number;
 }) {
   const heading = settings.heading || storeName;
   const sub = settings.showTagline !== false ? (settings.subheading || tagline) : '';
@@ -272,7 +275,7 @@ function SfHero({ theme, storeName, tagline, settings, primary, secondary, butto
   else radius = isCitrus ? 100 : isLuxe ? 0 : 'var(--sf-radius-sm)' as unknown as number;
 
   return (
-      <section style={{ background: heroBg, padding: isLuxe ? '72px 48px' : '60px 32px', display: 'flex', flexDirection: 'column', gap: 16, minHeight: 340, justifyContent: 'center', alignItems: align, textAlign }}>
+      <section style={{ background: heroBg, padding: isLuxe ? (isMobile(width) ? '48px 20px' : '72px 48px') : (isMobile(width) ? '44px 20px' : '60px 32px'), display: 'flex', flexDirection: 'column', gap: 16, minHeight: isMobile(width) ? 260 : 340, justifyContent: 'center', alignItems: align, textAlign }}>
 
         {badgeText && <p style={{
           fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase',
@@ -307,11 +310,11 @@ function SfHero({ theme, storeName, tagline, settings, primary, secondary, butto
   );
 }
 
-function SfFeatured({ theme, settings, primary, products, storeSlug }: {
-  theme: StorefrontTheme; settings: FeaturedSectionSettings; primary: string; products: StorefrontProduct[]; storeSlug?: string;
+function SfFeatured({ theme, settings, primary, products, storeSlug, width }: {
+  theme: StorefrontTheme; settings: FeaturedSectionSettings; primary: string; products: StorefrontProduct[]; storeSlug?: string; width?: number;
 }) {
   const heading = settings.heading || 'Featured Products';
-  const cols = settings.columns ?? 4;
+  const cols = isMobile(width) ? 2 : (settings.columns ?? 4);
   const isLuxe = theme === 'luxe';
   const maxItems = settings.maxItems ?? 4;
   const visible = products.slice(0, maxItems);
@@ -337,7 +340,7 @@ function SfFeatured({ theme, settings, primary, products, storeSlug }: {
   };
 
   return (
-    <section style={{ padding: '40px 32px', background: 'var(--sf-bg)' }}>
+    <section style={{ padding: isMobile(width) ? '32px 16px' : '40px 32px', background: 'var(--sf-bg)' }}>
       <h2 style={{ fontSize: '1.1rem', fontWeight: isLuxe ? 400 : 700, fontStyle: isLuxe ? 'italic' : 'normal', fontFamily: isLuxe ? '"Playfair Display",Georgia,serif' : 'inherit', letterSpacing: isLuxe ? '0.08em' : 0, color: 'var(--sf-text-1)', marginBottom: 20 }}>
         {heading}
       </h2>
@@ -359,8 +362,8 @@ function SfFeatured({ theme, settings, primary, products, storeSlug }: {
   );
 }
 
-function SfCollections({ collections, settings, primary, secondary }: {
-  collections: StoreCollection[]; settings: CollectionsSectionSettings; primary: string; secondary: string;
+function SfCollections({ collections, settings, primary, secondary, width }: {
+  collections: StoreCollection[]; settings: CollectionsSectionSettings; primary: string; secondary: string; width?: number;
 }) {
   const heading = settings.heading || 'Collections';
   const isGrid = settings.layout === 'grid';
@@ -369,9 +372,9 @@ function SfCollections({ collections, settings, primary, secondary }: {
   if (visible.length === 0) return null;
 
   return (
-    <section style={{ padding: '40px 32px', background: 'var(--sf-surface)', borderTop: '1px solid var(--sf-border)' }}>
+    <section style={{ padding: isMobile(width) ? '32px 16px' : '40px 32px', background: 'var(--sf-surface)', borderTop: '1px solid var(--sf-border)' }}>
       <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--sf-text-1)', marginBottom: 16 }}>{heading}</h2>
-      <div style={{ display: isGrid ? 'grid' : 'flex', gridTemplateColumns: isGrid ? 'repeat(3,1fr)' : undefined, gap: 10, overflowX: isGrid ? undefined : 'auto', paddingBottom: isGrid ? 0 : 8 }}>
+      <div style={{ display: isGrid ? 'grid' : 'flex', gridTemplateColumns: isGrid ? (isMobile(width) ? 'repeat(2,1fr)' : 'repeat(3,1fr)') : undefined, gap: 10, overflowX: isGrid ? undefined : 'auto', paddingBottom: isGrid ? 0 : 8 }}>
         {visible.map((col, i) => (
           <div key={i} style={{ flexShrink: 0, minWidth: 130, borderRadius: 'var(--sf-radius)', overflow: 'hidden', border: '1px solid var(--sf-border)', cursor: 'pointer', background: 'var(--sf-bg)' }}>
             <div style={{ height: 72, background: `linear-gradient(135deg,${primary}${['28','1e','14'][i]||'10'},${secondary}${['18','10','0a'][i]||'08'})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.72rem', fontWeight: 700, color: 'var(--sf-text-2)' }}>
@@ -396,11 +399,11 @@ function SfAnnouncement({ settings }: { settings: AnnouncementSectionSettings })
   );
 }
 
-function SfAbout({ settings, theme }: { settings: AboutSectionSettings; theme: StorefrontTheme }) {
+function SfAbout({ settings, theme, width }: { settings: AboutSectionSettings; theme: StorefrontTheme; width?: number }) {
   const imgLeft = settings.imagePosition === 'left';
   return (
-    <section style={{ padding: '48px 32px', background: 'var(--sf-bg)', borderTop: '1px solid var(--sf-border)' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: settings.imageUrl ? '1fr 1fr' : '1fr', gap: 40, alignItems: 'center' }}>
+    <section style={{ padding: isMobile(width) ? '36px 16px' : '48px 32px', background: 'var(--sf-bg)', borderTop: '1px solid var(--sf-border)' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: settings.imageUrl ? (isMobile(width) ? '1fr' : '1fr 1fr') : '1fr', gap: isMobile(width) ? 20 : 40, alignItems: 'center' }}>
         {settings.imageUrl && imgLeft && (
           <img src={settings.imageUrl} alt="" style={{ width: '100%', aspectRatio: '4/3', objectFit: 'cover', borderRadius: 'var(--sf-radius-lg)' }} />
         )}
@@ -425,11 +428,11 @@ function SfAbout({ settings, theme }: { settings: AboutSectionSettings; theme: S
   );
 }
 
-function SfTestimonials({ settings, primary }: { settings: TestimonialsSectionSettings; primary: string }) {
+function SfTestimonials({ settings, primary, width }: { settings: TestimonialsSectionSettings; primary: string; width?: number }) {
   const items = settings.testimonials ?? [];
   if (items.length === 0) return null;
   return (
-    <section style={{ padding: '48px 32px', background: 'var(--sf-surface)', borderTop: '1px solid var(--sf-border)' }}>
+    <section style={{ padding: isMobile(width) ? '36px 16px' : '48px 32px', background: 'var(--sf-surface)', borderTop: '1px solid var(--sf-border)' }}>
       <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--sf-text-1)', marginBottom: 24, textAlign: 'center' }}>
         {settings.heading ?? 'What our customers say'}
       </h2>
@@ -446,9 +449,9 @@ function SfTestimonials({ settings, primary }: { settings: TestimonialsSectionSe
   );
 }
 
-function SfNewsletter({ settings, primary }: { settings: NewsletterSectionSettings; primary: string }) {
+function SfNewsletter({ settings, primary, width }: { settings: NewsletterSectionSettings; primary: string; width?: number }) {
   return (
-    <section style={{ padding: '56px 32px', background: 'var(--sf-bg)', borderTop: '1px solid var(--sf-border)', textAlign: 'center' }}>
+    <section style={{ padding: isMobile(width) ? '40px 16px' : '56px 32px', background: 'var(--sf-bg)', borderTop: '1px solid var(--sf-border)', textAlign: 'center' }}>
       <h2 style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--sf-text-1)', marginBottom: 8 }}>
         {settings.heading ?? 'Join our community'}
       </h2>
@@ -466,14 +469,14 @@ function SfNewsletter({ settings, primary }: { settings: NewsletterSectionSettin
   );
 }
 
-function SfInstagram({ settings }: { settings: InstagramSectionSettings }) {
+function SfInstagram({ settings, width }: { settings: InstagramSectionSettings; width?: number }) {
   return (
-    <section style={{ padding: '48px 32px', background: 'var(--sf-surface)', borderTop: '1px solid var(--sf-border)' }}>
+    <section style={{ padding: isMobile(width) ? '36px 16px' : '48px 32px', background: 'var(--sf-surface)', borderTop: '1px solid var(--sf-border)' }}>
       <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--sf-text-1)', marginBottom: 16, textAlign: 'center' }}>
         {settings.heading ?? 'Follow us on Instagram'}
       </h2>
       {settings.handle && <p style={{ textAlign: 'center', color: 'var(--sf-text-3)', marginBottom: 16, fontSize: '0.9rem' }}>{settings.handle}</p>}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6,1fr)', gap: 6 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${isMobile(width) ? 3 : 6},1fr)`, gap: 6 }}>
         {Array.from({ length: 6 }).map((_, i) => (
           <div key={i} style={{ aspectRatio: '1/1', background: 'var(--sf-bg)', border: '1px solid var(--sf-border)', borderRadius: 'var(--sf-radius-sm)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--sf-text-3)" strokeWidth="1.5"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z"/></svg>
@@ -484,14 +487,14 @@ function SfInstagram({ settings }: { settings: InstagramSectionSettings }) {
   );
 }
 
-function SfFooter({ settings, storeName, logoUrl, theme }: {
-  settings: FooterSectionSettings; storeName: string; logoUrl?: string | null; theme: StorefrontTheme;
+function SfFooter({ settings, storeName, logoUrl, theme, width }: {
+  settings: FooterSectionSettings; storeName: string; logoUrl?: string | null; theme: StorefrontTheme; width?: number;
 }) {
   const socials = settings.socials ?? {};
   const hasSocials = Object.values(socials).some(Boolean);
   const isDark = theme === 'luxe';
   return (
-    <footer style={{ background: isDark ? '#000' : 'var(--sf-surface)', borderTop: '1px solid var(--sf-border)', padding: '40px 32px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, textAlign: 'center' }}>
+    <footer style={{ background: isDark ? '#000' : 'var(--sf-surface)', borderTop: '1px solid var(--sf-border)', padding: isMobile(width) ? '32px 16px' : '40px 32px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, textAlign: 'center' }}>
       {settings.showLogo !== false && logoUrl && (
         <img src={logoUrl} alt={storeName} style={{ height: 36, width: 'auto', maxWidth: 140, objectFit: 'contain', borderRadius: 'var(--sf-radius-sm)' }} />
       )}
@@ -735,21 +738,21 @@ export function StorefrontCanvas({
             case 'announcement':
               return <SfAnnouncement key={section.id} settings={s as unknown as AnnouncementSectionSettings} />;
             case 'hero':
-              return <SfHero key={section.id} theme={theme} storeName={storeName} tagline={tagline} settings={s as HeroSectionSettings} primary={primary} secondary={secondary} buttonStyle={buttonStyle} />;
+              return <SfHero key={section.id} theme={theme} storeName={storeName} tagline={tagline} settings={s as HeroSectionSettings} primary={primary} secondary={secondary} buttonStyle={buttonStyle} width={width} />;
             case 'featured':
-              return <SfFeatured key={section.id} theme={theme} settings={s as FeaturedSectionSettings} primary={primary} products={products} storeSlug={storeSlug} />;
+              return <SfFeatured key={section.id} theme={theme} settings={s as FeaturedSectionSettings} primary={primary} products={products} storeSlug={storeSlug} width={width} />;
             case 'collections':
-              return <SfCollections key={section.id} collections={collections} settings={s as CollectionsSectionSettings} primary={primary} secondary={secondary} />;
+              return <SfCollections key={section.id} collections={collections} settings={s as CollectionsSectionSettings} primary={primary} secondary={secondary} width={width} />;
             case 'about':
-              return <SfAbout key={section.id} settings={s as AboutSectionSettings} theme={theme} />;
+              return <SfAbout key={section.id} settings={s as AboutSectionSettings} theme={theme} width={width} />;
             case 'testimonials':
-              return <SfTestimonials key={section.id} settings={s as TestimonialsSectionSettings} primary={primary} />;
+              return <SfTestimonials key={section.id} settings={s as TestimonialsSectionSettings} primary={primary} width={width} />;
             case 'instagram':
-              return <SfInstagram key={section.id} settings={s as InstagramSectionSettings} />;
+              return <SfInstagram key={section.id} settings={s as InstagramSectionSettings} width={width} />;
             case 'newsletter':
-              return <SfNewsletter key={section.id} settings={s as NewsletterSectionSettings} primary={primary} />;
+              return <SfNewsletter key={section.id} settings={s as NewsletterSectionSettings} primary={primary} width={width} />;
             case 'footer':
-              return <SfFooter key={section.id} settings={s as FooterSectionSettings} storeName={storeName} logoUrl={logoUrl} theme={theme} />;
+              return <SfFooter key={section.id} settings={s as FooterSectionSettings} storeName={storeName} logoUrl={logoUrl} theme={theme} width={width} />;
             default:
               return null;
           }
