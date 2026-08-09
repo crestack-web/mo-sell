@@ -109,8 +109,116 @@
 /* ── Last active ── */
 .lastActive { font-size: 0.82rem; color: var(--sell-text-2); }
 
+/* ── Clickable rows ── */
+.clickableRow { cursor: pointer; }
+.rowActions { display: flex; gap: 6px; opacity: 0; transition: opacity var(--sell-transition); }
+.table tbody tr:hover .rowActions { opacity: 1; }
+.iconBtn {
+  width: 30px; height: 30px; border-radius: 7px;
+  border: 1px solid var(--sell-border); background: var(--sell-surface);
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+  color: var(--sell-text-2); transition: all var(--sell-transition); flex-shrink: 0;
+}
+.iconBtn:hover { background: var(--sell-bg); color: var(--sell-text-1); }
+.iconBtn svg { width: 13px; height: 13px; }
+
+/* ═══════════ SLIDE-OVER ═══════════ */
+.overlay { position: fixed; inset: 0; background: var(--sell-overlay); z-index: 50; backdrop-filter: blur(2px); }
+.slideover {
+  position: fixed; top: 0; right: 0; height: 100%; width: 540px; max-width: 100vw;
+  background: var(--sell-surface); border-left: 1px solid var(--sell-border);
+  display: flex; flex-direction: column; z-index: 51;
+  box-shadow: -16px 0 48px rgba(0,0,0,0.15);
+  animation: slideIn 0.22s cubic-bezier(0.4,0,0.2,1) both;
+}
+@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+.slideoverHeader {
+  padding: 16px 20px; border-bottom: 1px solid var(--sell-border);
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  flex-shrink: 0;
+}
+.slideoverUser { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.avatar {
+  width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0;
+  background: linear-gradient(135deg, var(--sell-primary), var(--sell-accent));
+  color: #fff; font-weight: 700; font-size: 0.95rem;
+  display: flex; align-items: center; justify-content: center;
+}
+.slideoverTitle { font-family: var(--sell-font-display); font-size: 1rem; font-weight: 700; color: var(--sell-text-1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.slideoverSub { font-size: 0.78rem; color: var(--sell-text-3); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.closeBtn {
+  width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--sell-border);
+  background: none; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  color: var(--sell-text-2); transition: background var(--sell-transition); flex-shrink: 0;
+}
+.closeBtn:hover { background: var(--sell-bg); }
+.closeBtn svg { width: 15px; height: 15px; }
+
+.slideoverBody { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 20px; }
+.slideoverBody::-webkit-scrollbar { width: 4px; }
+.slideoverBody::-webkit-scrollbar-thumb { background: var(--sell-border); border-radius: 4px; }
+
+.slideoverFooter { padding: 14px 20px; border-top: 1px solid var(--sell-border); display: flex; gap: 8px; justify-content: flex-end; flex-shrink: 0; }
+
+.sectionLabel {
+  font-size: 0.72rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--sell-text-3); padding-bottom: 8px; border-bottom: 1px solid var(--sell-border-subtle); margin-bottom: 10px;
+}
+
+.infoGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.infoKey { font-size: 0.72rem; color: var(--sell-text-3); font-weight: 600; margin-bottom: 3px; }
+.infoVal { font-size: 0.875rem; color: var(--sell-text-1); font-weight: 500; word-break: break-word; }
+
+/* ── Customer stats ── */
+.custStats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.custStat { background: var(--sell-surface-2); border: 1px solid var(--sell-border-subtle); border-radius: var(--sell-radius-sm); padding: 12px 14px; }
+.custStatLabel { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--sell-text-3); margin-bottom: 5px; }
+.custStatValue { font-family: var(--sell-font-display); font-size: 1.1rem; font-weight: 700; color: var(--sell-text-1); line-height: 1; }
+
+/* ── Order history ── */
+.ordersLoading { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: var(--sell-text-3); padding: 8px 0; }
+.ordersEmpty { font-size: 0.85rem; color: var(--sell-text-3); padding: 8px 0; }
+.orderList { display: flex; flex-direction: column; border: 1px solid var(--sell-border-subtle); border-radius: var(--sell-radius-sm); overflow: hidden; }
+.orderRow {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border-bottom: 1px solid var(--sell-border-subtle);
+}
+.orderRow:last-child { border-bottom: none; }
+.orderRowMain { flex: 1; min-width: 0; }
+.orderRowNum { font-weight: 700; font-size: 0.85rem; color: var(--sell-text-1); }
+.orderRowDate { font-size: 0.72rem; color: var(--sell-text-3); margin-top: 2px; }
+.orderRowTotal { font-family: var(--sell-font-display); font-weight: 700; font-size: 0.875rem; color: var(--sell-text-1); flex-shrink: 0; }
+
+.badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 10px; border-radius: 100px;
+  font-size: 0.72rem; font-weight: 700; white-space: nowrap; flex-shrink: 0;
+}
+.badgeDot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.badgePending    { background: var(--sell-surface-2);  color: var(--sell-text-3);  }
+.badgePaid       { background: var(--sell-primary-lt); color: var(--sell-primary); }
+.badgeProcessing { background: var(--sell-accent-lt);  color: var(--sell-accent);  }
+.badgeShipped    { background: var(--sell-teal-bg);    color: var(--sell-teal);    }
+.badgeDelivered  { background: var(--sell-green-bg);   color: var(--sell-green);   }
+.badgeCancelled  { background: var(--sell-red-bg);     color: var(--sell-red);     }
+.badgeRefunded   { background: var(--sell-amber-bg);   color: var(--sell-amber);   }
+
+/* ── Buttons ── */
+.btn {
+  display: flex; align-items: center; gap: 7px;
+  padding: 9px 16px; border-radius: var(--sell-radius-sm);
+  font-size: 0.85rem; font-weight: 600; cursor: pointer; border: none;
+  font-family: var(--sell-font-body); transition: all var(--sell-transition); white-space: nowrap;
+}
+.btnGhost { background: none; color: var(--sell-text-2); border: 1px solid var(--sell-border); }
+.btnGhost:hover { background: var(--sell-bg); color: var(--sell-text-1); }
+
 @media (max-width: 768px) {
+  .slideover { width: 100vw; }
   .summaryGrid { grid-template-columns: 1fr 1fr; }
+  .custStats { grid-template-columns: 1fr 1fr; }
+  .infoGrid { grid-template-columns: 1fr; }
   .table th:nth-child(5), .table td:nth-child(5),
   .table th:nth-child(6), .table td:nth-child(6) { display: none; }
 }

@@ -428,6 +428,13 @@
   font-size: 2rem;
 }
 
+.emptyImg {
+  width: 220px;
+  max-width: 70%;
+  height: auto;
+  margin-bottom: 4px;
+}
+
 .emptyTitle {
   font-family: var(--sell-font-display);
   font-size: 1.1rem;

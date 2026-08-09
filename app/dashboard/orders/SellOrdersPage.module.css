@@ -145,6 +145,57 @@
 .pipelineLabelDone   { color: var(--sell-primary); }
 .pipelineLabelActive { color: var(--sell-primary); font-weight: 700; }
 
+/* ── Fulfillment ── */
+.fulfillDone {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 14px 16px; border-radius: var(--sell-radius-sm);
+  background: var(--sell-green-bg); border: 1px solid var(--sell-green);
+}
+.fulfillDone svg { width: 22px; height: 22px; color: var(--sell-green); flex-shrink: 0; margin-top: 1px; }
+.fulfillDoneTitle { font-size: 0.875rem; font-weight: 700; color: var(--sell-green); }
+.fulfillDoneSub { font-size: 0.8rem; color: var(--sell-text-2); margin-top: 3px; line-height: 1.5; }
+
+.fulfillList { display: flex; flex-direction: column; gap: 6px; }
+.fulfillRow {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 12px; border: 1px solid var(--sell-border-subtle);
+  border-radius: var(--sell-radius-sm); background: var(--sell-surface-2);
+}
+.fulfillRowName { flex: 1; min-width: 0; font-size: 0.82rem; font-weight: 500; color: var(--sell-text-1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fulfillRowState { font-size: 0.72rem; font-weight: 700; white-space: nowrap; }
+.fulfillStateDone     { color: var(--sell-green); }
+.fulfillStateProgress { color: var(--sell-accent); }
+.fulfillStateMuted    { color: var(--sell-text-3); }
+
+.typeBadge {
+  display: inline-flex; align-items: center;
+  padding: 2px 8px; border-radius: 100px;
+  font-size: 0.64rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em;
+  flex-shrink: 0;
+}
+.typeDigital  { background: var(--sell-green-bg);   color: var(--sell-green); }
+.typePhysical { background: var(--sell-teal-bg);    color: var(--sell-teal); }
+.typeService  { background: var(--sell-purple-bg);  color: var(--sell-purple); }
+
+.autoTag {
+  display: inline-flex; align-items: center;
+  margin-left: 5px; padding: 1px 6px; border-radius: 100px;
+  font-size: 0.6rem; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase;
+  background: rgba(255,255,255,0.55); color: var(--sell-green);
+}
+
+/* ── Digital delivery ── */
+.dlRow { display: flex; align-items: flex-start; gap: 10px; }
+.dlRow svg { width: 18px; height: 18px; flex-shrink: 0; margin-top: 1px; }
+.dlRowTitle { font-size: 0.82rem; font-weight: 600; color: var(--sell-text-1); }
+.dlRowSub { font-size: 0.75rem; color: var(--sell-text-3); margin-top: 2px; line-height: 1.5; }
+
+.dlList { display: flex; flex-direction: column; margin-top: 10px; border: 1px solid var(--sell-border-subtle); border-radius: var(--sell-radius-sm); overflow: hidden; }
+.dlItem { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--sell-border-subtle); font-size: 0.8rem; }
+.dlItem:last-child { border-bottom: none; }
+.dlItemName { font-weight: 600; color: var(--sell-text-1); }
+.dlItemTime { font-size: 0.72rem; color: var(--sell-text-3); }
+
 /* ── Action buttons ── */
 .btn { display: flex; align-items: center; gap: 7px; padding: 9px 16px; border-radius: var(--sell-radius-sm); font-size: 0.85rem; font-weight: 600; cursor: pointer; border: none; font-family: var(--sell-font-body); transition: all var(--sell-transition); white-space: nowrap; }
 .btnPrimary   { background: linear-gradient(135deg, var(--sell-primary), var(--sell-accent)); color: #fff; box-shadow: 0 4px 14px var(--sell-primary-glow); }

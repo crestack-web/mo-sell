@@ -99,7 +99,11 @@ export function SellCollectionsPage() {
 
       <div className={styles.list}>
         {collections.length === 0 ? (
-          <p className={styles.empty}>No collections yet</p>
+          <div className={styles.empty}>
+            <img className={styles.emptyImg} src="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1786305123/Untitled_-_August_08_2026_at_11.22.19_asqb6a.png" alt="No collections yet" />
+            <p className={styles.emptyTitle}>No collections yet</p>
+            <p className={styles.emptySub}>Group your products into collections so customers can browse your store easily.</p>
+          </div>
         ) : (
           collections.map(c => (
             <div key={c.id} className={styles.collectionItem}>

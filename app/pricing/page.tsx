@@ -21,6 +21,14 @@ const C = {
   purple:     '#7C3AED',
   purpleBg:   '#EDE9FE',
 };
+
+const ICON_PAYG = 'https://res.cloudinary.com/dzjoqbg2u/image/upload/v1786305123/Untitled_-_August_08_2026_at_11.22.19_asqb6a.png';
+const ICON_MONTHLY = 'https://res.cloudinary.com/dzjoqbg2u/image/upload/v1786305125/Untitled_-_August_08_2026_at_11.22.19_dnmtp6.png';
+
+const planIconStyle: React.CSSProperties = {
+  display: 'block', width: 72, height: 72, objectFit: 'cover', borderRadius: 18,
+  margin: '0 auto', boxShadow: '0 8px 24px rgba(14,88,140,0.12)',
+};
 const FONT_DISPLAY = "'Clash Display','Plus Jakarta Sans',sans-serif";
 const FONT_BODY    = "'Plus Jakarta Sans',system-ui,sans-serif";
 
@@ -134,6 +142,8 @@ function PricingPage() {
               background: C.surface, borderRadius: 20, padding: 32,
               border: `2px solid ${C.primary}`, boxShadow: '0 16px 40px rgba(14,165,233,0.14)',
             }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={ICON_PAYG} alt="Pay-as-you-go" style={{ ...planIconStyle, marginBottom: 18 }} />
               <span style={{
                 display: 'inline-block', padding: '4px 12px', borderRadius: 999,
                 background: `${C.primary}15`, color: C.primaryDk, fontWeight: 800, fontSize: 12,
@@ -236,6 +246,8 @@ function PricingPage() {
         <>
           {/* Monthly plans */}
           <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 5% 48px' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={ICON_MONTHLY} alt="Monthly plans" style={{ ...planIconStyle, marginBottom: 28 }} />
             <div style={{
               maxWidth: 760, margin: '0 auto 36px', padding: 18, borderRadius: 14,
               background: C.amberBg, border: `1px solid ${C.amber}40`, textAlign: 'center',

@@ -79,6 +79,7 @@
 /* ── Empty state ── */
 .empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 64px 24px; text-align: center; gap: 14px; }
 .emptyIcon { width: 72px; height: 72px; border-radius: 20px; background: var(--sell-primary-lt); display: flex; align-items: center; justify-content: center; font-size: 2rem; }
+.emptyImg { width: 220px; max-width: 70%; height: auto; margin-bottom: 4px; }
 .emptyTitle { font-family: var(--sell-font-display); font-size: 1.1rem; font-weight: 700; color: var(--sell-text-1); }
 .emptySub { font-size: 0.85rem; color: var(--sell-text-3); max-width: 340px; line-height: 1.6; }
 
