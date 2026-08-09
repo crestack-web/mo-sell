@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { supabaseClient } from '@/lib/supabase-client';
 import { getDatabase } from '@/lib/database/adapter';
 import { THEMES } from '@/themes/registry';
-import { convertFromUsd } from '@/lib/currency';
 import posthog from 'posthog-js';
 
 // ── Tokens ────────────────────────────────────────────────────────────────────
@@ -352,43 +351,117 @@ export default function SellSignupPage() {
     }
   };
 
-  // ── Start Paystack payment ──────────────────────────────────────────────
-  const handlePayAndCreateStore = async () => {
+  // ── Create free store (pay-as-you-go) ───────────────────────────────────
+  const handleCreateFreeStore = async () => {
     setIsProcessingPayment(true);
     setError('');
     try {
       const { data: { user: currentUser } } = await supabaseClient.auth.getUser();
       if (!currentUser) throw new Error('Not authenticated');
 
-      const response = await fetch('https://us-central1-bizassistant2-62305643-adad7.cloudfunctions.net/initializePayment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          plan: 'sell-starter',
-          userId: currentUser.id,
-          email: currentUser.email,
-          amount: convertFromUsd(10, 'NG'),
-          currency: 'NGN',
-          billing: 'monthly',
-          callback_url: `${window.location.origin}/subscribe/success`,
-          metadata: {
-            plan: 'sell-starter',
-            billing: 'monthly',
-            userId: currentUser.id,
-            product: 'mo-sell',
-          },
-        }),
+      const db = getDatabase();
+      const userSnap = await db.doc(`users/${currentUser.id}`).get();
+      const userData = userSnap.exists ? userSnap.data() : {};
+      const pendingStore = userData?.pendingStore as any;
+
+      if (!pendingStore) throw new Error('Store setup data missing — please go back and review your answers.');
+
+      const businessName = pendingStore.storeName || userData?.businessName || 'My Store';
+
+      // Create store config from pending data (pay-as-you-go: 10% commission, no monthly fee)
+      const configData = {
+        storeSlug: pendingStore.storeSlug,
+        storeName: businessName,
+        logoUrl: pendingStore.logoUrl ?? null,
+        primaryColor: pendingStore.primaryColor,
+        secondaryColor: pendingStore.secondaryColor,
+        businessCategory: pendingStore.businessCategory,
+        currency: pendingStore.currency || 'NGN',
+        contactEmail: currentUser.email || '',
+        contactPhone: '',
+        status: 'draft',
+        theme: pendingStore.theme,
+        tagline: pendingStore.tagline || '',
+        storePolicy: '',
+        paystackPublicKey: '',
+        enabledProductTypes: ['physical'],
+        pickupLocations: [],
+        customDomain: null,
+        customDomainStatus: 'pending',
+        customDomainVerifiedAt: null,
+        domainPurchaseRecord: null,
+        onboardingAnswers: pendingStore.onboardingAnswers || {},
+        billingModel: 'pay_as_you_go',
+        billingStatus: 'active',
+        commissionRate: 0.1,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      await db.doc(`businesses/${businessId}/store/config`).set(configData);
+      await db.doc(`storeIndex/${pendingStore.storeSlug}`).set({
+        businessId, storeName: businessName, updatedAt: new Date().toISOString(),
       });
 
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Failed to initialize payment');
-      if (data.data?.authorization_url) {
-        window.location.href = data.data.authorization_url;
-      } else {
-        throw new Error('No checkout URL returned');
+      // Create placeholder products
+      const PLACEHOLDER_PRODUCTS: Record<string, { title: string; price: number; desc: string }[]> = {
+        products: [
+          { title: 'Classic Tee', price: 15000, desc: 'Premium quality cotton t-shirt' },
+          { title: 'Signature Mug', price: 8000, desc: 'Ceramic mug with brand design' },
+          { title: 'Canvas Tote', price: 12000, desc: 'Eco-friendly canvas tote bag' },
+        ],
+        courses: [
+          { title: 'Starter Course', price: 25000, desc: 'Complete beginner-friendly course' },
+          { title: 'Masterclass', price: 50000, desc: 'Advanced deep-dive masterclass' },
+          { title: 'Quick Guide', price: 10000, desc: 'Bite-sized actionable guide' },
+        ],
+        services: [
+          { title: '30-min Consultation', price: 20000, desc: 'One-on-one strategy session' },
+          { title: '1-Hour Workshop', price: 35000, desc: 'Interactive group workshop' },
+          { title: 'Premium Package', price: 75000, desc: 'Comprehensive service package' },
+        ],
+        digital: [
+          { title: 'Ebook', price: 5000, desc: 'In-depth digital ebook' },
+          { title: 'Template Pack', price: 8000, desc: 'Ready-to-use templates' },
+          { title: 'Preset Collection', price: 6000, desc: 'Professional preset pack' },
+        ],
+      };
+
+      const category = pendingStore.productCategory || 'products';
+      const products = PLACEHOLDER_PRODUCTS[category as keyof typeof PLACEHOLDER_PRODUCTS] || PLACEHOLDER_PRODUCTS.products;
+
+      for (const p of products) {
+        const productId = `prod_${Math.random().toString(36).slice(2, 10)}`;
+        await db.doc(`businesses/${businessId}/storeProducts/${productId}`).set({
+          id: productId,
+          title: p.title,
+          description: p.desc,
+          price: p.price,
+          compareAtPrice: null,
+          images: [],
+          category: category,
+          type: 'simple',
+          status: 'draft',
+          metadata: {},
+          stock: null,
+          variants: [],
+          isSubscription: false,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        });
       }
+
+      // Clear pending store data
+      const updatedUserData = { ...userData };
+      delete updatedUserData.pendingStore;
+      updatedUserData.onboardingComplete = true;
+      await db.doc(`users/${currentUser.id}`).set(updatedUserData);
+
+      posthog.capture('sell_payg_store_created', { businessId });
+
+      router.push('/dashboard/customize');
     } catch (err: any) {
-      console.error('MO Sell payment error:', err);
+      console.error('MO Sell free store creation error:', err);
       setError(err.message || 'Something went wrong. Please try again.');
       setIsProcessingPayment(false);
     }
@@ -913,7 +986,7 @@ export default function SellSignupPage() {
                     Start Selling with MO
                   </h1>
                   <p style={{ color: C.text2, maxWidth: 400, margin: '0 auto', fontSize: 14 }}>
-                    Start selling for $10/month. No hidden fees.
+                    Start selling free. Pay 10% only when you sell.
                   </p>
                 </div>
 
@@ -925,17 +998,17 @@ export default function SellSignupPage() {
                   <div className="flex items-center justify-between mb-4">
                     <div>
                       <span className="inline-block px-3 py-1 rounded-full text-xs font-bold text-white" style={{ background: C.primary }}>
-                        SIMPLE PRICING
+                        PAY AS YOU GO
                       </span>
                       <h2 className="text-xl font-bold mt-2" style={{ color: C.text1, fontFamily: FONT_DISPLAY }}>
-                        $10/month
+                        Free — no monthly fee
                       </h2>
                     </div>
                     <div className="text-right">
                       <div className="text-3xl font-bold" style={{ color: C.primary, fontFamily: FONT_DISPLAY }}>
-                        $10
+                        ₦0
                       </div>
-                      <div className="text-xs" style={{ color: C.text3 }}>per month</div>
+                      <div className="text-xs" style={{ color: C.text3 }}>to start</div>
                     </div>
                   </div>
 
@@ -953,7 +1026,7 @@ export default function SellSignupPage() {
                   </div>
 
                   <div className="text-center text-xs" style={{ color: C.text3 }}>
-                    Cancel anytime · No lock-in · All features included
+                    Pay 10% commission per sale · No card required · Cancel anytime
                   </div>
                 </div>
 
@@ -966,12 +1039,12 @@ export default function SellSignupPage() {
                   }}
                 >← Back to review answers</button>
 
-                <button onClick={handlePayAndCreateStore} disabled={isProcessingPayment}
+                <button onClick={handleCreateFreeStore} disabled={isProcessingPayment}
                   className="w-full py-4 rounded-xl text-white font-bold text-lg transition"
                   style={{
-                    background: isProcessingPayment ? C.text3 : `linear-gradient(135deg, ${C.green} 0%, #15803D 100%)`,
+                    background: isProcessingPayment ? C.text3 : `linear-gradient(135deg, ${C.primary} 0%, ${C.accent} 100%)`,
                     cursor: isProcessingPayment ? 'not-allowed' : 'pointer',
-                    boxShadow: isProcessingPayment ? 'none' : '0 6px 24px rgba(22,163,74,0.30)',
+                    boxShadow: isProcessingPayment ? 'none' : '0 6px 24px rgba(14,165,233,0.30)',
                     fontFamily: FONT_DISPLAY,
                   }}
                 >
@@ -980,15 +1053,15 @@ export default function SellSignupPage() {
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ animation: 'spin 0.7s linear infinite' }}>
                         <path d="M21 12a9 9 0 11-6.219-8.56" />
                       </svg>
-                      Redirecting to Paystack...
+                      Creating your store...
                     </span>
-                  ) : 'Pay $10 →'}
+                  ) : 'Create my free store →'}
                 </button>
 
                 <div className="mt-8 grid grid-cols-3 gap-4">
                   <div className="text-center">
-                    <div className="text-2xl mb-2">🔒</div>
-                    <div className="text-xs" style={{ color: C.text3 }}>Secure Payment</div>
+                    <div className="text-2xl mb-2">🆓</div>
+                    <div className="text-xs" style={{ color: C.text3 }}>No Card Needed</div>
                   </div>
                   <div className="text-center">
                     <div className="text-2xl mb-2">✓</div>

@@ -235,6 +235,15 @@ function TopNav() {
         }}>
           🎬 Discover Creators
         </a>
+        <a href="/pricing" style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          padding: '9px 18px', borderRadius: 10,
+          border: `1.5px solid ${C.border}`,
+          color: C.text2, fontFamily: FONT_BODY, fontWeight: 600, fontSize: 14,
+          textDecoration: 'none',
+        }}>
+          Pricing
+        </a>
         <a href="/login" style={{
           display: 'inline-flex', alignItems: 'center', gap: 6,
           padding: '9px 20px', borderRadius: 10,
@@ -309,6 +318,24 @@ function TopNav() {
             }}
           >
             🎬 Discover Creators
+          </a>
+          <a 
+            href="/pricing"
+            onClick={() => setMobileMenuOpen(false)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '12px 16px',
+              borderRadius: 10,
+              color: C.text2,
+              fontFamily: FONT_BODY,
+              fontWeight: 600,
+              fontSize: 15,
+              textDecoration: 'none',
+            }}
+          >
+            💰 Pricing
           </a>
           <a 
             href="/login"
