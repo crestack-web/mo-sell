@@ -78,6 +78,24 @@ export function getMonthlyPlan(id?: string | null): MonthlyPlan | undefined {
   return MONTHLY_PLANS.find(p => p.id === id);
 }
 
+// ─── Ask Mo AI token packages (client-safe) ──────────────────────────────────
+
+export interface TokenPackage {
+  id: string;
+  name: string;
+  tokens: number;
+  /** Price in NGN (kobo * 100) */
+  price: number;
+  popular?: boolean;
+}
+
+export const TOKEN_PACKAGES: TokenPackage[] = [
+  { id: 'starter', name: 'Starter Pack', tokens: 1_000, price: 5_000 },
+  { id: 'standard', name: 'Standard Pack', tokens: 3_000, price: 12_000, popular: true },
+  { id: 'pro', name: 'Pro Pack', tokens: 10_000, price: 30_000 },
+  { id: 'enterprise', name: 'Enterprise Pack', tokens: 25_000, price: 60_000 },
+];
+
 /** Monthly plan fee converted to NGN. */
 export function getPlanFeeNgn(planId?: string | null): number {
   const plan = getMonthlyPlan(planId);

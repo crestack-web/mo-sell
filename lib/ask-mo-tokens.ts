@@ -43,21 +43,7 @@ export function getMonthlyAllowance(plan?: string | null): number {
 
 // ─── Token Purchase Packages ──────────────────────────────────────────────────
 
-export interface TokenPackage {
-  id: string;
-  name: string;
-  tokens: number;
-  /** Price in NGN (kobo * 100) */
-  price: number;
-  popular?: boolean;
-}
-
-export const TOKEN_PACKAGES: TokenPackage[] = [
-  { id: 'starter', name: 'Starter Pack', tokens: 1_000, price: 5_000 },
-  { id: 'standard', name: 'Standard Pack', tokens: 3_000, price: 12_000, popular: true },
-  { id: 'pro', name: 'Pro Pack', tokens: 10_000, price: 30_000 },
-  { id: 'enterprise', name: 'Enterprise Pack', tokens: 25_000, price: 60_000 },
-];
+export { TOKEN_PACKAGES, type TokenPackage } from '@/lib/pricing';
 
 // ─── Firestore Path ──────────────────────────────────────────────────────────
 

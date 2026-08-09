@@ -2,8 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { TOKEN_PACKAGES } from '@/lib/ask-mo-tokens';
-import { MONTHLY_PLANS, PAYG_COMMISSION_RATE, NGN_PER_USD } from '@/lib/pricing';
+import { TOKEN_PACKAGES, MONTHLY_PLANS, PAYG_COMMISSION_RATE, NGN_PER_USD } from '@/lib/pricing';
 
 const C = {
   primary:    '#0EA5E9',
