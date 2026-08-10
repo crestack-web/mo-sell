@@ -170,12 +170,13 @@ async function main() {
   const { getProvider } = await import('../lib/ai/providers');
   const { selectProviders } = await import('../lib/ai/router');
   const { MODEL_PRICE_PER_1M } = await import('../lib/ai/config');
-  const { GROQ_ENABLED, MISTRAL_ENABLED, OPENAI_ENABLED } = await import('../lib/ai/config');
+  const { GROQ_ENABLED, MISTRAL_ENABLED, OPENAI_ENABLED, ANTHROPIC_ENABLED } = await import('../lib/ai/config');
 
-  const enabled: Array<'groq' | 'mistral' | 'openai'> = [];
+  const enabled: Array<'groq' | 'mistral' | 'openai' | 'anthropic'> = [];
   if (GROQ_ENABLED) enabled.push('groq');
   if (MISTRAL_ENABLED) enabled.push('mistral');
   if (OPENAI_ENABLED) enabled.push('openai');
+  if (ANTHROPIC_ENABLED) enabled.push('anthropic');
 
   if (providerFilter) {
     const only = enabled.filter((p) => p === providerFilter);

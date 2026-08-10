@@ -5,7 +5,7 @@
  * by the model router (lib/ai/router.ts), never hard-coded in a route.
  */
 
-export type ProviderId = 'groq' | 'mistral' | 'openai';
+export type ProviderId = 'groq' | 'mistral' | 'openai' | 'anthropic';
 
 export type Complexity = 'LOW' | 'MEDIUM' | 'HIGH';
 

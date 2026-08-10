@@ -204,7 +204,9 @@ export async function generateDesignedPdf(params: {
 }): Promise<PdfResult> {
   const { message, businessId = null } = params;
 
-  const apiKey = process.env.GROQ_API_KEY;
+  // Claude (Anthropic) is the primary ebook provider; Groq remains as a
+  // routing fallback for environments that haven't added the Anthropic key yet.
+  const apiKey = process.env.ANTHROPIC_API_KEY || process.env.GROQ_API_KEY;
   if (!apiKey) {
     return { success: false, error: 'AI service not configured' };
   }

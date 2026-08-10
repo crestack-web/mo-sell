@@ -11,6 +11,7 @@ import {
   GROQ_ENABLED,
   MISTRAL_ENABLED,
   OPENAI_ENABLED,
+  ANTHROPIC_ENABLED,
   ROUTING_POLICY,
   TASK_PROVIDER_PREFERENCE,
 } from './config';
@@ -126,6 +127,7 @@ function isEnabled(id: ProviderId): boolean {
     case 'groq': return GROQ_ENABLED;
     case 'mistral': return MISTRAL_ENABLED;
     case 'openai': return OPENAI_ENABLED;
+    case 'anthropic': return ANTHROPIC_ENABLED;
   }
 }
 

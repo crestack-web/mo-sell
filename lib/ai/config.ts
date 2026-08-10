@@ -42,6 +42,11 @@ export const AI_CONFIG: Record<ProviderId, ProviderConfig> = {
     defaultModel: process.env.OPENAI_DEFAULT_MODEL || 'gpt-4o-mini',
     baseURL: 'https://api.openai.com/v1',
   },
+  anthropic: {
+    apiKey: process.env.ANTHROPIC_API_KEY,
+    defaultModel: process.env.ANTHROPIC_DEFAULT_MODEL || 'claude-sonnet-4-5',
+    baseURL: 'https://api.anthropic.com/v1',
+  },
 };
 
 /**
@@ -74,6 +79,10 @@ export const GROQ_ENABLED =
   (process.env.GROQ_ENABLED ?? 'true') !== 'false' &&
   Boolean(AI_CONFIG.groq.apiKey);
 
+export const ANTHROPIC_ENABLED =
+  (process.env.ANTHROPIC_ENABLED ?? 'true') !== 'false' &&
+  Boolean(AI_CONFIG.anthropic.apiKey);
+
 // ─── Token & cost guards (Phase 17) ──────────────────────────────────────────
 
 export const AI_LIMITS = {
@@ -100,6 +109,8 @@ export const MODEL_PRICE_PER_1M: Record<string, { input: number; output: number 
   'open-mistral-nemo': { input: 0.15, output: 0.15 },
   'mistral-small-latest': { input: 0.1, output: 0.3 },
   'gpt-4o-mini': { input: 0.15, output: 0.6 },
+  'claude-sonnet-4-5': { input: 3, output: 15 },
+  'claude-3-5-haiku-20241022': { input: 0.8, output: 4 },
 };
 
 /** Router policy: preferred provider per complexity (Phase 5). */
@@ -116,9 +127,9 @@ export const ROUTING_POLICY: Record<
 
 /** Tasks that prefer a specific provider regardless of complexity. */
 export const TASK_PROVIDER_PREFERENCE: Partial<Record<TaskType, ProviderId>> = {
-  // PDF ebook generation is a strict-JSON, token-gated paid feature — keep it
-  // on the proven Groq versatile model until benchmarked against others.
-  pdf_ebook: 'groq',
+  // PDF ebook generation is a strict-JSON, token-gated paid feature — use
+  // Claude (Anthropic) for the best quality, falling back to Groq via routing.
+  pdf_ebook: 'anthropic',
   history_summary: 'groq',
 };
 
