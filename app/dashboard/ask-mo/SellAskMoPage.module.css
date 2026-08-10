@@ -558,13 +558,18 @@
   background: var(--sell-border, #e5e7eb);
 }
 
-/* ── Copy & Twist action ── */
+/* ── Copy & Twist actions ── */
+
+.msgActions {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
 
 .twistBtn {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  margin-top: 6px;
   padding: 5px 10px;
   border-radius: 7px;
   border: 1px solid var(--sell-border, #e5e7eb);

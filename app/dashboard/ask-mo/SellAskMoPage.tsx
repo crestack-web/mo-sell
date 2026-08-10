@@ -763,15 +763,27 @@ export function SellAskMoPage() {
     [loading, user, storeConfig, conversationHistory, attachments, showToast, tokenData, fetchTokenData, saveConversation]
   );
 
-  // ── Copy & twist a script response ────────────────────────────────────
-  // Copies the raw reply and asks MO to improve it while preserving the
-  // core message, so users can iterate on a script without starting over.
+  // ── Copy a response ──────────────────────────────────────────────────
+  // Copies the raw reply to the clipboard.
+  const handleCopy = useCallback(
+    (msg: ChatMessage) => {
+      const original = (msg.text || '').trim();
+      if (!original) return;
+      navigator.clipboard?.writeText(original).then(() => {
+        showToast('Copied!', 'success');
+      }).catch(() => {});
+    },
+    [showToast]
+  );
+
+  // ── Twist a script response ──────────────────────────────────────────
+  // Asks MO to improve/rework the reply while preserving the core message,
+  // so users can iterate on a script without starting over.
   const handleTwist = useCallback(
     (msg: ChatMessage) => {
       const original = (msg.text || '').trim();
       if (!original) return;
-      navigator.clipboard?.writeText(original).catch(() => {});
-      showToast('Copied! Tweaking script…', 'info');
+      showToast('Tweaking script…', 'info');
       sendMessage(
         `Improve and rework the following script. Keep the exact same core message, tone, and purpose — do not change the meaning — but make it sharper, clearer, and more engaging. Add a fresher hook or a new angle while keeping it recognizable as the same script.\n\nOriginal script:\n"""${original}"""`,
       );
@@ -996,16 +1008,29 @@ export function SellAskMoPage() {
                       </div>
 
                       {msg.role === 'bot' && msg.text.trim() && (
-                        <button
-                          className={styles.twistBtn}
-                          onClick={() => handleTwist(msg)}
-                          title="Copy this script and ask MO to improve it while keeping the core message"
-                        >
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M12 3l1.9 5.7L19.5 10l-5.6 1.3L12 17l-1.9-5.7L4.5 10l5.6-1.3z" />
-                          </svg>
-                          Copy &amp; Twist
-                        </button>
+                        <div className={styles.msgActions}>
+                          <button
+                            className={styles.twistBtn}
+                            onClick={() => handleCopy(msg)}
+                            title="Copy this message"
+                          >
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                            </svg>
+                            Copy
+                          </button>
+                          <button
+                            className={styles.twistBtn}
+                            onClick={() => handleTwist(msg)}
+                            title="Ask MO to improve this while keeping the core message"
+                          >
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M12 3l1.9 5.7L19.5 10l-5.6 1.3L12 17l-1.9-5.7L4.5 10l5.6-1.3z" />
+                            </svg>
+                            Twist
+                          </button>
+                        </div>
                       )}
 
                     {/* ── Store Update Card ── */}
