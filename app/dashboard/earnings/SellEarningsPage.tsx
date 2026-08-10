@@ -385,7 +385,7 @@ export function SellEarningsPage() {
   const handleRequestPayout = useCallback(async () => {
     if (!user?.businessId) return;
     const config = storeConfig as any;
-    if (!config?.payoutBankName || !config?.payoutAccountNumber || !config?.payoutAccountName) {
+    if (!config?.payoutBankName || !config?.payoutBankCode || !config?.payoutAccountNumber || !config?.payoutAccountName) {
       showToast('Add your bank account in Settings before requesting a payout.', 'error');
       navigateTo('settings');
       return;
@@ -403,7 +403,7 @@ export function SellEarningsPage() {
         showToast(data.error ?? 'Payout request failed', 'error');
         return;
       }
-      showToast(`Payout of ${fmt(data.amount ?? 0, currency)} requested! We'll process it within 1–3 business days.`, 'success');
+      showToast(`Payout of ${fmt(data.amount ?? 0, currency)} initiated! Funds arrive in 1–3 business days.`, 'success');
       await load();
       setTab('payouts');
     } catch {

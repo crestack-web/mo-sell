@@ -25,6 +25,48 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
+  // ── Sell payout transfers ────────────────────────────────────────────────
+  if (event.event === 'transfer.success' || event.event === 'transfer.failed') {
+    const transferCode = event.data?.transfer_code as string | undefined;
+    if (!transferCode) return NextResponse.json({ received: true });
+
+    const supabase = getSupabaseServer();
+    const { data: payout } = await supabase
+      .from('payoutRequests')
+      .select('*')
+      .eq('transferCode', transferCode)
+      .maybeSingle();
+    if (!payout) return NextResponse.json({ received: true });
+
+    const ts = new Date().toISOString();
+    if (event.event === 'transfer.success') {
+      await supabase
+        .from('payoutRequests')
+        .update({ status: 'completed', processedAt: ts, updatedAt: ts })
+        .eq('id', payout.id);
+    } else {
+      await supabase
+        .from('payoutRequests')
+        .update({
+          status: 'rejected',
+          rejectionReason: 'Paystack transfer failed',
+          processedAt: ts,
+          updatedAt: ts,
+        })
+        .eq('id', payout.id);
+
+      // Return the affected earnings to 'available' so they can be re-paid
+      const ids = Array.isArray(payout.earningIds) ? payout.earningIds : [];
+      if (ids.length > 0) {
+        await supabase
+          .from('storeEarnings')
+          .update({ status: 'available', payoutRequestId: null, updatedAt: ts })
+          .in('id', ids);
+      }
+    }
+    return NextResponse.json({ received: true });
+  }
+
   if (event.event !== 'charge.success') {
     return NextResponse.json({ received: true });
   }

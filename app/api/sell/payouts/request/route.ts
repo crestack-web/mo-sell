@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServer } from '@/lib/database/postgresql-adapter';
 import { isPlatformManaged, getCommissionRate } from '@/lib/pricing';
+import { createTransferRecipient, payoutToCreator } from '@/lib/paystack-ugc';
 
 /**
  * POST /api/sell/payouts/request
  *
- * Creates a payout request for all available (unpaid) earnings.
- * Marks each included storeEarning as 'paid_out' (pending admin processing).
+ * Payouts all available (unpaid) earnings by initiating a Paystack transfer of
+ * the merchant's NET amount (gross − platform commission) to their bank account.
+ * Mirrors the UGC cashout flow.
  *
  * Body: { businessId: string }
  */
@@ -38,7 +40,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Managed payments not enabled for this store' }, { status: 403 });
     }
 
-    if (!config.payoutAccountNumber || !config.payoutBankName || !config.payoutAccountName) {
+    // Full bank details (name/number/code) are required to build a transfer recipient.
+    if (!config.payoutAccountName || !config.payoutAccountNumber || !config.payoutBankName || !config.payoutBankCode) {
       return NextResponse.json({ error: 'Payout bank account details are incomplete. Update them in Settings.' }, { status: 400 });
     }
 
@@ -57,10 +60,31 @@ export async function POST(req: NextRequest) {
     const totalNet = earnings.reduce((sum: number, d: any) => sum + (d.netAmount ?? 0), 0);
     const roundedNet = Math.round(totalNet * 100) / 100;
 
-    const timestamp = new Date().toISOString();
+    if (roundedNet <= 0) {
+      return NextResponse.json({ error: 'No payable earnings balance.' }, { status: 400 });
+    }
 
-    // 3. Create payout request
+    const timestamp = new Date().toISOString();
     const payoutRequestId = 'pr_' + crypto.randomUUID();
+
+    // 3. Build/reuse the Paystack transfer recipient for this store
+    let recipientCode = config.payoutRecipientCode as string | undefined;
+    if (!recipientCode) {
+      recipientCode = await createTransferRecipient(
+        config.payoutAccountName,
+        config.payoutAccountNumber,
+        config.payoutBankCode
+      );
+    }
+
+    // 4. Initiate the transfer of the NET amount (converted to kobo)
+    const transferCode = await payoutToCreator(
+      recipientCode,
+      Math.round(roundedNet * 100),
+      `Sell payout ${payoutRequestId}`
+    );
+
+    // 5. Create payout request marked as processing
     const { error: payoutError } = await supabase.from('payoutRequests').insert({
       id: payoutRequestId,
       businessId,
@@ -71,9 +95,11 @@ export async function POST(req: NextRequest) {
       accountName:     config.payoutAccountName,
       commissionRate:  getCommissionRate(config),
       earningIds,
-      status:          'requested',
+      status:          'processing',
+      recipientCode,
+      transferCode,
       rejectionReason: null,
-      processedAt:     null,
+      processedAt:     timestamp,
       createdAt:       timestamp,
       updatedAt:       timestamp,
     });
@@ -81,7 +107,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Failed to create payout request' }, { status: 500 });
     }
 
-    // 4. Mark each earning as requested (waiting for payout)
+    // 6. Cache the recipient code for future payouts
+    await supabase
+      .from('businesses')
+      .update({ payoutRecipientCode: recipientCode, updatedAt: timestamp })
+      .eq('id', businessId);
+
+    // 7. Mark each earning as paid out (pending transfer completion)
     for (const earning of earnings as any[]) {
       const { error: updateError } = await supabase
         .from('storeEarnings')
@@ -98,13 +130,16 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       payoutRequestId,
-      amount:  roundedNet,
-      currency: config.currency ?? 'NGN',
+      amount:       roundedNet,
+      currency:     config.currency ?? 'NGN',
+      transferCode,
+      status:       'processing',
       earningsCount: earningIds.length,
     });
 
   } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Internal server error';
     console.error('[payouts/request] Error:', err);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
