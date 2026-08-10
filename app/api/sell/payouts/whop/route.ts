@@ -1,13 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServer } from '@/lib/database/postgresql-adapter';
 import { whopClient } from '@/lib/whop-sdk';
+import { verifyPayoutOtp } from '@/lib/payout-otp';
+import { sendPayoutConfirmedEmail } from '@/lib/services/email/payout-emails';
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { businessId } = body;
+    const { businessId, otp } = body;
     if (!businessId) {
       return NextResponse.json({ error: 'businessId is required' }, { status: 400 });
+    }
+    if (!otp) {
+      return NextResponse.json({ error: 'Verification code is required' }, { status: 400 });
+    }
+
+    // Require a verified OTP before creating the Whop withdrawal
+    const verified = await verifyPayoutOtp(businessId, otp);
+    if (!verified.ok) {
+      return NextResponse.json({ error: verified.error ?? 'Invalid verification code' }, { status: 400 });
     }
 
     const whopKey = process.env.WHOP_API_KEY;
@@ -163,6 +174,22 @@ export async function POST(req: NextRequest) {
         .eq('id', earningId);
       if (updateError) throw updateError;
     }
+
+    // Notify the store owner that the payout was sent (non-blocking)
+    sendPayoutConfirmedEmail({
+      email: verified.email ?? config.contactEmail ?? '',
+      name: config.ownerName ?? config.businessName ?? config.storeName ?? undefined,
+      amount: totalAvailable,
+      currency: 'usd',
+      storeName: config.storeName ?? config.businessName ?? 'MO Sell',
+      accountName: config.storeName ?? 'Store',
+      accountNumber: whopCompanyId,
+      bankName: 'Whop',
+      payoutRequestId,
+      withdrawalId: (withdrawal as any).id,
+    }).catch((emailError) => {
+      console.error('[payouts/whop] Failed to send confirmation email:', emailError);
+    });
 
     return NextResponse.json({
       success: true,

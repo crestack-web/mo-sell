@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServer } from '@/lib/database/postgresql-adapter';
 import { isPlatformManaged, getCommissionRate } from '@/lib/pricing';
 import { createTransferRecipient, payoutToCreator } from '@/lib/paystack-ugc';
+import { verifyPayoutOtp } from '@/lib/payout-otp';
+import { sendPayoutConfirmedEmail } from '@/lib/services/email/payout-emails';
 
 /**
  * POST /api/sell/payouts/request
@@ -10,20 +12,32 @@ import { createTransferRecipient, payoutToCreator } from '@/lib/paystack-ugc';
  * the merchant's NET amount (gross − platform commission) to their bank account.
  * Mirrors the UGC cashout flow.
  *
- * Body: { businessId: string }
+ * A one-time verification code (sent via /api/sell/payouts/send-otp) is
+ * REQUIRED in the body — the transfer is only executed after it is verified.
+ *
+ * Body: { businessId: string, otp: string }
  */
 export async function POST(req: NextRequest) {
-  let body: { businessId?: string };
+  let body: { businessId?: string; otp?: string };
   try { body = await req.json(); }
   catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }); }
 
-  const { businessId } = body;
+  const { businessId, otp } = body;
   if (!businessId) {
     return NextResponse.json({ error: 'businessId is required' }, { status: 400 });
+  }
+  if (!otp) {
+    return NextResponse.json({ error: 'Verification code is required' }, { status: 400 });
   }
 
   try {
     const supabase = getSupabaseServer();
+
+    // 0. Verify the payout OTP before allowing the transfer
+    const verified = await verifyPayoutOtp(businessId, otp);
+    if (!verified.ok) {
+      return NextResponse.json({ error: verified.error ?? 'Invalid verification code' }, { status: 400 });
+    }
 
     // 1. Load store config for bank details
     const { data: config } = await supabase
@@ -127,6 +141,22 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Failed to mark earnings' }, { status: 500 });
       }
     }
+
+    // 8. Notify the store owner that the payout was sent (non-blocking)
+    sendPayoutConfirmedEmail({
+      email: verified.email ?? config.contactEmail ?? '',
+      name: config.ownerName ?? config.businessName ?? config.storeName ?? undefined,
+      amount:       roundedNet,
+      currency:     config.currency ?? 'NGN',
+      storeName:    config.storeName ?? config.businessName ?? 'MO Sell',
+      accountName:  config.payoutAccountName,
+      accountNumber: config.payoutAccountNumber,
+      bankName:     config.payoutBankName,
+      payoutRequestId,
+      transferCode,
+    }).catch((emailError) => {
+      console.error('[payouts/request] Failed to send confirmation email:', emailError);
+    });
 
     return NextResponse.json({
       payoutRequestId,

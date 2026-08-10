@@ -157,6 +157,9 @@ export function SellEarningsPage() {
   const [tab,           setTab]           = useState<'earnings' | 'payouts' | 'ugc'>('earnings');
   const [confirmOpen,   setConfirmOpen]   = useState(false);
   const [whopPayoutMethod, setWhopPayoutMethod] = useState(false);
+  const [payoutStep,    setPayoutStep]    = useState<'confirm' | 'otp'>('confirm');
+  const [otpCode,       setOtpCode]       = useState('');
+  const [payoutSuccess, setPayoutSuccess] = useState<{ amount: number; currency: string; viaWhop: boolean } | null>(null);
 
   const [hasUgcProfile, setHasUgcProfile] = useState<boolean | null>(null);
   const [ugcOrders,     setUgcOrders]     = useState<UgcEarningOrder[]>([]);
@@ -382,58 +385,75 @@ export function SellEarningsPage() {
     }
   }, [user?.id, hasUgcAvailable, acctName, acctNumber, bankCode, banks, currency, loadUgc, showToast]);
 
-  const handleRequestPayout = useCallback(async () => {
+  const handleSendPayoutOtp = useCallback(async () => {
     if (!user?.businessId) return;
-    const config = storeConfig as any;
-    if (!config?.payoutBankName || !config?.payoutBankCode || !config?.payoutAccountNumber || !config?.payoutAccountName) {
-      showToast('Add your bank account in Settings before requesting a payout.', 'error');
-      navigateTo('settings');
+    if (!whopPayoutMethod) {
+      const config = storeConfig as any;
+      if (!config?.payoutBankName || !config?.payoutBankCode || !config?.payoutAccountNumber || !config?.payoutAccountName) {
+        showToast('Add your bank account in Settings before requesting a payout.', 'error');
+        navigateTo('settings');
+        return;
+      }
+    }
+    setRequesting(true);
+    try {
+      const res = await fetch('/api/sell/payouts/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ businessId: user.businessId, email: user.email || undefined }),
+      });
+      const data = await res.json() as { success?: boolean; message?: string; error?: string };
+      if (!res.ok) {
+        showToast(data.error ?? 'Failed to send verification code', 'error');
+        return;
+      }
+      setOtpCode('');
+      setPayoutStep('otp');
+      showToast(data.message ?? 'Verification code sent to your email.', 'success');
+    } catch {
+      showToast('Something went wrong. Please try again.', 'error');
+    } finally {
+      setRequesting(false);
+    }
+  }, [user?.businessId, user?.email, whopPayoutMethod, storeConfig, showToast, navigateTo]);
+
+  const handleVerifyPayoutOtp = useCallback(async () => {
+    if (!user?.businessId) return;
+    if (!otpCode || otpCode.length !== 6) {
+      showToast('Enter the 6-digit code from your email.', 'error');
       return;
     }
     setRequesting(true);
-    setConfirmOpen(false);
     try {
-      const res = await fetch('/api/sell/payouts/request', {
+      const url = whopPayoutMethod ? '/api/sell/payouts/whop' : '/api/sell/payouts/request';
+      const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ businessId: user.businessId }),
+        body: JSON.stringify({ businessId: user.businessId, otp: otpCode }),
       });
-      const data = await res.json() as { payoutRequestId?: string; amount?: number; error?: string };
+      const data = await res.json() as { payoutRequestId?: string; amount?: number; error?: string; message?: string; whopOnboardingUrl?: string };
       if (!res.ok) {
-        showToast(data.error ?? 'Payout request failed', 'error');
-        return;
-      }
-      showToast(`Payout of ${fmt(data.amount ?? 0, currency)} initiated! Funds arrive in 1–3 business days.`, 'success');
-      await load();
-      setTab('payouts');
-    } catch {
-      showToast('Something went wrong. Please try again.', 'error');
-    } finally {
-      setRequesting(false);
-    }
-  }, [user?.businessId, storeConfig, currency, load, showToast, navigateTo]);
-
-  const handleWhopPayout = useCallback(async () => {
-    if (!user?.businessId) return;
-    setRequesting(true);
-    setConfirmOpen(false);
-    try {
-      const res = await fetch('/api/sell/payouts/whop', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ businessId: user.businessId }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        if (data.whopOnboardingUrl) {
+        if (whopPayoutMethod && data.whopOnboardingUrl) {
           showToast('Complete KYC to enable Whop payouts.', 'info');
           window.open(data.whopOnboardingUrl, '_blank');
         } else {
-          showToast(data.error ?? 'Whop payout failed', 'error');
+          showToast(data.error ?? 'Payout failed', 'error');
         }
         return;
       }
-      showToast(data.message ?? 'Whop payout initiated!', 'success');
+      // Success state — payout was sent instantly after OTP verification
+      const paid = data.amount ?? 0;
+      const paidCurrency = whopPayoutMethod ? 'USD' : currency;
+      setPayoutSuccess({ amount: paid, currency: paidCurrency, viaWhop: whopPayoutMethod });
+      setConfirmOpen(false);
+      setPayoutStep('confirm');
+      setOtpCode('');
+      showToast(
+        whopPayoutMethod
+          ? `Payout of ${fmt(paid, 'USD')} sent instantly to your Whop balance.`
+          : `Payout of ${fmt(paid, currency)} sent instantly to your bank.`,
+        'success'
+      );
       await load();
       setTab('payouts');
     } catch {
@@ -441,7 +461,7 @@ export function SellEarningsPage() {
     } finally {
       setRequesting(false);
     }
-  }, [user?.businessId, load, showToast]);
+  }, [user?.businessId, otpCode, whopPayoutMethod, currency, load, showToast]);
 
   // â”€â”€ Not opted in â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (loading || ugcLoading) {
@@ -525,7 +545,7 @@ export function SellEarningsPage() {
         ) : (
           <button
             className={styles.btnPrimary}
-            onClick={() => setConfirmOpen(true)}
+            onClick={() => { setPayoutStep('confirm'); setOtpCode(''); setConfirmOpen(true); }}
             disabled={!hasAvailable || requesting}
           >
             {requesting ? (
@@ -827,53 +847,125 @@ export function SellEarningsPage() {
       {confirmOpen && (
         <div className={styles.modalBackdrop} onClick={() => setConfirmOpen(false)}>
           <div className={styles.modal} onClick={e => e.stopPropagation()}>
-            <h3 className={styles.modalTitle}>Confirm Payout Request</h3>
-            <p className={styles.modalBody}>
-              You&apos;re requesting a payout of <strong>{fmt(available, currency)}</strong> from {availableCount} earning{availableCount !== 1 ? 's' : ''}.
-            </p>
+            {payoutStep === 'otp' ? (
+              <>
+                <h3 className={styles.modalTitle}>Verify Payout 🔐</h3>
+                <p className={styles.modalBody}>
+                  We sent a 6-digit code to <strong>{user?.email}</strong>. Enter it below to authorize sending{' '}
+                  <strong>{fmt(available, currency)}</strong> instantly to your bank. The code expires in 10 minutes.
+                </p>
 
-            {/* Payout method toggle */}
-            <div style={{ display: 'flex', gap: 8, margin: '12px 0' }}>
-              <button
-                onClick={() => setWhopPayoutMethod(false)}
-                style={{
-                  flex: 1, padding: '8px 12px', borderRadius: 8, cursor: 'pointer',
-                  border: `2px solid ${!whopPayoutMethod ? 'var(--sell-primary)' : 'var(--sell-border)'}`,
-                  background: !whopPayoutMethod ? 'rgba(99,102,241,0.06)' : 'transparent',
-                  fontWeight: 600, fontSize: '0.8rem',
-                  color: !whopPayoutMethod ? 'var(--sell-primary)' : 'var(--sell-text-2)',
-                }}
-              >
-                💳 Bank Transfer
-              </button>
-              <button
-                onClick={() => setWhopPayoutMethod(true)}
-                style={{
-                  flex: 1, padding: '8px 12px', borderRadius: 8, cursor: 'pointer',
-                  border: `2px solid ${whopPayoutMethod ? 'var(--sell-primary)' : 'var(--sell-border)'}`,
-                  background: whopPayoutMethod ? 'rgba(99,102,241,0.06)' : 'transparent',
-                  fontWeight: 600, fontSize: '0.8rem',
-                  color: whopPayoutMethod ? 'var(--sell-primary)' : 'var(--sell-text-2)',
-                }}
-              >
-                🌍 Whop (International)
-              </button>
-            </div>
-
-            {whopPayoutMethod ? (
-              <p className={styles.modalBody}>
-                Payout via Whop — funds sent to your Whop balance. <strong>Settlement: ~7 business days</strong> for international payments. Requires completed KYC.
-              </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 14 }}>
+                  <input
+                    value={otpCode}
+                    onChange={e => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    placeholder="Enter 6-digit code"
+                    inputMode="numeric"
+                    autoFocus
+                    style={{
+                      padding: '12px',
+                      borderRadius: 8,
+                      border: '1px solid var(--sell-border)',
+                      fontSize: '1.1rem',
+                      letterSpacing: '0.5em',
+                      textAlign: 'center',
+                      background: 'var(--sell-surface)',
+                      color: 'var(--sell-text-1)',
+                      fontFamily: 'var(--sell-font-body)',
+                    }}
+                  />
+                  <button
+                    className={styles.btnSecondary}
+                    onClick={handleSendPayoutOtp}
+                    disabled={requesting}
+                    style={{ alignSelf: 'center', background: 'transparent', border: 'none', color: 'var(--sell-primary)', cursor: 'pointer', fontSize: '0.8rem' }}
+                  >
+                    Resend code
+                  </button>
+                </div>
+              </>
             ) : (
-              <p className={styles.modalBody} style={{ marginTop: 8 }}>
-                Funds sent to <strong>{(storeConfig as any)?.payoutAccountName}</strong> at <strong>{(storeConfig as any)?.payoutBankName}</strong> ({(storeConfig as any)?.payoutAccountNumber}) within 1–3 business days.
-              </p>
+              <>
+                <h3 className={styles.modalTitle}>Confirm Payout Request</h3>
+                <p className={styles.modalBody}>
+                  You&apos;re requesting a payout of <strong>{fmt(available, currency)}</strong> from {availableCount} earning{availableCount !== 1 ? 's' : ''}. We&apos;ll email you a one-time code to authorize it.
+                </p>
+
+                {/* Payout method toggle */}
+                <div style={{ display: 'flex', gap: 8, margin: '12px 0' }}>
+                  <button
+                    onClick={() => setWhopPayoutMethod(false)}
+                    style={{
+                      flex: 1, padding: '8px 12px', borderRadius: 8, cursor: 'pointer',
+                      border: `2px solid ${!whopPayoutMethod ? 'var(--sell-primary)' : 'var(--sell-border)'}`,
+                      background: !whopPayoutMethod ? 'rgba(99,102,241,0.06)' : 'transparent',
+                      fontWeight: 600, fontSize: '0.8rem',
+                      color: !whopPayoutMethod ? 'var(--sell-primary)' : 'var(--sell-text-2)',
+                    }}
+                  >
+                    💳 Bank Transfer
+                  </button>
+                  <button
+                    onClick={() => setWhopPayoutMethod(true)}
+                    style={{
+                      flex: 1, padding: '8px 12px', borderRadius: 8, cursor: 'pointer',
+                      border: `2px solid ${whopPayoutMethod ? 'var(--sell-primary)' : 'var(--sell-border)'}`,
+                      background: whopPayoutMethod ? 'rgba(99,102,241,0.06)' : 'transparent',
+                      fontWeight: 600, fontSize: '0.8rem',
+                      color: whopPayoutMethod ? 'var(--sell-primary)' : 'var(--sell-text-2)',
+                    }}
+                  >
+                    🌍 Whop (International)
+                  </button>
+                </div>
+
+                {whopPayoutMethod ? (
+                  <p className={styles.modalBody}>
+                    Payout via Whop — funds sent to your Whop balance. <strong>Settlement: ~7 business days</strong> for international payments. Requires completed KYC.
+                  </p>
+                ) : (
+                  <p className={styles.modalBody} style={{ marginTop: 8 }}>
+                    Funds sent to <strong>{(storeConfig as any)?.payoutAccountName}</strong> at <strong>{(storeConfig as any)?.payoutBankName}</strong> ({(storeConfig as any)?.payoutAccountNumber}) within 1–3 business days.
+                  </p>
+                )}
+              </>
             )}
             <div className={styles.modalActions}>
               <button className={styles.btnSecondary} onClick={() => setConfirmOpen(false)}>Cancel</button>
-              <button className={styles.btnPrimary} onClick={whopPayoutMethod ? handleWhopPayout : handleRequestPayout} disabled={requesting}>
-                {requesting ? 'Processing…' : 'Confirm payout'}
-              </button>
+              {payoutStep === 'otp' ? (
+                <button className={styles.btnPrimary} onClick={handleVerifyPayoutOtp} disabled={requesting || otpCode.length !== 6}>
+                  {requesting ? 'Sending…' : 'Verify & send payout'}
+                </button>
+              ) : (
+                <button className={styles.btnPrimary} onClick={handleSendPayoutOtp} disabled={requesting}>
+                  {requesting ? 'Sending code…' : 'Send verification code'}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Payout success state */}
+      {payoutSuccess && (
+        <div className={styles.modalBackdrop} onClick={() => setPayoutSuccess(null)}>
+          <div className={styles.modal} onClick={e => e.stopPropagation()} style={{ textAlign: 'center' }}>
+            <div style={{
+              width: 64, height: 64, margin: '0 auto 16px', borderRadius: '50%',
+              background: 'var(--sell-green-bg)', color: 'var(--sell-green)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            </div>
+            <h3 className={styles.modalTitle}>Payout Sent ✅</h3>
+            <p className={styles.modalBody}>
+              <strong>{fmt(payoutSuccess.amount, payoutSuccess.currency)}</strong> was sent instantly to {payoutSuccess.viaWhop ? 'your Whop balance' : 'your bank'}.
+              A confirmation email is on its way. {payoutSuccess.viaWhop ? 'Settlement takes ~7 business days.' : 'Funds typically arrive within 1–3 business days.'}
+            </p>
+            <div className={styles.modalActions} style={{ justifyContent: 'center' }}>
+              <button className={styles.btnPrimary} onClick={() => setPayoutSuccess(null)}>Done</button>
             </div>
           </div>
         </div>
