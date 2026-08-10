@@ -23,6 +23,7 @@ import type {
 } from '@/types/mo-sell.types';
 import { DEFAULT_SECTIONS } from '@/types/mo-sell.types';
 import { isLinkTheme } from '@/themes/registry';
+import { SocialIcon } from './SocialBrand';
 
 const MOBILE_BREAKPOINT = 560;
 const isMobile = (width?: number) => (width ?? 1000) < MOBILE_BREAKPOINT;
@@ -558,8 +559,8 @@ function SfFooter({ settings, storeName, logoUrl, theme, width }: {
             const url = (socials as Record<string,string>)[k];
             if (!url) return null;
             return (
-              <a key={k} href={url} target="_blank" rel="noopener noreferrer" style={{ width: 34, height: 34, borderRadius: 9, border: '1px solid var(--sf-border)', background: 'var(--sf-surface)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--sf-text-2)', textDecoration: 'none', fontSize: '0.65rem', fontWeight: 800 }}>
-                {k.slice(0,2).toUpperCase()}
+              <a key={k} href={url} target="_blank" rel="noopener noreferrer" style={{ width: 34, height: 34, borderRadius: 9, border: '1px solid var(--sf-border)', background: 'var(--sf-surface)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--sf-text-2)', textDecoration: 'none' }}>
+                <SocialIcon platform={k} size={16} />
               </a>
             );
           })}

@@ -17,6 +17,7 @@ import type {
 import { DEFAULT_SECTIONS } from '@/types/mo-sell.types';
 import { getSupabaseServer } from '@/lib/database/postgresql-adapter';
 import { getStoreConfigBySlug } from '@/lib/store';
+import { SocialIcon } from '@/components/SocialBrand';
 
 async function getStoreConfig(storeSlug: string) {
   try {
@@ -322,7 +323,9 @@ export default async function StorefrontHomePage({
                   {socialEntries.length > 0 && (
                     <div className="sf-footer-socials">
                       {socialEntries.map(([platform, url]) => (
-                        <a key={platform} href={url} target="_blank" rel="noopener noreferrer" className="sf-footer-social-link">{platform}</a>
+                        <a key={platform} href={url} target="_blank" rel="noopener noreferrer" className="sf-footer-social-link" aria-label={platform}>
+                          <SocialIcon platform={platform} size={16} />
+                        </a>
                       ))}
                     </div>
                   )}

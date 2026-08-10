@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Monitor, Tablet, Smartphone, Undo2, Redo2, ChevronLeft } from 'lucide-react';
+import { SocialIcon, SOCIAL_DEFS, SOCIAL_KEYS, normalizeSocialValue, socialStatus } from '@/components/SocialBrand';
 import { getDatabase } from '@/lib/database/adapter';
 import { useSell } from '@/context/SellContext';
 import { useRouter } from 'next/navigation';
@@ -278,6 +279,50 @@ function HeaderSettings({ s, upd }: { s: HeaderSectionSettings; upd: (p: Partial
   </>);
 }
 
+function SocialField({ platform, value, onChange }: {
+  platform: string; value?: string; onChange: (v: string) => void;
+}) {
+  const def = SOCIAL_DEFS[platform];
+  const [focused, setFocused] = useState(false);
+  const display = value || def?.base || '';
+
+  const status = socialStatus(platform, display);
+
+  const handleBlur = () => {
+    setFocused(false);
+    onChange(normalizeSocialValue(platform, display));
+  };
+
+  return (
+    <div style={{ marginBottom: 7 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+        <span className={styles.socialKey} title={def?.label}>
+          <SocialIcon platform={platform} size={13} />
+        </span>
+        <input
+          className={styles.fInput}
+          value={display}
+          onFocus={() => setFocused(true)}
+          onChange={e => onChange(e.target.value)}
+          onBlur={handleBlur}
+          style={{ fontSize: '0.78rem' }}
+        />
+        {status === 'valid' && (
+          <span style={{ flexShrink: 0, display: 'flex', color: 'var(--sell-green)' }} title="Valid link">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </span>
+        )}
+      </div>
+      {!focused && status === 'needs-handle' && (
+        <p className={styles.fHint} style={{ color: '#B45309', margin: '3px 0 0 33px' }}>{def?.hint}</p>
+      )}
+      {!focused && status === 'invalid' && (
+        <p className={styles.fHint} style={{ color: '#DC2626', margin: '3px 0 0 33px' }}>That doesn't look like a valid link.</p>
+      )}
+    </div>
+  );
+}
+
 function FooterSettings({ s, upd }: { s: FooterSectionSettings; upd: (p: Partial<FooterSectionSettings>) => void }) {
   const socials = s.socials ?? {};
   const links = s.links ?? [];
@@ -306,11 +351,8 @@ function FooterSettings({ s, upd }: { s: FooterSectionSettings; upd: (p: Partial
       Add link
     </button>
     <SGroup label="SOCIAL LINKS" />
-    {(['instagram','twitter','tiktok','facebook','whatsapp','youtube'] as const).map(k => (
-      <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 7 }}>
-        <span className={styles.socialKey}>{k.slice(0,2).toUpperCase()}</span>
-        <input className={styles.fInput} value={(socials as Record<string,string>)[k] ?? ''} onChange={e => setSocial(k, e.target.value)} placeholder={`https://${k}.com/...`} style={{ fontSize: '0.78rem' }} />
-      </div>
+    {SOCIAL_KEYS.map(k => (
+      <SocialField key={k} platform={k} value={(socials as Record<string,string>)[k]} onChange={v => setSocial(k, v)} />
     ))}
   </>);
 }
@@ -904,11 +946,8 @@ export function ThemeEditorPage() {
                     <div className={styles.designGroup}>
                       <p className={styles.designTitle}>Social Links</p>
                       <p className={styles.fHint} style={{ marginBottom: 6 }}>Appear on your storefront.</p>
-                      {(['instagram','twitter','tiktok','facebook','whatsapp','youtube'] as const).map(k => (
-                        <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 7 }}>
-                          <span className={styles.socialKey}>{k.slice(0,2).toUpperCase()}</span>
-                          <input className={styles.fInput} value={socials[k] ?? ''} onChange={e => updateSocials(k, e.target.value)} placeholder={`https://${k}.com/...`} style={{ fontSize: '0.78rem' }} />
-                        </div>
+                      {SOCIAL_KEYS.map(k => (
+                        <SocialField key={k} platform={k} value={socials[k]} onChange={v => updateSocials(k, v)} />
                       ))}
                     </div>
                   </>
