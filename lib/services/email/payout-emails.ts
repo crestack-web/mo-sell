@@ -65,10 +65,10 @@ export async function sendPayoutConfirmedEmail(data: PayoutConfirmedEmailData) {
   const storeName = data.storeName || 'MO Sell';
 
   const html = renderShell({
-    title: 'Payout Sent ✅',
-    subtitle: `Your payout of ${amount} has been initiated.`,
+    title: 'Payout Requested ✅',
+    subtitle: `Your payout of ${amount} has been received and is being processed.`,
     body: `
-      <p>We've sent <strong>${amount}</strong> from <strong>${storeName}</strong> to your bank account:</p>
+      <p>We've received your payout request of <strong>${amount}</strong> from <strong>${storeName}</strong> and are processing it for transfer to your bank account:</p>
       <div style="background: #F7FAFC; border: 1px solid #E0EFFA; border-radius: 12px; padding: 20px; margin: 16px 0;">
         <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
           <tr>
@@ -90,7 +90,8 @@ export async function sendPayoutConfirmedEmail(data: PayoutConfirmedEmailData) {
           </tr>` : ''}
         </table>
       </div>
-      <p>Funds are sent instantly to your bank. They typically arrive within 1–3 business days.</p>
+      <p><strong>When will the money arrive?</strong> Funds are sent to your bank within <strong>1–3 business days</strong> of your payout request.</p>
+      <p>You'll see this payout in your payout history as <strong>Requested</strong> until the transfer is sent, then it updates to <strong>Completed</strong>.</p>
     `,
     ctaText: 'View payout history',
     ctaUrl: `${APP_URL()}/dashboard/earnings`,
@@ -99,7 +100,7 @@ export async function sendPayoutConfirmedEmail(data: PayoutConfirmedEmailData) {
   return sendEmail({
     to: data.email,
     name,
-    subject: `Your ${amount} payout has been sent ✅`,
+    subject: `Your ${amount} payout is being processed — arrives in 1–3 business days 💸`,
     html,
   });
 }

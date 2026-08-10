@@ -156,10 +156,9 @@ export function SellEarningsPage() {
   const [requesting,    setRequesting]    = useState(false);
   const [tab,           setTab]           = useState<'earnings' | 'payouts' | 'ugc'>('earnings');
   const [confirmOpen,   setConfirmOpen]   = useState(false);
-  const [whopPayoutMethod, setWhopPayoutMethod] = useState(false);
   const [payoutStep,    setPayoutStep]    = useState<'confirm' | 'otp'>('confirm');
   const [otpCode,       setOtpCode]       = useState('');
-  const [payoutSuccess, setPayoutSuccess] = useState<{ amount: number; currency: string; viaWhop: boolean } | null>(null);
+  const [payoutSuccess, setPayoutSuccess] = useState<{ amount: number; currency: string } | null>(null);
 
   const [hasUgcProfile, setHasUgcProfile] = useState<boolean | null>(null);
   const [ugcOrders,     setUgcOrders]     = useState<UgcEarningOrder[]>([]);
@@ -387,13 +386,11 @@ export function SellEarningsPage() {
 
   const handleSendPayoutOtp = useCallback(async () => {
     if (!user?.businessId) return;
-    if (!whopPayoutMethod) {
-      const config = storeConfig as any;
-      if (!config?.payoutBankName || !config?.payoutBankCode || !config?.payoutAccountNumber || !config?.payoutAccountName) {
-        showToast('Add your bank account in Settings before requesting a payout.', 'error');
-        navigateTo('settings');
-        return;
-      }
+    const config = storeConfig as any;
+    if (!config?.payoutBankName || !config?.payoutBankCode || !config?.payoutAccountNumber || !config?.payoutAccountName) {
+      showToast('Add your bank account in Settings before requesting a payout.', 'error');
+      navigateTo('settings');
+      return;
     }
     setRequesting(true);
     try {
@@ -415,7 +412,7 @@ export function SellEarningsPage() {
     } finally {
       setRequesting(false);
     }
-  }, [user?.businessId, user?.email, whopPayoutMethod, storeConfig, showToast, navigateTo]);
+  }, [user?.businessId, user?.email, storeConfig, showToast, navigateTo]);
 
   const handleVerifyPayoutOtp = useCallback(async () => {
     if (!user?.businessId) return;
@@ -425,35 +422,23 @@ export function SellEarningsPage() {
     }
     setRequesting(true);
     try {
-      const url = whopPayoutMethod ? '/api/sell/payouts/whop' : '/api/sell/payouts/request';
-      const res = await fetch(url, {
+      const res = await fetch('/api/sell/payouts/request', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ businessId: user.businessId, otp: otpCode }),
       });
-      const data = await res.json() as { payoutRequestId?: string; amount?: number; error?: string; message?: string; whopOnboardingUrl?: string };
+      const data = await res.json() as { payoutRequestId?: string; amount?: number; error?: string; message?: string };
       if (!res.ok) {
-        if (whopPayoutMethod && data.whopOnboardingUrl) {
-          showToast('Complete KYC to enable Whop payouts.', 'info');
-          window.open(data.whopOnboardingUrl, '_blank');
-        } else {
-          showToast(data.error ?? 'Payout failed', 'error');
-        }
+        showToast(data.error ?? 'Payout failed', 'error');
         return;
       }
-      // Success state — payout was sent instantly after OTP verification
+      // Success state — payout request was received after OTP verification
       const paid = data.amount ?? 0;
-      const paidCurrency = whopPayoutMethod ? 'USD' : currency;
-      setPayoutSuccess({ amount: paid, currency: paidCurrency, viaWhop: whopPayoutMethod });
+      setPayoutSuccess({ amount: paid, currency });
       setConfirmOpen(false);
       setPayoutStep('confirm');
       setOtpCode('');
-      showToast(
-        whopPayoutMethod
-          ? `Payout of ${fmt(paid, 'USD')} sent instantly to your Whop balance.`
-          : `Payout of ${fmt(paid, currency)} sent instantly to your bank.`,
-        'success'
-      );
+      showToast(`Payout of ${fmt(paid, currency)} requested! Funds arrive in 1–3 business days.`, 'success');
       await load();
       setTab('payouts');
     } catch {
@@ -461,7 +446,7 @@ export function SellEarningsPage() {
     } finally {
       setRequesting(false);
     }
-  }, [user?.businessId, otpCode, whopPayoutMethod, currency, load, showToast]);
+  }, [user?.businessId, otpCode, currency, load, showToast]);
 
   // â”€â”€ Not opted in â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (loading || ugcLoading) {
@@ -851,8 +836,8 @@ export function SellEarningsPage() {
               <>
                 <h3 className={styles.modalTitle}>Verify Payout 🔐</h3>
                 <p className={styles.modalBody}>
-                  We sent a 6-digit code to <strong>{user?.email}</strong>. Enter it below to authorize sending{' '}
-                  <strong>{fmt(available, currency)}</strong> instantly to your bank. The code expires in 10 minutes.
+                  We sent a 6-digit code to <strong>{user?.email}</strong>. Enter it below to authorize your{' '}
+                  <strong>{fmt(available, currency)}</strong> payout. Funds arrive in 1–3 business days. The code expires in 10 minutes.
                 </p>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 14 }}>
@@ -891,43 +876,9 @@ export function SellEarningsPage() {
                   You&apos;re requesting a payout of <strong>{fmt(available, currency)}</strong> from {availableCount} earning{availableCount !== 1 ? 's' : ''}. We&apos;ll email you a one-time code to authorize it.
                 </p>
 
-                {/* Payout method toggle */}
-                <div style={{ display: 'flex', gap: 8, margin: '12px 0' }}>
-                  <button
-                    onClick={() => setWhopPayoutMethod(false)}
-                    style={{
-                      flex: 1, padding: '8px 12px', borderRadius: 8, cursor: 'pointer',
-                      border: `2px solid ${!whopPayoutMethod ? 'var(--sell-primary)' : 'var(--sell-border)'}`,
-                      background: !whopPayoutMethod ? 'rgba(99,102,241,0.06)' : 'transparent',
-                      fontWeight: 600, fontSize: '0.8rem',
-                      color: !whopPayoutMethod ? 'var(--sell-primary)' : 'var(--sell-text-2)',
-                    }}
-                  >
-                    💳 Bank Transfer
-                  </button>
-                  <button
-                    onClick={() => setWhopPayoutMethod(true)}
-                    style={{
-                      flex: 1, padding: '8px 12px', borderRadius: 8, cursor: 'pointer',
-                      border: `2px solid ${whopPayoutMethod ? 'var(--sell-primary)' : 'var(--sell-border)'}`,
-                      background: whopPayoutMethod ? 'rgba(99,102,241,0.06)' : 'transparent',
-                      fontWeight: 600, fontSize: '0.8rem',
-                      color: whopPayoutMethod ? 'var(--sell-primary)' : 'var(--sell-text-2)',
-                    }}
-                  >
-                    🌍 Whop (International)
-                  </button>
-                </div>
-
-                {whopPayoutMethod ? (
-                  <p className={styles.modalBody}>
-                    Payout via Whop — funds sent to your Whop balance. <strong>Settlement: ~7 business days</strong> for international payments. Requires completed KYC.
-                  </p>
-                ) : (
-                  <p className={styles.modalBody} style={{ marginTop: 8 }}>
-                    Funds sent to <strong>{(storeConfig as any)?.payoutAccountName}</strong> at <strong>{(storeConfig as any)?.payoutBankName}</strong> ({(storeConfig as any)?.payoutAccountNumber}) within 1–3 business days.
-                  </p>
-                )}
+                <p className={styles.modalBody} style={{ marginTop: 8 }}>
+                  Funds sent to <strong>{(storeConfig as any)?.payoutAccountName}</strong> at <strong>{(storeConfig as any)?.payoutBankName}</strong> ({(storeConfig as any)?.payoutAccountNumber}) within 1–3 business days.
+                </p>
               </>
             )}
             <div className={styles.modalActions}>
@@ -959,10 +910,10 @@ export function SellEarningsPage() {
                 <polyline points="20 6 9 17 4 12" />
               </svg>
             </div>
-            <h3 className={styles.modalTitle}>Payout Sent ✅</h3>
+            <h3 className={styles.modalTitle}>Payout Requested ✅</h3>
             <p className={styles.modalBody}>
-              <strong>{fmt(payoutSuccess.amount, payoutSuccess.currency)}</strong> was sent instantly to {payoutSuccess.viaWhop ? 'your Whop balance' : 'your bank'}.
-              A confirmation email is on its way. {payoutSuccess.viaWhop ? 'Settlement takes ~7 business days.' : 'Funds typically arrive within 1–3 business days.'}
+              <strong>{fmt(payoutSuccess.amount, payoutSuccess.currency)}</strong> was requested successfully.
+              A confirmation email with your reference is on its way. Funds arrive in your bank within <strong>1–3 business days</strong>.
             </p>
             <div className={styles.modalActions} style={{ justifyContent: 'center' }}>
               <button className={styles.btnPrimary} onClick={() => setPayoutSuccess(null)}>Done</button>

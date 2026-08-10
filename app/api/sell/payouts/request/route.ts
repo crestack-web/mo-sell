@@ -1,19 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServer } from '@/lib/database/postgresql-adapter';
 import { isPlatformManaged, getCommissionRate } from '@/lib/pricing';
-import { createTransferRecipient, payoutToCreator } from '@/lib/paystack-ugc';
 import { verifyPayoutOtp } from '@/lib/payout-otp';
 import { sendPayoutConfirmedEmail } from '@/lib/services/email/payout-emails';
 
 /**
  * POST /api/sell/payouts/request
  *
- * Payouts all available (unpaid) earnings by initiating a Paystack transfer of
- * the merchant's NET amount (gross − platform commission) to their bank account.
- * Mirrors the UGC cashout flow.
+ * Records a payout request for all available (unpaid) earnings, delivering the
+ * merchant's NET amount (gross − platform commission) to their bank account.
+ * The transfer is fulfilled by the platform within 1–3 business days.
  *
  * A one-time verification code (sent via /api/sell/payouts/send-otp) is
- * REQUIRED in the body — the transfer is only executed after it is verified.
+ * REQUIRED in the body — the payout is only recorded after it is verified.
  *
  * Body: { businessId: string, otp: string }
  */
@@ -33,7 +32,7 @@ export async function POST(req: NextRequest) {
   try {
     const supabase = getSupabaseServer();
 
-    // 0. Verify the payout OTP before allowing the transfer
+    // 0. Verify the payout OTP before recording the payout
     const verified = await verifyPayoutOtp(businessId, otp);
     if (!verified.ok) {
       return NextResponse.json({ error: verified.error ?? 'Invalid verification code' }, { status: 400 });
@@ -54,7 +53,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Managed payments not enabled for this store' }, { status: 403 });
     }
 
-    // Full bank details (name/number/code) are required to build a transfer recipient.
+    // Full bank details (name/number/code) are required for the transfer.
     if (!config.payoutAccountName || !config.payoutAccountNumber || !config.payoutBankName || !config.payoutBankCode) {
       return NextResponse.json({ error: 'Payout bank account details are incomplete. Update them in Settings.' }, { status: 400 });
     }
@@ -81,24 +80,7 @@ export async function POST(req: NextRequest) {
     const timestamp = new Date().toISOString();
     const payoutRequestId = 'pr_' + crypto.randomUUID();
 
-    // 3. Build/reuse the Paystack transfer recipient for this store
-    let recipientCode = config.payoutRecipientCode as string | undefined;
-    if (!recipientCode) {
-      recipientCode = await createTransferRecipient(
-        config.payoutAccountName,
-        config.payoutAccountNumber,
-        config.payoutBankCode
-      );
-    }
-
-    // 4. Initiate the transfer of the NET amount (converted to kobo)
-    const transferCode = await payoutToCreator(
-      recipientCode,
-      Math.round(roundedNet * 100),
-      `Sell payout ${payoutRequestId}`
-    );
-
-    // 5. Create payout request marked as processing
+    // 3. Create payout request — fulfilled by the platform within 1–3 business days
     const { error: payoutError } = await supabase.from('payoutRequests').insert({
       id: payoutRequestId,
       businessId,
@@ -109,11 +91,11 @@ export async function POST(req: NextRequest) {
       accountName:     config.payoutAccountName,
       commissionRate:  getCommissionRate(config),
       earningIds,
-      status:          'processing',
-      recipientCode,
-      transferCode,
+      status:          'requested',
+      recipientCode:   null,
+      transferCode:    null,
       rejectionReason: null,
-      processedAt:     timestamp,
+      processedAt:     null,
       createdAt:       timestamp,
       updatedAt:       timestamp,
     });
@@ -121,13 +103,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Failed to create payout request' }, { status: 500 });
     }
 
-    // 6. Cache the recipient code for future payouts
-    await supabase
-      .from('businesses')
-      .update({ payoutRecipientCode: recipientCode, updatedAt: timestamp })
-      .eq('id', businessId);
-
-    // 7. Mark each earning as paid out (pending transfer completion)
+    // 4. Mark each earning as paid out (allocated to this payout request)
     for (const earning of earnings as any[]) {
       const { error: updateError } = await supabase
         .from('storeEarnings')
@@ -142,7 +118,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 8. Notify the store owner that the payout was sent (non-blocking)
+    // 5. Notify the store owner that the payout was received (non-blocking)
     sendPayoutConfirmedEmail({
       email: verified.email ?? config.contactEmail ?? '',
       name: config.ownerName ?? config.businessName ?? config.storeName ?? undefined,
@@ -153,7 +129,6 @@ export async function POST(req: NextRequest) {
       accountNumber: config.payoutAccountNumber,
       bankName:     config.payoutBankName,
       payoutRequestId,
-      transferCode,
     }).catch((emailError) => {
       console.error('[payouts/request] Failed to send confirmation email:', emailError);
     });
@@ -162,8 +137,7 @@ export async function POST(req: NextRequest) {
       payoutRequestId,
       amount:       roundedNet,
       currency:     config.currency ?? 'NGN',
-      transferCode,
-      status:       'processing',
+      status:       'requested',
       earningsCount: earningIds.length,
     });
 

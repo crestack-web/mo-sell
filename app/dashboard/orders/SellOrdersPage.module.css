@@ -234,5 +234,8 @@
   .slideover { width: 100vw; }
   .infoGrid  { grid-template-columns: 1fr; }
   .statStrip { grid-template-columns: 1fr 1fr; }
+  .tableWrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .table { min-width: 720px; }
+  .table th, .table td { white-space: nowrap; }
   .table th:nth-child(4), .table td:nth-child(4) { display: none; }
 }

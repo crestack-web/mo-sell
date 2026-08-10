@@ -639,7 +639,7 @@ function ProductSlideOver({ product, onClose, onSaved, businessId, currency, sto
         <div className={styles.slideoverBody}>
 
           {/* Import from inventory */}
-          {!product && (
+          {!product && form.productType === 'physical' && (
             <button
               className={`${styles.btn} ${styles.btnSecondary}`}
               style={{ alignSelf: 'flex-start' }}

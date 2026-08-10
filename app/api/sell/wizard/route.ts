@@ -91,19 +91,7 @@ export async function POST(request: NextRequest) {
     });
 
     const raw = result.text;
-
-    const jsonMatch = raw.match(/```json\n([\s\S]+?)\n```/);
-    let suggestions = null;
-    if (jsonMatch) {
-      try {
-        const parsed = JSON.parse(jsonMatch[1]);
-        suggestions = parsed.suggestions ?? null;
-      } catch { /* malformed — ignore */ }
-    }
-
-    const answer = raw.replace(/```json[\s\S]+?```/g, '').trim();
-
-    return NextResponse.json({ answer, suggestions, provider: result.provider });
+    return NextResponse.json({ answer: raw, provider: result.provider });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     const isKeyError = msg.includes('API_KEY') || msg.includes('quota') || msg.includes('permission');

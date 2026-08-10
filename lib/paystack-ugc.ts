@@ -118,9 +118,31 @@ export async function payoutToCreator(
   });
   const data = await res.json();
   if (!data.status || !data.data?.transfer_code) {
-    throw new Error(data.message ?? 'Failed to initiate transfer');
+    throw new Error(friendlyTransferError(data.message));
   }
   return data.data.transfer_code;
+}
+
+/**
+ * Map raw Paystack transfer errors to a clear, actionable message for the
+ * store owner. Paystack rejects third-party payouts when the platform's
+ * business is still a Starter business (transfers require a Registered
+ * business), so surface that distinctly instead of leaking the raw error.
+ */
+export function friendlyTransferError(message?: string | null): string {
+  const msg = message ?? 'Failed to initiate transfer';
+  const lower = msg.toLowerCase();
+
+  if (lower.includes('third party payout') || lower.includes('third-party payout')) {
+    return 'Payouts are temporarily unavailable — the payment processor requires an account upgrade before transfers can be sent. Please try again later.';
+  }
+  if (lower.includes('insufficient') || lower.includes('balance')) {
+    return 'Payout failed — not enough balance to cover the transfer. Please try again later.';
+  }
+  if (lower.includes('recipient')) {
+    return 'Payout failed — we could not reach your bank account. Update your bank details in Settings and try again.';
+  }
+  return msg;
 }
 
 export async function refundToBrand(
