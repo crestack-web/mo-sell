@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { SupportChatWidget } from '@/components/SupportChatWidget';
 
 // ── Design tokens (MO Sell kite identity palette) ──────────────────────────
@@ -477,12 +478,14 @@ function LessonCard({
   title, 
   description, 
   readTime,
-  icon 
+  icon,
+  onClick
 }: { 
   title: string;
   description: string;
   readTime: string;
   icon: string;
+  onClick: () => void;
 }) {
   return (
     <div style={{
@@ -493,6 +496,7 @@ function LessonCard({
       transition: 'transform 0.2s ease, box-shadow 0.2s ease',
       cursor: 'pointer',
     }}
+      onClick={onClick}
       onMouseEnter={e => {
         (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-4px)';
         (e.currentTarget as HTMLDivElement).style.boxShadow = '0 8px 24px rgba(14,165,233,0.12)';
@@ -562,6 +566,28 @@ function TestimonialCard({
 
 // ── Main page ────────────────────────────────────────────────────────────────
 export default function WelcomePage() {
+  const router = useRouter();
+  const [lessons, setLessons] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchLessons() {
+      try {
+        const response = await fetch('/api/lessons');
+        if (response.ok) {
+          const data = await response.json();
+          setLessons(data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch lessons:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchLessons();
+  }, []);
+
   return (
     <div style={{ fontFamily: FONT_BODY, background: C.bg, color: C.text1, lineHeight: 1.6 }}>
       <TopNav />
@@ -946,6 +972,31 @@ export default function WelcomePage() {
             <p style={{ fontSize: 14, color: C.text2, maxWidth: 420, margin: '0 auto' }}>
               Practical guides to help you sell smarter, not harder.
             </p>
+            <button
+              onClick={() => router.push('/lessons')}
+              style={{
+                background: 'none',
+                border: `1px solid ${C.primary}`,
+                color: C.primary,
+                padding: '8px 16px',
+                borderRadius: 20,
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: 'pointer',
+                marginTop: 16,
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = C.primary;
+                e.currentTarget.style.color = 'white';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'none';
+                e.currentTarget.style.color = C.primary;
+              }}
+            >
+              View all lessons →
+            </button>
           </div>
           
           <div style={{ 
@@ -953,42 +1004,79 @@ export default function WelcomePage() {
             gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
             gap: 20 
           }}>
-            <LessonCard
-              icon="💰"
-              title="Getting your first online sale"
-              description="How to move from zero to your first paying customer without overthinking it."
-              readTime="5 min read"
-            />
-            <LessonCard
-              icon="🏷️"
-              title="Pricing your products right"
-              description="Strategies for setting prices that feel fair to customers and sustainable for you."
-              readTime="7 min read"
-            />
-            <LessonCard
-              icon="📸"
-              title="Product photography basics"
-              description="Simple techniques to make your products look professional with just a phone."
-              readTime="6 min read"
-            />
-            <LessonCard
-              icon="📱"
-              title="Converting social followers"
-              description="Turn your Instagram or TikTok audience into paying customers without being pushy."
-              readTime="8 min read"
-            />
-            <LessonCard
-              icon="📦"
-              title="Shipping essentials"
-              description="What you need to know about delivery options, packaging, and customer expectations."
-              readTime="5 min read"
-            />
-            <LessonCard
-              icon="📊"
-              title="Understanding your analytics"
-              description="How to read your store data and make decisions that actually grow your business."
-              readTime="6 min read"
-            />
+            {loading ? (
+              // Loading skeleton
+              Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} style={{
+                  background: C.surface, borderRadius: 16, padding: '24px 20px',
+                  border: `1px solid ${C.border}`,
+                  height: 180,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: C.text3
+                }}>
+                  Loading...
+                </div>
+              ))
+            ) : lessons.length > 0 ? (
+              lessons.map((lesson) => (
+                <LessonCard
+                  key={lesson.id}
+                  icon={lesson.icon}
+                  title={lesson.title}
+                  description={lesson.description}
+                  readTime={lesson.read_time}
+                  onClick={() => router.push(`/lessons/${lesson.slug}`)}
+                />
+              ))
+            ) : (
+              // Fallback to static cards if no lessons loaded
+              <>
+                <LessonCard
+                  icon="💰"
+                  title="Getting your first online sale"
+                  description="How to move from zero to your first paying customer without overthinking it."
+                  readTime="5 min read"
+                  onClick={() => router.push('/lessons/getting-first-sale')}
+                />
+                <LessonCard
+                  icon="🏷️"
+                  title="Pricing your products right"
+                  description="Strategies for setting prices that feel fair to customers and sustainable for you."
+                  readTime="7 min read"
+                  onClick={() => router.push('/lessons/pricing-products')}
+                />
+                <LessonCard
+                  icon="📸"
+                  title="Product photography basics"
+                  description="Simple techniques to make your products look professional with just a phone."
+                  readTime="6 min read"
+                  onClick={() => router.push('/lessons/product-photography')}
+                />
+                <LessonCard
+                  icon="📱"
+                  title="Converting social followers"
+                  description="Turn your Instagram or TikTok audience into paying customers without being pushy."
+                  readTime="8 min read"
+                  onClick={() => router.push('/lessons/converting-followers')}
+                />
+                <LessonCard
+                  icon="📦"
+                  title="Shipping essentials"
+                  description="What you need to know about delivery options, packaging, and customer expectations."
+                  readTime="5 min read"
+                  onClick={() => router.push('/lessons/shipping-essentials')}
+                />
+                <LessonCard
+                  icon="📊"
+                  title="Understanding your analytics"
+                  description="How to read your store data and make decisions that actually grow your business."
+                  readTime="6 min read"
+                  onClick={() => router.push('/lessons/understanding-analytics')}
+                />
+              </>
+            )}
           </div>
         </div>
       </section>
