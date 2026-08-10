@@ -34,6 +34,7 @@ async function getProducts(businessId: string, collectionId: string) {
       .select('*')
       .eq('businessId', businessId);
     return (rows ?? [])
+      .filter((r: any) => (r.status ?? 'active') !== 'draft')
       .filter((r: any) => r.available === true)
       .filter((r: any) => (Array.isArray(r.collectionIds) ? r.collectionIds.includes(collectionId) : false))
       .slice(0, 100)

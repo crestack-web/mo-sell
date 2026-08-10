@@ -73,6 +73,8 @@ interface StoreProduct {
   // Custom buy-button text shown on the storefront product page
   callToAction: string | null;
   customerInfoFields?: string[];
+  // 'draft' hides the product from customers until published
+  status: 'draft' | 'active' | null;
 }
 
 interface InventoryProduct {
@@ -133,6 +135,7 @@ type FormData = {
   bufferTime: string;
   callToAction: string;
   customerInfoFields: string[];
+  status: 'draft' | 'active';
 };
 
 const EMPTY_FORM: FormData = {
@@ -149,6 +152,7 @@ const EMPTY_FORM: FormData = {
   slotDuration: '60', bufferTime: '15',
   callToAction: '',
   customerInfoFields: ['name', 'email', 'phone', 'address'],
+  status: 'active',
 };
 
 const CATEGORIES = [
@@ -293,6 +297,7 @@ function ProductSlideOver({ product, onClose, onSaved, businessId, currency, sto
       bufferTime: product.bufferTime != null ? String(product.bufferTime) : '15',
       callToAction: product.callToAction ?? '',
       customerInfoFields: product.customerInfoFields ?? ['name', 'email', 'phone', 'address'],
+      status: product.status ?? 'active',
     };
   });
 
@@ -455,16 +460,17 @@ function ProductSlideOver({ product, onClose, onSaved, businessId, currency, sto
     }
   }, [form.displayName, form.category, form.price, form.productType, form.digitalSubtype, businessId, set, showToast]);
 
-  const handleSave = useCallback(async () => {
+  const handleSave = useCallback(async (draftMode?: boolean) => {
+    const status: 'draft' | 'active' = draftMode ? 'draft' : (form.status ?? 'active');
     if (!form.displayName.trim()) {
       showToast('Please enter a product name', 'error');
       return;
     }
-    if (!form.price || parseFloat(form.price) <= 0) {
+    if (!draftMode && (!form.price || parseFloat(form.price) <= 0)) {
       showToast('Please enter a valid price', 'error');
       return;
     }
-    if (form.productType === 'digital' && !form.digitalFileUrl && digitalFiles.length === 0) {
+    if (!draftMode && form.productType === 'digital' && !form.digitalFileUrl && digitalFiles.length === 0) {
       showToast('Please upload a file or provide a download URL for digital products', 'error');
       return;
     }
@@ -522,7 +528,8 @@ function ProductSlideOver({ product, onClose, onSaved, businessId, currency, sto
         tags: form.tags.split(',').map(t => t.trim()).filter(Boolean),
         stock: parseInt(form.stock) || 0,
         sku: form.sku.trim() || null,
-        available: form.available,
+        available: status === 'draft' ? false : form.available,
+        status,
         featured: form.featured,
         digitalFileUrl: form.productType === 'digital' ? finalDigitalFileUrl || null : null,
         digitalFileName: form.productType === 'digital' ? finalDigitalFileName || null : null,
@@ -1237,11 +1244,35 @@ function ProductSlideOver({ product, onClose, onSaved, businessId, currency, sto
             <p className={styles.formSectionLabel}>Visibility</p>
             <div className={styles.toggleRow}>
               <div>
+                <p className={styles.toggleLabel}>Save as draft</p>
+                <p className={styles.toggleSub}>Draft products stay hidden from customers until you publish them</p>
+              </div>
+              <label className={styles.toggle}>
+                <input
+                  type="checkbox"
+                  checked={(form.status ?? 'active') === 'draft'}
+                  onChange={e => {
+                    const isDraft = e.target.checked;
+                    set('status', isDraft ? 'draft' : 'active');
+                    set('available', isDraft ? false : true);
+                  }}
+                />
+                <span className={styles.toggleTrack} />
+                <span className={styles.toggleThumb} />
+              </label>
+            </div>
+            <div className={styles.toggleRow} style={{ marginTop: 10 }}>
+              <div>
                 <p className={styles.toggleLabel}>Available in store</p>
                 <p className={styles.toggleSub}>Customers can see and buy this product</p>
               </div>
-              <label className={styles.toggle}>
-                <input type="checkbox" checked={form.available} onChange={e => set('available', e.target.checked)} />
+              <label className={styles.toggle} style={{ opacity: (form.status ?? 'active') === 'draft' ? 0.5 : 1 }}>
+                <input
+                  type="checkbox"
+                  checked={form.available}
+                  disabled={(form.status ?? 'active') === 'draft'}
+                  onChange={e => set('available', e.target.checked)}
+                />
                 <span className={styles.toggleTrack} />
                 <span className={styles.toggleThumb} />
               </label>
@@ -1309,8 +1340,16 @@ function ProductSlideOver({ product, onClose, onSaved, businessId, currency, sto
         <div className={styles.slideoverFooter}>
           <button className={`${styles.btn} ${styles.btnGhost}`} onClick={onClose} disabled={saving}>Cancel</button>
           <button
+            className={`${styles.btn} ${styles.btnGhost}`}
+            onClick={() => handleSave(true)}
+            disabled={saving || !form.displayName.trim()}
+            style={{ fontSize: '0.8rem', padding: '6px 14px' }}
+          >
+            {saving ? 'Saving…' : 'Save as draft'}
+          </button>
+          <button
             className={`${styles.btn} ${styles.btnPrimary}`}
-            onClick={handleSave}
+            onClick={() => handleSave(false)}
             disabled={saving || !form.displayName.trim() || !form.price}
           >
             {saving ? (
@@ -1357,7 +1396,7 @@ export function SellProductsPage() {
   const [loading, setLoading]           = useState(true);
   const [search, setSearch]             = useState('');
   const [typeFilter, setTypeFilter]     = useState<'all' | ProductType>('all');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'available' | 'hidden'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'available' | 'hidden' | 'draft'>('all');
   const [selected, setSelected]         = useState<Set<string>>(new Set());
   const [slideOver, setSlideOver]       = useState<'add' | StoreProduct | null>(null);
   const [contentForProduct, setContentForProduct] = useState<StoreProduct | null>(null);
@@ -1400,7 +1439,8 @@ export function SellProductsPage() {
       const matchType   = typeFilter === 'all' || p.productType === typeFilter;
       const matchStatus = statusFilter === 'all' ||
         (statusFilter === 'available' && p.available) ||
-        (statusFilter === 'hidden' && !p.available);
+        (statusFilter === 'hidden' && !p.available) ||
+        (statusFilter === 'draft' && p.status === 'draft');
       return matchSearch && matchType && matchStatus;
     });
   }, [products, search, typeFilter, statusFilter]);
@@ -1439,6 +1479,24 @@ export function SellProductsPage() {
     }
   }, [user?.businessId, showToast]);
 
+  // ── Publish a draft ─────────────────────────────────────────────────────
+  const handlePublish = useCallback(async (product: StoreProduct, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!user?.businessId) return;
+    try {
+      const db = getDatabase();
+      await db.doc(`storeProducts/${product.id}`).update({
+        status: 'active',
+        available: true,
+        updatedAt: new Date().toISOString(),
+      });
+      setProducts(prev => prev.map(p => p.id === product.id ? { ...p, status: 'active', available: true } : p));
+      showToast('Product published', 'success');
+    } catch {
+      showToast('Failed to publish product', 'error');
+    }
+  }, [user?.businessId, showToast]);
+
   // ── Delete ────────────────────────────────────────────────────────────────
   const handleDelete = useCallback(async (product: StoreProduct, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -1464,12 +1522,17 @@ export function SellProductsPage() {
     try {
       const db = getDatabase();
       await Promise.all([...selected].map(id =>
-        db.doc(`storeProducts/${id}`).update({
-          available,
-          updatedAt: new Date().toISOString(),
-        })
+        db.doc(`storeProducts/${id}`).update(
+          available
+            ? { available, status: 'active', updatedAt: new Date().toISOString() }
+            : { available, updatedAt: new Date().toISOString() },
+        )
       ));
-      setProducts(prev => prev.map(p => selected.has(p.id) ? { ...p, available } : p));
+      setProducts(prev => prev.map(p =>
+        selected.has(p.id)
+          ? { ...p, available, status: available ? 'active' : (p.status ?? 'active') }
+          : p,
+      ));
       setSelected(new Set());
       showToast(`${selected.size} products ${available ? 'made visible' : 'hidden'}`, 'success');
     } catch {
@@ -1549,6 +1612,7 @@ export function SellProductsPage() {
             <option value="all">All status</option>
             <option value="available">Available</option>
             <option value="hidden">Hidden</option>
+            <option value="draft">Draft</option>
           </select>
 
           <div className={styles.toolbarRight}>
@@ -1685,14 +1749,25 @@ export function SellProductsPage() {
                         )}
                       </td>
                       <td onClick={e => e.stopPropagation()}>
-                        <button
-                          className={`${styles.statusToggle} ${p.available ? styles.statusActive : styles.statusHidden}`}
-                          onClick={e => handleToggle(p, e)}
-                          title={p.available ? 'Click to hide' : 'Click to show'}
-                        >
-                          <span className={styles.statusDot} />
-                          {p.available ? 'Live' : 'Hidden'}
-                        </button>
+                        {p.status === 'draft' ? (
+                          <button
+                            className={`${styles.statusToggle} ${styles.statusDraft}`}
+                            onClick={e => handlePublish(p, e)}
+                            title="Click to publish"
+                          >
+                            <span className={styles.statusDot} />
+                            Draft
+                          </button>
+                        ) : (
+                          <button
+                            className={`${styles.statusToggle} ${p.available ? styles.statusActive : styles.statusHidden}`}
+                            onClick={e => handleToggle(p, e)}
+                            title={p.available ? 'Click to hide' : 'Click to show'}
+                          >
+                            <span className={styles.statusDot} />
+                            {p.available ? 'Live' : 'Hidden'}
+                          </button>
+                        )}
                       </td>
                       <td onClick={e => e.stopPropagation()}>
                         <div className={styles.rowActions}>

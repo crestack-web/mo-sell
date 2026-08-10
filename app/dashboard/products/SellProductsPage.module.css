@@ -317,6 +317,7 @@
 
 .statusActive { background: var(--sell-green-bg); color: var(--sell-green); }
 .statusHidden { background: var(--sell-surface-2); color: var(--sell-text-3); border: 1px solid var(--sell-border); }
+.statusDraft  { background: var(--sell-surface-2); color: var(--sell-amber); border: 1px solid var(--sell-amber); }
 
 .statusDot {
   width: 6px;
@@ -327,6 +328,7 @@
 
 .statusActive .statusDot { background: var(--sell-green); }
 .statusHidden .statusDot { background: var(--sell-text-3); }
+.statusDraft .statusDot  { background: var(--sell-amber); }
 
 /* ── Stock badge ── */
 .stockBadge {

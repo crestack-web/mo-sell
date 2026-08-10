@@ -22,7 +22,7 @@ async function getProduct(businessId: string, productId: string) {
       .eq('businessId', businessId)
       .eq('id', productId)
       .maybeSingle();
-    if (!data) return null;
+    if (!data || (data.status ?? 'active') === 'draft') return null;
     const images = typeof data.images === 'string' ? JSON.parse(data.images || '[]') : (Array.isArray(data.images) ? data.images : []);
     return { id: data.id, ...data, images } as any;
   } catch { return null; }

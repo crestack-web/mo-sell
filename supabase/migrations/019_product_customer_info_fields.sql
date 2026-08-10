@@ -4,4 +4,4 @@
 -- null/empty jsonb = collect all (legacy behavior). Email is always collected
 -- because Paystack and order delivery require it.
 
-ALTER TABLE public.storeProducts ADD COLUMN IF NOT EXISTS "customerInfoFields" jsonb;
+ALTER TABLE "public"."storeProducts" ADD COLUMN IF NOT EXISTS "customerInfoFields" jsonb;

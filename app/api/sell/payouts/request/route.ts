@@ -100,6 +100,7 @@ export async function POST(req: NextRequest) {
       updatedAt:       timestamp,
     });
     if (payoutError) {
+      console.error('[payouts/request] Insert error:', payoutError);
       return NextResponse.json({ error: 'Failed to create payout request' }, { status: 500 });
     }
 

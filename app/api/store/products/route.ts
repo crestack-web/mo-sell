@@ -39,6 +39,9 @@ export async function GET(req: NextRequest) {
 
     let products = (rows ?? []).slice();
 
+    // Drafts are never exposed publicly, regardless of the available flag.
+    products = products.filter((p: any) => (p.status ?? 'active') !== 'draft');
+
     if (available === 'true') {
       products = products.filter((p: any) => p.available === true);
     }

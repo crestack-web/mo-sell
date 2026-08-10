@@ -33,6 +33,7 @@ async function getProducts(businessId: string, filter?: { featured?: boolean }) 
       .select('*')
       .eq('businessId', businessId);
     const products = (rows ?? [])
+      .filter((r: any) => (r.status ?? 'active') !== 'draft')
       .filter((r: any) => r.available === true)
       .filter((r: any) => (filter?.featured ? r.featured === true : true))
       .slice(0, 100);
