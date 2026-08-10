@@ -430,22 +430,26 @@ export default function SellSignupPage() {
       const category = pendingStore.productCategory || 'products';
       const products = PLACEHOLDER_PRODUCTS[category as keyof typeof PLACEHOLDER_PRODUCTS] || PLACEHOLDER_PRODUCTS.products;
 
+      const productType = category === 'services' ? 'service'
+        : (category === 'physical-products' || category === 'products') ? 'physical'
+          : 'digital';
+
       for (const p of products) {
         const productId = `prod_${Math.random().toString(36).slice(2, 10)}`;
         await db.doc(`businesses/${businessId}/storeProducts/${productId}`).set({
           id: productId,
-          title: p.title,
+          businessId,
+          productType,
+          displayName: p.title,
           description: p.desc,
           price: p.price,
           compareAtPrice: null,
           images: [],
           category: category,
-          type: 'simple',
-          status: 'draft',
-          metadata: {},
+          tags: [],
           stock: null,
+          available: true,
           variants: [],
-          isSubscription: false,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         });

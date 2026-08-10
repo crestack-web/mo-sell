@@ -417,7 +417,13 @@ function ProductSlideOver({ product, onClose, onSaved, businessId, currency, sto
       if (!parsed) {
         const jsonMatch = data.answer.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
-          try { parsed = JSON.parse(jsonMatch[0]); } catch { /* ignore */ }
+          const raw = jsonMatch[0];
+          for (let end = raw.length; end > 0; end--) {
+            try {
+              parsed = JSON.parse(raw.slice(0, end));
+              break;
+            } catch { /* keep trimming trailing noise */ }
+          }
         }
       }
       if (!parsed) {
