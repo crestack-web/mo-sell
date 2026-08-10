@@ -658,7 +658,17 @@ function ProductSlideOver({ product, onClose, onSaved, businessId, currency, sto
                   className={`${styles.btn} ${form.productType === type ? styles.btnPrimary : styles.btnGhost}`}
                   style={{ flex: 1, justifyContent: 'center', padding: '7px 8px', fontSize: '0.8rem' }}
                 >
-                  {type === 'physical' ? '📦' : type === 'digital' ? '💾' : '⚙️'}&nbsp;
+                  <img
+                    src={type === 'physical'
+                      ? 'https://res.cloudinary.com/dzjoqbg2u/image/upload/v1786186523/Untitled_-_August_08_2026_at_11.22.19_wdgobj.png'
+                      : type === 'digital'
+                        ? 'https://res.cloudinary.com/dzjoqbg2u/image/upload/v1786186523/Untitled_-_August_08_2026_at_11.22.19_kunvlj.png'
+                        : 'https://res.cloudinary.com/dzjoqbg2u/image/upload/v1786186523/Untitled_-_August_08_2026_at_11.22.19_ftbtyx.png'}
+                    alt={type}
+                    width={16}
+                    height={16}
+                    style={{ verticalAlign: 'middle', objectFit: 'contain' }}
+                  />&nbsp;
                   {type.charAt(0).toUpperCase() + type.slice(1)}
                 </button>
               ))}
