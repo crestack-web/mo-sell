@@ -396,6 +396,8 @@
   align-items: center;
   justify-content: center;
   color: var(--sell-text-2, #64748b);
+  background: var(--sell-surface-2, #f1f5f9);
+  border-radius: 8px;
   flex-shrink: 0;
 }
 
@@ -636,6 +638,34 @@
   padding: 32px 16px;
   color: var(--sell-text-3, #94a3b8);
   font-size: 0.85rem;
+}
+
+.productsError {
+  text-align: center;
+  padding: 24px 16px;
+  color: var(--sell-text-2, #64748b);
+  font-size: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.retryBtn {
+  padding: 8px 20px;
+  border: 1px solid var(--sell-border, #e2e8f0);
+  border-radius: 8px;
+  background: var(--sell-surface, #fff);
+  color: var(--sell-primary, #0ea5e9);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.retryBtn:hover {
+  border-color: var(--sell-primary, #0ea5e9);
+  background: var(--sell-primary-soft, #f0f9ff);
 }
 
 .saveRow {

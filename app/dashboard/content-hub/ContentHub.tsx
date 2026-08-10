@@ -1122,6 +1122,7 @@ export function ContentHub() {
                   onClose={() => setSelectedProduct(null)}
                   currency={currency}
                   audienceContext={buildAudienceContext()}
+                  businessId={user?.businessId}
                   onScheduleIdea={handleScheduleIdea}
                 />
               )}

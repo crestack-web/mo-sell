@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { getDatabase } from '@/lib/database/adapter';
 import { getStorage } from '@/lib/storage/adapter';
 import { useSell } from '@/context/SellContext';
@@ -9,7 +9,7 @@ import type { ProductCardData } from '@/themes/types';
 import { getLinkBioLayout, type CustomLink } from '@/app/[storeSlug]/components/layouts/index';
 import { getThemeCssVars } from '@/components/StorefrontCanvas';
 import type { StorefrontTheme } from '@/types/mo-sell.types';
-import { ExternalLink, GripVertical, Eye, EyeOff, X, Pencil, ArrowRight } from 'lucide-react';
+import { ExternalLink, GripVertical, Eye, EyeOff, X, Pencil, ArrowRight, Instagram, Twitter, Youtube, Music2, MessageCircle } from 'lucide-react';
 import styles from './LinkInBioEditor.module.css';
 
 type DisplayType = 'button' | 'callout' | 'minimal';
@@ -35,6 +35,22 @@ const DISPLAY_TYPES: DisplayType[] = ['button', 'callout', 'minimal'];
 const BG_TYPES: BgType[] = ['solid', 'gradient', 'image', 'pattern'];
 const SOCIAL_PLATFORMS = ['instagram', 'tiktok', 'twitter', 'youtube', 'whatsapp'];
 
+const SOCIAL_ICONS: Record<string, React.ReactNode> = {
+  instagram: <Instagram size={18} style={{ color: '#E4405F' }} />,
+  twitter: <Twitter size={18} style={{ color: '#1DA1F2' }} />,
+  youtube: <Youtube size={18} style={{ color: '#FF0000' }} />,
+  tiktok: <Music2 size={18} style={{ color: '#010101' }} />,
+  whatsapp: <MessageCircle size={18} style={{ color: '#25D366' }} />,
+};
+
+const SOCIAL_PLACEHOLDERS: Record<string, string> = {
+  instagram: '@username',
+  tiktok: '@username',
+  twitter: '@username',
+  youtube: '@username',
+  whatsapp: 'phone number',
+};
+
 const SOLID_COLORS = ['#0A0A0A', '#0F172A', '#1E293B', '#111827', '#FFFFFF', '#F9FAFB', '#FFF7ED', '#ECFDF5', '#F0F9FF'];
 const GRADIENTS = [
   'linear-gradient(135deg, #0F172A 0%, #1E3A8A 100%)',
@@ -55,6 +71,8 @@ export function LinkInBioEditor() {
   const [theme, setTheme] = useState<string>('ankara');
   const [tab, setTab] = useState<'profile' | 'design' | 'products' | 'links'>('profile');
   const [products, setProducts] = useState<ProductRow[]>([]);
+  const [productsLoading, setProductsLoading] = useState(false);
+  const [productsError, setProductsError] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -82,11 +100,15 @@ export function LinkInBioEditor() {
     setDirty(false);
   }, [storeConfig, storeConfigLoading]);
 
-  useEffect(() => {
+  const loadProducts = useCallback(() => {
     if (!user?.businessId) return;
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? '';
-    fetch(`${baseUrl}/api/store/products?businessId=${user.businessId}&available=true`)
-      .then(r => (r.ok ? r.json() : { products: [] }))
+    setProductsLoading(true);
+    setProductsError(false);
+    fetch(`/api/store/products?businessId=${user.businessId}&available=true`)
+      .then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
       .then(d => setProducts((d.products ?? []).map((p: any): ProductRow => ({
         id: p.id,
         displayName: p.displayName ?? 'Untitled',
@@ -100,8 +122,16 @@ export function LinkInBioEditor() {
         description: p.description,
         digitalFileUrl: p.digitalFileUrl ?? null,
       }))))
-      .catch(() => setProducts([]));
+      .catch(() => {
+        setProducts([]);
+        setProductsError(true);
+      })
+      .finally(() => setProductsLoading(false));
   }, [user?.businessId]);
+
+  useEffect(() => {
+    loadProducts();
+  }, [loadProducts]);
 
   const themeFont = THEMES.find(t => t.id === theme)?.previewFont ?? null;
 
@@ -420,7 +450,7 @@ export function LinkInBioEditor() {
                     <label className={styles.fLabel}>Social links</label>
                     {form.socials.map((s, i) => (
                       <div key={i} className={styles.socialRow}>
-                        <span className={styles.socialIcon}>{s.platform.slice(0, 2).toUpperCase()}</span>
+                        <span className={styles.socialIcon}>{SOCIAL_ICONS[s.platform] ?? s.platform.slice(0, 2).toUpperCase()}</span>
                         <select
                           className={styles.fSelect}
                           value={s.platform}
@@ -435,7 +465,7 @@ export function LinkInBioEditor() {
                           className={styles.fInput}
                           value={s.url}
                           onChange={e => updateSocial(i, { url: e.target.value })}
-                          placeholder="https://..."
+                          placeholder={SOCIAL_PLACEHOLDERS[s.platform] ?? '@username'}
                         />
                         <button
                           className={styles.iconBtn}
@@ -447,6 +477,7 @@ export function LinkInBioEditor() {
                         </button>
                       </div>
                     ))}
+                    <p className={styles.fHint}>Just your username or @handle is enough — no need to paste the full link.</p>
                     <button className={styles.addBtn} onClick={addSocial} type="button">+ Add social</button>
                   </div>
                 </div>
@@ -557,7 +588,14 @@ export function LinkInBioEditor() {
               {tab === 'products' && (
                 <div className={styles.tabContent}>
                   <p className={styles.tabDesc}>Choose how each product looks and whether it appears on your link-in-bio page.</p>
-                  {orderedAll.map((p, i) => {
+                  {productsLoading && <p className={styles.emptyState}>Loading products…</p>}
+                  {!productsLoading && productsError && (
+                    <div className={styles.productsError}>
+                      <p>Couldn&apos;t load products.</p>
+                      <button type="button" className={styles.retryBtn} onClick={loadProducts}>Retry</button>
+                    </div>
+                  )}
+                  {!productsLoading && !productsError && orderedAll.map((p, i) => {
                     const type = form.productDisplayTypes[p.id] ?? form.displayType;
                     const visible = form.productVisibility[p.id] !== false;
                     const first = i === 0;
@@ -595,7 +633,7 @@ export function LinkInBioEditor() {
                       </div>
                     );
                   })}
-                  {orderedAll.length === 0 && <p className={styles.emptyState}>No products yet. Add products to show them on your page.</p>}
+                  {!productsLoading && !productsError && orderedAll.length === 0 && <p className={styles.emptyState}>No products yet. Add products to show them on your page.</p>}
                 </div>
               )}
 

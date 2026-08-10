@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Instagram, Twitter, Youtube, Music2, MessageCircle } from 'lucide-react';
 import type { ProductCardData } from '@/themes/types';
+import { socialUrl } from '@/lib/socials';
 
 export interface CustomLink { id: string; label: string; url: string }
 
@@ -114,7 +115,7 @@ function SocialRow({ socials, isLightBg, textColor }: { socials: { platform: str
       {socials.map((s, i) => {
         if (!s.url) return null;
         return (
-          <a key={i} href={s.url} target="_blank" rel="noopener noreferrer"
+          <a key={i} href={socialUrl(s.platform, s.url)} target="_blank" rel="noopener noreferrer"
             style={{
               width: 44, height: 44, borderRadius: '50%',
               background: 'var(--sf-surface, ' + (isLightBg ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.1)') + ')',
@@ -748,7 +749,7 @@ export function QuietLayout(p: LayoutProps) {
           {socials.length > 0
             ? socials.map((s, i) => (
                 <span key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <a href={s.url} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'none' }}>{s.platform}</a>
+                  <a href={socialUrl(s.platform, s.url)} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'none' }}>{s.platform}</a>
                   {i < socials.length - 1 && <span>·</span>}
                 </span>
               ))

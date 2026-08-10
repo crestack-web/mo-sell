@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Lightbulb, Video, Copy, Sparkles, Check, X, AlertCircle, RefreshCw, CalendarClock } from 'lucide-react';
+import { getDatabase } from '@/lib/database/adapter';
 import styles from './ContentHub.module.css';
 
 interface Product {
@@ -39,6 +40,7 @@ interface ApiResponse {
   ideas: Idea[];
   scripts: Script[];
   tips: Tip[];
+  audienceNote?: string;
   error?: string;
 }
 
@@ -60,10 +62,11 @@ interface Props {
   onClose: () => void;
   currency: string;
   audienceContext?: string;
+  businessId?: string;
   onScheduleIdea?: (idea: Idea, product: Product) => void;
 }
 
-export function ContentGenerator({ product, onClose, currency, audienceContext, onScheduleIdea }: Props) {
+export function ContentGenerator({ product, onClose, currency, audienceContext, businessId, onScheduleIdea }: Props) {
   const [activeTab, setActiveTab] = useState<'ideas' | 'scripts' | 'tips'>('ideas');
   const [doneIdeas, setDoneIdeas] = useState<Set<number>>(new Set());
   const [copied, setCopied] = useState(false);
@@ -75,8 +78,52 @@ export function ContentGenerator({ product, onClose, currency, audienceContext, 
   useEffect(() => {
     if (fetchedRef.current) return;
     fetchedRef.current = true;
-    loadIdeas();
+    loadSavedOrGenerate();
   }, []);
+
+  const loadSavedOrGenerate = async () => {
+    if (!businessId) {
+      await loadIdeas();
+      return;
+    }
+    try {
+      const db = getDatabase();
+      const snap = await db.doc(`businesses/${businessId}/contentIdeas/${product.id}`).get();
+      const saved = snap.data() as any;
+      if (saved && Array.isArray(saved.ideas)) {
+        setData({
+          ideas: saved.ideas,
+          scripts: saved.scripts ?? [],
+          tips: saved.tips ?? [],
+          audienceNote: saved.audienceNote ?? undefined,
+        });
+        setLoading(false);
+        return;
+      }
+    } catch {
+      // fall through to generation
+    }
+    await loadIdeas();
+  };
+
+  const saveIdeas = async (json: ApiResponse) => {
+    if (!businessId) return;
+    try {
+      const db = getDatabase();
+      await db.doc(`businesses/${businessId}/contentIdeas/${product.id}`).set({
+        ideas: json.ideas,
+        scripts: json.scripts,
+        tips: json.tips,
+        audienceNote: json.audienceNote ?? null,
+        businessId,
+        productId: product.id,
+        productName: product.displayName,
+        updatedAt: Date.now(),
+      }, { merge: true });
+    } catch {
+      // persistence is best-effort
+    }
+  };
 
   const loadIdeas = async () => {
     setLoading(true);
@@ -97,6 +144,7 @@ export function ContentGenerator({ product, onClose, currency, audienceContext, 
       const json: ApiResponse = await res.json();
       if (!res.ok) throw new Error(json.error || 'Failed to generate ideas');
       setData(json);
+      await saveIdeas(json);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
@@ -154,10 +202,10 @@ export function ContentGenerator({ product, onClose, currency, audienceContext, 
       </div>
 
       <div className={styles.tabContent}>
-        {(data as any)?.audienceNote && !loading && !error && (
+        {data?.audienceNote && !loading && !error && (
           <div className={styles.audienceNote}>
             <Sparkles className={styles.audienceNoteIcon} size={15} />
-            <div className={styles.audienceNoteText}><Md text={(data as any).audienceNote} /></div>
+            <div className={styles.audienceNoteText}><Md text={data.audienceNote} /></div>
           </div>
         )}
         {loading ? (
