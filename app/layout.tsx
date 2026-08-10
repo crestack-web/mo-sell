@@ -8,8 +8,8 @@ const jakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "MO Sell - Your Store, Powered by AI",
-  description: "Build, manage, and grow your online store with MO's AI-powered platform.",
+  title: "MO Sell by Busmo — Africa's Business Operating System",
+  description: "MO Sell by Busmo — Africa's business operating system. Build your store, sell products, and grow with MO.",
   icons: {
     icon: [{ url: '/favicon.png', type: 'image/png' }],
     apple: '/favicon.png',
