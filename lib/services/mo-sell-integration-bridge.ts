@@ -280,40 +280,9 @@ export async function processConfirmedOrder(
       }, { onConflict: 'businessId,month' });
     if (rollupError) throw rollupError;
 
-    // ── Write 5: Ask MO commission (20% on AI-generated ebook sales) ────────────
-    const ASK_MO_COMMISSION_RATE = 0.20;
-    for (const item of session.lineItems) {
-      if (!item.productId) continue;
-      const { data: prodRow } = await supabase
-        .from('storeProducts')
-        .select('*')
-        .eq('id', item.productId)
-        .eq('businessId', businessId)
-        .maybeSingle();
-      if (!prodRow) continue;
-      if (prodRow.createdByAskMo && prodRow.askMoCommissionRate) {
-        const askMoAmount = Math.round(item.lineTotal * ASK_MO_COMMISSION_RATE * 100) / 100;
-        const { error: askMoError } = await supabase.from('storeEarnings').insert({
-          businessId,
-          orderId,
-          orderNumber,
-          customerName: session.customerName,
-          grossAmount: item.lineTotal,
-          commissionRate: ASK_MO_COMMISSION_RATE,
-          commissionAmount: askMoAmount,
-          netAmount: 0,
-          type: 'ask_mo_commission',
-          productId: item.productId,
-          productName: item.displayName,
-          currency: config?.currency ?? 'NGN',
-          status: 'available',
-          payoutRequestId: null,
-          createdAt: timestamp,
-          updatedAt: timestamp,
-        });
-        if (askMoError) throw askMoError;
-      }
-    }
+    // ── Write 5: (removed) Ask Mo e-book royalty commission — generation is
+    // paid for up-front with Ask Mo tokens, no per-sale commission is taken. ──
+
   } catch (writeErr) {
     console.error('[IntegrationBridge] Write failed:', {
       businessId, sessionId, error: writeErr,

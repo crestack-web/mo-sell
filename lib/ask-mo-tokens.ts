@@ -125,6 +125,3 @@ export function getTokenCost(
   if (hasMedia) return TOKEN_COSTS.chatWithMedia;
   return TOKEN_COSTS.chat;
 }
-
-export const ASK_MO_COMMISSION_RATE = 0.20;
-export const ASK_MO_COMMISSION_FIELD = 'askMoCommissionRate';

@@ -117,7 +117,6 @@ export async function POST(req: NextRequest) {
     let totalAvailable = 0;
     for (const d of earnings ?? []) {
       const data = d as any;
-      if (data.type === 'ask_mo_commission') continue;
       earningIds.push(data.id);
       totalAvailable += data.netAmount ?? 0;
     }
