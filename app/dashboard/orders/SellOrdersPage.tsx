@@ -538,7 +538,7 @@ export function SellOrdersPage() {
 
         {/* Stat strip */}
         <div className={styles.statStrip}>
-          <div className={styles.statCard}><p className={styles.statLabel}>To fulfill</p><p className={styles.statValue}>{pending}</p><p className={styles.statSub}>Need action</p></div>
+          {pending > 0 && <div className={styles.statCard}><p className={styles.statLabel}>To fulfill</p><p className={styles.statValue}>{pending}</p><p className={styles.statSub}>Need action</p></div>}
           <div className={styles.statCard}><p className={styles.statLabel}>Total orders</p><p className={styles.statValue}>{orders.length}</p><p className={styles.statSub}>All time</p></div>
           <div className={styles.statCard}><p className={styles.statLabel}>Revenue</p><p className={styles.statValue}>{fmt(revenue, currency)}</p><p className={styles.statSub}>Paid orders</p></div>
           <div className={styles.statCard}><p className={styles.statLabel}>Delivered</p><p className={styles.statValue}>{delivered}</p><p className={styles.statSub}>Completed</p></div>
