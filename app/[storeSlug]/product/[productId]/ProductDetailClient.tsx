@@ -24,6 +24,7 @@ interface Product {
   venue?: string | null;
   capacity?: number | string | null;
   callToAction?: string | null;
+  customerInfoFields?: string[];
 }
 
 interface Props {
@@ -140,6 +141,13 @@ export function ProductDetailClient({ product, storeSlug, currency, theme, busin
 
   const isLinkStyle = LINK_STYLE_THEMES.includes(theme);
 
+  // Which customer fields this product wants collected (email is always required)
+  const infoFields = product.customerInfoFields && product.customerInfoFields.length > 0
+    ? product.customerInfoFields
+    : ['name', 'email', 'phone', 'address'];
+  const wantsName = infoFields.includes('name');
+  const wantsPhone = infoFields.includes('phone');
+
   // Fetch store public config if we are in a link-in-bio theme
   useEffect(() => {
     if (isLinkStyle) {
@@ -219,11 +227,11 @@ export function ProductDetailClient({ product, storeSlug, currency, theme, busin
       setError('Please enter a valid email address.');
       return;
     }
-    if (!name.trim()) {
+    if (wantsName && !name.trim()) {
       setError('Please enter your full name.');
       return;
     }
-    if (!phone.trim()) {
+    if (wantsPhone && !phone.trim()) {
       setError('Please enter your phone number.');
       return;
     }
@@ -597,6 +605,7 @@ export function ProductDetailClient({ product, storeSlug, currency, theme, busin
               }}>
                 <p style={{ margin: 0, fontWeight: 700, fontSize: '0.92rem' }}>👤 Contact Details</p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {wantsName && (
                   <div>
                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--sf-text-2)', marginBottom: 5 }}>Full name *</label>
                     <input
@@ -614,6 +623,7 @@ export function ProductDetailClient({ product, storeSlug, currency, theme, busin
                       }}
                     />
                   </div>
+                  )}
                   <div>
                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--sf-text-2)', marginBottom: 5 }}>Email address *</label>
                     <input
@@ -631,6 +641,7 @@ export function ProductDetailClient({ product, storeSlug, currency, theme, busin
                       }}
                     />
                   </div>
+                  {wantsPhone && (
                   <div>
                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--sf-text-2)', marginBottom: 5 }}>Phone number *</label>
                     <input
@@ -648,6 +659,7 @@ export function ProductDetailClient({ product, storeSlug, currency, theme, busin
                       }}
                     />
                   </div>
+                  )}
                   <div>
                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--sf-text-2)', marginBottom: 5 }}>Notes (optional)</label>
                     <textarea

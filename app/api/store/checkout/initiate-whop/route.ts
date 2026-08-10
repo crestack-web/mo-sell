@@ -68,7 +68,8 @@ export async function POST(req: NextRequest) {
     const { error: sessionError } = await supabase.from('checkoutSessions').insert({
       id: sessionId,
       storeSlug, businessId, lineItems,
-      customerName, customerEmail, customerPhone,
+      customerName: (customerName ?? '').trim() || 'Guest', customerEmail,
+      customerPhone: customerPhone ?? '',
       deliveryOption, shippingAddress, shippingZoneId,
       shippingCost, subtotal, total,
       paystackReference: null,

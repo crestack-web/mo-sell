@@ -72,6 +72,7 @@ interface StoreProduct {
   digitalFiles?: Array<{ url: string; name: string }>;
   // Custom buy-button text shown on the storefront product page
   callToAction: string | null;
+  customerInfoFields?: string[];
 }
 
 interface InventoryProduct {
@@ -131,6 +132,7 @@ type FormData = {
   slotDuration: string;
   bufferTime: string;
   callToAction: string;
+  customerInfoFields: string[];
 };
 
 const EMPTY_FORM: FormData = {
@@ -146,6 +148,7 @@ const EMPTY_FORM: FormData = {
   sessionType: '', sessionDuration: '', sessionFormat: '', numberOfSessions: '', coachingDeliverable: '',
   slotDuration: '60', bufferTime: '15',
   callToAction: '',
+  customerInfoFields: ['name', 'email', 'phone', 'address'],
 };
 
 const CATEGORIES = [
@@ -289,6 +292,7 @@ function ProductSlideOver({ product, onClose, onSaved, businessId, currency, sto
       slotDuration: product.slotDuration ? String(product.slotDuration) : '60',
       bufferTime: product.bufferTime != null ? String(product.bufferTime) : '15',
       callToAction: product.callToAction ?? '',
+      customerInfoFields: product.customerInfoFields ?? ['name', 'email', 'phone', 'address'],
     };
   });
 
@@ -520,6 +524,7 @@ function ProductSlideOver({ product, onClose, onSaved, businessId, currency, sto
         deliveryNote: form.productType === 'service' ? form.deliveryNote.trim() || null : null,
         lowStockThreshold: parseInt(form.lowStockThreshold) || 5,
         variants: form.productType === 'physical' && variants.length > 0 ? variants : null,
+        customerInfoFields: form.customerInfoFields,
         updatedAt: new Date().toISOString(),
       };
 
@@ -1236,6 +1241,50 @@ function ProductSlideOver({ product, onClose, onSaved, businessId, currency, sto
                 <span className={styles.toggleThumb} />
               </label>
             </div>
+          </div>
+
+          {/* Section: Customer information */}
+          <div className={styles.formSection}>
+            <p className={styles.formSectionLabel}>Customer information</p>
+            <div className={styles.toggleRow}>
+              <div>
+                <p className={styles.toggleLabel}>Customer details to collect</p>
+                <p className={styles.toggleSub}>Buyers will be asked for these fields at checkout. Email is always collected.</p>
+              </div>
+            </div>
+            {[
+              { key: 'name', label: 'Full name', hint: 'e.g. Ada Obi' },
+              { key: 'email', label: 'Email address', hint: 'Always collected — needed for payment receipts' },
+              { key: 'phone', label: 'Phone number', hint: 'e.g. 0801 234 5678' },
+              { key: 'address', label: 'Delivery address', hint: 'Only shown when door delivery is selected' },
+            ].map(field => {
+              const alwaysOn = field.key === 'email';
+              const checked = alwaysOn || form.customerInfoFields.includes(field.key);
+              return (
+                <div className={styles.toggleRow} style={{ marginTop: 10 }} key={field.key}>
+                  <div>
+                    <p className={styles.toggleLabel}>{field.label}</p>
+                    <p className={styles.toggleSub}>{field.hint}</p>
+                  </div>
+                  <label className={styles.toggle} style={{ opacity: alwaysOn ? 0.6 : 1 }}>
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      disabled={alwaysOn}
+                      onChange={() => {
+                        if (alwaysOn) return;
+                        const has = form.customerInfoFields.includes(field.key);
+                        set('customerInfoFields', has
+                          ? form.customerInfoFields.filter(k => k !== field.key)
+                          : [...form.customerInfoFields, field.key]);
+                      }}
+                    />
+                    <span className={styles.toggleTrack} />
+                    <span className={styles.toggleThumb} />
+                  </label>
+                </div>
+              );
+            })}
           </div>
 
         </div>

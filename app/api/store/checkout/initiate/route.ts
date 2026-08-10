@@ -28,7 +28,6 @@ interface CheckoutInitiateBody {
 function validateBody(body: Partial<CheckoutInitiateBody>): string | null {
   if (!body.storeSlug)    return 'storeSlug is required';
   if (!body.businessId)   return 'businessId is required';
-  if (!body.customerName) return 'customerName is required';
   if (!body.customerEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.customerEmail))
     return 'valid customerEmail is required';
   if (!body.lineItems?.length) return 'lineItems must not be empty';
@@ -75,7 +74,8 @@ export async function POST(req: NextRequest) {
     const { error: sessionError } = await supabase.from('checkoutSessions').insert({
       id: sessionId,
       storeSlug, businessId, lineItems,
-      customerName, customerEmail, customerPhone,
+      customerName: (customerName ?? '').trim() || 'Guest', customerEmail,
+      customerPhone: customerPhone ?? '',
       deliveryOption, shippingAddress, shippingZoneId,
       shippingCost, subtotal, total,
       paystackReference: null,

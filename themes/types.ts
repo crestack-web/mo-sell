@@ -15,6 +15,7 @@ export interface ProductCardData {
   description?: string;
   rating?: number;
   reviewCount?: number;
+  customerInfoFields?: string[];
 }
 
 export interface CollectionData {
@@ -81,6 +82,7 @@ export interface ThemeProductPageProps {
     tags: string[];
     deliveryNote: string | null;
     digitalFileUrl: string | null;
+    customerInfoFields?: string[];
   };
   storeSlug: string;
   currency: string;

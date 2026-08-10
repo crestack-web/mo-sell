@@ -30,6 +30,7 @@ export function ProductCardWithTheme({ themeId, product, storeSlug, currency }: 
       price: product.price, imageUrl: product.images[0] ?? null,
       maxStock: product.productType === 'physical' ? product.stock : 999,
       productType: product.productType,
+      metadata: { customerInfoFields: (product.customerInfoFields ?? ['name', 'email', 'phone', 'address']).join(',') },
     });
   };
 

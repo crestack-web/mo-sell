@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { useCart } from '../context/CartContext';
 import { useRouter } from 'next/navigation';
 
@@ -56,6 +56,20 @@ export function CheckoutForm({
   const shippingCost = deliveryOption === 'delivery' ? (selectedZone?.flatRate ?? 0) : 0;
   const total = subtotal + shippingCost;
 
+  // Effective customer fields across cart items (union). Defaults to all fields
+  // when no product carries a customerInfoFields config. Email is always required.
+  const effectiveInfoFields = useMemo(() => {
+    const lists = items
+      .map(i => i.metadata?.customerInfoFields)
+      .filter((raw): raw is string => Boolean(raw))
+      .map(raw => raw.split(',').filter(Boolean));
+    if (lists.length === 0) return ['name', 'email', 'phone', 'address'];
+    return [...new Set(lists.flat())];
+  }, [items]);
+  const wantsName = effectiveInfoFields.includes('name');
+  const wantsPhone = effectiveInfoFields.includes('phone');
+  const wantsAddress = effectiveInfoFields.includes('address');
+
   useEffect(() => {
     fetch('/api/store/analytics/event', {
       method: 'POST',
@@ -71,11 +85,19 @@ export function CheckoutForm({
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !email.trim() || !phone.trim()) {
-      setError('Please fill in all required fields.');
+    if (wantsName && !name.trim()) {
+      setError('Please enter your full name.');
       return;
     }
-    if (deliveryOption === 'delivery' && !address.trim()) {
+    if (!email.trim()) {
+      setError('Please enter your email address.');
+      return;
+    }
+    if (wantsPhone && !phone.trim()) {
+      setError('Please enter your phone number.');
+      return;
+    }
+    if (deliveryOption === 'delivery' && wantsAddress && !address.trim()) {
       setError('Please enter a delivery address.');
       return;
     }
@@ -99,11 +121,11 @@ export function CheckoutForm({
       const baseBody = {
         storeSlug, businessId,
         lineItems,
-        customerName:    name.trim(),
+        customerName:   name.trim() || 'Guest',
         customerEmail:   email.trim(),
         customerPhone:   phone.trim(),
         deliveryOption,
-        shippingAddress: deliveryOption === 'delivery' ? address.trim() : null,
+        shippingAddress: deliveryOption === 'delivery' && wantsAddress ? address.trim() : null,
         shippingZoneId:  deliveryOption === 'delivery' ? selectedZoneId : null,
         shippingCost,
         subtotal,
@@ -160,7 +182,7 @@ export function CheckoutForm({
     } finally {
       setSubmitting(false);
     }
-  }, [name, email, phone, address, deliveryOption, selectedZoneId, shippingCost, subtotal, total, items, storeSlug, businessId, clearCart, paymentMethod, whopEnabled]);
+  }, [name, email, phone, address, deliveryOption, selectedZoneId, shippingCost, subtotal, total, items, storeSlug, businessId, clearCart, paymentMethod, whopEnabled, wantsName, wantsPhone, wantsAddress]);
 
   if (items.length === 0) {
     return (
@@ -184,18 +206,22 @@ export function CheckoutForm({
       <div style={cardStyle}>
         <p style={sectionTitle}>1. Contact details</p>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          <div style={{ gridColumn: '1 / -1' }}>
-            <label style={labelStyle}>Full name *</label>
-            <input style={inputStyle} value={name} onChange={e => setName(e.target.value)} placeholder="John Doe" required />
-          </div>
-          <div>
+          {wantsName && (
+            <div style={{ gridColumn: '1 / -1' }}>
+              <label style={labelStyle}>Full name *</label>
+              <input style={inputStyle} value={name} onChange={e => setName(e.target.value)} placeholder="John Doe" required />
+            </div>
+          )}
+          <div style={wantsName ? undefined : { gridColumn: '1 / -1' }}>
             <label style={labelStyle}>Email *</label>
             <input style={inputStyle} type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="john@example.com" required />
           </div>
-          <div>
-            <label style={labelStyle}>Phone *</label>
-            <input style={inputStyle} type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+234 800 000 0000" required />
-          </div>
+          {wantsPhone && (
+            <div>
+              <label style={labelStyle}>Phone *</label>
+              <input style={inputStyle} type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+234 800 000 0000" required />
+            </div>
+          )}
         </div>
       </div>
 
@@ -226,7 +252,7 @@ export function CheckoutForm({
           })}
         </div>
 
-        {deliveryOption === 'delivery' && (
+        {deliveryOption === 'delivery' && wantsAddress && (
           <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div>
               <label style={labelStyle}>Delivery address *</label>

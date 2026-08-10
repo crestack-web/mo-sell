@@ -78,17 +78,19 @@ export async function POST(req: NextRequest) {
 
   const {
     businessId, storeSlug, productId,
-    customerName, customerEmail, customerPhone,
+    customerEmail,
     date, notes,
   } = body;
 
   const productName = body.productName || 'Service Booking';
   const startTime = body.startTime || body.time || '';
   const endTime = body.endTime || body.startTime || body.time || '';
+  const customerName = (body.customerName || '').trim() || (body.customerEmail || '').split('@')[0] || 'Customer';
+  const customerPhone = body.customerPhone ?? null;
 
   if (
     !businessId || !storeSlug || !productId || !productName ||
-    !customerName || !customerEmail || !customerPhone ||
+    !customerName || !customerEmail ||
     !date || !startTime || !endTime
   ) {
     return NextResponse.json(
