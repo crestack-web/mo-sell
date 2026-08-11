@@ -4,10 +4,11 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { getDatabase } from '@/lib/database/adapter';
 import { getStorage } from '@/lib/storage/adapter';
 import { useSell } from '@/context/SellContext';
-import { THEMES } from '@/themes/registry';
+import { THEMES, getThemeType, resolveStoreMode } from '@/themes/registry';
 import type { ProductCardData } from '@/themes/types';
 import { getLinkBioLayout, type CustomLink } from '@/app/[storeSlug]/components/layouts/index';
 import { getThemeCssVars } from '@/components/StorefrontCanvas';
+import { StorefrontSwitchModal } from '@/components/StorefrontSwitchModal';
 import type { StorefrontTheme } from '@/types/mo-sell.types';
 import { ExternalLink, GripVertical, Eye, EyeOff, X, Pencil, ArrowRight, Instagram, Twitter, Youtube, Music2, MessageCircle } from 'lucide-react';
 import styles from './LinkInBioEditor.module.css';
@@ -78,6 +79,7 @@ export function LinkInBioEditor() {
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [mobileEditorOpen, setMobileEditorOpen] = useState(false);
+  const [switchModalOpen, setSwitchModalOpen] = useState(false);
 
   useEffect(() => {
     if (storeConfigLoading) return;
@@ -208,18 +210,37 @@ export function LinkInBioEditor() {
     }
   };
 
-  const handleSwitchToStore = async () => {
+  const handleSwitchToStore = () => {
     if (!user?.businessId) return;
     if (dirty && !window.confirm('You have unsaved changes. Switch to the store theme editor?')) return;
+    // Stores already running both a store and a link-in-bio have a store page —
+    // just jump straight to the store editor.
+    const mode = resolveStoreMode(storeConfig?.theme, (storeConfig as any)?.mode, (storeConfig as any)?.linkBioTheme);
+    if (mode === 'both') {
+      navigateTo('theme-editor');
+      return;
+    }
+    setSwitchModalOpen(true);
+  };
+
+  const confirmSwitchToStore = async () => {
+    if (!user?.businessId) return;
+    setSwitchModalOpen(false);
     try {
       const db = getDatabase();
       const target = THEMES.find(t => t.type === 'e-commerce');
-      if (target) {
-        await db.doc(`businesses/${user.businessId}/store/config`).set(
-          { theme: target.id, updatedAt: new Date().toISOString() },
-          { merge: true }
-        );
-      }
+      if (!target) return;
+      const currentTheme = storeConfig?.theme ?? theme;
+      const currentLinkTheme = getThemeType(currentTheme) === 'link-style'
+        ? currentTheme
+        : ((storeConfig as any)?.linkBioTheme ?? 'ankara');
+      const both = ['pro', 'enterprise'].includes((storeConfig as any)?.billingPlan ?? user?.plan ?? '');
+      await db.doc(`businesses/${user.businessId}/store/config`).set({
+        theme: target.id,
+        mode: both ? 'both' : 'store',
+        linkBioTheme: currentLinkTheme,
+        updatedAt: new Date().toISOString(),
+      }, { merge: true });
       await refreshStoreConfig();
       navigateTo('theme-editor');
     } catch {
@@ -269,6 +290,8 @@ export function LinkInBioEditor() {
   if (!form) return <div className={styles.loading}>Loading...</div>;
 
   const storeName = storeConfig?.storeName ?? 'Your Store';
+  const editorMode = resolveStoreMode(storeConfig?.theme, (storeConfig as any)?.mode, (storeConfig as any)?.linkBioTheme);
+  const bioUrl = editorMode === 'both' ? `/bio/${storeConfig?.storeSlug}` : `/${storeConfig?.storeSlug}`;
   const config = {
     storeSlug: storeConfig?.storeSlug ?? '',
     storeName,
@@ -324,7 +347,7 @@ export function LinkInBioEditor() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {storeConfig?.storeSlug && (
               <a
-                href={`/${storeConfig.storeSlug}`}
+                href={bioUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.72rem', fontWeight: 600, color: 'var(--sell-green)', background: 'var(--sell-green-bg)', padding: '3px 10px', borderRadius: 100, textDecoration: 'none' }}
@@ -680,7 +703,7 @@ export function LinkInBioEditor() {
             <div className={styles.saveRow}>
               <button
                 className={styles.viewBtn}
-                onClick={() => storeConfig?.storeSlug && window.open(`/${storeConfig.storeSlug}`, '_blank')}
+                onClick={() => storeConfig?.storeSlug && window.open(bioUrl, '_blank')}
                 type="button"
               >
                 <ExternalLink size={14} /> View
@@ -702,6 +725,13 @@ export function LinkInBioEditor() {
       >
         <Pencil size={14} /> Edit
       </button>
+
+      <StorefrontSwitchModal
+        open={switchModalOpen}
+        canHaveBoth={['pro', 'enterprise'].includes((storeConfig as any)?.billingPlan ?? user?.plan ?? '')}
+        onClose={() => setSwitchModalOpen(false)}
+        onConfirm={confirmSwitchToStore}
+      />
     </div>
   );
 }

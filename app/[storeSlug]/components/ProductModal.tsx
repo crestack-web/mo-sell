@@ -215,9 +215,11 @@ export function ProductModal({ product, storeSlug, currency, primaryColor, payst
               </div>
 
               {product.description && (
-                <p style={{ margin: '0 0 16px', fontSize: '0.85rem', color: '#64748b', lineHeight: 1.6 }}>
-                  {product.description}
-                </p>
+                <div
+                  className="product-rich-description"
+                  style={{ margin: '0 0 16px', fontSize: '0.85rem', color: '#64748b', lineHeight: 1.6 }}
+                  dangerouslySetInnerHTML={{ __html: product.description }}
+                />
               )}
 
               {showEmailForm && (

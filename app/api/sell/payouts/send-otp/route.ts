@@ -58,6 +58,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No payable earnings balance.' }, { status: 400 });
     }
 
+    // Minimum payout threshold (NGN) — reject before sending a code so the
+    // OTP amount always matches what can actually be paid out.
+    const MIN_PAYOUT_AMOUNT = 2000;
+    if (config.currency === 'NGN' && roundedNet < MIN_PAYOUT_AMOUNT) {
+      return NextResponse.json({
+        error: `Minimum payout is ₦${MIN_PAYOUT_AMOUNT.toLocaleString('en-NG')}. You need ₦${(MIN_PAYOUT_AMOUNT - roundedNet).toLocaleString('en-NG')} more to request a payout.`,
+      }, { status: 400 });
+    }
+
     // 3. Resolve the destination email (user's account email, else store contact)
     const email = body.email?.trim() || config.contactEmail || null;
     if (!email) {

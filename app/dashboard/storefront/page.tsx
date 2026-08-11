@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { THEMES, getThemeType } from '@/themes/registry';
+import { THEMES, getThemeType, resolveStoreMode } from '@/themes/registry';
 import { useSell } from '@/context/SellContext';
 import type { SellPageId } from '@/context/SellContext';
 import { getDatabase } from '@/lib/database/adapter';
+import { StorefrontSwitchModal } from '@/components/StorefrontSwitchModal';
 
 export const dynamic = 'force-dynamic';
 
@@ -148,15 +149,19 @@ const s = {
 
 export default function StorefrontPage() {
   const router = useRouter();
-  const { user, storeConfig, showToast, navigateTo } = useSell();
+  const { user, storeConfig, showToast, navigateTo, refreshStoreConfig } = useSell();
   const currentTheme = (storeConfig?.theme ?? 'luxe') as string;
+  const storeMode = resolveStoreMode(storeConfig?.theme, (storeConfig as any)?.mode, (storeConfig as any)?.linkBioTheme);
+  const canHaveBoth = ['pro', 'enterprise'].includes((storeConfig as any)?.billingPlan ?? user?.plan ?? '');
+  const [pendingTheme, setPendingTheme] = useState<string | null>(null);
 
-  // Link-style themes go directly to the link-in-bio editor
+  // Link-style main pages go directly to the link-in-bio editor. Stores that
+  // run both keep their store on the main URL, so no redirect.
   useEffect(() => {
-    if (storeConfig && getThemeType(currentTheme) === 'link-style') {
+    if (storeConfig && storeMode !== 'both' && getThemeType(currentTheme) === 'link-style') {
       navigateTo('link-in-bio');
     }
-  }, [storeConfig, currentTheme, navigateTo]);
+  }, [storeConfig, storeMode, currentTheme, navigateTo]);
 
   const handleCustomize = (themeId: string) => {
     const type = getThemeType(themeId);
@@ -169,15 +174,82 @@ export default function StorefrontPage() {
 
   const handleApplyAndCustomize = async (themeId: string) => {
     if (!user?.businessId) return;
+    const type = getThemeType(themeId);
     try {
       const db = getDatabase();
-      await db.doc(`businesses/${user.businessId}/store/config`).set(
-        { theme: themeId, updatedAt: new Date().toISOString() },
-        { merge: true }
-      );
-      handleCustomize(themeId);
+      const now = new Date().toISOString();
+
+      // Both store + bio active: link-style themes edit the bio page (which
+      // lives at /bio/{storeSlug}), e-commerce themes edit the store.
+      if (storeMode === 'both') {
+        if (type === 'link-style') {
+          await db.doc(`businesses/${user.businessId}/store/config`).set(
+            { linkBioTheme: themeId, updatedAt: now },
+            { merge: true }
+          );
+          await refreshStoreConfig();
+          navigateTo('link-in-bio');
+        } else {
+          await db.doc(`businesses/${user.businessId}/store/config`).set(
+            { theme: themeId, updatedAt: now },
+            { merge: true }
+          );
+          await refreshStoreConfig();
+          navigateTo('theme-editor');
+        }
+        return;
+      }
+
+      if (type === 'link-style') {
+        // Currently a store: switching the main page to a link-in-bio.
+        await db.doc(`businesses/${user.businessId}/store/config`).set({
+          theme: themeId,
+          mode: 'link-bio',
+          linkBioTheme: themeId,
+          updatedAt: now,
+        }, { merge: true });
+        await refreshStoreConfig();
+        navigateTo('link-in-bio');
+        return;
+      }
+
+      if (storeMode === 'store') {
+        await db.doc(`businesses/${user.businessId}/store/config`).set(
+          { theme: themeId, updatedAt: now },
+          { merge: true }
+        );
+        await refreshStoreConfig();
+        navigateTo('theme-editor');
+        return;
+      }
+
+      // Currently a link-in-bio: applying a store theme means switching to a
+      // full storefront — confirm first (create separate vs replace).
+      setPendingTheme(themeId);
     } catch {
       showToast('Failed to apply theme', 'error');
+    }
+  };
+
+  const confirmSwitchFromBio = async () => {
+    if (!user?.businessId || !pendingTheme) return;
+    const themeId = pendingTheme;
+    setPendingTheme(null);
+    try {
+      const db = getDatabase();
+      const currentLinkTheme = getThemeType(currentTheme) === 'link-style'
+        ? currentTheme
+        : ((storeConfig as any)?.linkBioTheme ?? 'ankara');
+      await db.doc(`businesses/${user.businessId}/store/config`).set({
+        theme: themeId,
+        mode: canHaveBoth ? 'both' : 'store',
+        linkBioTheme: currentLinkTheme,
+        updatedAt: new Date().toISOString(),
+      }, { merge: true });
+      await refreshStoreConfig();
+      navigateTo('theme-editor');
+    } catch {
+      showToast('Failed to switch', 'error');
     }
   };
 
@@ -190,7 +262,9 @@ export default function StorefrontPage() {
 
       <div style={s.grid}>
         {THEMES.map(t => {
-          const isActive = currentTheme === t.id;
+          const isActive = storeMode === 'both'
+            ? t.id === currentTheme || (getThemeType(t.id) === 'link-style' && t.id === (storeConfig as any)?.linkBioTheme)
+            : currentTheme === t.id;
           const isLink = t.type === 'link-style';
           return (
             <div key={t.id} style={{ ...s.card, ...(isActive ? s.cardActive : {}) }}>
@@ -262,6 +336,13 @@ export default function StorefrontPage() {
           );
         })}
       </div>
+
+      <StorefrontSwitchModal
+        open={pendingTheme !== null}
+        canHaveBoth={canHaveBoth}
+        onClose={() => setPendingTheme(null)}
+        onConfirm={confirmSwitchFromBio}
+      />
     </div>
   );
 }

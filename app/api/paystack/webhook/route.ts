@@ -26,36 +26,62 @@ export async function POST(req: NextRequest) {
   }
 
   // ── Sell payout transfers ────────────────────────────────────────────────
-  if (event.event === 'transfer.success' || event.event === 'transfer.failed') {
-    const transferCode = event.data?.transfer_code as string | undefined;
-    if (!transferCode) return NextResponse.json({ received: true });
+  if (event.event.startsWith('transfer.')) {
+    const data = event.data ?? {};
+    const transferCode = data.transfer_code as string | undefined;
+    const reference = data.reference as string | undefined;
+    if (!transferCode && !reference) return NextResponse.json({ received: true });
 
     const supabase = getSupabaseServer();
-    const { data: payout } = await supabase
-      .from('payoutRequests')
-      .select('*')
-      .eq('transferCode', transferCode)
-      .maybeSingle();
+
+    // Match the payout by transferCode first, then by the reference we pass
+    // when initiating the transfer (which is the payoutRequestId).
+    let payout: any = null;
+    if (transferCode) {
+      const { data: byCode } = await supabase
+        .from('payoutRequests')
+        .select('*')
+        .eq('transferCode', transferCode)
+        .maybeSingle();
+      payout = byCode ?? null;
+    }
+    if (!payout && reference) {
+      const { data: byRef } = await supabase
+        .from('payoutRequests')
+        .select('*')
+        .eq('id', reference)
+        .maybeSingle();
+      payout = byRef ?? null;
+    }
     if (!payout) return NextResponse.json({ received: true });
 
     const ts = new Date().toISOString();
+    // Persist the transferCode on first sight of the transfer so later events
+    // match by code even if the initiator didn't store it.
+    const codePatch = payout.transferCode ? {} : { transferCode };
+
     if (event.event === 'transfer.success') {
       await supabase
         .from('payoutRequests')
-        .update({ status: 'completed', processedAt: ts, updatedAt: ts })
+        .update({ status: 'completed', ...codePatch, processedAt: ts, updatedAt: ts })
         .eq('id', payout.id);
     } else {
+      // transfer.failed or transfer.reversed — the money did not reach the
+      // merchant (or was returned), so the earnings go back to 'available'.
+      const reason = event.event === 'transfer.reversed'
+        ? (data.complete_message ?? 'Transfer was reversed by the bank')
+        : (data.complete_message ?? 'Paystack transfer failed');
       await supabase
         .from('payoutRequests')
         .update({
           status: 'rejected',
-          rejectionReason: 'Paystack transfer failed',
+          rejectionReason: reason,
+          ...codePatch,
           processedAt: ts,
           updatedAt: ts,
         })
         .eq('id', payout.id);
 
-      // Return the affected earnings to 'available' so they can be re-paid
       const ids = Array.isArray(payout.earningIds) ? payout.earningIds : [];
       if (ids.length > 0) {
         await supabase

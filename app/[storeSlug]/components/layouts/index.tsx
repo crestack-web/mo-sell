@@ -430,10 +430,14 @@ function LinkRows({ theme, config, bio, visibleProducts, isLightBg, textColor, t
                   </div>
                 )}
                 {p.description && (
-                  <p style={{
-                    margin: '8px 0 0', fontSize: '0.85rem', color: 'var(--sf-text-2, ' + textColor2 + ')', lineHeight: 1.5,
-                    display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
-                  }}>{p.description}</p>
+                  <div
+                    className="product-rich-description"
+                    style={{
+                      margin: '8px 0 0', fontSize: '0.85rem', color: 'var(--sf-text-2, ' + textColor2 + ')', lineHeight: 1.5,
+                      display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                    }}
+                    dangerouslySetInnerHTML={{ __html: p.description }}
+                  />
                 )}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 14, gap: 10 }}>
                   <span style={calloutPriceStyle()}>{fmtPrice(p.price, config.currency)}</span>

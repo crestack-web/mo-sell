@@ -1,6 +1,6 @@
 import React from 'react';
 import { notFound } from 'next/navigation';
-import { getThemeComponentsServer, isCreatorTheme, getThemeType, type ThemeId } from '@/themes/registry';
+import { getThemeComponentsServer, isCreatorTheme, getThemeType, resolveStoreMode, type ThemeId } from '@/themes/registry';
 import type { ProductCardData } from '@/themes/types';
 import { CreatorProductTabs } from './creator-product-tabs';
 import { EmailSignup } from './components/EmailSignup';
@@ -119,7 +119,10 @@ export default async function StorefrontHomePage({
 
   const theme: StorefrontTheme = config.theme ?? 'luxe';
   const themeType = getThemeType(theme);
-  const isLinkStyle = themeType === 'link-style';
+  // When mode === 'both' the main page hosts the store and the link-bio page
+  // lives at /bio/{storeSlug} — so never render link-style on the main URL.
+  const storeMode = resolveStoreMode(theme, config.mode, config.linkBioTheme);
+  const isLinkStyle = themeType === 'link-style' && storeMode !== 'both';
 
   // If theme components fail to load, fall back to luxe so the page still renders
   let components: Awaited<ReturnType<typeof getThemeComponentsServer>>;

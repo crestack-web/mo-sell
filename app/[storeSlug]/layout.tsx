@@ -19,7 +19,7 @@ import { StorefrontNav } from './components/StorefrontNav';
 import { CartDrawer } from './components/CartDrawer';
 import type { StorefrontTheme, StoreSection, FooterSectionSettings, HeaderSectionSettings } from '@/types/mo-sell.types';
 import { DEFAULT_SECTIONS } from '@/types/mo-sell.types';
-import { getThemeType } from '@/themes/registry';
+import { getThemeType, resolveStoreMode } from '@/themes/registry';
 import { getStoreConfigBySlug } from '@/lib/store';
 
 // ─── Fetch store config ───────────────────────────────────────────────────────
@@ -122,7 +122,7 @@ export default async function StorefrontLayout({
     },
   };
 
-  const isLinkStyle = getThemeType(theme) === 'link-style';
+  const isLinkStyle = getThemeType(theme) === 'link-style' && resolveStoreMode(theme, config.mode, config.linkBioTheme) !== 'both';
   const effectiveHeaderStyle = isLinkStyle ? 'minimal' : headerStyle;
 
   return (

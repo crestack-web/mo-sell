@@ -404,7 +404,7 @@ export interface StoreEarning {
   updatedAt: Timestamp;
 }
 
-export type PayoutStatus = 'requested' | 'processing' | 'completed' | 'rejected';
+export type PayoutStatus = 'requested' | 'sent' | 'processing' | 'completed' | 'rejected';
 
 export interface PayoutRequest {
   businessId: string;
@@ -417,6 +417,7 @@ export interface PayoutRequest {
   status: PayoutStatus;
   rejectionReason: string | null;
   processedAt: Timestamp | null;
+  sentAt: Timestamp | null;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }

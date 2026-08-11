@@ -33,9 +33,10 @@ interface PayoutRequest {
   accountNumber: string;
   accountName: string;
   earningIds: string[];
-  status: 'requested' | 'processing' | 'completed' | 'rejected';
+  status: 'requested' | 'sent' | 'processing' | 'completed' | 'rejected';
   rejectionReason: string | null;
   processedAt: Date | null;
+  sentAt: Date | null;
   createdAt: Date;
 }
 
@@ -83,6 +84,7 @@ function statusBadge(status: Earning['status']) {
 function payoutStatusBadge(status: PayoutRequest['status']) {
   const map = {
     requested:  { bg: 'var(--sell-amber-bg)',   color: 'var(--sell-amber)',   label: 'Requested' },
+    sent:       { bg: 'var(--sell-primary-lt)', color: 'var(--sell-primary)', label: 'Sent' },
     processing: { bg: 'var(--sell-primary-lt)',  color: 'var(--sell-primary)', label: 'Processing' },
     completed:  { bg: 'var(--sell-green-bg)',    color: 'var(--sell-green)',   label: 'Completed' },
     rejected:   { bg: 'var(--sell-red-bg)',      color: 'var(--sell-red)',     label: 'Rejected' },
@@ -236,9 +238,10 @@ export function SellEarningsPage() {
       const pSnap = await db.collection(`businesses/${biz}/payoutRequests`).limit(100).get();
       setPayouts(pSnap.docs.map(d => ({
         id: d.id,
-        ...(d.data() as Omit<PayoutRequest, 'id' | 'createdAt' | 'processedAt'>),
+        ...(d.data() as Omit<PayoutRequest, 'id' | 'createdAt' | 'processedAt' | 'sentAt'>),
         createdAt:   new Date(d.data().createdAt || Date.now()),
         processedAt: d.data().processedAt ? new Date(d.data().processedAt) : null,
+        sentAt:      d.data().sentAt ? new Date(d.data().sentAt) : null,
       })));
     } catch (err) {
       console.error('[SellEarningsPage] load error:', err);
@@ -310,6 +313,11 @@ export function SellEarningsPage() {
   const availableCount = earnings.filter(e => e.status === 'available').length;
 
   const hasAvailable = availableCount > 0;
+
+  // Minimum payout threshold — small amounts can't be transferred reliably once
+  // commission is deducted.
+  const MIN_PAYOUT_AMOUNT = 2000;
+  const minPayoutMet = currency !== 'NGN' || available >= MIN_PAYOUT_AMOUNT;
 
   // UGC stats
   const ugcCompleted   = ugcOrders.filter(o => o.status === 'COMPLETED');
@@ -531,7 +539,7 @@ export function SellEarningsPage() {
           <button
             className={styles.btnPrimary}
             onClick={() => { setPayoutStep('confirm'); setOtpCode(''); setConfirmOpen(true); }}
-            disabled={!hasAvailable || requesting}
+            disabled={!hasAvailable || !minPayoutMet || requesting}
           >
             {requesting ? (
               <><span className={styles.spinner} />Processing…</>
@@ -615,6 +623,19 @@ export function SellEarningsPage() {
             <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
           </svg>
           <span>{pendingCount} earning{pendingCount !== 1 ? 's are' : ' is'} pending — funds become available 24 hours after the sale to allow for refunds.</span>
+        </div>
+      )}
+
+      {/* Info note about the minimum payout */}
+      {activeTab !== 'ugc' && hasAvailable && !minPayoutMet && (
+        <div className={styles.infoBanner} style={{ background: 'var(--sell-amber-bg)', color: 'var(--sell-amber)' }}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <span>
+            Payouts have a {fmt(MIN_PAYOUT_AMOUNT, currency)} minimum. You need{' '}
+            {fmt(MIN_PAYOUT_AMOUNT - available, currency)} more to request a payout.
+          </span>
         </div>
       )}
 
@@ -714,7 +735,14 @@ export function SellEarningsPage() {
               <tbody>
                 {payouts.map(p => (
                   <tr key={p.id}>
-                    <td className={styles.dateCell}>{p.createdAt.toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
+                    <td className={styles.dateCell}>
+                      {p.createdAt.toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      {p.sentAt && (p.status === 'sent' || p.status === 'completed') && (
+                        <p style={{ fontSize: '0.68rem', color: 'var(--sell-text-3)', marginTop: 3 }}>
+                          Sent {p.sentAt.toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </p>
+                      )}
+                    </td>
                     <td>{p.bankName}</td>
                     <td><span className={styles.acctNum}>{p.accountNumber}</span> · {p.accountName}</td>
                     <td className={[styles.tdRight, styles.netAmount].join(' ')}>{fmt(p.amount, currency)}</td>

@@ -98,29 +98,40 @@ export async function createTransferRecipient(
   return data.data.recipient_code;
 }
 
-export async function payoutToCreator(
+export async function initiateTransfer(
   recipientCode: string,
   amountKobo: number,
-  reason: string
+  reason: string,
+  reference?: string,
 ): Promise<string> {
+  const body: Record<string, unknown> = {
+    source: 'balance',
+    amount: amountKobo,
+    recipient: recipientCode,
+    reason,
+  };
+  if (reference) body.reference = reference;
   const res = await fetch(`${PAYSTACK_API}/transfer`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${PAYSTACK_SECRET()}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      source: 'balance',
-      amount: amountKobo,
-      recipient: recipientCode,
-      reason,
-    }),
+    body: JSON.stringify(body),
   });
   const data = await res.json();
   if (!data.status || !data.data?.transfer_code) {
     throw new Error(friendlyTransferError(data.message));
   }
   return data.data.transfer_code;
+}
+
+export async function payoutToCreator(
+  recipientCode: string,
+  amountKobo: number,
+  reason: string
+): Promise<string> {
+  return initiateTransfer(recipientCode, amountKobo, reason);
 }
 
 /**

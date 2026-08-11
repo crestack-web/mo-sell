@@ -271,3 +271,25 @@ export function getThemeType(themeId: string): ThemeLayoutType {
   if (meta) return meta.type;
   return 'link-style';
 }
+
+// ─── Store mode (link-bio vs store vs both) ─────────────────────────────────
+
+export type StoreMode = 'store' | 'link-bio' | 'both';
+
+/**
+ * Resolve the effective storefront mode.
+ * `mode` is explicit ('store' | 'link-bio' | 'both'). When it's missing
+ * (legacy accounts) we fall back to the active theme's layout type.
+ */
+export function resolveStoreMode(
+  theme?: string | null,
+  mode?: StoreMode | string | null,
+  linkBioTheme?: string | null,
+): StoreMode {
+  if (mode === 'store' || mode === 'link-bio' || mode === 'both') return mode;
+  const t = theme ?? null;
+  if (t && getThemeType(t) === 'e-commerce') return 'store';
+  // Current main page is a link-style theme — treat as link-bio mode.
+  // (linkBioTheme is kept for the "create separate store" flow.)
+  return 'link-bio';
+}

@@ -28,6 +28,8 @@ export interface PublicStoreConfig {
   headerStyle: any;
   buttonStyle: any;
   linkBio: any;
+  mode: 'store' | 'link-bio' | 'both' | null;
+  linkBioTheme: string | null;
   useOwnPaystack: boolean;
   whopEnabled: boolean;
   managedPayments: boolean;
@@ -101,6 +103,8 @@ export async function getStoreConfigBySlug(storeSlug: string): Promise<PublicSto
     headerStyle: row.headerStyle ?? 'left',
     buttonStyle: row.buttonStyle ?? 'pill',
     linkBio: row.linkBio ?? null,
+    mode: row.mode ?? null,
+    linkBioTheme: row.linkBioTheme ?? null,
     useOwnPaystack: row.useOwnPaystack ?? false,
     whopEnabled: row.whopEnabled ?? false,
     managedPayments: row.managedPayments ?? true,
