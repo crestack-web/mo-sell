@@ -10,7 +10,7 @@ import type {
   FeaturedSectionSettings, AnnouncementSectionSettings,
   AboutSectionSettings, TestimonialsSectionSettings,
   InstagramSectionSettings, NewsletterSectionSettings,
-  FooterSectionSettings,
+  FooterSectionSettings, HeaderSectionSettings,
 } from '@/types/mo-sell.types';
 import { DEFAULT_SECTIONS } from '@/types/mo-sell.types';
 import { getSupabaseServer } from '@/lib/database/postgresql-adapter';
@@ -104,14 +104,57 @@ function ThemeProductGrid({ products, storeSlug, currency, columns, emptyMessage
   );
 }
 
+// ─── Search results ─────────────────────────────────────────────────────────
+
+function SearchResults({ query, products, storeSlug, currency, SearchBar, ProductCard }: {
+  query: string;
+  products: ProductCardData[];
+  storeSlug: string;
+  currency: string;
+  SearchBar: React.ComponentType<{ initialQuery?: string; storeSlug: string; compact?: boolean; autoFocus?: boolean }>;
+  ProductCard: React.ComponentType<{ product: ProductCardData; storeSlug: string; currency: string }>;
+}) {
+  const q = query.toLowerCase();
+  const results = products.filter(p =>
+    p.displayName.toLowerCase().includes(q) ||
+    p.category.toLowerCase().includes(q) ||
+    (p.description ?? '').toLowerCase().includes(q),
+  );
+
+  return (
+    <div className="sf-page sf-section" style={{ paddingTop: 40 }}>
+      <p className="sf-section-title">Search</p>
+      <div style={{ marginBottom: 24 }}>
+        <SearchBar initialQuery={query} storeSlug={storeSlug} autoFocus />
+      </div>
+      <p style={{ fontSize: '0.9rem', color: 'var(--sf-text-2)', marginBottom: 20 }}>
+        {results.length > 0
+          ? `${results.length} result${results.length !== 1 ? 's' : ''} for "${query}"`
+          : `No products found for "${query}"`}
+      </p>
+      {results.length > 0 ? (
+        <ThemeProductGrid products={results} storeSlug={storeSlug} currency={currency} columns={3} ProductCard={ProductCard} />
+      ) : (
+        <div style={{ padding: '48px 24px', textAlign: 'center', color: '#9CA3AF', fontSize: '0.9rem' }}>
+          Try a different search term or browse all products.
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Page ───────────────────────────────────────────────────────────────────
 
 export default async function StorefrontHomePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ storeSlug: string }>;
+  searchParams: Promise<{ q?: string }>;
 }) {
   const { storeSlug } = await params;
+  const { q } = await searchParams;
+  const query = (q ?? '').trim();
   const config = await getStoreConfig(storeSlug);
   if (!config) notFound();
 
@@ -156,6 +199,31 @@ export default async function StorefrontHomePage({
   const Hero = components.Hero;
   const ProductCard = components.ProductCard;
   const CollectionCard = components.CollectionCard;
+  const SearchBar = components.SearchBar;
+
+  const headerDef = DEFAULT_SECTIONS.find(s => s.id === 'header')!;
+  const headerSaved = savedSections.find(s => s.id === 'header');
+  const headerSettings = {
+    ...headerDef.settings as HeaderSectionSettings,
+    ...(headerSaved?.settings as HeaderSectionSettings ?? {}),
+  };
+  const showSearch = headerSettings.showSearch ?? false;
+
+  // When searching, show only the search results (no sections) so results are easy to scan.
+  if (query) {
+    return (
+      <div>
+        <SearchResults
+          query={query}
+          products={allProducts}
+          storeSlug={storeSlug}
+          currency={config.currency}
+          SearchBar={SearchBar}
+          ProductCard={ProductCard}
+        />
+      </div>
+    );
+  }
 
   return (
     <div id="products">
@@ -353,12 +421,15 @@ export default async function StorefrontHomePage({
             />
           ) : (
             <>
-              <p className="sf-section-title">
-                All Products
-                <span style={{ marginLeft: 10, fontSize: '0.78rem', fontWeight: 500, color: 'var(--sf-text-3)' }}>
-                  {allProducts.length} item{allProducts.length !== 1 ? 's' : ''}
-                </span>
-              </p>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+                <p className="sf-section-title" style={{ marginBottom: 0 }}>
+                  All Products
+                  <span style={{ marginLeft: 10, fontSize: '0.78rem', fontWeight: 500, color: 'var(--sf-text-3)' }}>
+                    {allProducts.length} item{allProducts.length !== 1 ? 's' : ''}
+                  </span>
+                </p>
+                {showSearch && <SearchBar storeSlug={storeSlug} compact />}
+              </div>
               <ThemeProductGrid
                 products={allProducts}
                 storeSlug={storeSlug}

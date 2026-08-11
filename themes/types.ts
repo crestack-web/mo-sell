@@ -68,6 +68,14 @@ export interface ThemeHeroProps {
   bodyTextColor?: string | null;
 }
 
+export interface ThemeSearchBarProps {
+  storeSlug: string;
+  initialQuery?: string;
+  placeholder?: string;
+  compact?: boolean;
+  autoFocus?: boolean;
+}
+
 export interface ThemeProductPageProps {
   product: {
     id: string;
@@ -93,5 +101,6 @@ export interface ThemeComponents {
   CollectionCard: React.ComponentType<ThemeCollectionCardProps>;
   Hero: React.ComponentType<ThemeHeroProps>;
   ProductPage: React.ComponentType<ThemeProductPageProps>;
+  SearchBar: React.ComponentType<ThemeSearchBarProps>;
   cssClass?: string; // Additional CSS class to apply to the page wrapper
 }
