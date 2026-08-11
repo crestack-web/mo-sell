@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { getSupabaseServer } from '@/lib/database/postgresql-adapter';
 import { getStoreConfigBySlug } from '@/lib/store';
+import { resolveEcommerceTheme } from '@/themes/registry';
 import { ProductDetailClient } from './ProductDetailClient';
 
 // ─── Data fetching ─────────────────────────────────────────────────────────────
@@ -85,7 +86,7 @@ export default async function ProductDetailPage({
       product={product}
       storeSlug={storeSlug}
       currency={config.currency}
-      theme={config.theme ?? 'luxe'}
+      theme={resolveEcommerceTheme(config.theme)}
       businessId={config.businessId}
       paystackPublicKey={config.paystackPublicKey}
     />

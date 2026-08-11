@@ -4,11 +4,10 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { getDatabase } from '@/lib/database/adapter';
 import { getStorage } from '@/lib/storage/adapter';
 import { useSell } from '@/context/SellContext';
-import { THEMES, getThemeType, resolveStoreMode } from '@/themes/registry';
+import { THEMES, resolveLinkBioTheme } from '@/themes/registry';
 import type { ProductCardData } from '@/themes/types';
 import { getLinkBioLayout, type CustomLink } from '@/app/[storeSlug]/components/layouts/index';
 import { getThemeCssVars } from '@/components/StorefrontCanvas';
-import { StorefrontSwitchModal } from '@/components/StorefrontSwitchModal';
 import type { StorefrontTheme } from '@/types/mo-sell.types';
 import { ExternalLink, GripVertical, Eye, EyeOff, X, Pencil, ArrowRight, Instagram, Twitter, Youtube, Music2, MessageCircle } from 'lucide-react';
 import styles from './LinkInBioEditor.module.css';
@@ -67,7 +66,7 @@ function newLinkId(): string {
 }
 
 export function LinkInBioEditor() {
-  const { user, storeConfig, storeConfigLoading, refreshStoreConfig, showToast, navigateTo } = useSell();
+  const { user, storeConfig, storeConfigLoading, refreshStoreConfig, showToast } = useSell();
   const [form, setForm] = useState<LinkBioForm | null>(null);
   const [theme, setTheme] = useState<string>('ankara');
   const [tab, setTab] = useState<'profile' | 'design' | 'products' | 'links'>('profile');
@@ -79,7 +78,6 @@ export function LinkInBioEditor() {
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [mobileEditorOpen, setMobileEditorOpen] = useState(false);
-  const [switchModalOpen, setSwitchModalOpen] = useState(false);
 
   useEffect(() => {
     if (storeConfigLoading) return;
@@ -98,7 +96,7 @@ export function LinkInBioEditor() {
       productOrder: Array.isArray(lb?.productOrder) ? lb.productOrder : [],
     });
     setAvatarPreview(lb?.avatarUrl ?? null);
-    setTheme((storeConfig as any)?.theme ?? 'ankara');
+    setTheme(resolveLinkBioTheme(storeConfig?.theme, (storeConfig as any)?.linkBioTheme));
     setDirty(false);
   }, [storeConfig, storeConfigLoading]);
 
@@ -198,8 +196,10 @@ export function LinkInBioEditor() {
     if (!user?.businessId || themeId === theme) return;
     try {
       const db = getDatabase();
+      // The link-in-bio theme is stored separately from the store theme so the
+      // two pages can be customized independently.
       await db.doc(`businesses/${user.businessId}/store/config`).set(
-        { theme: themeId, updatedAt: new Date().toISOString() },
+        { linkBioTheme: themeId, updatedAt: new Date().toISOString() },
         { merge: true }
       );
       setTheme(themeId);
@@ -207,44 +207,6 @@ export function LinkInBioEditor() {
       showToast(`Switched to "${THEMES.find(t => t.id === themeId)?.name}"`, 'success');
     } catch {
       showToast('Failed to switch theme', 'error');
-    }
-  };
-
-  const handleSwitchToStore = () => {
-    if (!user?.businessId) return;
-    if (dirty && !window.confirm('You have unsaved changes. Switch to the store theme editor?')) return;
-    // Stores already running both a store and a link-in-bio have a store page —
-    // just jump straight to the store editor.
-    const mode = resolveStoreMode(storeConfig?.theme, (storeConfig as any)?.mode, (storeConfig as any)?.linkBioTheme);
-    if (mode === 'both') {
-      navigateTo('theme-editor');
-      return;
-    }
-    setSwitchModalOpen(true);
-  };
-
-  const confirmSwitchToStore = async () => {
-    if (!user?.businessId) return;
-    setSwitchModalOpen(false);
-    try {
-      const db = getDatabase();
-      const target = THEMES.find(t => t.type === 'e-commerce');
-      if (!target) return;
-      const currentTheme = storeConfig?.theme ?? theme;
-      const currentLinkTheme = getThemeType(currentTheme) === 'link-style'
-        ? currentTheme
-        : ((storeConfig as any)?.linkBioTheme ?? 'ankara');
-      const both = ['pro', 'enterprise'].includes((storeConfig as any)?.billingPlan ?? user?.plan ?? '');
-      await db.doc(`businesses/${user.businessId}/store/config`).set({
-        theme: target.id,
-        mode: both ? 'both' : 'store',
-        linkBioTheme: currentLinkTheme,
-        updatedAt: new Date().toISOString(),
-      }, { merge: true });
-      await refreshStoreConfig();
-      navigateTo('theme-editor');
-    } catch {
-      showToast('Failed to switch', 'error');
     }
   };
 
@@ -290,8 +252,7 @@ export function LinkInBioEditor() {
   if (!form) return <div className={styles.loading}>Loading...</div>;
 
   const storeName = storeConfig?.storeName ?? 'Your Store';
-  const editorMode = resolveStoreMode(storeConfig?.theme, (storeConfig as any)?.mode, (storeConfig as any)?.linkBioTheme);
-  const bioUrl = editorMode === 'both' ? `/bio/${storeConfig?.storeSlug}` : `/${storeConfig?.storeSlug}`;
+  const bioUrl = `/bio/${storeConfig?.storeSlug}`;
   const config = {
     storeSlug: storeConfig?.storeSlug ?? '',
     storeName,
@@ -342,7 +303,7 @@ export function LinkInBioEditor() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
           <div>
             <h2 style={{ margin: 0, fontFamily: 'var(--sell-font-display)', fontSize: '1.1rem', fontWeight: 700, color: 'var(--sell-text-1)' }}>Link in Bio</h2>
-            <p style={{ margin: '2px 0 0', fontSize: '0.82rem', color: 'var(--sell-text-2)' }}>Preview updates live as you edit</p>
+            <p style={{ margin: '2px 0 0', fontSize: '0.82rem', color: 'var(--sell-text-2)' }}>A separate page from your store, with its own theme and URL</p>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {storeConfig?.storeSlug && (
@@ -355,23 +316,6 @@ export function LinkInBioEditor() {
                 <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--sell-green)' }} />Live
               </a>
             )}
-            <div className={styles.typeSwitch}>
-              <button
-                className={[styles.typeSwitchOpt, styles.typeSwitchOptActive].join(' ')}
-                type="button"
-                aria-pressed
-              >
-                Bio
-              </button>
-              <button
-                className={styles.typeSwitchOpt}
-                type="button"
-                onClick={handleSwitchToStore}
-                title="Edit your full storefront"
-              >
-                Store
-              </button>
-            </div>
           </div>
         </div>
 
@@ -725,13 +669,6 @@ export function LinkInBioEditor() {
       >
         <Pencil size={14} /> Edit
       </button>
-
-      <StorefrontSwitchModal
-        open={switchModalOpen}
-        canHaveBoth={['pro', 'enterprise'].includes((storeConfig as any)?.billingPlan ?? user?.plan ?? '')}
-        onClose={() => setSwitchModalOpen(false)}
-        onConfirm={confirmSwitchToStore}
-      />
     </div>
   );
 }

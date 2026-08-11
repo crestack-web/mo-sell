@@ -6,7 +6,7 @@ import { SocialIcon, SOCIAL_DEFS, SOCIAL_KEYS, normalizeSocialValue, socialStatu
 import { getDatabase } from '@/lib/database/adapter';
 import { useSell } from '@/context/SellContext';
 import { useRouter } from 'next/navigation';
-import { isCreatorTheme, getThemeType, THEMES } from '@/themes/registry';
+import { isCreatorTheme, getThemeType, resolveEcommerceTheme, THEMES } from '@/themes/registry';
 import { StorefrontCanvas } from '@/components/StorefrontCanvas';
 import { CartProvider } from '@/app/[storeSlug]/context/CartContext';
 import type {
@@ -379,7 +379,6 @@ export function ThemeEditorPage() {
   const [bgColor, setBgColor] = useState<string>('');
   const [socials, setSocials] = useState<Record<string, string>>({});
   const [showThemePicker, setShowThemePicker] = useState(false);
-  const [showBioPicker, setShowBioPicker] = useState(false);
   const [themeApplying, setThemeApplying] = useState<string | null>(null);
 
   const isLinkStyle = getThemeType(theme) === 'link-style';
@@ -460,7 +459,7 @@ export function ThemeEditorPage() {
       return s ? { ...def, ...s, settings: { ...def.settings, ...s.settings } } : { ...def };
     }).sort((a, b) => a.order - b.order);
     setSections(merged);
-    const t = (storeConfig.theme ?? 'luxe') as StorefrontTheme;
+    const t = resolveEcommerceTheme(storeConfig.theme);
     setTheme(t);
     setPrimary(storeConfig.primaryColor ?? '#C9A84C');
     setSecondary(storeConfig.secondaryColor ?? '#8B7355');
@@ -473,14 +472,6 @@ export function ThemeEditorPage() {
     setDirty(false);
     undoStack.current = []; redoStack.current = [];
   }, [storeConfig]);
-
-  // If this is a link-style theme, redirect to the link-in-bio editor
-  useEffect(() => {
-    if (isLinkStyle) {
-      showToast('Switch to the Link-in-Bio editor for link-style themes', 'info');
-      navigateTo('link-in-bio');
-    }
-  }, [isLinkStyle, navigateTo, showToast]);
 
   useEffect(() => {
     if (!user?.businessId) return;
@@ -596,7 +587,6 @@ export function ThemeEditorPage() {
       );
       setTheme(themeId as StorefrontTheme);
       setShowThemePicker(false);
-      setShowBioPicker(false);
       setDirty(true);
       await refreshStoreConfig();
       showToast(`Switched to "${THEMES.find(t => t.id === themeId)?.name}"`, 'success');
@@ -847,43 +837,11 @@ export function ThemeEditorPage() {
                 </div>
                 <div className={styles.designDivider} />
                 <div className={styles.designGroup}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                    <p className={styles.designTitle} style={{ margin: 0 }}>Link-in-Bio</p>
-                    <button className={styles.iconBtn} onClick={() => setShowBioPicker(!showBioPicker)} style={{ fontSize: '0.75rem', fontWeight: 600, gap: 4, width: 'auto', padding: '4px 10px' }} type="button">
-                      {showBioPicker ? 'Cancel' : 'Switch'}
-                    </button>
-                  </div>
-                  <p className={styles.fHint} style={{ margin: 0, paddingBottom: 6 }}>Switch to a one-page bio and edit it in the Link-in-Bio editor.</p>
-                  {showBioPicker && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4, maxHeight: 300, overflowY: 'auto' }}>
-                      {THEMES.filter(t => t.type === 'link-style').map(t => {
-                        const isActive = theme === t.id;
-                        const isLoading = themeApplying === t.id;
-                        return (
-                          <button
-                            key={t.id}
-                            onClick={() => handleThemeSelect(t.id)}
-                            disabled={isActive || !!themeApplying}
-                            style={{
-                              display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px',
-                              border: `1px solid ${isActive ? 'var(--sell-primary)' : 'var(--sell-border)'}`,
-                              borderRadius: 8, background: isActive ? 'var(--sell-primary-lt, #f0f9ff)' : 'transparent',
-                              cursor: isActive ? 'default' : 'pointer', textAlign: 'left', width: '100%',
-                              opacity: isLoading ? 0.6 : 1,
-                            }}
-                          >
-                            <div style={{ width: 28, height: 28, borderRadius: 6, background: t.previewAccent, flexShrink: 0 }} />
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--sell-text)' }}>{t.name}</div>
-                              <div style={{ fontSize: '0.7rem', color: 'var(--sell-text-2)' }}>{t.description}</div>
-                            </div>
-                            {isActive && <span style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--sell-primary)' }}>Active</span>}
-                            {isLoading && <span style={{ fontSize: '0.68rem' }}>...</span>}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
+                  <p className={styles.designTitle} style={{ margin: '0 0 6px' }}>Link-in-Bio</p>
+                  <p className={styles.fHint} style={{ margin: 0 }}>
+                    Your link-in-bio is a separate page with its own themes. Edit it from the &quot;Link in Bio&quot;
+                    page in the sidebar.
+                  </p>
                 </div>
                 <div className={styles.designDivider} />
                 <div className={styles.designGroup}>

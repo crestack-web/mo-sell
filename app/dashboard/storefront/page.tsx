@@ -1,12 +1,10 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { THEMES, getThemeType, resolveStoreMode } from '@/themes/registry';
+import React from 'react';
+import { THEMES } from '@/themes/registry';
 import { useSell } from '@/context/SellContext';
 import type { SellPageId } from '@/context/SellContext';
 import { getDatabase } from '@/lib/database/adapter';
-import { StorefrontSwitchModal } from '@/components/StorefrontSwitchModal';
 
 export const dynamic = 'force-dynamic';
 
@@ -110,22 +108,6 @@ const s = {
     background: 'linear-gradient(135deg, var(--sell-primary), var(--sell-accent))',
     color: '#fff',
   },
-  btnSecondary: {
-    flex: 1,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 7,
-    padding: '9px 16px',
-    borderRadius: 'var(--sell-radius-sm)',
-    fontSize: '0.85rem',
-    fontWeight: 600,
-    cursor: 'pointer',
-    border: '1px solid var(--sell-border)',
-    fontFamily: 'var(--sell-font-body)',
-    background: 'var(--sell-surface)',
-    color: 'var(--sell-text-1)',
-  },
   activeTag: {
     position: 'absolute' as const,
     top: 8,
@@ -137,119 +119,37 @@ const s = {
     background: 'var(--sell-primary)',
     color: '#fff',
   },
-  typeTag: {
-    fontSize: '0.6rem',
-    fontWeight: 700,
-    padding: '2px 8px',
-    borderRadius: 99,
-    textTransform: 'uppercase' as const,
-    letterSpacing: '0.03em',
+  linkHint: {
+    fontSize: '0.72rem',
+    color: 'var(--sell-text-3)',
+    marginTop: 6,
   },
 };
 
 export default function StorefrontPage() {
-  const router = useRouter();
   const { user, storeConfig, showToast, navigateTo, refreshStoreConfig } = useSell();
   const currentTheme = (storeConfig?.theme ?? 'luxe') as string;
-  const storeMode = resolveStoreMode(storeConfig?.theme, (storeConfig as any)?.mode, (storeConfig as any)?.linkBioTheme);
-  const canHaveBoth = ['pro', 'enterprise'].includes((storeConfig as any)?.billingPlan ?? user?.plan ?? '');
-  const [pendingTheme, setPendingTheme] = useState<string | null>(null);
 
-  // Link-style main pages go directly to the link-in-bio editor. Stores that
-  // run both keep their store on the main URL, so no redirect.
-  useEffect(() => {
-    if (storeConfig && storeMode !== 'both' && getThemeType(currentTheme) === 'link-style') {
-      navigateTo('link-in-bio');
-    }
-  }, [storeConfig, storeMode, currentTheme, navigateTo]);
+  // The storefront page only lists e-commerce themes — link-in-bio themes are
+  // chosen in the separate "Link in Bio" editor.
+  const ecommerceThemes = THEMES.filter(t => t.type === 'e-commerce');
 
   const handleCustomize = (themeId: string) => {
-    const type = getThemeType(themeId);
-    if (type === 'link-style') {
-      router.push('/dashboard/link-in-bio');
-    } else {
-      router.push('/dashboard/customize');
-    }
+    navigateTo('theme-editor' as SellPageId);
   };
 
   const handleApplyAndCustomize = async (themeId: string) => {
     if (!user?.businessId) return;
-    const type = getThemeType(themeId);
     try {
       const db = getDatabase();
-      const now = new Date().toISOString();
-
-      // Both store + bio active: link-style themes edit the bio page (which
-      // lives at /bio/{storeSlug}), e-commerce themes edit the store.
-      if (storeMode === 'both') {
-        if (type === 'link-style') {
-          await db.doc(`businesses/${user.businessId}/store/config`).set(
-            { linkBioTheme: themeId, updatedAt: now },
-            { merge: true }
-          );
-          await refreshStoreConfig();
-          navigateTo('link-in-bio');
-        } else {
-          await db.doc(`businesses/${user.businessId}/store/config`).set(
-            { theme: themeId, updatedAt: now },
-            { merge: true }
-          );
-          await refreshStoreConfig();
-          navigateTo('theme-editor');
-        }
-        return;
-      }
-
-      if (type === 'link-style') {
-        // Currently a store: switching the main page to a link-in-bio.
-        await db.doc(`businesses/${user.businessId}/store/config`).set({
-          theme: themeId,
-          mode: 'link-bio',
-          linkBioTheme: themeId,
-          updatedAt: now,
-        }, { merge: true });
-        await refreshStoreConfig();
-        navigateTo('link-in-bio');
-        return;
-      }
-
-      if (storeMode === 'store') {
-        await db.doc(`businesses/${user.businessId}/store/config`).set(
-          { theme: themeId, updatedAt: now },
-          { merge: true }
-        );
-        await refreshStoreConfig();
-        navigateTo('theme-editor');
-        return;
-      }
-
-      // Currently a link-in-bio: applying a store theme means switching to a
-      // full storefront — confirm first (create separate vs replace).
-      setPendingTheme(themeId);
+      await db.doc(`businesses/${user.businessId}/store/config`).set(
+        { theme: themeId, updatedAt: new Date().toISOString() },
+        { merge: true }
+      );
+      await refreshStoreConfig();
+      navigateTo('theme-editor' as SellPageId);
     } catch {
       showToast('Failed to apply theme', 'error');
-    }
-  };
-
-  const confirmSwitchFromBio = async () => {
-    if (!user?.businessId || !pendingTheme) return;
-    const themeId = pendingTheme;
-    setPendingTheme(null);
-    try {
-      const db = getDatabase();
-      const currentLinkTheme = getThemeType(currentTheme) === 'link-style'
-        ? currentTheme
-        : ((storeConfig as any)?.linkBioTheme ?? 'ankara');
-      await db.doc(`businesses/${user.businessId}/store/config`).set({
-        theme: themeId,
-        mode: canHaveBoth ? 'both' : 'store',
-        linkBioTheme: currentLinkTheme,
-        updatedAt: new Date().toISOString(),
-      }, { merge: true });
-      await refreshStoreConfig();
-      navigateTo('theme-editor');
-    } catch {
-      showToast('Failed to switch', 'error');
     }
   };
 
@@ -261,11 +161,8 @@ export default function StorefrontPage() {
       </div>
 
       <div style={s.grid}>
-        {THEMES.map(t => {
-          const isActive = storeMode === 'both'
-            ? t.id === currentTheme || (getThemeType(t.id) === 'link-style' && t.id === (storeConfig as any)?.linkBioTheme)
-            : currentTheme === t.id;
-          const isLink = t.type === 'link-style';
+        {ecommerceThemes.map(t => {
+          const isActive = currentTheme === t.id;
           return (
             <div key={t.id} style={{ ...s.card, ...(isActive ? s.cardActive : {}) }}>
               {/* Preview strip */}
@@ -285,15 +182,6 @@ export default function StorefrontPage() {
               <div style={s.body}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={s.name}>{t.name}</span>
-                  <span
-                    style={{
-                      ...s.typeTag,
-                      background: isLink ? 'var(--sell-primary-lt)' : '#D1FAE5',
-                      color: isLink ? 'var(--sell-primary)' : '#065F46',
-                    }}
-                  >
-                    {isLink ? 'Bio Page' : 'Store'}
-                  </span>
                 </div>
                 <span style={s.desc}>{t.description}</span>
 
@@ -315,21 +203,12 @@ export default function StorefrontPage() {
 
                 {/* Actions */}
                 <div style={s.actions}>
-                  {isActive ? (
-                    <button
-                      style={s.btnPrimary}
-                      onClick={() => handleCustomize(t.id)}
-                    >
-                      Customize
-                    </button>
-                  ) : (
-                    <button
-                      style={s.btnPrimary}
-                      onClick={() => handleApplyAndCustomize(t.id)}
-                    >
-                      Preview & Customize
-                    </button>
-                  )}
+                  <button
+                    style={s.btnPrimary}
+                    onClick={() => isActive ? handleCustomize(t.id) : handleApplyAndCustomize(t.id)}
+                  >
+                    {isActive ? 'Customize' : 'Preview & Customize'}
+                  </button>
                 </div>
               </div>
             </div>
@@ -337,12 +216,10 @@ export default function StorefrontPage() {
         })}
       </div>
 
-      <StorefrontSwitchModal
-        open={pendingTheme !== null}
-        canHaveBoth={canHaveBoth}
-        onClose={() => setPendingTheme(null)}
-        onConfirm={confirmSwitchFromBio}
-      />
+      <p style={s.linkHint}>
+        Looking for your link-in-bio page? Open the &quot;Link in Bio&quot; editor from the sidebar — it&apos;s a
+        separate page with its own themes and URL.
+      </p>
     </div>
   );
 }

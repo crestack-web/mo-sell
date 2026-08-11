@@ -1,13 +1,11 @@
 import React from 'react';
 import { notFound } from 'next/navigation';
-import { getThemeComponentsServer, isCreatorTheme, getThemeType, resolveStoreMode, type ThemeId } from '@/themes/registry';
+import { getThemeComponentsServer, isCreatorTheme, resolveEcommerceTheme, type ThemeId } from '@/themes/registry';
 import type { ProductCardData } from '@/themes/types';
 import { CreatorProductTabs } from './creator-product-tabs';
 import { EmailSignup } from './components/EmailSignup';
-import { LinkProductStack } from './LinkProductStack';
-import { LinkBioPage } from './components/LinkBioPage';
 import type {
-  StorefrontTheme, StoreSection,
+  StoreSection,
   HeroSectionSettings, CollectionsSectionSettings,
   FeaturedSectionSettings, AnnouncementSectionSettings,
   AboutSectionSettings, TestimonialsSectionSettings,
@@ -117,12 +115,9 @@ export default async function StorefrontHomePage({
   const config = await getStoreConfig(storeSlug);
   if (!config) notFound();
 
-  const theme: StorefrontTheme = config.theme ?? 'luxe';
-  const themeType = getThemeType(theme);
-  // When mode === 'both' the main page hosts the store and the link-bio page
-  // lives at /bio/{storeSlug} — so never render link-style on the main URL.
-  const storeMode = resolveStoreMode(theme, config.mode, config.linkBioTheme);
-  const isLinkStyle = themeType === 'link-style' && storeMode !== 'both';
+  const theme = resolveEcommerceTheme(config.theme);
+  // The main URL always hosts the full storefront; the link-in-bio page lives
+  // at /bio/{storeSlug}.
 
   // If theme components fail to load, fall back to luxe so the page still renders
   let components: Awaited<ReturnType<typeof getThemeComponentsServer>>;
@@ -138,9 +133,6 @@ export default async function StorefrontHomePage({
     const saved = savedSections.find(s => s.id === def.id);
     return saved ? { ...def, ...saved, settings: { ...def.settings, ...saved.settings } } : def;
   }).sort((a, b) => a.order - b.order);
-
-  // Link-style: pure 1-page scroll — skip all storefront sections
-  const LINK_SKIP_TYPES = new Set<StoreSection['type']>(['header', 'collections', 'about', 'testimonials', 'instagram', 'newsletter', 'announcement', 'hero', 'featured', 'footer']);
 
   // Fetch data for enabled sections
   const needFeatured    = sections.some(s => s.type === 'featured'    && s.enabled);
@@ -169,7 +161,6 @@ export default async function StorefrontHomePage({
     <div id="products">
       {sections.map(section => {
         if (!section.enabled) return null;
-        if (isLinkStyle && LINK_SKIP_TYPES.has(section.type)) return null;
         const s = section.settings as Record<string, unknown>;
 
         switch (section.type) {
@@ -349,26 +340,8 @@ export default async function StorefrontHomePage({
         }
       })}
 
-      {/* Link-style: always render LinkBioPage (handles empty products gracefully) */}
-      {isLinkStyle ? (
-        <LinkBioPage
-          theme={theme}
-          config={{
-            storeSlug,
-            storeName: config.storeName,
-            logoUrl: config.logoUrl,
-            primaryColor: config.primaryColor,
-            secondaryColor: config.secondaryColor,
-            currency: config.currency,
-            tagline: config.tagline,
-            contactEmail: config.contactEmail,
-            contactPhone: config.contactPhone,
-            paystackPublicKey: config.paystackPublicKey ?? '',
-          }}
-          products={allProducts as any}
-          linkBio={(config as any).linkBio}
-        />
-      ) : allProducts.length > 0 ? (
+      {/* All products grid (renders an empty-state message when none exist) */}
+      {allProducts.length > 0 ? (
         <div className="sf-page sf-section" id="products">
           {isCreatorTheme(theme) ? (
             <CreatorProductTabs

@@ -17,9 +17,9 @@ import '../../themes/mono.css';
 import { CartProvider } from './context/CartContext';
 import { StorefrontNav } from './components/StorefrontNav';
 import { CartDrawer } from './components/CartDrawer';
-import type { StorefrontTheme, StoreSection, FooterSectionSettings, HeaderSectionSettings } from '@/types/mo-sell.types';
+import type { StoreSection, FooterSectionSettings, HeaderSectionSettings } from '@/types/mo-sell.types';
 import { DEFAULT_SECTIONS } from '@/types/mo-sell.types';
-import { getThemeType, resolveStoreMode } from '@/themes/registry';
+import { resolveEcommerceTheme } from '@/themes/registry';
 import { getStoreConfigBySlug } from '@/lib/store';
 
 // ─── Fetch store config ───────────────────────────────────────────────────────
@@ -65,7 +65,7 @@ export default async function StorefrontLayout({
     notFound();
   }
 
-  const theme: StorefrontTheme = config.theme ?? 'luxe';
+  const theme = resolveEcommerceTheme(config.theme);
   const primary   = config.primaryColor   ?? '#C9A84C';
   const secondary = config.secondaryColor ?? '#8B7355';
   const fontFamily = config.fontFamily ?? null;
@@ -122,8 +122,9 @@ export default async function StorefrontLayout({
     },
   };
 
-  const isLinkStyle = getThemeType(theme) === 'link-style' && resolveStoreMode(theme, config.mode, config.linkBioTheme) !== 'both';
-  const effectiveHeaderStyle = isLinkStyle ? 'minimal' : headerStyle;
+  // The main /{storeSlug} URL is always the full storefront — the link-in-bio
+  // page lives separately at /bio/{storeSlug}.
+  const effectiveHeaderStyle = headerStyle;
 
   return (
     <html lang="en" data-theme={theme}>

@@ -1,8 +1,8 @@
 import React from 'react';
 import type { Metadata } from 'next';
-import { redirect, notFound } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import { getStoreConfigBySlug } from '@/lib/store';
-import { resolveStoreMode } from '@/themes/registry';
+import { resolveLinkBioTheme } from '@/themes/registry';
 import type { ProductCardData } from '@/themes/types';
 import { BioPageClient } from './BioPageClient';
 import { getSupabaseServer } from '@/lib/database/postgresql-adapter';
@@ -73,13 +73,9 @@ export default async function BioPage({
   const config = await getStoreConfig(storeSlug);
   if (!config) notFound();
 
-  // The /bio/{storeSlug} URL only exists for stores running both a link-in-bio
-  // page and a full store at the same time ('both' mode). Everything else stays
-  // on the main /{storeSlug} URL.
-  const mode = resolveStoreMode(config.theme, config.mode, config.linkBioTheme);
-  if (mode !== 'both') redirect(`/${storeSlug}`);
-
-  const linkBioTheme = config.linkBioTheme ?? 'ankara';
+  // The /bio/{storeSlug} URL is the dedicated link-in-bio page and always
+  // exists alongside the store at /{storeSlug}.
+  const linkBioTheme = resolveLinkBioTheme(config.theme, config.linkBioTheme);
   const primary   = config.primaryColor ?? '#0EA5E9';
   const secondary = config.secondaryColor ?? '#6366F1';
 

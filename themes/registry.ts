@@ -272,24 +272,32 @@ export function getThemeType(themeId: string): ThemeLayoutType {
   return 'link-style';
 }
 
-// ─── Store mode (link-bio vs store vs both) ─────────────────────────────────
-
-export type StoreMode = 'store' | 'link-bio' | 'both';
+// ─── Store ↔ Link-in-bio decoupling ─────────────────────────────────────────
 
 /**
- * Resolve the effective storefront mode.
- * `mode` is explicit ('store' | 'link-bio' | 'both'). When it's missing
- * (legacy accounts) we fall back to the active theme's layout type.
+ * The store and the link-in-bio are independent pages:
+ *   - /{storeSlug}      → e-commerce storefront, rendered with `theme`
+ *   - /bio/{storeSlug}  → link-in-bio page, rendered with `linkBioTheme`
+ *
+ * A link-style theme is never a valid storefront theme, so the store always
+ * renders with an e-commerce theme (defaulting to luxe).
  */
-export function resolveStoreMode(
-  theme?: string | null,
-  mode?: StoreMode | string | null,
-  linkBioTheme?: string | null,
-): StoreMode {
-  if (mode === 'store' || mode === 'link-bio' || mode === 'both') return mode;
+export function resolveEcommerceTheme(theme?: string | null): StorefrontTheme {
   const t = theme ?? null;
-  if (t && getThemeType(t) === 'e-commerce') return 'store';
-  // Current main page is a link-style theme — treat as link-bio mode.
-  // (linkBioTheme is kept for the "create separate store" flow.)
-  return 'link-bio';
+  if (t && getThemeType(t) === 'e-commerce') return t as StorefrontTheme;
+  return 'luxe';
+}
+
+/**
+ * Effective link-in-bio theme. Prefers the explicitly chosen `linkBioTheme`;
+ * legacy stores may only have a link-style `theme` set, which we reuse.
+ */
+export function resolveLinkBioTheme(
+  theme?: string | null,
+  linkBioTheme?: string | null,
+): string {
+  if (linkBioTheme) return linkBioTheme;
+  const t = theme ?? null;
+  if (t && getThemeType(t) === 'link-style') return t;
+  return 'ankara';
 }
