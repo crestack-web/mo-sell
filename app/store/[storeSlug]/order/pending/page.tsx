@@ -4,11 +4,11 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 
 /**
- * /[storeSlug]/order/pending
+ * /store/[storeSlug]/order/pending
  *
  * Paystack redirects here after payment with ?reference=...
  * We poll /api/store/orders/confirm until the order is confirmed,
- * then redirect to /order/[orderId].
+ * then redirect to /store/[storeSlug]/order/[orderId].
  */
 
 type PollStatus = 'polling' | 'success' | 'failed' | 'expired';
@@ -87,7 +87,7 @@ export default function OrderPendingPage() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ eventType: 'order_completed', storeSlug, businessId: bId, pageType: 'order_pending' }),
           }).catch(() => {});
-          router.replace(`/${storeSlug}/order/${data.orderId}`);
+          router.replace(`/store/${storeSlug}/order/${data.orderId}`);
           return;
         }
 
@@ -173,7 +173,7 @@ export default function OrderPendingPage() {
             {message}
           </p>
           <button
-            onClick={() => router.push(`/${storeSlug}`)}
+            onClick={() => router.push(`/store/${storeSlug}`)}
             style={{
               padding: '10px 24px', background: 'var(--sf-primary)',
               color: '#fff', border: 'none', borderRadius: 8,

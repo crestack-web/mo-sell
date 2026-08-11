@@ -276,8 +276,8 @@ export function getThemeType(themeId: string): ThemeLayoutType {
 
 /**
  * The store and the link-in-bio are independent pages:
- *   - /{storeSlug}      → e-commerce storefront, rendered with `theme`
- *   - /bio/{storeSlug}  → link-in-bio page, rendered with `linkBioTheme`
+ *   - /store/{storeSlug} → e-commerce storefront, rendered with `theme`
+ *   - /{storeSlug}       → link-in-bio page, rendered with `linkBioTheme`
  *
  * A link-style theme is never a valid storefront theme, so the store always
  * renders with an e-commerce theme (defaulting to luxe).

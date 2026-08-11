@@ -316,7 +316,7 @@ export function ProductDetailClient({ product, storeSlug, currency, theme, busin
               const data = await res.json() as { orderId?: string; error?: string };
               if (res.ok && data.orderId) {
                 document.cookie = `customer_email=${encodeURIComponent(email.trim())}; path=/; max-age=2592000`;
-                window.location.href = `/${storeSlug}/order/${data.orderId}`;
+                window.location.href = `/store/${storeSlug}/order/${data.orderId}`;
                 return;
               } else {
                 setError(data.error || 'Payment confirmation failed. Contact support with your payment reference.');
@@ -383,7 +383,7 @@ export function ProductDetailClient({ product, storeSlug, currency, theme, busin
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--sf-border)', paddingBottom: 12 }}>
             <button
               onClick={() => {
-                if (typeof window !== 'undefined') window.location.href = `/${storeSlug}`;
+                if (typeof window !== 'undefined') window.location.href = `/store/${storeSlug}`;
               }}
               style={{
                 background: 'var(--sf-surface)',
@@ -430,7 +430,7 @@ export function ProductDetailClient({ product, storeSlug, currency, theme, busin
                 <span style={{ fontSize: '0.75rem', color: 'var(--sf-text-3)' }}>Order ID: {orderId}</span>
               )}
               <button
-                onClick={() => { if (typeof window !== 'undefined') window.location.href = `/${storeSlug}`; }}
+                onClick={() => { if (typeof window !== 'undefined') window.location.href = `/store/${storeSlug}`; }}
                 style={{
                   marginTop: 8,
                   padding: '12px 24px',

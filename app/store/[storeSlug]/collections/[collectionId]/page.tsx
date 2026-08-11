@@ -143,7 +143,7 @@ export default async function CollectionPage({
       {/* Back link */}
       <div style={{ textAlign: 'center', padding: '16px 0 48px' }}>
         <a
-          href={`/${storeSlug}`}
+          href={`/store/${storeSlug}`}
           style={{
             fontSize: 14, color: 'var(--sf-text-2)',
             textDecoration: 'none', fontWeight: 500,

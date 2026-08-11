@@ -6,7 +6,7 @@ import type { CheckoutSession } from '@/types/mo-sell.types';
 /**
  * POST /api/store/orders/confirm
  *
- * Called by /order/pending after Paystack redirects back.
+ * Called by /store/[storeSlug]/order/pending after Paystack redirects back.
  * 1. Loads the checkout session
  * 2. Verifies the Paystack transaction
  * 3. Validates amount matches

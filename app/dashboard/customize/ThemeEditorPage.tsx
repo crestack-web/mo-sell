@@ -8,7 +8,7 @@ import { useSell } from '@/context/SellContext';
 import { useRouter } from 'next/navigation';
 import { isCreatorTheme, getThemeType, resolveEcommerceTheme, THEMES } from '@/themes/registry';
 import { StorefrontCanvas } from '@/components/StorefrontCanvas';
-import { CartProvider } from '@/app/[storeSlug]/context/CartContext';
+import { CartProvider } from '@/app/store/[storeSlug]/context/CartContext';
 import type {
   StorefrontTheme, StoreSection, StoreSectionType,
   StorefrontProduct, StoreCollection,

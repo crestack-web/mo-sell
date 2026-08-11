@@ -107,7 +107,7 @@ export function ProductModal({ product, storeSlug, currency, primaryColor, payst
               const data = await res.json();
               if (res.ok && data.orderId) {
                 document.cookie = `customer_email=${encodeURIComponent(email.trim())}; path=/; max-age=2592000`;
-                window.location.href = `/${storeSlug}/order/${data.orderId}`;
+                window.location.href = `/store/${storeSlug}/order/${data.orderId}`;
                 return;
               } else {
                 setError(data.error || 'Order confirmation failed. Contact support with your payment reference.');

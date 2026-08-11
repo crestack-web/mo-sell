@@ -121,7 +121,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       sessionId,
       planId,
-      returnUrl: `${baseUrl}/${storeSlug}/order/pending`,
+      returnUrl: `${baseUrl}/store/${storeSlug}/order/pending`,
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Internal server error';

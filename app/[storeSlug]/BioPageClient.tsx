@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { getThemeCssVars } from '@/components/StorefrontCanvas';
-import { LinkBioPage } from '../../[storeSlug]/components/LinkBioPage';
+import { LinkBioPage } from '../store/[storeSlug]/components/LinkBioPage';
 
 interface BioPageClientProps {
   theme: string;

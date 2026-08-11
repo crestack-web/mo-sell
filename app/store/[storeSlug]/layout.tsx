@@ -122,8 +122,8 @@ export default async function StorefrontLayout({
     },
   };
 
-  // The main /{storeSlug} URL is always the full storefront — the link-in-bio
-  // page lives separately at /bio/{storeSlug}.
+  // The /store/{storeSlug} URL always hosts the full storefront — the
+  // link-in-bio page lives separately at /{storeSlug}.
   const effectiveHeaderStyle = headerStyle;
 
   return (

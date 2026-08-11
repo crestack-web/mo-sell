@@ -114,7 +114,7 @@ export function LinkBioPage({ theme, config, products, linkBio }: LinkBioPagePro
             textColor={textColor}
             textColor2={textColor2}
             textColor3={textColor3}
-            onProductClick={(p) => { window.location.href = `/${config.storeSlug}/product/${p.id}`; }}
+            onProductClick={(p) => { window.location.href = `/store/${config.storeSlug}/product/${p.id}`; }}
           />
         </div>
       </div>

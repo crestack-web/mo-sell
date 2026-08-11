@@ -46,7 +46,7 @@ export function StorefrontNav({ storeName, logoUrl, storeSlug, businessId, hideS
   if (headerStyle === 'minimal') return null;
 
   const logoBlock = (
-    <Link href={`/${storeSlug}`} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 8 }}>
+    <Link href={`/store/${storeSlug}`} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 8 }}>
       {logoUrl
         ? <img src={logoUrl} alt={storeName} style={{ height: 36, width: 'auto', borderRadius: 6, objectFit: 'contain' }} />
         : <span style={{
@@ -67,7 +67,7 @@ export function StorefrontNav({ storeName, logoUrl, storeSlug, businessId, hideS
       {collections.map(col => (
         <Link
           key={col.id}
-          href={`/${storeSlug}/collections/${col.id}`}
+          href={`/store/${storeSlug}/collections/${col.id}`}
           style={{
             fontSize: 13, fontWeight: 500, color: 'var(--sf-text-2)',
             textDecoration: 'none', padding: '6px 10px', borderRadius: 8,
@@ -188,7 +188,7 @@ export function StorefrontNav({ storeName, logoUrl, storeSlug, businessId, hideS
       {collections.map(col => (
         <Link
           key={col.id}
-          href={`/${storeSlug}/collections/${col.id}`}
+          href={`/store/${storeSlug}/collections/${col.id}`}
           onClick={() => setMobileMenuOpen(false)}
           className="sf-nav-mobile-link"
         >

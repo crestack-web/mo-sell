@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useSell } from '@/context/SellContext';
 import { StorefrontCanvas } from '@/components/StorefrontCanvas';
-import { CartProvider } from '@/app/[storeSlug]/context/CartContext';
+import { CartProvider } from '@/app/store/[storeSlug]/context/CartContext';
 import type { StorefrontTheme, StoreSection } from '@/types/mo-sell.types';
 import styles from './ThemeEditorPage.module.css';
 

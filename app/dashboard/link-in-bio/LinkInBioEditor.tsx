@@ -6,7 +6,7 @@ import { getStorage } from '@/lib/storage/adapter';
 import { useSell } from '@/context/SellContext';
 import { THEMES, resolveLinkBioTheme } from '@/themes/registry';
 import type { ProductCardData } from '@/themes/types';
-import { getLinkBioLayout, type CustomLink } from '@/app/[storeSlug]/components/layouts/index';
+import { getLinkBioLayout, type CustomLink } from '@/app/store/[storeSlug]/components/layouts/index';
 import { getThemeCssVars } from '@/components/StorefrontCanvas';
 import type { StorefrontTheme } from '@/types/mo-sell.types';
 import { ExternalLink, GripVertical, Eye, EyeOff, X, Pencil, ArrowRight, Instagram, Twitter, Youtube, Music2, MessageCircle } from 'lucide-react';
@@ -252,7 +252,7 @@ export function LinkInBioEditor() {
   if (!form) return <div className={styles.loading}>Loading...</div>;
 
   const storeName = storeConfig?.storeName ?? 'Your Store';
-  const bioUrl = `/bio/${storeConfig?.storeSlug}`;
+  const bioUrl = `/${storeConfig?.storeSlug}`;
   const config = {
     storeSlug: storeConfig?.storeSlug ?? '',
     storeName,

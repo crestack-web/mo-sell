@@ -24,7 +24,7 @@ export function LinkProductStack({ products, storeSlug, currency, emptyMessage }
         return (
           <a
             key={p.id}
-            href={`/${storeSlug}/product/${p.id}`}
+            href={`/store/${storeSlug}/product/${p.id}`}
             style={{
               display: 'flex', alignItems: 'center', gap: 12,
               padding: '10px 14px',

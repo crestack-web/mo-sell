@@ -9,7 +9,7 @@ import type { CheckoutSession } from '@/types/mo-sell.types';
  *
  * Receives Paystack charge.success events server-side.
  * This is the reliable fallback for when clients close the browser
- * before the /order/pending page finishes polling.
+ * before the /store/[storeSlug]/order/pending page finishes polling.
  *
  * Register this URL in your Paystack dashboard:
  *   Settings → API Keys & Webhooks → Webhook URL

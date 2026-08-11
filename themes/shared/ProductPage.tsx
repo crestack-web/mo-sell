@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { useCart } from '@/app/[storeSlug]/context/CartContext';
+import { useCart } from '@/app/store/[storeSlug]/context/CartContext';
 import type { ThemeProductPageProps } from '../types';
 import { THEME_TOKENS, accentText, type ThemeTokens } from './tokens';
 

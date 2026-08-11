@@ -387,7 +387,7 @@ function SfFeatured({ theme, settings, primary, products, storeSlug, width }: {
 
   const handleProductClick = (productId: string) => {
     if (storeSlug) {
-      window.open(`/${storeSlug}/product/${productId}`, '_blank');
+      window.open(`/store/${storeSlug}/product/${productId}`, '_blank');
     }
   };
 

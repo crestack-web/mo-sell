@@ -4,5 +4,5 @@ export function getStorePublicUrl(storeSlug: string, customDomain?: string | nul
   if (customDomain && customDomainVerified) {
     return `https://${customDomain}`;
   }
-  return `${BASE_APP_URL}/${storeSlug}`;
+  return `${BASE_APP_URL}/store/${storeSlug}`;
 }

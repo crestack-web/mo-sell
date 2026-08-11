@@ -120,7 +120,7 @@ export async function processConfirmedOrder(
   const storeLinkBase =
     config?.customDomainStatus === 'verified' && config?.customDomain
       ? `https://${config.customDomain}`
-      : `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://mo-sell.store'}/${config?.storeSlug ?? ''}`;
+      : `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://mo-sell.store'}/store/${config?.storeSlug ?? ''}`;
 
   // 3. Derive order total from Paystack (source of truth: kobo → NGN)
   const verifiedTotal = paystackData.amount / 100;
