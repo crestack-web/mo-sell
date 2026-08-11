@@ -72,7 +72,7 @@ function loadPaystackScript(): Promise<void> {
   });
 }
 
-const LINK_STYLE_THEMES = ['ankara', 'midnight', 'harmattan', 'neon', 'sunset', 'mono'];
+const LINK_STYLE_THEMES = ['ankara', 'midnight', 'harmattan', 'neon', 'sunset', 'mono', 'blush', 'rose', 'pearl', 'cherry', 'quiet', 'concrete', 'chrome'];
 
 // Loading skeleton while theme loads
 function ProductPageSkeleton() {
@@ -383,7 +383,7 @@ export function ProductDetailClient({ product, storeSlug, currency, theme, busin
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--sf-border)', paddingBottom: 12 }}>
             <button
               onClick={() => {
-                if (typeof window !== 'undefined') window.location.href = `/store/${storeSlug}`;
+                if (typeof window !== 'undefined') window.location.href = `/${storeSlug}`;
               }}
               style={{
                 background: 'var(--sf-surface)',
@@ -430,7 +430,7 @@ export function ProductDetailClient({ product, storeSlug, currency, theme, busin
                 <span style={{ fontSize: '0.75rem', color: 'var(--sf-text-3)' }}>Order ID: {orderId}</span>
               )}
               <button
-                onClick={() => { if (typeof window !== 'undefined') window.location.href = `/store/${storeSlug}`; }}
+                onClick={() => { if (typeof window !== 'undefined') window.location.href = `/${storeSlug}`; }}
                 style={{
                   marginTop: 8,
                   padding: '12px 24px',
