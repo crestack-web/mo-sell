@@ -16,6 +16,8 @@ export function ProductGrid({ products, storeSlug, currency, emptyMessage = 'No 
         padding: '48px 24px', textAlign: 'center',
         color: 'var(--sf-text-3)', fontSize: '0.9rem',
         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16,
+        width: '100%',
+        boxSizing: 'border-box',
       }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
@@ -33,7 +35,12 @@ export function ProductGrid({ products, storeSlug, currency, emptyMessage = 'No 
       display: 'grid',
       gridTemplateColumns: `repeat(${columns}, 1fr)`,
       gap: 24,
-    } : undefined}>
+      width: '100%',
+      boxSizing: 'border-box',
+    } : {
+      width: '100%',
+      boxSizing: 'border-box',
+    }}>
       {products.map(p => (
         <ProductCard key={p.id} product={p} storeSlug={storeSlug} currency={currency} />
       ))}

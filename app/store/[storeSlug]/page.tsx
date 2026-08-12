@@ -94,8 +94,10 @@ function ThemeProductGrid({ products, storeSlug, currency, columns, emptyMessage
   return (
     <div className="sf-product-grid" style={{
       display: 'grid',
-      gridTemplateColumns: `repeat(${columns}, 1fr)`,
+      gridTemplateColumns: `repeat(auto-fill, minmax(${Math.max(240, 1200 / columns)}px, 1fr))`,
       gap: 24,
+      width: '100%',
+      boxSizing: 'border-box',
     }}>
       {products.map(p => (
         <ProductCard key={p.id} product={p} storeSlug={storeSlug} currency={currency} />

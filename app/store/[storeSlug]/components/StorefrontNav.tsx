@@ -46,9 +46,9 @@ export function StorefrontNav({ storeName, logoUrl, storeSlug, businessId, hideS
   if (headerStyle === 'minimal') return null;
 
   const logoBlock = (
-    <Link href={`/store/${storeSlug}`} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 8 }}>
+    <Link href={`/store/${storeSlug}`} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
       {logoUrl
-        ? <img src={logoUrl} alt={storeName} style={{ height: 36, width: 'auto', borderRadius: 6, objectFit: 'contain' }} />
+        ? <img src={logoUrl} alt={storeName} style={{ height: 36, width: 'auto', maxWidth: 140, borderRadius: 6, objectFit: 'contain' }} />
         : <span style={{
             width: 36, height: 36, borderRadius: 8,
             background: 'var(--sf-primary)', color: '#fff',
@@ -57,13 +57,13 @@ export function StorefrontNav({ storeName, logoUrl, storeSlug, businessId, hideS
           }}>{storeName.charAt(0).toUpperCase()}</span>
       }
       {!(hideStoreNameWithLogo && logoUrl) && (
-        <span style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--sf-text-1)' }}>{storeName}</span>
+        <span style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--sf-text-1)', whiteSpace: 'nowrap' }}>{storeName}</span>
       )}
     </Link>
   );
 
   const collectionsLinks = collections.length > 0 ? (
-    <div className="sf-nav-links sf-nav-desktop-only" style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+    <div className="sf-nav-links sf-nav-desktop-only" style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'nowrap' }}>
       {collections.map(col => (
         <Link
           key={col.id}
@@ -71,7 +71,7 @@ export function StorefrontNav({ storeName, logoUrl, storeSlug, businessId, hideS
           style={{
             fontSize: 13, fontWeight: 500, color: 'var(--sf-text-2)',
             textDecoration: 'none', padding: '6px 10px', borderRadius: 8,
-            transition: 'background 0.15s ease',
+            transition: 'background 0.15s ease', whiteSpace: 'nowrap',
           }}
           onMouseEnter={e => ((e.currentTarget as HTMLAnchorElement).style.background = 'var(--sf-border)')}
           onMouseLeave={e => ((e.currentTarget as HTMLAnchorElement).style.background = 'transparent')}

@@ -79,9 +79,9 @@ const LINK_STYLE_THEMES = ['ankara', 'midnight', 'harmattan', 'neon', 'sunset', 
 // Loading skeleton while theme loads
 function ProductPageSkeleton() {
   return (
-    <div style={{ maxWidth: 1280, margin: '0 auto', padding: '48px 5% 80px' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 48 }}>
-        <div style={{ aspectRatio: '1/1', background: '#F3F4F6', borderRadius: 16, animation: 'pulse 2s infinite' }} />
+    <div style={{ maxWidth: 1280, margin: '0 auto', padding: '48px 16px 80px', width: '100%', boxSizing: 'border-box' }}>
+      <div className="sf-product-page-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 48, width: '100%' }}>
+        <div style={{ aspectRatio: '1/1', background: '#F3F4F6', borderRadius: 16, animation: 'pulse 2s infinite', width: '100%' }} />
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ width: 80, height: 12, background: '#E5E7EB', borderRadius: 4 }} />
           <div style={{ width: '60%', height: 28, background: '#E5E7EB', borderRadius: 4 }} />
@@ -96,9 +96,9 @@ function ProductPageSkeleton() {
 // Fallback: generic product page if theme fails to load
 function GenericProductPage({ product, storeSlug, currency }: ThemeProductPageProps) {
   return (
-    <div style={{ maxWidth: 1280, margin: '0 auto', padding: '48px 5% 80px' }}>
-      <div className="sf-product-page-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 48, alignItems: 'start' }}>
-        <div>
+    <div style={{ maxWidth: 1280, margin: '0 auto', padding: '48px 16px 80px', width: '100%', boxSizing: 'border-box' }}>
+      <div className="sf-product-page-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 48, alignItems: 'start', width: '100%' }}>
+        <div className="sf-product-page-gallery" style={{ width: '100%' }}>
           {product.images[0] ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={product.images[0]} alt={product.displayName}
@@ -107,13 +107,13 @@ function GenericProductPage({ product, storeSlug, currency }: ThemeProductPagePr
             <div style={{ width: '100%', aspectRatio: '1/1', background: '#F3F4F6', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '4rem' }}>📦</div>
           )}
         </div>
-        <div>
+        <div className="sf-product-page-info" style={{ width: '100%' }}>
           <p style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#6B7280' }}>{product.category}</p>
           <h1 style={{ fontSize: '1.8rem', fontWeight: 800, marginTop: 8 }}>{product.displayName}</h1>
           <p style={{ fontSize: '1.4rem', fontWeight: 800, color: '#4F46E5', marginTop: 12 }}>
             {currency === 'NGN' ? '₦' : currency === 'USD' ? '$' : currency + ' '}{product.price.toLocaleString()}
           </p>
-          {product.description && <div className="product-rich-description" style={{ color: '#6B7280', marginTop: 16, lineHeight: 1.7, overflowWrap: 'break-word' }} dangerouslySetInnerHTML={{ __html: product.description }} />}
+          {product.description && <div className="product-rich-description rich-text-content" style={{ color: '#6B7280', marginTop: 16, lineHeight: 1.7 }} dangerouslySetInnerHTML={{ __html: product.description }} />}
         </div>
       </div>
     </div>

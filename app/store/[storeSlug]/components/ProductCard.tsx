@@ -57,8 +57,8 @@ export function ProductCard({ product, storeSlug, currency }: Props) {
   };
 
   return (
-    <Link href={`/store/${storeSlug}/product/${product.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-      <div className="sf-card">
+    <Link href={`/store/${storeSlug}/product/${product.id}`} style={{ textDecoration: 'none', color: 'inherit', width: '100%', boxSizing: 'border-box' }}>
+      <div className="sf-card" style={{ width: '100%', boxSizing: 'border-box' }}>
 
         {/* Image area */}
         <div className="sf-card-img">
