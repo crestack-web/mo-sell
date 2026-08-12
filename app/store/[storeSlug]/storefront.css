@@ -900,7 +900,17 @@ img { max-width: 100%; height: auto; display: block; }
   .sf-card-img { height: 220px !important; }
   .sf-testimonials-grid { grid-template-columns: 1fr !important; }
   .sf-instagram-grid { grid-template-columns: repeat(2, 1fr) !important; }
+  .sf-hero { padding: 40px 20px !important; }
+  .sf-page { padding: 24px 12px 60px !important; }
+  .sf-section { margin-bottom: 32px !important; }
+  .sf-footer { padding: 28px 16px !important; }
+  .sf-testimonials-grid { grid-template-columns: 1fr !important; }
+  .sf-newsletter { padding: 32px 16px !important; }
+  .sf-newsletter-form { flex-direction: column !important; }
+  .sf-newsletter-input { min-width: 0 !important; width: 100% !important; }
 }
+
+@media (max-width: 640px) {
   .sf-card-img { height: 180px; }
   .sf-card-body { padding: 10px; }
   .sf-card-name { font-size: 0.88rem; }
