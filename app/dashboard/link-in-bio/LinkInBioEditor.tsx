@@ -308,13 +308,23 @@ export function LinkInBioEditor() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {storeConfig?.storeSlug && (
               <>
+                <button
+                  onClick={() => {
+                    const linkInBioUrl = `${window.location.origin}/${storeConfig.storeSlug}`;
+                    navigator.clipboard.writeText(linkInBioUrl);
+                    showToast('Link copied to clipboard!', 'success');
+                  }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.72rem', fontWeight: 600, color: 'var(--sell-text-1)', background: 'var(--sell-surface)', border: '1px solid var(--sell-border)', padding: '3px 10px', borderRadius: 100, cursor: 'pointer' }}
+                >
+                  Link in Bio
+                </button>
                 <a
-                  href={`/store/${storeConfig.storeSlug}`}
+                  href={`/${storeConfig.storeSlug}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.72rem', fontWeight: 600, color: 'var(--sell-text-1)', background: 'var(--sell-surface)', border: '1px solid var(--sell-border)', padding: '3px 10px', borderRadius: 100, textDecoration: 'none' }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.72rem', fontWeight: 600, color: 'var(--sell-primary)', background: 'var(--sell-surface)', border: '1px solid var(--sell-border)', padding: '3px 10px', borderRadius: 100, textDecoration: 'none' }}
                 >
-                  Store
+                  View
                 </a>
                 <a
                   href={bioUrl}
