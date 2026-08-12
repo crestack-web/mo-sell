@@ -95,7 +95,7 @@ export default async function BioProductPage({
   return (
     <div style={themeVars}>
       <ProductDetailClient
-        product={product}
+        product={JSON.parse(JSON.stringify(product))}
         storeSlug={storeSlug}
         currency={config.currency}
         theme={linkBioTheme}
