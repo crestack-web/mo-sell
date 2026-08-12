@@ -36,6 +36,7 @@ interface Props {
   businessId?: string;
   paystackPublicKey?: string;
   primaryColor?: string;
+  forceLinkBio?: boolean;
 }
 
 interface TimeSlot {
@@ -120,7 +121,7 @@ function GenericProductPage({ product, storeSlug, currency }: ThemeProductPagePr
   );
 }
 
-export function ProductDetailClient({ product, storeSlug, currency, theme, businessId, paystackPublicKey: paystackKeyProp, primaryColor: primaryColorProp }: Props) {
+export function ProductDetailClient({ product, storeSlug, currency, theme, businessId, paystackPublicKey: paystackKeyProp, primaryColor: primaryColorProp, forceLinkBio = false }: Props) {
   const [ThemeComponents, setThemeComponents] = useState<ThemeComponents | null>(null);
   const [errorTheme, setErrorTheme] = useState(false);
   const [storeConfig, setStoreConfig] = useState<any>(null);
@@ -141,7 +142,7 @@ export function ProductDetailClient({ product, storeSlug, currency, theme, busin
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
 
-  const isLinkStyle = LINK_STYLE_THEMES.includes(theme);
+  const isLinkStyle = forceLinkBio || LINK_STYLE_THEMES.includes(theme);
 
   // Which customer fields this product wants collected (email is always required)
   const infoFields = product.customerInfoFields && product.customerInfoFields.length > 0
@@ -346,46 +347,51 @@ export function ProductDetailClient({ product, storeSlug, currency, theme, busin
 
   // ──── RENDER LINK-BIO PRODUCT PAGE (theme-specific) ────
   if (isLinkStyle) {
-    const LinkBioProductPage = getLinkBioProductPage(theme);
-    const primaryColor = storeConfig?.primaryColor || primaryColorProp || '#6366F1';
-    return (
-      <LinkBioProductPage
-        product={product}
-        storeSlug={storeSlug}
-        storeName={storeConfig?.storeName}
-        primaryColor={primaryColor}
-        currency={currency}
-        discount={discount}
-        formattedDate={formattedDate}
-        success={success}
-        orderId={orderId}
-        error={error}
-        processing={processing}
-        needsSlot={needsSlot}
-        businessId={businessId}
-        today={today}
-        selectedDate={selectedDate}
-        selectedSlot={selectedSlot}
-        slots={slots}
-        loadingSlots={loadingSlots}
-        wantsName={wantsName}
-        wantsPhone={wantsPhone}
-        name={name}
-        email={email}
-        phone={phone}
-        notes={notes}
-        onNameChange={setName}
-        onEmailChange={setEmail}
-        onPhoneChange={setPhone}
-        onNotesChange={setNotes}
-        onDateChange={handleDateChange}
-        onSelectSlot={setSelectedSlot}
-        onCheckout={handleCheckout}
-        onBack={() => {
-          if (typeof window !== 'undefined') window.location.href = `/${storeSlug}`;
-        }}
-      />
-    );
+    try {
+      const LinkBioProductPage = getLinkBioProductPage(theme);
+      const primaryColor = storeConfig?.primaryColor || primaryColorProp || '#6366F1';
+      return (
+        <LinkBioProductPage
+          product={product}
+          storeSlug={storeSlug}
+          storeName={storeConfig?.storeName}
+          primaryColor={primaryColor}
+          currency={currency}
+          discount={discount}
+          formattedDate={formattedDate}
+          success={success}
+          orderId={orderId}
+          error={error}
+          processing={processing}
+          needsSlot={needsSlot}
+          businessId={businessId}
+          today={today}
+          selectedDate={selectedDate}
+          selectedSlot={selectedSlot}
+          slots={slots}
+          loadingSlots={loadingSlots}
+          wantsName={wantsName}
+          wantsPhone={wantsPhone}
+          name={name}
+          email={email}
+          phone={phone}
+          notes={notes}
+          onNameChange={setName}
+          onEmailChange={setEmail}
+          onPhoneChange={setPhone}
+          onNotesChange={setNotes}
+          onDateChange={handleDateChange}
+          onSelectSlot={setSelectedSlot}
+          onCheckout={handleCheckout}
+          onBack={() => {
+            if (typeof window !== 'undefined') window.location.href = `/${storeSlug}`;
+          }}
+        />
+      );
+    } catch (err) {
+      console.error('[ProductDetailClient] Link-bio product page error:', err);
+      // Fall through to generic page if link-bio fails
+    }
   }
 
   // ──── RENDER STANDARD E-COMMERCE PRODUCT DETAIL PAGE ────

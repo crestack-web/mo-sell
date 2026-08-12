@@ -102,6 +102,7 @@ export default async function BioProductPage({
         businessId={config.businessId}
         paystackPublicKey={config.paystackPublicKey}
         primaryColor={config.primaryColor}
+        forceLinkBio={true}
       />
     </div>
   );
