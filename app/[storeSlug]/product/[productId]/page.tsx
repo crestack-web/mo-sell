@@ -65,45 +65,50 @@ export default async function BioProductPage({
 }: {
   params: Promise<{ storeSlug: string; productId: string }>;
 }) {
-  const { storeSlug, productId } = await params;
-
-  const config = await getStoreConfig(storeSlug);
-  if (!config) notFound();
-
-  const product = await getProduct(config.businessId, productId);
-  if (!product || !product.available) notFound();
-
-  // The /{storeSlug} URL is the dedicated link-in-bio page, so product pages
-  // under it render with the link-in-bio theme (never the e-commerce theme).
-  const linkBioTheme = resolveLinkBioTheme(config.theme, config.linkBioTheme);
-
-  // Inject the theme's --sf-* CSS variables so the theme-specific product
-  // page matches the link-in-bio storefront exactly (same as the bio page).
-  const themeVars = getThemeCssVars(linkBioTheme as any, config.primaryColor, config.secondaryColor);
-
-  // Fire page_view analytics (fire-and-forget)
   try {
-    const supabaseAnalytics = getSupabaseServer();
-    supabaseAnalytics.from('storeAnalytics').insert({
-      eventType: 'page_view', storeSlug,
-      businessId: config.businessId,
-      pageType: 'product', productId,
-      createdAt: new Date().toISOString(),
-    }).then(() => {}, () => {});
-  } catch {}
+    const { storeSlug, productId } = await params;
 
-  return (
-    <div style={themeVars}>
-      <ProductDetailClient
-        product={JSON.parse(JSON.stringify(product))}
-        storeSlug={storeSlug}
-        currency={config.currency}
-        theme={linkBioTheme}
-        businessId={config.businessId}
-        paystackPublicKey={config.paystackPublicKey}
-        primaryColor={config.primaryColor}
-        forceLinkBio={true}
-      />
-    </div>
-  );
+    const config = await getStoreConfig(storeSlug);
+    if (!config) notFound();
+
+    const product = await getProduct(config.businessId, productId);
+    if (!product || !product.available) notFound();
+
+    // The /{storeSlug} URL is the dedicated link-in-bio page, so product pages
+    // under it render with the link-in-bio theme (never the e-commerce theme).
+    const linkBioTheme = resolveLinkBioTheme(config.theme, config.linkBioTheme) || 'ankara';
+
+    // Inject the theme's --sf-* CSS variables so the theme-specific product
+    // page matches the link-in-bio storefront exactly (same as the bio page).
+    const themeVars = getThemeCssVars(linkBioTheme as any, config.primaryColor || '#6366F1', config.secondaryColor || '#FFFFFF');
+
+    // Fire page_view analytics (fire-and-forget)
+    try {
+      const supabaseAnalytics = getSupabaseServer();
+      supabaseAnalytics.from('storeAnalytics').insert({
+        eventType: 'page_view', storeSlug,
+        businessId: config.businessId,
+        pageType: 'product', productId,
+        createdAt: new Date().toISOString(),
+      }).then(() => {}, () => {});
+    } catch {}
+
+    return (
+      <div style={themeVars}>
+        <ProductDetailClient
+          product={JSON.parse(JSON.stringify(product))}
+          storeSlug={storeSlug}
+          currency={config.currency}
+          theme={linkBioTheme}
+          businessId={config.businessId}
+          paystackPublicKey={config.paystackPublicKey}
+          primaryColor={config.primaryColor}
+          forceLinkBio={true}
+        />
+      </div>
+    );
+  } catch (error) {
+    console.error('[BioProductPage] Error:', error);
+    notFound();
+  }
 }
