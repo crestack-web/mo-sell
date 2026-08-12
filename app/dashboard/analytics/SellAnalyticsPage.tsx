@@ -157,7 +157,6 @@ export function SellAnalyticsPage() {
   const pageViews       = eventsInRange.filter(e => e.eventType === 'page_view').length;
   const bioPageViews    = eventsInRange.filter(e => e.eventType === 'page_view' && e.pageType === 'bio').length;
   const storefrontViews = eventsInRange.filter(e => e.eventType === 'page_view' && e.pageType === 'home').length;
-  const productViews    = eventsInRange.filter(e => e.eventType === 'page_view' && e.pageType === 'product').length;
   const addToCart       = eventsInRange.filter(e => e.eventType === 'add_to_cart').length;
   const checkoutStarted = eventsInRange.filter(e => e.eventType === 'checkout_initiated').length;
   const funnelMax       = Math.max(pageViews, 1);
@@ -174,7 +173,7 @@ export function SellAnalyticsPage() {
   ];
 
   // ── Product-level performance (units, revenue, views, conversion) ─────────
-  const productViews = useMemo(() => {
+  const productViewsForProducts = useMemo(() => {
     const m: Record<string, number> = {};
     eventsInRange.forEach(e => {
       if (e.eventType === 'page_view' && e.pageType === 'product' && e.productId) {
@@ -183,6 +182,10 @@ export function SellAnalyticsPage() {
     });
     return m;
   }, [eventsInRange]);
+
+  const totalProductViews = useMemo(() => {
+    return Object.values(productViewsForProducts).reduce((sum, v) => sum + v, 0);
+  }, [productViewsForProducts]);
 
   const topProducts = useMemo((): TopProduct[] => {
     const map: Record<string, TopProduct & { pid?: string }> = {};
@@ -198,7 +201,7 @@ export function SellAnalyticsPage() {
       .sort((a, b) => b.units - a.units)
       .slice(0, 6)
       .map(p => {
-        const views = p.pid ? (productViews[p.pid] ?? 0) : 0;
+        const views = p.pid ? (productViewsForProducts[p.pid] ?? 0) : 0;
         return {
           name: p.name,
           units: p.units,
@@ -208,7 +211,7 @@ export function SellAnalyticsPage() {
           conv: views > 0 ? `${((p.units / views) * 100).toFixed(1)}%` : '—',
         };
       });
-  }, [rangeOrders, productViews, totalRevenue]);
+  }, [rangeOrders, productViewsForProducts, totalRevenue]);
 
   // ── Weekday revenue ───────────────────────────────────────────────────────
   const weekdayData = useMemo(() => {
@@ -593,7 +596,7 @@ export function SellAnalyticsPage() {
                   <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 600, color: 'var(--sell-text-1)' }}>Product views</p>
                   <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: 'var(--sell-text-3)' }}>Individual product page visits</p>
                 </div>
-                <p style={{ margin: 0, fontSize: '1.4rem', fontWeight: 700, color: 'var(--sell-teal)' }}>{productViews}</p>
+                <p style={{ margin: 0, fontSize: '1.4rem', fontWeight: 700, color: 'var(--sell-teal)' }}>{totalProductViews}</p>
               </div>
               {bioConv !== null && (
                 <div style={{ padding: '12px 0', background: 'var(--sell-primary-lt)', borderRadius: 8, marginTop: 8 }}>
