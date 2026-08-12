@@ -98,24 +98,6 @@ export function StorefrontNav({ storeName, logoUrl, storeSlug, businessId, hideS
     </button>
   ) : null;
 
-  const customizeLink = (
-    <a
-      href={`/dashboard/customize`}
-      title="Customize your store"
-      style={{
-        background: 'none', border: 'none', cursor: 'pointer',
-        padding: '6px 10px', color: 'var(--sf-text-2)', display: 'flex',
-        alignItems: 'center', borderRadius: 8, gap: 4,
-        fontSize: 12, fontWeight: 500, textDecoration: 'none',
-      }}
-    >
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-        <circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
-      </svg>
-      Customize
-    </a>
-  );
-
   const searchOverlay = searchOpen ? (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 200,
@@ -151,7 +133,6 @@ export function StorefrontNav({ storeName, logoUrl, storeSlug, businessId, hideS
   const cartAndActions = (
     <div style={{ display: 'flex', gap: 2, alignItems: 'center', position: 'relative' }}>
       {searchButton}
-      {customizeLink}
       <button
         className="sf-nav-menu sf-nav-mobile-only"
         onClick={() => setMobileMenuOpen(!mobileMenuOpen)}

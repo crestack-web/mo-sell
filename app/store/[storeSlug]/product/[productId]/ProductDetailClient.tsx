@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import type { ThemeComponents, ThemeProductPageProps } from '@/themes/types';
 import { BookingPicker } from './BookingPicker';
+import { getLinkBioProductPage } from '../../components/linkBioProductPages';
 import { PLATFORM_PAYSTACK_PUBLIC_KEY, resolvePaystackPublicKey } from '@/lib/paystack';
 
 interface Product {
@@ -34,6 +35,7 @@ interface Props {
   theme: string;
   businessId?: string;
   paystackPublicKey?: string;
+  primaryColor?: string;
 }
 
 interface TimeSlot {
@@ -118,7 +120,7 @@ function GenericProductPage({ product, storeSlug, currency }: ThemeProductPagePr
   );
 }
 
-export function ProductDetailClient({ product, storeSlug, currency, theme, businessId, paystackPublicKey: paystackKeyProp }: Props) {
+export function ProductDetailClient({ product, storeSlug, currency, theme, businessId, paystackPublicKey: paystackKeyProp, primaryColor: primaryColorProp }: Props) {
   const [ThemeComponents, setThemeComponents] = useState<ThemeComponents | null>(null);
   const [errorTheme, setErrorTheme] = useState(false);
   const [storeConfig, setStoreConfig] = useState<any>(null);
@@ -342,401 +344,47 @@ export function ProductDetailClient({ product, storeSlug, currency, theme, busin
   const discount = product.compareAtPrice && product.compareAtPrice > product.price
     ? Math.round((1 - product.price / product.compareAtPrice) * 100) : null;
 
-  const fmtCurrency = (n: number) => {
-    return (currency === 'NGN' ? '₦' : currency === 'USD' ? '$' : currency + ' ') + n.toLocaleString();
-  };
-
-  const textOnColor = (bg: string): string => {
-    let hex = (bg || '').trim();
-    if (hex.startsWith('#')) {
-      hex = hex.slice(1);
-      if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
-      if (hex.length === 6) {
-        const r = parseInt(hex.slice(0, 2), 16);
-        const g = parseInt(hex.slice(2, 4), 16);
-        const b = parseInt(hex.slice(4, 6), 16);
-        const lum = 0.299 * r + 0.587 * g + 0.114 * b;
-        return lum > 150 ? '#111111' : '#FFFFFF';
-      }
-    }
-    return '#FFFFFF';
-  };
-
-  // ──── RENDER LINK-BIO DEDICATED PRODUCT PAGE ────
+  // ──── RENDER LINK-BIO PRODUCT PAGE (theme-specific) ────
   if (isLinkStyle) {
-    const primaryColor = storeConfig?.primaryColor || '#6366F1';
-    
+    const LinkBioProductPage = getLinkBioProductPage(theme);
+    const primaryColor = storeConfig?.primaryColor || primaryColorProp || '#6366F1';
     return (
-      <div style={{
-        background: 'var(--sf-bg, #0A0A0A)',
-        minHeight: '100vh',
-        fontFamily: 'var(--sf-font, system-ui, sans-serif)',
-        color: 'var(--sf-text-1, #FFFFFF)',
-        padding: '24px 16px 80px',
-        boxSizing: 'border-box'
-      }}>
-        {/* Style for dynamic spinning loader */}
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } } .sf-link-input::placeholder { color: var(--sf-text-3); opacity: 1; }`}</style>
-
-        <div style={{ maxWidth: 500, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
-          {/* Header & Back Button */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--sf-border)', paddingBottom: 12 }}>
-            <button
-              onClick={() => {
-                if (typeof window !== 'undefined') window.location.href = `/${storeSlug}`;
-              }}
-              style={{
-                background: 'var(--sf-surface)',
-                border: '1px solid var(--sf-border)',
-                color: 'var(--sf-text-1)',
-                padding: '8px 14px',
-                borderRadius: 20,
-                fontSize: '0.85rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6
-              }}
-            >
-              ← Back to store
-            </button>
-            <span style={{ fontSize: '0.8rem', color: 'var(--sf-text-2)' }}>{storeConfig?.storeName}</span>
-          </div>
-
-          {success ? (
-            /* Success State Card */
-            <div style={{
-              background: 'var(--sf-surface)',
-              border: '1px solid var(--sf-border)',
-              borderRadius: 'var(--sf-radius, 24px)',
-              padding: '40px 24px',
-              textAlign: 'center',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: 16
-            }}>
-              <div style={{ fontSize: '3.5rem' }}>✅</div>
-              <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 800 }}>Payment Successful!</h2>
-              <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--sf-text-2)', lineHeight: 1.6 }}>
-                {product.productType === 'digital'
-                  ? 'Your download link and order confirmation have been sent to your email.'
-                  : product.productType === 'service'
-                    ? `Your booking for ${formattedDate} @ ${selectedSlot} has been successfully secured and confirmed.`
-                    : 'Your order has been received. We\'ll notify you when it is processed.'}
-              </p>
-              {orderId && (
-                <span style={{ fontSize: '0.75rem', color: 'var(--sf-text-3)' }}>Order ID: {orderId}</span>
-              )}
-              <button
-                onClick={() => { if (typeof window !== 'undefined') window.location.href = `/${storeSlug}`; }}
-                style={{
-                  marginTop: 8,
-                  padding: '12px 24px',
-                  borderRadius: 14,
-                  border: 'none',
-                  background: primaryColor,
-                  color: textOnColor(primaryColor),
-                  fontWeight: 700,
-                  fontSize: '0.9rem',
-                  cursor: 'pointer'
-                }}
-              >
-                Continue Shopping
-              </button>
-            </div>
-          ) : (
-            /* Product Checkout Form */
-            <>
-              {/* Product Media */}
-              {product.images?.[0] ? (
-                <img
-                  src={product.images[0]}
-                  alt={product.displayName}
-                  style={{ width: '100%', aspectRatio: '16/10', objectFit: 'cover', borderRadius: 'var(--sf-radius, 24px)', border: '1px solid var(--sf-border)' }}
-                />
-              ) : (
-                <div style={{ width: '100%', aspectRatio: '16/10', background: 'var(--sf-surface)', borderRadius: 'var(--sf-radius, 24px)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '3rem' }}>📦</div>
-              )}
-
-              {/* Product Info Block */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--sf-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{product.category}</span>
-                  {discount && (
-                    <span style={{ fontSize: '0.65rem', fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: 'rgba(239,68,68,0.15)', color: '#DC2626' }}>
-                      -{discount}% OFF
-                    </span>
-                  )}
-                </div>
-                <h1 style={{ margin: 0, fontSize: '1.45rem', fontWeight: 800 }}>{product.displayName}</h1>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 4 }}>
-                  <span style={{ fontSize: '1.4rem', fontWeight: 800, color: primaryColor }}>{fmtCurrency(product.price)}</span>
-                  {product.compareAtPrice && product.compareAtPrice > product.price && (
-                    <span style={{ fontSize: '0.95rem', color: 'var(--sf-text-3)', textDecoration: 'line-through' }}>{fmtCurrency(product.compareAtPrice)}</span>
-                  )}
-                </div>
-              </div>
-
-              {/* Event Metadata (Fixed details for Tickets) */}
-              {product.digitalSubtype === 'ticket' && (product.eventDate || product.venue) && (
-                <div style={{
-                  background: 'var(--sf-surface)',
-                  border: '1px solid var(--sf-border)',
-                  borderRadius: 'var(--sf-radius, 16px)',
-                  padding: '14px 16px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 8,
-                  fontSize: '0.85rem'
-                }}>
-                  <p style={{ margin: 0, fontWeight: 700 }}>📅 Event Details</p>
-                  {product.eventDate && (
-                    <p style={{ margin: 0, color: 'var(--sf-text-2)' }}>
-                      <strong>Date:</strong> {new Date(product.eventDate + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
-                      {product.eventTime && ` at ${product.eventTime}`}
-                    </p>
-                  )}
-                  {product.venue && (
-                    <p style={{ margin: 0, color: 'var(--sf-text-2)' }}><strong>Venue:</strong> {product.venue}</p>
-                  )}
-                  {product.capacity && (
-                    <p style={{ margin: 0, color: 'var(--sf-text-3)' }}>Capacity limit: {product.capacity} guests</p>
-                  )}
-                </div>
-              )}
-
-              {/* Rich Description */}
-              {product.description && (
-                <div className="product-rich-description" style={{
-                  borderTop: '1px solid var(--sf-border)',
-                  paddingTop: 16,
-                  fontSize: '0.9rem',
-                  lineHeight: 1.6,
-                  color: 'var(--sf-text-2)',
-                  overflowWrap: 'break-word'
-                }} dangerouslySetInnerHTML={{ __html: product.description }} />
-              )}
-
-              {/* Booking Slot Picker section */}
-              {needsSlot && businessId && (
-                <div style={{
-                  background: 'var(--sf-surface)',
-                  border: '1px solid var(--sf-border)',
-                  borderRadius: 'var(--sf-radius, 20px)',
-                  padding: 16,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 12
-                }}>
-                  <p style={{ margin: 0, fontWeight: 700, fontSize: '0.92rem' }}>📅 Schedule Your Slot</p>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--sf-text-2)', marginBottom: 5 }}>Select Date</label>
-                    <input
-                      type="date"
-                      value={selectedDate}
-                      min={today}
-                      onChange={handleDateChange}
-                      className="sf-link-input"
-                      style={{
-                        width: '100%', padding: '10px 12px',
-                        border: '1px solid var(--sf-border)',
-                        borderRadius: 10, fontSize: '0.85rem',
-                        background: 'var(--sf-bg)', color: 'var(--sf-text-1)',
-                        outline: 'none', boxSizing: 'border-box'
-                      }}
-                    />
-                  </div>
-
-                  {selectedDate && (
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--sf-text-2)', marginBottom: 8 }}>
-                        Available times for {formattedDate}
-                      </label>
-                      {loadingSlots ? (
-                        <div style={{ padding: '16px 0', textAlign: 'center', color: 'var(--sf-text-2)', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ animation: 'spin 0.7s linear infinite' }}>
-                            <path d="M21 12a9 9 0 11-6.219-8.56" />
-                          </svg>
-                          Loading slots…
-                        </div>
-                      ) : slots.length === 0 ? (
-                        <div style={{ padding: '16px 0', textAlign: 'center', color: 'var(--sf-text-3)', fontSize: '0.8rem' }}>No slots available. Try another date.</div>
-                      ) : (
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: 8 }}>
-                          {slots.map(slot => (
-                            <button
-                              key={slot.time}
-                              disabled={!slot.available}
-                              onClick={() => setSelectedSlot(slot.time)}
-                              style={{
-                                padding: '8px 4px',
-                                borderRadius: 8,
-                                border: selectedSlot === slot.time ? `2px solid ${primaryColor}` : '1px solid var(--sf-border)',
-                                background: selectedSlot === slot.time ? primaryColor : 'var(--sf-bg)',
-                                color: selectedSlot === slot.time ? textOnColor(primaryColor) : 'var(--sf-text-1)',
-                                fontWeight: selectedSlot === slot.time ? 700 : 500,
-                                fontSize: '0.8rem',
-                                cursor: slot.available ? 'pointer' : 'not-allowed',
-                                opacity: slot.available ? 1 : 0.35,
-                                transition: '0.15s'
-                              }}
-                            >
-                              {slot.time}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Customer Info Form */}
-              <div style={{
-                background: 'var(--sf-surface)',
-                border: '1px solid var(--sf-border)',
-                borderRadius: 'var(--sf-radius, 20px)',
-                padding: 16,
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 12
-              }}>
-                <p style={{ margin: 0, fontWeight: 700, fontSize: '0.92rem' }}>👤 Contact Details</p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {wantsName && (
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--sf-text-2)', marginBottom: 5 }}>Full name *</label>
-                    <input
-                      className="sf-link-input"
-                      type="text"
-                      placeholder="John Doe"
-                      value={name}
-                      onChange={e => setName(e.target.value)}
-                      style={{
-                        width: '100%', padding: '11px 14px',
-                        border: '1px solid var(--sf-border)',
-                        borderRadius: 10, fontSize: '0.85rem',
-                        background: 'var(--sf-bg)', color: 'var(--sf-text-1)',
-                        outline: 'none', boxSizing: 'border-box'
-                      }}
-                    />
-                  </div>
-                  )}
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--sf-text-2)', marginBottom: 5 }}>Email address *</label>
-                    <input
-                      className="sf-link-input"
-                      type="email"
-                      placeholder="john@example.com"
-                      value={email}
-                      onChange={e => setEmail(e.target.value)}
-                      style={{
-                        width: '100%', padding: '11px 14px',
-                        border: '1px solid var(--sf-border)',
-                        borderRadius: 10, fontSize: '0.85rem',
-                        background: 'var(--sf-bg)', color: 'var(--sf-text-1)',
-                        outline: 'none', boxSizing: 'border-box'
-                      }}
-                    />
-                  </div>
-                  {wantsPhone && (
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--sf-text-2)', marginBottom: 5 }}>Phone number *</label>
-                    <input
-                      className="sf-link-input"
-                      type="tel"
-                      placeholder="+234 800 000 0000"
-                      value={phone}
-                      onChange={e => setPhone(e.target.value)}
-                      style={{
-                        width: '100%', padding: '11px 14px',
-                        border: '1px solid var(--sf-border)',
-                        borderRadius: 10, fontSize: '0.85rem',
-                        background: 'var(--sf-bg)', color: 'var(--sf-text-1)',
-                        outline: 'none', boxSizing: 'border-box'
-                      }}
-                    />
-                  </div>
-                  )}
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--sf-text-2)', marginBottom: 5 }}>Notes (optional)</label>
-                    <textarea
-                      className="sf-link-input"
-                      placeholder="Special requests for this order"
-                      value={notes}
-                      onChange={e => setNotes(e.target.value)}
-                      rows={2}
-                      style={{
-                        width: '100%', padding: '11px 14px',
-                        border: '1px solid var(--sf-border)',
-                        borderRadius: 10, fontSize: '0.85rem',
-                        background: 'var(--sf-bg)', color: 'var(--sf-text-1)',
-                        outline: 'none', boxSizing: 'border-box',
-                        resize: 'vertical'
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Error Box */}
-              {error && (
-                <div style={{
-                  padding: '10px 14px',
-                  background: 'rgba(220,38,38,0.1)',
-                  border: '1px solid rgba(220,38,38,0.35)',
-                  borderRadius: 10,
-                  color: '#DC2626',
-                  fontSize: '0.8rem',
-                  lineHeight: 1.4
-                }}>
-                  ⚠️ {error}
-                </div>
-              )}
-
-              {/* Checkout CTA Button */}
-              <button
-                onClick={handleCheckout}
-                disabled={processing}
-                style={{
-                  width: '100%',
-                  padding: '16px',
-                  borderRadius: 14,
-                  border: 'none',
-                  background: primaryColor,
-                  color: textOnColor(primaryColor),
-                  fontSize: '0.95rem',
-                  fontWeight: 700,
-                  cursor: processing ? 'not-allowed' : 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 8,
-                  opacity: processing ? 0.75 : 1,
-                  transition: 'background 0.2s, opacity 0.2s'
-                }}
-              >
-                {processing ? (
-                  <>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ animation: 'spin 0.7s linear infinite' }}>
-                      <path d="M21 12a9 9 0 11-6.219-8.56" />
-                    </svg>
-                    Processing Payment…
-                  </>
-                ) : (
-                  product.callToAction?.trim() || (needsSlot ? 'Confirm Booking & Pay Now' : 'Buy Now with Paystack')
-                )}
-              </button>
-
-              <p style={{ margin: 0, fontSize: '0.68rem', color: 'var(--sf-text-3)', textAlign: 'center' }}>
-                Secure checkout powered by Paystack
-              </p>
-            </>
-          )}
-        </div>
-      </div>
+      <LinkBioProductPage
+        product={product}
+        storeSlug={storeSlug}
+        storeName={storeConfig?.storeName}
+        primaryColor={primaryColor}
+        currency={currency}
+        discount={discount}
+        formattedDate={formattedDate}
+        success={success}
+        orderId={orderId}
+        error={error}
+        processing={processing}
+        needsSlot={needsSlot}
+        businessId={businessId}
+        today={today}
+        selectedDate={selectedDate}
+        selectedSlot={selectedSlot}
+        slots={slots}
+        loadingSlots={loadingSlots}
+        wantsName={wantsName}
+        wantsPhone={wantsPhone}
+        name={name}
+        email={email}
+        phone={phone}
+        notes={notes}
+        onNameChange={setName}
+        onEmailChange={setEmail}
+        onPhoneChange={setPhone}
+        onNotesChange={setNotes}
+        onDateChange={handleDateChange}
+        onSelectSlot={setSelectedSlot}
+        onCheckout={handleCheckout}
+        onBack={() => {
+          if (typeof window !== 'undefined') window.location.href = `/${storeSlug}`;
+        }}
+      />
     );
   }
 

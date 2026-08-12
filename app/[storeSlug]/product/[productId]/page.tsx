@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getSupabaseServer } from '@/lib/database/postgresql-adapter';
 import { getStoreConfigBySlug } from '@/lib/store';
+import { getThemeCssVars } from '@/components/StorefrontCanvas';
 import { resolveLinkBioTheme } from '@/themes/registry';
 import { ProductDetailClient } from '../../../store/[storeSlug]/product/[productId]/ProductDetailClient';
 
@@ -76,6 +77,10 @@ export default async function BioProductPage({
   // under it render with the link-in-bio theme (never the e-commerce theme).
   const linkBioTheme = resolveLinkBioTheme(config.theme, config.linkBioTheme);
 
+  // Inject the theme's --sf-* CSS variables so the theme-specific product
+  // page matches the link-in-bio storefront exactly (same as the bio page).
+  const themeVars = getThemeCssVars(linkBioTheme as any, config.primaryColor, config.secondaryColor);
+
   // Fire page_view analytics (fire-and-forget)
   try {
     const supabaseAnalytics = getSupabaseServer();
@@ -88,13 +93,16 @@ export default async function BioProductPage({
   } catch {}
 
   return (
-    <ProductDetailClient
-      product={product}
-      storeSlug={storeSlug}
-      currency={config.currency}
-      theme={linkBioTheme}
-      businessId={config.businessId}
-      paystackPublicKey={config.paystackPublicKey}
-    />
+    <div style={themeVars}>
+      <ProductDetailClient
+        product={product}
+        storeSlug={storeSlug}
+        currency={config.currency}
+        theme={linkBioTheme}
+        businessId={config.businessId}
+        paystackPublicKey={config.paystackPublicKey}
+        primaryColor={config.primaryColor}
+      />
+    </div>
   );
 }

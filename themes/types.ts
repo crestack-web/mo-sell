@@ -76,6 +76,19 @@ export interface ThemeSearchBarProps {
   autoFocus?: boolean;
 }
 
+export interface ThemeCollectionPageProps {
+  collection: {
+    title: string;
+    description?: string;
+    coverImageUrl?: string | null;
+    productCount?: number;
+  };
+  products: ProductCardData[];
+  storeSlug: string;
+  currency: string;
+  ProductCard: React.ComponentType<ThemeProductCardProps>;
+}
+
 export interface ThemeProductPageProps {
   product: {
     id: string;
@@ -102,5 +115,6 @@ export interface ThemeComponents {
   Hero: React.ComponentType<ThemeHeroProps>;
   ProductPage: React.ComponentType<ThemeProductPageProps>;
   SearchBar: React.ComponentType<ThemeSearchBarProps>;
+  CollectionPage?: React.ComponentType<ThemeCollectionPageProps>;
   cssClass?: string; // Additional CSS class to apply to the page wrapper
 }

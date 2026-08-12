@@ -3,8 +3,8 @@ import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { getSupabaseServer } from '@/lib/database/postgresql-adapter';
 import { getStoreConfigBySlug } from '@/lib/store';
-import { ProductGrid } from '../../components/ProductGrid';
-import type { ProductCardData } from '../../components/ProductCard';
+import { getThemeComponentsServer, resolveEcommerceTheme, type ThemeId } from '@/themes/registry';
+import type { ProductCardData } from '@/themes/types';
 
 async function getStoreConfig(storeSlug: string) {
   try {
@@ -51,6 +51,8 @@ async function getProducts(businessId: string, collectionId: string) {
           stock: row.stock ?? 0,
           productType: row.productType ?? 'physical',
           description: row.description ?? '',
+          rating: typeof row.rating === 'number' ? row.rating : undefined,
+          reviewCount: typeof row.reviewCount === 'number' ? row.reviewCount : undefined,
         } as ProductCardData;
       });
   } catch { return []; }
@@ -106,52 +108,35 @@ export default async function CollectionPage({
     }).then(() => {}, () => {});
   } catch {}
 
+  const theme = resolveEcommerceTheme(config.theme);
+
+  // If theme components fail to load, fall back to luxe so the page still renders
+  let components: Awaited<ReturnType<typeof getThemeComponentsServer>>;
+  try {
+    components = await getThemeComponentsServer(theme as ThemeId);
+  } catch {
+    components = await getThemeComponentsServer('luxe' as ThemeId);
+  }
+
+  const CollectionPage = components.CollectionPage;
+  if (!CollectionPage) {
+    notFound();
+  }
+
   return (
-    <div className="sf-page">
-      {/* Collection header */}
-      <section className="sf-hero" style={{ paddingBottom: '32px' }}>
-        {collection.coverImageUrl && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={collection.coverImageUrl}
-            alt={collection.title}
-            style={{
-              width: '100%', maxHeight: 240, objectFit: 'cover',
-              borderRadius: 16, marginBottom: 24,
-            }}
-          />
-        )}
-        <h1>{collection.title}</h1>
-        {collection.description && (
-          <p style={{ maxWidth: 560, margin: '0 auto' }}>{collection.description}</p>
-        )}
-        <p style={{ fontSize: '0.85rem', color: 'var(--sf-text-3)', marginTop: 8 }}>
-          {products.length} product{products.length !== 1 ? 's' : ''}
-        </p>
-      </section>
-
-      {/* Products */}
-      <section className="sf-section">
-        <ProductGrid
-          products={products}
-          storeSlug={storeSlug}
-          currency={config.currency}
-          emptyMessage="No products in this collection yet."
-        />
-      </section>
-
-      {/* Back link */}
-      <div style={{ textAlign: 'center', padding: '16px 0 48px' }}>
-        <a
-          href={`/store/${storeSlug}`}
-          style={{
-            fontSize: 14, color: 'var(--sf-text-2)',
-            textDecoration: 'none', fontWeight: 500,
-          }}
-        >
-          ← Back to all products
-        </a>
-      </div>
+    <div className={components.cssClass || ''}>
+      <CollectionPage
+        collection={{
+          title: collection.title,
+          description: collection.description ?? '',
+          coverImageUrl: collection.coverImageUrl ?? null,
+          productCount: products.length,
+        }}
+        products={products}
+        storeSlug={storeSlug}
+        currency={config.currency}
+        ProductCard={components.ProductCard}
+      />
     </div>
   );
 }

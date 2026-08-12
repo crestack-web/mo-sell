@@ -228,6 +228,7 @@ const themeLoader: Record<string, () => Promise<ThemeComponents>> = {
     Hero: m.LuxeHero,
     ProductPage: m.LuxeProductPage,
     SearchBar: m.LuxeSearchBar,
+    CollectionPage: m.LuxeCollectionPage,
     cssClass: 'theme-luxe',
   })),
   atelier: () => import('./shared/factory').then(m => m.makeTheme('atelier')),

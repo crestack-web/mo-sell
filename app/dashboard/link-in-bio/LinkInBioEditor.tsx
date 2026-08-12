@@ -307,14 +307,24 @@ export function LinkInBioEditor() {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {storeConfig?.storeSlug && (
-              <a
-                href={bioUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.72rem', fontWeight: 600, color: 'var(--sell-green)', background: 'var(--sell-green-bg)', padding: '3px 10px', borderRadius: 100, textDecoration: 'none' }}
-              >
-                <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--sell-green)' }} />Live
-              </a>
+              <>
+                <a
+                  href={`/store/${storeConfig.storeSlug}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.72rem', fontWeight: 600, color: 'var(--sell-text-1)', background: 'var(--sell-surface)', border: '1px solid var(--sell-border)', padding: '3px 10px', borderRadius: 100, textDecoration: 'none' }}
+                >
+                  Store
+                </a>
+                <a
+                  href={bioUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.72rem', fontWeight: 600, color: 'var(--sell-green)', background: 'var(--sell-green-bg)', padding: '3px 10px', borderRadius: 100, textDecoration: 'none' }}
+                >
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--sell-green)' }} />Live
+                </a>
+              </>
             )}
           </div>
         </div>
