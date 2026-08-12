@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getSupabaseServer } from '@/lib/database/postgresql-adapter';
 import { getStoreConfigBySlug } from '@/lib/store';
-import { getThemeCssVars } from '@/components/StorefrontCanvas';
+import { getThemeCssVars } from '@/components/theme-css-vars';
 import { resolveLinkBioTheme } from '@/themes/registry';
 import { ProductDetailClient } from '../../../store/[storeSlug]/product/[productId]/ProductDetailClient';
 
