@@ -1266,7 +1266,30 @@ export default function WelcomePage() {
             <a href="/signup" style={{ color: C.text2, textDecoration: 'none' }}>Sign up</a>
             <a href="/ugc-creators" style={{ color: C.text2, textDecoration: 'none' }}>Discover Creators</a>
           </div>
-          <p style={{ fontSize: 12, color: C.text3, marginTop: 32 }}>
+          <div style={{
+            display: 'flex',
+            gap: 20,
+            justifyContent: 'center',
+            alignItems: 'center',
+            marginBottom: 20
+          }}>
+            <a href="https://instagram.com/trymosell" target="_blank" rel="noopener noreferrer" style={{ color: C.text2, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+                <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
+                <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
+              </svg>
+              <span>Instagram</span>
+            </a>
+            <a href="https://tiktok.com/@trymosell" target="_blank" rel="noopener noreferrer" style={{ color: C.text2, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5v4"/>
+                <path d="M9 20v-6a5 5 0 0 1 5-5 6 6 0 0 1 10 2 10 10 0 0 1 6-6"/>
+              </svg>
+              <span>TikTok</span>
+            </a>
+          </div>
+          <p style={{ fontSize: 12, color: C.text3, marginTop: 0 }}>
             © 2026 MO Sell by Busmo. Built for African sellers.
           </p>
         </div>
