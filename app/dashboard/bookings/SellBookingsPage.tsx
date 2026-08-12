@@ -225,10 +225,30 @@ export function SellBookingsPage() {
       const res = await fetch(`/api/store/bookings/availability?businessId=${user.businessId}`);
       if (!res.ok) throw new Error();
       const data = await res.json();
-      if (data.weeklySchedule?.length) setSchedule(data.weeklySchedule);
-      if (data.slotDuration) setSlotDuration(data.slotDuration);
-      if (data.bufferTime != null) setBufferTime(data.bufferTime);
-      if (data.blockedDates) setBlockedDates(data.blockedDates);
+      
+      // Handle the API response format
+      const availability = data.availability || data;
+      
+      if (availability?.slots?.length) {
+        // Convert AvailabilitySlot format back to DaySchedule format
+        const dayMap: Record<string, string> = {
+          mon: 'Monday', tue: 'Tuesday', wed: 'Wednesday', thu: 'Thursday',
+          fri: 'Friday', sat: 'Saturday', sun: 'Sunday'
+        };
+        
+        const weeklySchedule = availability.slots.map((slot: any) => ({
+          day: dayMap[slot.day] || slot.day,
+          enabled: slot.enabled,
+          startTime: slot.startTime,
+          endTime: slot.endTime,
+        }));
+        
+        setSchedule(weeklySchedule);
+      }
+      
+      if (availability?.slotDurationMinutes) setSlotDuration(availability.slotDurationMinutes);
+      if (availability?.bufferMinutes != null) setBufferTime(availability.bufferMinutes);
+      if (availability?.blockedDates) setBlockedDates(availability.blockedDates);
     } catch (e) {
       console.error('[Availability] Load error:', e);
     } finally { setLoadingAvail(false); }
@@ -292,14 +312,22 @@ export function SellBookingsPage() {
     if (!user?.businessId) return;
     setSavingAvail(true);
     try {
+      // Convert DaySchedule format to AvailabilitySlot format
+      const slots = schedule.map(day => ({
+        day: day.day.substring(0, 3).toLowerCase() as 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun',
+        enabled: day.enabled,
+        startTime: day.startTime,
+        endTime: day.endTime,
+      }));
+
       const res = await fetch('/api/store/bookings/availability', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           businessId: user.businessId,
-          weeklySchedule: schedule,
-          slotDuration,
-          bufferTime,
+          slots,
+          slotDurationMinutes: slotDuration,
+          bufferMinutes: bufferTime,
           blockedDates,
         }),
       });

@@ -31,6 +31,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ availability: null }, { status: 200 });
     }
 
+    // Return data directly from database (already has correct field names)
     return NextResponse.json({
       availability: {
         ...data,
@@ -118,7 +119,8 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ success: true });
-  } catch {
+  } catch (error) {
+    console.error('[Availability] Unexpected error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
