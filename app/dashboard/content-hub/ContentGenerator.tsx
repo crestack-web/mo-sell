@@ -73,6 +73,7 @@ export function ContentGenerator({ product, onClose, currency, audienceContext, 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [data, setData] = useState<ApiResponse | null>(null);
+  const [lastGenerated, setLastGenerated] = useState<Date | null>(null);
   const fetchedRef = useRef(false);
 
   useEffect(() => {
@@ -97,6 +98,7 @@ export function ContentGenerator({ product, onClose, currency, audienceContext, 
           tips: saved.tips ?? [],
           audienceNote: saved.audienceNote ?? undefined,
         });
+        setLastGenerated(saved.updatedAt ? new Date(saved.updatedAt) : null);
         setLoading(false);
         return;
       }
@@ -144,6 +146,7 @@ export function ContentGenerator({ product, onClose, currency, audienceContext, 
       const json: ApiResponse = await res.json();
       if (!res.ok) throw new Error(json.error || 'Failed to generate ideas');
       setData(json);
+      setLastGenerated(new Date());
       await saveIdeas(json);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
@@ -225,6 +228,11 @@ export function ContentGenerator({ product, onClose, currency, audienceContext, 
           </div>
         ) : !data ? null : (
           <>
+            {lastGenerated && (
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8, fontSize: '0.75rem', color: 'var(--sell-text-3)' }}>
+                Last generated: {lastGenerated.toLocaleDateString()} at {lastGenerated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </div>
+            )}
             {activeTab === 'ideas' && (
               <>
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 4 }}>
