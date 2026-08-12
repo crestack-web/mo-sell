@@ -1271,7 +1271,8 @@ export default function WelcomePage() {
             gap: 20,
             justifyContent: 'center',
             alignItems: 'center',
-            marginBottom: 20
+            marginBottom: 20,
+            paddingTop: 16
           }}>
             <a href="https://instagram.com/trymosell" target="_blank" rel="noopener noreferrer" style={{ color: C.text2, textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
