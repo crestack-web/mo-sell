@@ -229,7 +229,12 @@ export function SellProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (supabaseLoading) return;
-    
+
+    // Guard against stale async loads resolving after an account switch:
+    // if the previous account's loadUser() finishes late it must not overwrite
+    // the new account's state (otherwise account A's data shows in account B).
+    let cancelled = false;
+
     const loadUser = async () => {
       if (!supabaseUser) {
         setUser(null);
@@ -239,6 +244,7 @@ export function SellProvider({ children }: { children: ReactNode }) {
       try {
         const db = getDatabase();
         const userDoc = await db.doc(`users/${supabaseUser.id}`).get();
+        if (cancelled) return;
         const data = userDoc.exists ? userDoc.data() : {};
         const displayName = supabaseUser.user_metadata?.full_name || data.displayName || data.businessName || supabaseUser.email?.split('@')[0] || 'User';
         const firstName = displayName.split(' ')[0];
@@ -259,14 +265,17 @@ export function SellProvider({ children }: { children: ReactNode }) {
           fromBusmo: !!data.fromBusmo,
         });
       } catch (err) {
+        if (cancelled) return;
         console.error('[SellContext] Failed to load user:', err);
         setUser(null);
       } finally {
-        setUserLoading(false);
+        if (!cancelled) setUserLoading(false);
       }
     };
 
     loadUser();
+
+    return () => { cancelled = true; };
   }, [supabaseUser, supabaseLoading]);
 
   // Store Config
@@ -291,6 +300,11 @@ export function SellProvider({ children }: { children: ReactNode }) {
   }, [user?.businessId]);
 
   useEffect(() => {
+    // Reset to a clean slate whenever the signed-in account changes so the
+    // previous account's data is never shown in the new account's session.
+    setStoreConfig(null);
+    setQuickStats({ pendingOrders: 0, monthlyRevenue: 0, totalProducts: 0 });
+
     if (user?.businessId) {
       refreshStoreConfig();
     } else if (!userLoading) {

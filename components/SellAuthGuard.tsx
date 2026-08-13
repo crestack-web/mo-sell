@@ -16,10 +16,13 @@ export function SellAuthGuard({ children }: Props) {
   useEffect(() => {
     if (userLoading || !user) return;
 
+    let cancelled = false;
+
     async function checkAccess() {
       try {
         const db = getDatabase();
         const userDoc = await db.doc(`users/${user!.id}`).get();
+        if (cancelled) return;
         const userData = userDoc.exists ? userDoc.data() : {};
 
         if (!userData) {
@@ -52,6 +55,7 @@ export function SellAuthGuard({ children }: Props) {
         // Check pay-as-you-go / monthly billing store (no legacy subscription required)
         if (userData.businessId) {
           const businessSnap = await db.doc(`businesses/${userData.businessId}`).get();
+          if (cancelled) return;
           const businessData = businessSnap.exists ? businessSnap.data() : {};
           const billingModel = businessData.billingModel;
           const billingStatus = businessData.billingStatus;
@@ -67,6 +71,7 @@ export function SellAuthGuard({ children }: Props) {
         setHasAccess(false);
         setSubscriptionChecked(true);
       } catch (err) {
+        if (cancelled) return;
         console.error('[SellAuthGuard] Access check error:', err);
         setHasAccess(true); // Allow on error
         setSubscriptionChecked(true);
@@ -74,6 +79,8 @@ export function SellAuthGuard({ children }: Props) {
     }
 
     checkAccess();
+
+    return () => { cancelled = true; };
   }, [user, userLoading]);
 
   useEffect(() => {

@@ -88,9 +88,23 @@ export default function SellLoginPage() {
     window.location.href = '/dashboard';
   }
 
+  // Best-effort: clear any previous account's session so switching accounts on
+  // the same device never leaves the old token/data behind.
+  async function ensureCleanSession() {
+    try {
+      const { data } = await supabaseClient.auth.getSession();
+      if (data.session) {
+        await supabaseClient.auth.signOut();
+      }
+    } catch {
+      // ignore
+    }
+  }
+
   async function handleEmailLogin() {
     setLoading(true); setError('');
     try {
+      await ensureCleanSession();
       const { data, error } = await supabaseClient.auth.signInWithPassword({
         email,
         password,
@@ -115,6 +129,7 @@ export default function SellLoginPage() {
   async function handleGoogleLogin() {
     setLoading(true); setError('');
     try {
+      await ensureCleanSession();
       const { data, error } = await supabaseClient.auth.signInWithOAuth({
         provider: 'google',
         options: {
