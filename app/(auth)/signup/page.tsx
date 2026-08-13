@@ -172,6 +172,28 @@ export default function SellSignupPage() {
   const [userId, setUserId] = useState('');
   const [businessId, setBusinessId] = useState('');
 
+  // ── Google onboarding continuation ──────────────────────────────────────
+  // After Google OAuth, /auth/callback sends the user here with ?onboarding=1.
+  // The account step is already done, so resume at step 2 (business name).
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('onboarding') !== '1') return;
+    (async () => {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (!session?.user) {
+        router.replace('/signup');
+        return;
+      }
+      const db = getDatabase();
+      const userDoc = await db.doc(`users/${session.user.id}`).get();
+      const userData = userDoc.exists ? userDoc.data() : {};
+      setUserId(session.user.id);
+      setBusinessId(userData.businessId || `biz_${session.user.id.slice(0, 12)}`);
+      setStep(2);
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // ── Google sign-up (Supabase OAuth → /auth/callback) ─────────────────────
   const handleGoogleSignup = async () => {
     setLoading(true);
