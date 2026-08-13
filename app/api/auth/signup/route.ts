@@ -34,6 +34,17 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'An account with this email already exists' }, { status: 400 });
       }
 
+      // Check brand accounts too (they live in auth but not in the public.users table)
+      const { data: existingBrand } = await supabaseServer
+        .from('brands')
+        .select('id')
+        .eq('email', email)
+        .maybeSingle();
+
+      if (existingBrand?.id) {
+        return NextResponse.json({ error: 'An account with this email already exists' }, { status: 400 });
+      }
+
       // Generate 6-digit OTP (expires in 10 minutes)
       const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
       const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
@@ -143,7 +154,8 @@ export async function POST(req: NextRequest) {
 
       if (error) {
         console.error('[Signup] Supabase error:', error);
-        if (error.message?.toLowerCase().includes('already registered')) {
+        const message = String(error.message || '');
+        if (error.code === 'email_exists' || /already registered|already been registered|has already/.test(message.toLowerCase())) {
           return NextResponse.json({ error: 'An account with this email already exists' }, { status: 400 });
         }
         return NextResponse.json({ error: 'Failed to create account' }, { status: 500 });

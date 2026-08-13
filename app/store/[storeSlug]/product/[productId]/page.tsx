@@ -1,13 +1,10 @@
 import React from 'react';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-<<<<<<< Updated upstream:app/store/[storeSlug]/product/[productId]/page.tsx
 import { getSupabaseServer } from '@/lib/database/postgresql-adapter';
 import { getStoreConfigBySlug } from '@/lib/store';
 import { resolveEcommerceTheme } from '@/themes/registry';
-=======
 import { cookies } from 'next/headers';
->>>>>>> Stashed changes:src/app/store/[storeSlug]/product/[productId]/page.tsx
 import { ProductDetailClient } from './ProductDetailClient';
 
 // ─── Data fetching ─────────────────────────────────────────────────────────────
@@ -95,13 +92,9 @@ export default async function ProductDetailPage({
       product={product}
       storeSlug={storeSlug}
       currency={config.currency}
-<<<<<<< Updated upstream:app/store/[storeSlug]/product/[productId]/page.tsx
-      theme={resolveEcommerceTheme(config.theme)}
+      theme={resolveEcommerceTheme(theme)}
       businessId={config.businessId}
       paystackPublicKey={config.paystackPublicKey}
-=======
-      theme={theme}
->>>>>>> Stashed changes:src/app/store/[storeSlug]/product/[productId]/page.tsx
     />
   );
 }
