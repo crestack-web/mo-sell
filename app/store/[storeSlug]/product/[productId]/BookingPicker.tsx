@@ -14,13 +14,23 @@ interface BookingPickerProps {
 }
 
 interface TimeSlot {
-  time: string;
+  startTime: string;
+  endTime: string;
   available: boolean;
 }
 
 function fmt(n: number, currency: string) {
   const sym = currency === 'NGN' ? '₦' : currency === 'USD' ? '$' : currency + ' ';
   return `${sym}${n.toLocaleString()}`;
+}
+
+function formatSlotTime(time: string) {
+  const [hStr, mStr] = time.split(':');
+  let h = Number(hStr);
+  const m = mStr ?? '00';
+  const period = h >= 12 ? 'PM' : 'AM';
+  h = h % 12 || 12;
+  return `${h}:${m} ${period}`;
 }
 
 export function BookingPicker({
@@ -31,7 +41,7 @@ export function BookingPicker({
   const [selectedDate, setSelectedDate] = useState('');
   const [slots, setSlots] = useState<TimeSlot[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
-  const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
+  const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -97,7 +107,8 @@ export function BookingPicker({
           storeSlug,
           productId,
           date: selectedDate,
-          time: selectedSlot,
+          startTime: selectedSlot.startTime,
+          endTime: selectedSlot.endTime,
           customerName: name.trim(),
           customerEmail: email.trim(),
           customerPhone: phone.trim(),
@@ -113,7 +124,7 @@ export function BookingPicker({
       const trimmedNotes = notes.trim();
       addItem({
         productId,
-        displayName: `${productName} — ${selectedDate} @ ${selectedSlot}`,
+        displayName: `${productName} — ${selectedDate} @ ${formatSlotTime(selectedSlot.startTime)}`,
         price,
         imageUrl: null,
         maxStock: 1,
@@ -121,7 +132,7 @@ export function BookingPicker({
         metadata: {
           bookingId: data.bookingId ?? data.id ?? '',
           bookingDate: selectedDate,
-          bookingTime: selectedSlot,
+          bookingTime: selectedSlot.startTime,
           customerName: name.trim(),
           customerEmail: email.trim(),
           customerPhone: phone.trim(),
@@ -145,7 +156,7 @@ export function BookingPicker({
           <div style={{ fontSize: '3rem', marginBottom: 12 }}>✅</div>
           <p style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--sf-text-1)' }}>Booking added to cart!</p>
           <p style={{ fontSize: '0.875rem', color: 'var(--sf-text-2)', marginTop: 8 }}>
-            {productName} on {formattedDate} at {selectedSlot}
+            {productName} on {formattedDate} at {selectedSlot ? formatSlotTime(selectedSlot.startTime) : ''}
           </p>
           <p style={{ fontSize: '0.8rem', color: 'var(--sf-text-3)', marginTop: 12 }}>
             Proceed to checkout to complete your booking.
@@ -193,15 +204,15 @@ export function BookingPicker({
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: 8 }}>
               {slots.map(slot => (
                 <button
-                  key={slot.time}
+                  key={slot.startTime}
                   type="button"
                   disabled={!slot.available}
-                  onClick={() => setSelectedSlot(slot.time)}
+                  onClick={() => setSelectedSlot(slot)}
                   style={{
                     padding: '10px 8px',
                     borderRadius: 'var(--sf-radius-sm)',
                     border: `2px solid ${
-                      selectedSlot === slot.time
+                      selectedSlot?.startTime === slot.startTime
                         ? 'var(--sf-primary)'
                         : slot.available
                           ? 'var(--sf-border)'
@@ -209,15 +220,15 @@ export function BookingPicker({
                     }`,
                     background: !slot.available
                       ? 'var(--sf-bg)'
-                      : selectedSlot === slot.time
+                      : selectedSlot?.startTime === slot.startTime
                         ? 'color-mix(in srgb, var(--sf-primary) 10%, var(--sf-surface))'
                         : 'var(--sf-surface)',
                     color: !slot.available
                       ? 'var(--sf-text-3)'
-                      : selectedSlot === slot.time
+                      : selectedSlot?.startTime === slot.startTime
                         ? 'var(--sf-primary)'
                         : 'var(--sf-text-1)',
-                    fontWeight: selectedSlot === slot.time ? 700 : 500,
+                    fontWeight: selectedSlot?.startTime === slot.startTime ? 700 : 500,
                     fontSize: '0.85rem',
                     cursor: slot.available ? 'pointer' : 'not-allowed',
                     opacity: slot.available ? 1 : 0.45,
@@ -226,8 +237,12 @@ export function BookingPicker({
                     transition: 'border-color 0.15s, background 0.15s, color 0.15s',
                   }}
                 >
-                  {slot.time}
-                  {!slot.available && (
+                  {formatSlotTime(slot.startTime)}
+                  {slot.available ? (
+                    <span style={{ display: 'block', fontSize: '0.65rem', color: 'var(--sf-text-3)', marginTop: 2, fontWeight: 500 }}>
+                      {formatSlotTime(slot.endTime)}
+                    </span>
+                  ) : (
                     <span style={{ display: 'block', fontSize: '0.65rem', color: 'var(--sf-text-3)', marginTop: 2, fontWeight: 500 }}>
                       Booked
                     </span>
