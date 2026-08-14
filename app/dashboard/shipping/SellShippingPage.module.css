@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════
    MO Sell — Shipping Page
 ═══════════════════════════════════════ */
-.page { display: flex; flex-direction: column; gap: 22px; width: 100%; max-width: 860px; }
+.page { display: flex; flex-direction: column; gap: 22px; width: 100%; max-width: 1200px; }
 .header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
 .heading { font-family: var(--sell-font-display); font-size: 1.35rem; font-weight: 700; color: var(--sell-text-1); margin-bottom: 4px; }
 .sub { font-size: 0.875rem; color: var(--sell-text-2); }
