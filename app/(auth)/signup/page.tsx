@@ -195,10 +195,24 @@ export default function SellSignupPage() {
   }, []);
 
   // ── Google sign-up (Supabase OAuth → /auth/callback) ─────────────────────
+  // Best-effort: clear any previous account's session so switching accounts on
+  // the same device never leaves the old token/data behind.
+  async function ensureCleanSession() {
+    try {
+      const { data } = await supabaseClient.auth.getSession();
+      if (data.session) {
+        await supabaseClient.auth.signOut();
+      }
+    } catch {
+      // ignore
+    }
+  }
+
   const handleGoogleSignup = async () => {
     setLoading(true);
     setError('');
     try {
+      await ensureCleanSession();
       const { error } = await supabaseClient.auth.signInWithOAuth({
         provider: 'google',
         options: {

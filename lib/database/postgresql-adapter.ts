@@ -95,12 +95,16 @@ export class SupabaseAdapter implements DatabaseAdapter {
   collection(name: string): CollectionAdapter {
     // Normalize Firestore subcollection paths to flat tables:
     //   "businesses/{businessId}/storeOrders" -> table "storeOrders"
+    //   scoped by businessId (Firestore scoped subcollections by their parent
+    //   document, so the flattened table must apply the same implicit filter).
     let tableName = name;
-    const sub = name.match(/^businesses\/[^/]+\/(.+)$/);
+    let businessId: string | undefined;
+    const sub = name.match(/^businesses\/([^/]+)\/(.+)$/);
     if (sub) {
-      tableName = sub[1];
+      businessId = sub[1];
+      tableName = sub[2];
     }
-    return new SupabaseCollection(this.supabase, tableName);
+    return new SupabaseCollection(this.supabase, tableName, businessId);
   }
 
   doc(path: string): DocumentAdapter {
@@ -138,41 +142,51 @@ export class SupabaseAdapter implements DatabaseAdapter {
 class SupabaseCollection implements CollectionAdapter {
   private supabase: SupabaseClient;
   private tableName: string;
+  private businessId?: string;
 
   constructor(
     supabase: SupabaseClient,
-    tableName: string
+    tableName: string,
+    businessId?: string
   ) {
     this.supabase = supabase;
     this.tableName = tableName;
+    this.businessId = businessId;
   }
 
   doc(id?: string): DocumentAdapter {
     const docId = id || '';
-    return new SupabaseDocument(this.supabase, this.tableName, docId, `${this.tableName}/${docId}`);
+    return new SupabaseDocument(this.supabase, this.tableName, docId, `${this.tableName}/${docId}`, this.businessId);
   }
 
   where(field: string, op: string, value: any): QueryAdapter {
-    return new SupabaseQuery(this.supabase, this.tableName, field, op, value);
+    return new SupabaseQuery(this.supabase, this.tableName, this.businessId, field, op, value);
   }
 
   limit(n: number): QueryAdapter {
-    return new SupabaseQuery(this.supabase, this.tableName);
+    return new SupabaseQuery(this.supabase, this.tableName, this.businessId).limit(n);
   }
 
   async count(): Promise<{ data: { count: number } }> {
-    const { count, error } = await this.supabase
+    let query = this.supabase
       .from(this.tableName)
       .select('*', { count: 'exact', head: true });
+
+    if (this.businessId) {
+      query = query.eq('businessId', this.businessId);
+    }
+
+    const { count, error } = await query;
 
     if (error) throw error;
     return { data: { count: count || 0 } };
   }
 
   async add(data: any): Promise<{ id: string }> {
+    const payload = this.businessId ? { ...data, businessId: this.businessId } : data;
     const { data: result, error } = await this.supabase
       .from(this.tableName)
-      .insert(data)
+      .insert(payload)
       .select('id')
       .single();
 
@@ -187,23 +201,35 @@ class SupabaseCollection implements CollectionAdapter {
 class SupabaseDocument implements DocumentAdapter {
   id: string;
   private tableName: string;
+  private businessId?: string;
 
   constructor(
     private supabase: SupabaseClient,
     tableName: string,
     docId: string,
-    private path: string
+    private path: string,
+    businessId?: string
   ) {
     this.id = docId;
     this.tableName = tableName;
+    this.businessId = businessId;
+  }
+
+  private scopedQuery<T>(query: any): any {
+    if (this.businessId) {
+      return query.eq('businessId', this.businessId);
+    }
+    return query;
   }
 
   async get(): Promise<{ exists: boolean; data(): any }> {
-    const { data, error } = await this.supabase
+    let query = this.supabase
       .from(this.tableName)
       .select('*')
-      .eq('id', this.id)
-      .single();
+      .eq('id', this.id);
+    query = this.scopedQuery(query);
+
+    const { data, error } = await query.single();
 
     if (error || !data) {
       return { exists: false, data: () => null };
@@ -213,27 +239,34 @@ class SupabaseDocument implements DocumentAdapter {
   }
 
   async set(data: any, options?: { merge?: boolean }): Promise<void> {
+    const payload = this.businessId ? { id: this.id, ...data, businessId: this.businessId } : { id: this.id, ...data };
     const { error } = await this.supabase
       .from(this.tableName)
-      .upsert({ id: this.id, ...data });
+      .upsert(payload);
 
     if (error) throw error;
   }
 
   async update(data: any): Promise<void> {
-    const { error } = await this.supabase
+    let query = this.supabase
       .from(this.tableName)
       .update(data)
       .eq('id', this.id);
+    query = this.scopedQuery(query);
+
+    const { error } = await query;
 
     if (error) throw error;
   }
 
   async delete(): Promise<void> {
-    const { error } = await this.supabase
+    let query = this.supabase
       .from(this.tableName)
       .delete()
       .eq('id', this.id);
+    query = this.scopedQuery(query);
+
+    const { error } = await query;
 
     if (error) throw error;
   }
@@ -245,14 +278,17 @@ class SupabaseDocument implements DocumentAdapter {
 class SupabaseQuery implements QueryAdapter {
   private filters: Array<{ field: string; op: string; value: any }> = [];
   private limitValue?: number;
+  private businessId?: string;
 
   constructor(
     private supabase: SupabaseClient,
     private tableName: string,
+    businessId?: string,
     field?: string,
     op?: string,
     value?: any
   ) {
+    this.businessId = businessId;
     if (field && op && value !== undefined) {
       this.filters.push({ field, op, value });
     }
@@ -270,6 +306,11 @@ class SupabaseQuery implements QueryAdapter {
 
   async get(): Promise<{ docs: { id: string; data(): any }[] }> {
     let query = this.supabase.from(this.tableName).select('*');
+
+    // Implicit scope from a "businesses/{businessId}/..." subcollection path
+    if (this.businessId) {
+      query = query.eq('businessId', this.businessId);
+    }
 
     // Apply filters
     for (const filter of this.filters) {
