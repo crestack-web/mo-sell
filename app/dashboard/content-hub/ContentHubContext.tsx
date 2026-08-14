@@ -81,6 +81,12 @@ interface ContentHubContextValue extends AnalyticsStats {
   handleRecommendForAudience: () => void;
   handleScheduleIdea: (idea: any, product?: any) => void;
 
+  trends: any[];
+  trendsLoading: boolean;
+  trendsError: string;
+  trendsSource: string;
+  handleLoadTrends: () => void;
+
   UGC: UgcState;
 }
 
@@ -189,6 +195,11 @@ export function ContentHubProvider({ children }: { children: React.ReactNode }) 
   const [moRecommendations, setMoRecommendations] = useState<any>(null);
   const [recommending, setRecommending] = useState(false);
   const [recommendError, setRecommendError] = useState('');
+
+  const [trends, setTrends] = useState<any[]>([]);
+  const [trendsLoading, setTrendsLoading] = useState(false);
+  const [trendsError, setTrendsError] = useState('');
+  const [trendsSource, setTrendsSource] = useState('');
 
   const [ugcView, setUgcView] = useState<'apply' | 'dashboard'>('apply');
   const [niches, setNiches] = useState<string[]>([]);
@@ -766,6 +777,35 @@ export function ContentHubProvider({ children }: { children: React.ReactNode }) 
     }
   };
 
+  const handleLoadTrends = async () => {
+    setTrendsLoading(true);
+    setTrendsError('');
+    try {
+      const top = topProductsFromOrders();
+      const names = [
+        top?.name,
+        ...products.slice(0, 4).map(p => p.displayName),
+      ].filter(Boolean) as string[];
+      const res = await fetch('/api/content/trending', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          category: storeConfig?.businessCategory || '',
+          productNames: names,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to load trends');
+      setTrends(data.trends || []);
+      setTrendsSource(data.source || '');
+    } catch (e) {
+      setTrendsError(e instanceof Error ? e.message : 'Failed to load trends');
+      setTrends([]);
+    } finally {
+      setTrendsLoading(false);
+    }
+  };
+
   /* ─── UGC persistence ─── */
 
   const handleAvatarUpload = async (): Promise<string | null> => {
@@ -918,6 +958,7 @@ export function ContentHubProvider({ children }: { children: React.ReactNode }) 
     handleAddSocialProfile, handleVerifyProfile, handleRemoveSocialProfile,
     moRecommendations, recommending, recommendError,
     handleRecommendForAudience, handleScheduleIdea,
+    trends, trendsLoading, trendsError, trendsSource, handleLoadTrends,
     totalRevenue, totalOrders, pageViews, addToCarts, checkoutInitiated,
     conversionRate, scheduledCount, postedCount, upcomingPosts, profileCount,
     analyticsLoading,

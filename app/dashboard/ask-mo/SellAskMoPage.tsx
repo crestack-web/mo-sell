@@ -29,13 +29,17 @@ interface ChatMessage {
   text: string;
   attachments?: Attachment[];
   storeUpdate?: Record<string, unknown> | null;
+  bioUpdate?: Record<string, unknown> | null;
   newProduct?: Record<string, unknown> | null;
   editProduct?: Record<string, unknown> | null;
   pdf?: { title?: string; url?: string | null; dataUrl?: string | null; pageCount?: number } | null;
   needsTokens?: boolean;
   applied?: boolean;
+  bioApplied?: boolean;
   approved?: boolean;
   productCreated?: boolean;
+  isEdit?: boolean;
+  editSaved?: boolean;
   showPreview?: boolean;
 }
 
@@ -75,6 +79,7 @@ const PDF_TOKEN_COST = 500;
 const SUGGESTIONS: Suggestion[] = [
   { icon: '✏️', label: 'Change store name', message: 'Change my store name to ' },
   { icon: '🎨', label: 'Update colors', message: 'Change my store colors to something more vibrant' },
+  { icon: '🔗', label: 'Edit link in bio', message: 'Update my link in bio page' },
   { icon: '📦', label: 'Create a product', message: 'Create a digital product for my store' },
   { icon: '📚', label: 'Create an ebook', message: 'Create an ebook product for my store' },
   { icon: '💡', label: 'Collection ideas', message: 'Suggest some collection names for my store' },
@@ -232,6 +237,16 @@ function timeAgo(ts: number): string {
   if (hours < 24) return `${hours}h ago`;
   const days = Math.floor(hours / 24);
   return `${days}d ago`;
+}
+
+// edit_product blocks use null to mean "keep current" — strip nulls/empty so
+// they merge cleanly into the existing product card.
+function stripNulls(obj: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(obj)) {
+    if (v !== null && v !== undefined && v !== '') out[k] = v;
+  }
+  return out;
 }
 
 // Render MO's reply as markdown so bold/lists/links display as styled text
@@ -700,6 +715,9 @@ export function SellAskMoPage() {
         // proposedProduct = ebook content for inline review (not yet created)
         const productToShow = data.proposedProduct ?? data.newProduct ?? null;
 
+        // edit_product blocks carry the existing product id (productId or id)
+        const editPid = (data.editProduct && (data.editProduct.productId || data.editProduct.id)) as string | undefined;
+
         // Use the raw response for conversation history so the AI retains
         // full context (including JSON blocks) on follow-up turns
         const historyText = data.raw || data.answer;
@@ -709,23 +727,42 @@ export function SellAskMoPage() {
           role: 'bot',
           text: data.answer,
           storeUpdate: data.storeUpdate ?? null,
+          bioUpdate: data.bioUpdate ?? null,
           newProduct: productToShow,
           editProduct: data.editProduct ?? null,
           pdf: data.pdf ?? null,
           needsTokens: !!data.pdfBlocked,
-          showPreview: !!(data.storeUpdate || productToShow || data.editProduct || data.pdf || data.pdfBlocked),
+          showPreview: !!(data.storeUpdate || data.bioUpdate || productToShow || data.editProduct || data.pdf || data.pdfBlocked),
         };
 
         setMessages(prev => {
           const updated = [...prev];
 
-          // If an editProduct was returned for an existing product, update the original card
-          if (data.editProduct && data.editProduct.id) {
+          // If an editProduct was returned for an existing product, update the
+          // original card in place (merge non-null fields so unchanged values
+          // survive), and surface the edit card on the bot message.
+          if (data.editProduct && editPid) {
+            const editPatch = stripNulls(data.editProduct);
+            let replaced = false;
             for (let i = updated.length - 1; i >= 0; i--) {
-              if (updated[i].newProduct && (updated[i].newProduct as any).id === data.editProduct.id) {
-                updated[i] = { ...updated[i], newProduct: data.editProduct, showPreview: true };
+              const existing = updated[i].newProduct as any;
+              if (existing && (existing.id === editPid || existing.productId === editPid)) {
+                updated[i] = {
+                  ...updated[i],
+                  newProduct: { ...existing, ...editPatch, id: existing.id || editPid },
+                  editProduct: data.editProduct,
+                  isEdit: true,
+                  showPreview: true,
+                };
+                replaced = true;
                 break;
               }
+            }
+            // No matching card in the thread (e.g. product edited from the
+            // store) — show the edit as its own card on this bot message.
+            if (!replaced) {
+              botMsg.newProduct = { ...editPatch, id: editPid } as Record<string, unknown>;
+              botMsg.isEdit = true;
             }
           }
 
@@ -814,12 +851,102 @@ export function SellAskMoPage() {
     [user, showToast]
   );
 
+  // ── Apply link-in-bio update ───────────────────────────────────────────
+  // The bio page config lives in the same store config doc under the nested
+  // `linkBio` object (plus a top-level `linkBioTheme`), so we merge into the
+  // existing nested object rather than overwriting the whole config.
+
+  const applyBioUpdate = useCallback(
+    async (update: Record<string, unknown>, messageId: string) => {
+      if (!user?.businessId) return;
+      try {
+        const db = getDatabase();
+        const cfgRef = db.doc(`businesses/${user.businessId}/store/config`);
+        const doc = await cfgRef.get();
+        const existing = doc.exists ? (doc.data() ?? {}) : {};
+        const current = (existing.linkBio && typeof existing.linkBio === 'object') ? existing.linkBio : {};
+        const linkBioPatch: Record<string, unknown> = {};
+        const simpleKeys = ['name', 'bio', 'avatarUrl', 'displayType', 'backgroundType', 'backgroundValue'];
+        for (const key of simpleKeys) {
+          const value = update[key];
+          if (value !== null && value !== undefined && value !== '') linkBioPatch[key] = value;
+        }
+        if (Array.isArray(update.socials) && update.socials.length) {
+          linkBioPatch.socials = update.socials;
+        }
+        if (Array.isArray(update.customLinks) && update.customLinks.length) {
+          linkBioPatch.customLinks = update.customLinks;
+        }
+        const topLevel: Record<string, unknown> = {};
+        if (update.linkBioTheme && update.linkBioTheme !== '' && update.linkBioTheme !== null) {
+          topLevel.linkBioTheme = update.linkBioTheme;
+        }
+        if (Object.keys(linkBioPatch).length === 0 && Object.keys(topLevel).length === 0) {
+          showToast('No changes to apply', 'info');
+          return;
+        }
+        const payload: Record<string, unknown> = { updatedAt: new Date().toISOString() };
+        if (Object.keys(linkBioPatch).length > 0) {
+          payload.linkBio = { ...current, ...linkBioPatch, updatedAt: new Date().toISOString() };
+        }
+        await cfgRef.update({ ...topLevel, ...payload });
+        setMessages(prev => prev.map(msg => msg.id === messageId ? { ...msg, bioApplied: true } : msg));
+        showToast('Link in bio updated successfully!', 'success');
+      } catch (err) {
+        showToast(`Failed to update link in bio: ${err instanceof Error ? err.message : 'Unknown error'}`, 'error');
+      }
+    },
+    [user, showToast]
+  );
+
   // ── Mark product created ───────────────────────────────────────────────
 
   const markProductCreated = useCallback((messageId: string) => {
     setMessages(prev => prev.map(msg => msg.id === messageId ? { ...msg, productCreated: true } : msg));
     showToast('Product is now live in your store!', 'success');
   }, [showToast]);
+
+  // ── Apply edit to an existing product (persist changes) ────────────────
+
+  const applyEditProduct = useCallback(
+    async (msgId: string, productData: Record<string, unknown>) => {
+      if (!user?.businessId) return;
+      const productId = productData.id || productData.productId;
+      if (!productId) {
+        showToast('Missing product id — can\'t save the edit.', 'error');
+        return;
+      }
+      setLoading(true);
+      try {
+        const res = await fetch('/api/sell/ask-mo', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            businessId: user.businessId,
+            storeConfig: storeConfig ?? null,
+            productData: { ...productData, id: productId },
+          }),
+        });
+        const data = await res.json().catch(() => null);
+        if (!data || !res.ok || !data.success) {
+          throw new Error((data && (data.error || data.details)) || 'Failed to save edit');
+        }
+
+        setMessages(prev => prev.map(msg =>
+          msg.id === msgId
+            ? { ...msg, approved: true, editSaved: true, newProduct: { ...msg.newProduct, ...data.product } }
+            : msg,
+        ));
+        showToast('Product updated successfully!', 'success');
+      } catch (err) {
+        const errMsg = err instanceof Error ? err.message : 'Failed to save edit';
+        showToast(errMsg, 'error');
+      } finally {
+        setLoading(false);
+      }
+    },
+    [user?.businessId, storeConfig, showToast]
+  );
 
   // ── Approve proposed product (generate PDF + create in Firestore) ──────
 
@@ -1063,6 +1190,36 @@ export function SellAskMoPage() {
                       </div>
                     )}
 
+                    {/* ── Link in Bio Update Card ── */}
+                    {msg.bioUpdate && !isAllNull(msg.bioUpdate) && (
+                      <div className={styles.actionCard}>
+                        <div className={styles.actionCardHeader}>
+                          <span className={styles.actionCardIcon}>🔗</span>
+                          Link in Bio Update
+                        </div>
+                        <div className={styles.actionCardBody}>
+                          {Object.entries(msg.bioUpdate)
+                            .filter(([key, v]) => v !== null && v !== undefined && !(Array.isArray(v) && v.length === 0))
+                            .map(([key, value]) => (
+                              <div key={key} className={styles.actionCardRow}>
+                                <span className={styles.actionCardLabel}>{formatLabel(key)}</span>
+                                <span className={styles.actionCardValue}>{formatValue(key, value)}</span>
+                              </div>
+                            ))}
+                        </div>
+                        <div className={styles.actionCardFooter}>
+                          {msg.bioApplied ? (
+                            <span className={styles.appliedLabel}>✓ Applied</span>
+                          ) : (
+                            <>
+                              <button className={`${styles.confirmBtn} ${styles.confirmBtnPrimary}`} onClick={() => applyBioUpdate(msg.bioUpdate!, msg.id)}>Apply Changes</button>
+                              <button className={`${styles.confirmBtn} ${styles.confirmBtnSecondary}`} onClick={() => setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, bioUpdate: null } : m))}>Dismiss</button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
                     {/* ── Designed PDF Ebook Card ── */}
                     {msg.pdf && (
                       <div className={styles.actionCard}>
@@ -1119,13 +1276,13 @@ export function SellAskMoPage() {
                     {msg.newProduct && (
                       <div className={styles.actionCard}>
                         <div className={styles.actionCardHeader}>
-                          <span className={styles.actionCardIcon}>📦</span>
-                          {msg.editProduct ? 'Updated Product' : 'New Product'}
+                          <span className={styles.actionCardIcon}>{msg.isEdit ? '✏️' : '📦'}</span>
+                          {msg.isEdit ? 'Updated Product' : 'New Product'}
                         </div>
                         <div className={styles.actionCardBody}>
-                          <div className={styles.actionCardRow}><span className={styles.actionCardLabel}>Name</span><span className={styles.actionCardValue}>{String(msg.newProduct.displayName)}</span></div>
-                          <div className={styles.actionCardRow}><span className={styles.actionCardLabel}>Type</span><span className={styles.actionCardValue}>{String(msg.newProduct.digitalSubtype || msg.newProduct.productType)}</span></div>
-                          <div className={styles.actionCardRow}><span className={styles.actionCardLabel}>Price</span><span className={styles.actionCardValue}>{currencySymbol(typeof msg.newProduct.currency === 'string' ? msg.newProduct.currency : null)}{Number(msg.newProduct.price).toLocaleString()}</span></div>
+                          {msg.newProduct.displayName ? <div className={styles.actionCardRow}><span className={styles.actionCardLabel}>Name</span><span className={styles.actionCardValue}>{String(msg.newProduct.displayName)}</span></div> : null}
+                          {msg.newProduct.digitalSubtype || msg.newProduct.productType ? <div className={styles.actionCardRow}><span className={styles.actionCardLabel}>Type</span><span className={styles.actionCardValue}>{String(msg.newProduct.digitalSubtype || msg.newProduct.productType)}</span></div> : null}
+                          {msg.newProduct.price != null ? <div className={styles.actionCardRow}><span className={styles.actionCardLabel}>Price</span><span className={styles.actionCardValue}>{currencySymbol(typeof msg.newProduct.currency === 'string' ? msg.newProduct.currency : null)}{Number(msg.newProduct.price).toLocaleString()}</span></div> : null}
                           {msg.newProduct.category ? <div className={styles.actionCardRow}><span className={styles.actionCardLabel}>Category</span><span className={styles.actionCardValue}>{String(msg.newProduct.category)}</span></div> : null}
                           {(msg.newProduct.productType === 'physical' && msg.newProduct.stock != null) ? <div className={styles.actionCardRow}><span className={styles.actionCardLabel}>Stock</span><span className={styles.actionCardValue}>{String(msg.newProduct.stock)}</span></div> : null}
                           {msg.newProduct.sku ? <div className={styles.actionCardRow}><span className={styles.actionCardLabel}>SKU</span><span className={styles.actionCardValue}>{String(msg.newProduct.sku)}</span></div> : null}
@@ -1138,8 +1295,8 @@ export function SellAskMoPage() {
                             </div>
                           ) : null}
 
-                          {/* ── Scrollable Ebook Content (proposal mode) ── */}
-                          {!msg.newProduct.digitalFileUrl && (msg.newProduct as any).pdfContent?.chapters && (
+                          {/* ── Scrollable Ebook Content (proposal / edit mode) ── */}
+                          {(msg.isEdit || !msg.newProduct.digitalFileUrl) && (msg.newProduct as any).pdfContent?.chapters && (
                             <>
                               <div style={{ marginTop: 8, fontSize: 11, fontWeight: 700, color: 'var(--sell-text, #1a1a1a)' }}>
                                 📄 {((msg.newProduct as any).pdfContent.chapters as any[]).length} Chapters
@@ -1178,7 +1335,7 @@ export function SellAskMoPage() {
                                 >
                                   ⬇ Open PDF
                                 </button>
-                                {(msg.newProduct as any).id && !msg.productCreated && (
+                                {(msg.newProduct as any).id && !msg.productCreated && !msg.isEdit && (
                                   <button
                                     onClick={() => publishProduct(msg.id, String(msg.newProduct!.id))}
                                     className={`${styles.confirmBtn} ${styles.confirmBtnPrimary}`}
@@ -1192,7 +1349,37 @@ export function SellAskMoPage() {
                           )}
                         </div>
                         <div className={styles.actionCardFooter}>
-                          {msg.productCreated ? (
+                          {msg.isEdit ? (
+                            msg.editSaved ? (
+                              <span className={styles.appliedLabel}>✓ Changes saved</span>
+                            ) : (
+                              <>
+                                <button
+                                  className={`${styles.confirmBtn} ${styles.confirmBtnPrimary}`}
+                                  onClick={() => applyEditProduct(msg.id, (msg.editProduct || msg.newProduct) as Record<string, unknown>)}
+                                  disabled={loading}
+                                >
+                                  ✓ Save Changes
+                                </button>
+                                <button
+                                  className={`${styles.confirmBtn} ${styles.confirmBtnSecondary}`}
+                                  onClick={() => {
+                                    const name = String(msg.newProduct?.displayName || 'the product');
+                                    setInput(`I want to tweak ${name} — `);
+                                    inputRef.current?.focus();
+                                  }}
+                                >
+                                  ✏️ Tweak
+                                </button>
+                                <button
+                                  className={`${styles.confirmBtn} ${styles.confirmBtnSecondary}`}
+                                  onClick={() => setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, newProduct: null } : m))}
+                                >
+                                  Dismiss
+                                </button>
+                              </>
+                            )
+                          ) : msg.productCreated ? (
                             <span className={styles.appliedLabel}>✓ Product live in your store</span>
                           ) : (msg.approved || (msg.newProduct as any)?.id || msg.newProduct?.digitalFileUrl) ? (
                             <>
@@ -1448,6 +1635,30 @@ function formatValue(key: string, value: unknown): React.ReactNode {
         {hex}
       </span>
     );
+  }
+  if (key === 'backgroundValue' && typeof value === 'string' && /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(value)) {
+    return (
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+        <span style={{ display: 'inline-block', width: 14, height: 14, borderRadius: 3, background: value, border: '1px solid rgba(0,0,0,0.1)' }} />
+        {value}
+      </span>
+    );
+  }
+  if (Array.isArray(value)) {
+    if (key === 'socials' || key === 'customLinks') {
+      return (
+        <span style={{ display: 'inline-flex', flexDirection: 'column', gap: 2 }}>
+          {value.map((item, i) => (
+            <span key={i}>
+              {item?.platform ? `${item.platform}: ` : ''}
+              {item?.label ? `${item.label}: ` : ''}
+              {item?.url ?? String(item)}
+            </span>
+          ))}
+        </span>
+      );
+    }
+    return value.join(', ');
   }
   return String(value ?? '');
 }
