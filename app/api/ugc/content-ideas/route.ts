@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { runAIOnce } from '@/lib/ai';
+import { runAIOnce, parseAIJson } from '@/lib/ai';
 import { TASK_MAX_OUTPUT_TOKENS } from '@/lib/ai/types';
 
 const UGC_IDEAS_SYSTEM_PROMPT = `
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
     const match = raw.match(/```ugc_ideas\n([\s\S]+?)\n```/);
     let ideas: Record<string, unknown> | null = null;
     if (match) { try { ideas = JSON.parse(match[1]); } catch { /* fall through */ } }
-    if (!ideas) { try { ideas = JSON.parse(raw); } catch { /* return null */ } }
+    if (!ideas) { ideas = parseAIJson(raw); }
 
     return NextResponse.json({ ideas, provider: result.provider });
   } catch (err) {

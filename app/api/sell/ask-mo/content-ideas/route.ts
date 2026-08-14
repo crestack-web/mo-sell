@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { runAIOnce } from '@/lib/ai';
+import { runAIOnce, parseAIJson } from '@/lib/ai';
 import { TASK_MAX_OUTPUT_TOKENS } from '@/lib/ai/types';
 
 const CONTENT_IDEAS_SYSTEM_PROMPT = `
@@ -87,8 +87,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!contentIdeas) {
-      try { contentIdeas = JSON.parse(raw); }
-      catch { /* return null */ }
+      contentIdeas = parseAIJson(raw);
     }
 
     return NextResponse.json({ contentIdeas, provider: result.provider });

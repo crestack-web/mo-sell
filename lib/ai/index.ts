@@ -189,6 +189,73 @@ export async function runAI(req: GenerateTextRequest): Promise<GenerateTextResul
     : new Error('AI service failed on all providers');
 }
 
+/**
+ * Escape raw control characters that appear inside JSON string literals.
+ *
+ * LLM output frequently contains literal newlines/tabs inside string values
+ * (e.g. a caption or script field), which makes `JSON.parse` throw
+ * "Bad control character in string literal in JSON". This scanner walks the
+ * text, and while inside a string (respecting `\"` escapes) rewrites any raw
+ * control character into its `\uXXXX` escape.
+ */
+export function sanitizeJsonControlChars(input: string): string {
+  let out = '';
+  let inString = false;
+  let escaped = false;
+  for (let i = 0; i < input.length; i++) {
+    const ch = input[i];
+    if (inString) {
+      if (escaped) {
+        out += ch;
+        escaped = false;
+        continue;
+      }
+      if (ch === '\\') {
+        out += ch;
+        escaped = true;
+        continue;
+      }
+      if (ch === '"') {
+        inString = false;
+        out += ch;
+        continue;
+      }
+      const code = ch.charCodeAt(0);
+      if (code < 0x20 || code === 0x7f) {
+        out += '\\u' + code.toString(16).padStart(4, '0');
+        continue;
+      }
+      out += ch;
+      continue;
+    }
+    if (ch === '"') {
+      inString = true;
+    }
+    out += ch;
+  }
+  return out;
+}
+
+/** Extract the first JSON object block from arbitrary text. */
+export function extractJsonBlock(text: string): string | null {
+  const match = text.match(/\{[\s\S]*\}/);
+  return match ? match[0] : null;
+}
+
+/**
+ * Parse JSON from LLM output, tolerating raw control characters inside string
+ * values. Returns `null` when no valid JSON can be recovered.
+ */
+export function parseAIJson<T = Record<string, unknown>>(text: string): T | null {
+  const block = extractJsonBlock(text);
+  if (!block) return null;
+  try {
+    return JSON.parse(sanitizeJsonControlChars(block)) as T;
+  } catch {
+    return null;
+  }
+}
+
 /** Convenience: single-shot completion helper used by the simpler routes. */
 export async function runAIOnce(params: {
   task: GenerateTextRequest['task'];

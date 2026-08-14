@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { runAIOnce } from '@/lib/ai';
+import { runAIOnce, parseAIJson } from '@/lib/ai';
 import { TASK_MAX_OUTPUT_TOKENS } from '@/lib/ai/types';
 
 const SYSTEM_PROMPT = `You are MO, an AI content strategist for African e-commerce merchants.
@@ -84,12 +84,11 @@ export async function POST(req: NextRequest) {
     });
 
     const text = result.text;
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
+    const data = parseAIJson(text);
+    if (!data) {
       throw new Error('AI response was not valid JSON');
     }
 
-    const data = JSON.parse(jsonMatch[0]);
     return NextResponse.json({ ...data, provider: result.provider });
   } catch (err) {
     console.error('[generate-ideas] Error:', err);
