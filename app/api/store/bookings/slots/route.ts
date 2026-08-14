@@ -7,6 +7,7 @@ const DAY_MAP: Record<number, DayOfWeek> = {
 };
 
 interface SlotResult {
+  time: string;
   startTime: string;
   endTime: string;
   available: boolean;
@@ -86,6 +87,7 @@ export async function GET(req: NextRequest) {
 
     // 6. Mark slots as available or taken
     const slots: SlotResult[] = allSlots.map(slot => ({
+      time: slot.startTime,
       startTime: slot.startTime,
       endTime: slot.endTime,
       available: !takenStartTimes.has(slot.startTime),

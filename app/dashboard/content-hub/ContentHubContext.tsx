@@ -251,8 +251,9 @@ export function ContentHubProvider({ children }: { children: React.ReactNode }) 
         price: d.data().price ?? 0,
         productType: d.data().productType ?? 'physical',
         images: d.data().images ?? [],
-        category: d.data().category ?? '',
-        description: d.data().description ?? '',
+          category: d.data().category ?? '',
+          tags: Array.isArray(d.data().tags) ? d.data().tags.map(String) : [],
+          description: d.data().description ?? '',
       })) as Product[];
       items.sort((a, b) => a.displayName.localeCompare(b.displayName));
       setProducts(items);
@@ -782,16 +783,21 @@ export function ContentHubProvider({ children }: { children: React.ReactNode }) 
     setTrendsError('');
     try {
       const top = topProductsFromOrders();
-      const names = [
-        top?.name,
-        ...products.slice(0, 4).map(p => p.displayName),
-      ].filter(Boolean) as string[];
+      const picks = top ? [top.name, ...products.slice(0, 3).map(p => p.displayName)] : products.slice(0, 4).map(p => p.displayName);
+      const signals = [...new Set(picks)].map(name => {
+        const p = products.find(x => x.displayName === name);
+        return {
+          name: p?.displayName || name,
+          category: p?.category || '',
+          tags: p?.tags || [],
+        };
+      });
       const res = await fetch('/api/content/trending', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           category: storeConfig?.businessCategory || '',
-          productNames: names,
+          products: signals,
         }),
       });
       const data = await res.json();

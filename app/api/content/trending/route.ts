@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { runApify } from '@/lib/apify/run';
-import { nicheInput } from '@/lib/apify/niche';
+import { nicheInput, NicheProduct } from '@/lib/apify/niche';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,6 +27,7 @@ export interface TrendItem {
   videoUrl: string | null;
   coverUrl: string | null;
   postedAt: string | null;
+  relevance: number;
 }
 
 function parseHashtags(text: string): string[] {
@@ -52,7 +53,7 @@ function normalizeTikTokItem(item: any): TrendItem | null {
     .map(h => h.replace(/^#/, '').toLowerCase());
 
   return {
-    id: String(item.id ?? item.videoId ?? ''),
+    id: String(item.id ?? item.videoId ?? `${item.authorId}-${Math.random()}`),
     platform: 'tiktok',
     caption: text,
     creator: item.authorMeta?.nickName ?? item.authorMeta?.name ?? 'unknown',
@@ -67,20 +68,63 @@ function normalizeTikTokItem(item: any): TrendItem | null {
     videoUrl: videoUrl ? String(videoUrl) : null,
     coverUrl: coverUrl ? String(coverUrl) : null,
     postedAt: item.createTimeISO ?? item.createdAt ?? null,
+    relevance: 0,
   };
 }
 
-// ─── POST: fetch real trending posts in the store's niche ────────────────────
+/**
+ * Score how relevant a post is to the store's niche: +2 per keyword found in a
+ * hashtag, +1 per keyword found in the caption. Only meaningful tokens count.
+ */
+function relevanceScore(t: TrendItem, keywords: string[]): number {
+  const kws = keywords.filter(k => k.length >= 3);
+  if (kws.length === 0) return 0;
+  const caption = (t.caption || '').toLowerCase();
+  const tagSet = new Set((t.hashtags || []).map(h => h.toLowerCase()));
+  let score = 0;
+  for (const kw of kws) {
+    if (tagSet.has(kw) || [...tagSet].some(tag => tag.includes(kw) || kw.includes(tag))) {
+      score += 2;
+    } else if (caption.includes(kw)) {
+      score += 1;
+    }
+  }
+  return score;
+}
+
+/**
+ * Rank = relevance × popularity so genuinely relevant posts surface ahead of
+ * globally viral but off-niche ones. Views are log-scaled to avoid a single
+ * mega-viral post drowning out everything niche.
+ */
+function rank(a: TrendItem): number {
+  const views = (a.views ?? 0) + 1;
+  return a.relevance * Math.log10(views);
+}
+
+// ─── POST: fetch real trending posts in the store's niche ───────────────────
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => ({}));
     const category = typeof body.category === 'string' ? body.category : '';
-    const productNames = Array.isArray(body.productNames)
-      ? body.productNames.map(String)
-      : typeof body.productName === 'string'
-        ? [body.productName]
-        : [];
+
+    // Accept either structured products [{name, category, tags}] or plain names.
+    let products: NicheProduct[] = [];
+    if (Array.isArray(body.products)) {
+      products = body.products.map((p: any) => ({
+        name: typeof p?.name === 'string' ? p.name : '',
+        category: typeof p?.category === 'string' ? p.category : '',
+        tags: Array.isArray(p?.tags) ? p.tags.map(String) : [],
+      }));
+    } else {
+      const names: string[] = Array.isArray(body.productNames)
+        ? body.productNames.map((n: any) => String(n))
+        : typeof body.productName === 'string'
+          ? [body.productName]
+          : [];
+      products = names.map(name => ({ name }));
+    }
 
     const token = process.env.APIFY_KEY || process.env.APIFY_TOKEN;
     if (!token) {
@@ -90,7 +134,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { hashtags, searchTerms } = nicheInput(category, productNames);
+    const { hashtags, searchTerms, keywords } = nicheInput(category, products);
 
     const items = await runApify(
       TIKTOK_ACTOR,
@@ -104,10 +148,14 @@ export async function POST(req: NextRequest) {
       RUN_TIMEOUT_SEC,
     );
 
-    const trends = (Array.isArray(items) ? items : [])
+    const scored = (Array.isArray(items) ? items : [])
       .map(normalizeTikTokItem)
       .filter((t): t is TrendItem => Boolean(t))
-      .sort((a, b) => (b.views ?? 0) - (a.views ?? 0))
+      .map(t => ({ ...t, relevance: relevanceScore(t, keywords) }))
+      .filter(t => t.relevance > 0);
+
+    const trends = scored
+      .sort((a, b) => rank(b) - rank(a))
       .slice(0, MAX_TRENDS);
 
     if (trends.length === 0) {
@@ -122,6 +170,7 @@ export async function POST(req: NextRequest) {
       source: 'tiktok',
       niche: category || 'your niche',
       hashtags,
+      searchTerms,
       trends,
       generatedAt: new Date().toISOString(),
     });

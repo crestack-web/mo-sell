@@ -38,7 +38,7 @@ export interface LinkBioProductPageProps {
   today: string;
   selectedDate: string;
   selectedSlot: string | null;
-  slots: { time: string; available: boolean }[];
+  slots: { time?: string; startTime?: string; endTime?: string; available: boolean }[];
   loadingSlots: boolean;
   wantsName: boolean;
   wantsPhone: boolean;
@@ -440,12 +440,13 @@ function SlotPicker({ theme, p }: { theme: string; p: LinkBioProductPageProps })
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: 8 }}>
               {p.slots.map(slot => {
-                const selected = p.selectedSlot === slot.time;
+                const slotLabel = slot.time || slot.startTime || '';
+                const selected = p.selectedSlot === slotLabel;
                 return (
                   <button
-                    key={slot.time}
+                    key={slot.time || slot.startTime}
                     disabled={!slot.available}
-                    onClick={() => p.onSelectSlot(slot.time)}
+                    onClick={() => p.onSelectSlot(slotLabel)}
                     style={{
                       padding: '8px 4px',
                       borderRadius: theme === 'mono' ? 0 : 8,
@@ -457,9 +458,14 @@ function SlotPicker({ theme, p }: { theme: string; p: LinkBioProductPageProps })
                       cursor: slot.available ? 'pointer' : 'not-allowed',
                       opacity: slot.available ? 1 : 0.35,
                       transition: '0.15s',
+                      fontFamily: 'inherit',
+                      lineHeight: 1.4,
                     }}
                   >
-                    {slot.time}
+                    {slotLabel}
+                    <span style={{ display: 'block', fontSize: '0.65rem', color: 'var(--sf-text-3)', marginTop: 2, fontWeight: 500 }}>
+                      {slot.available ? (slot.endTime || '') : 'Booked'}
+                    </span>
                   </button>
                 );
               })}

@@ -14,6 +14,7 @@ export interface Product {
   images: string[];
   category: string;
   description?: string;
+  tags?: string[];
 }
 
 export interface CampaignDay {

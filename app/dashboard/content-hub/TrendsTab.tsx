@@ -51,7 +51,7 @@ export function TrendsTab() {
           <>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.72rem', color: 'var(--sell-text-3)' }}>
               <TrendingUp size={13} color="var(--sell-accent)" />
-              {trends.length} live posts from TikTok{trendsSource ? ` · source: ${trendsSource}` : ''} — sorted by views
+              {trends.length} live posts from TikTok{trendsSource ? ` · source: ${trendsSource}` : ''} — ranked by niche relevance
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {trends.map((t, i) => (
