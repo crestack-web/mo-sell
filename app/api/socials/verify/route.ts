@@ -8,11 +8,28 @@ const STATS_ACTOR = 'automation-lab~social-media-stats-checker';
 
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36';
 
-function normalizeTiktok(raw: string): { url: string; username: string } | null {
+/**
+ * Coerce a user-supplied handle into a full profile URL.
+ *
+ * Accepts bare usernames (`myhandle`), `@`-prefixed handles, bare domains
+ * (`tiktok.com/@x`), and full URLs. Returns `null` on empty input.
+ */
+function toProfileUrl(raw: string, platform: 'tiktok' | 'instagram'): string | null {
   let s = raw.trim();
   if (!s) return null;
-  if (s.startsWith('@')) s = `https://www.tiktok.com/${s}`;
-  else if (!/^https?:\/\//i.test(s)) s = `https://${s}`;
+  s = s.replace(/^@+/, '');
+  const looksLikeUrl = /^https?:\/\//i.test(s) || s.includes('/') || /\.(com|net|org|io|co|ng|tv|me|xyz|info|dev)\b/i.test(s);
+  if (looksLikeUrl) {
+    return /^https?:\/\//i.test(s) ? s : `https://${s}`;
+  }
+  return platform === 'tiktok'
+    ? `https://www.tiktok.com/@${s}`
+    : `https://www.instagram.com/${s}/`;
+}
+
+function normalizeTiktok(raw: string): { url: string; username: string } | null {
+  const s = toProfileUrl(raw, 'tiktok');
+  if (!s) return null;
   try {
     const u = new URL(s);
     if (!/^([a-z0-9-]+\.)*tiktok\.com$/i.test(u.hostname)) return null;
@@ -25,10 +42,8 @@ function normalizeTiktok(raw: string): { url: string; username: string } | null 
 }
 
 function normalizeInstagram(raw: string): { url: string; isProfile: boolean; username?: string } | null {
-  let s = raw.trim();
+  const s = toProfileUrl(raw, 'instagram');
   if (!s) return null;
-  if (s.startsWith('@')) s = `https://www.instagram.com/${s}`;
-  else if (!/^https?:\/\//i.test(s)) s = `https://${s}`;
   try {
     const u = new URL(s);
     if (!/^([a-z0-9-]+\.)*instagram\.com$/i.test(u.hostname)) return null;

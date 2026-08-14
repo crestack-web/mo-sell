@@ -68,7 +68,7 @@ export function AnalyticsTab() {
                       </select>
                       <input
                         style={{ ...s.formInput, flex: 1 }}
-                        placeholder="Profile URL (e.g. https://tiktok.com/@you)"
+                        placeholder="Username or profile URL"
                         value={newSocialUrl}
                         onChange={e => setNewSocialUrl(e.target.value)}
                       />
@@ -125,7 +125,7 @@ export function AnalyticsTab() {
                         </select>
                         <input
                           style={{ ...s.formInput, flex: 1 }}
-                          placeholder="Profile URL"
+                          placeholder="Username or profile URL"
                           value={newSocialUrl}
                           onChange={e => setNewSocialUrl(e.target.value)}
                         />

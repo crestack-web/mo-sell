@@ -227,7 +227,7 @@ function UgcApplyForm() {
                 style={{ ...s.formInput, flex: '1', minWidth: 160 }}
                 value={socialLinks[key] || ''}
                 onChange={e => setSocialLinks(prev => ({ ...prev, [key]: e.target.value }))}
-                placeholder={`${label} URL (optional)`}
+                placeholder={`@${label.toLowerCase()} or URL (optional)`}
               />
               {(key === 'tiktok' || key === 'instagram') && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 3, flexShrink: 0 }}>
@@ -310,7 +310,7 @@ function UgcApplyForm() {
             ) : null}
           </div>
         ))}
-        <p style={{ fontSize: '0.72rem', color: 'var(--sell-text-3)', margin: 0 }}>Paste your public profile URL and press Verify. TikTok and Instagram are checked live via Apify and the real follower count is filled in; YouTube and X are self-reported. Instagram post/reel links fall back to a no-key existence check.</p>
+        <p style={{ fontSize: '0.72rem', color: 'var(--sell-text-3)', margin: 0 }}>Type a username (e.g. <b>@yourhandle</b> or <b>yourhandle</b>) or paste a public profile URL, then press Verify. TikTok and Instagram are checked live via Apify and the real follower count is filled in; YouTube and X are self-reported. Instagram post/reel links fall back to a no-key existence check.</p>
       </Section>
 
       <button style={s.btnPrimary} onClick={handleSaveUgcProfile} disabled={savingUgc}>

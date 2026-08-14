@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, createContext, useContext } from 'react';
 import { getDatabase } from '@/lib/database/adapter';
+import { getStorage } from '@/lib/storage/adapter';
 import { useSell } from '@/context/SellContext';
 import {
   Product, Campaign, CampaignDay, CalendarPost, SocialProfile,
@@ -770,12 +771,10 @@ export function ContentHubProvider({ children }: { children: React.ReactNode }) 
   const handleAvatarUpload = async (): Promise<string | null> => {
     if (!avatarFile) return avatarPreview;
     try {
-      const storageMod = await import('firebase/storage');
-      const storage = storageMod.getStorage();
+      const storage = getStorage();
       const ext = avatarFile.name.split('.').pop() || 'jpg';
-      const fileRef = storageMod.ref(storage, `ugc-avatars/${user!.id}.${ext}`);
-      await storageMod.uploadBytes(fileRef, avatarFile);
-      return await storageMod.getDownloadURL(fileRef);
+      const path = `ugc-avatars/${user!.id}.${ext}`;
+      return await storage.upload(avatarFile, path);
     } catch {
       showToast('Failed to upload avatar', 'error');
       return avatarPreview;
