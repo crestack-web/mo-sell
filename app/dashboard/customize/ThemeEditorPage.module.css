@@ -230,6 +230,30 @@
   padding-top: 6px; border-top: 1px solid var(--sell-border-subtle);
 }
 
+/* ── Advanced collapsible ── */
+.adv {
+  border: 1px solid var(--sell-border-subtle);
+  border-radius: 10px; overflow: hidden;
+  background: var(--sell-bg);
+}
+.advToggle {
+  width: 100%; display: flex; align-items: center; justify-content: space-between;
+  gap: 8px; padding: 8px 12px; border: none; background: none; cursor: pointer;
+  font-family: var(--sell-font-body); font-size: 0.72rem; font-weight: 600;
+  color: var(--sell-text-2); text-align: left;
+  transition: color var(--sell-transition), background var(--sell-transition);
+}
+.advToggle:hover { color: var(--sell-text-1); }
+.advChevron {
+  width: 14px; height: 14px; flex-shrink: 0; color: var(--sell-text-3);
+  transition: transform var(--sell-transition);
+}
+.advChevronOpen { transform: rotate(180deg); }
+.advBody {
+  display: flex; flex-direction: column; gap: 10px;
+  padding: 4px 12px 12px; border-top: 1px solid var(--sell-border-subtle);
+}
+
 /* ── Color grid ── */
 .colorGrid {
   display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
@@ -256,6 +280,8 @@
   }
   .previewWrap { display: none; }
   .settingsPanel { border-left: none; }
+  .sectionList { max-height: 34%; }
+  .settingsContent { padding: 14px; gap: 12px; }
   .topbarCenter { display: none; }
   .topbarTitle { font-size: 0.9rem; }
   .publishBtn { padding: 8px 14px; font-size: 0.8rem; }

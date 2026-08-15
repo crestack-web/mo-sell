@@ -58,6 +58,9 @@ export interface ThemeHeroProps {
   ctaLabel?: string;
   ctaUrl?: string;
   backgroundImage?: string | null;
+  backgroundBlur?: number;    // px, 0 = sharp
+  backgroundOpacity?: number; // 0-1, 1 = fully visible image
+  overlayOpacity?: number;    // 0-1, darkness of dark overlay on image
   businessCategory?: string;
   textAlign?: 'left' | 'center' | 'right';
   buttonStyle?: 'pill' | 'square' | 'rounded';

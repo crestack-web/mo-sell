@@ -3,25 +3,35 @@
 import React from 'react';
 import type { ThemeHeroProps } from '../types';
 
-export function MarketHero({ storeName, tagline, ctaLabel = 'Shop Now', ctaUrl = '#products', backgroundImage, textAlign = 'left', buttonStyle, bgColor, bodyTextColor }: ThemeHeroProps) {
-  const bgStyle = backgroundImage
-    ? { backgroundImage: `url(${backgroundImage})`, backgroundSize: 'cover' as const, backgroundPosition: 'center' as const }
-    : {};
+export function MarketHero({ storeName, tagline, ctaLabel = 'Shop Now', ctaUrl = '#products', backgroundImage, backgroundBlur, backgroundOpacity, overlayOpacity, textAlign = 'left', buttonStyle, bgColor, bodyTextColor }: ThemeHeroProps) {
   const heroBg = bgColor || 'linear-gradient(135deg, #EA580C 0%, #F59E0B 100%)';
   const textMain = bodyTextColor || '#FFFFFF';
   const textMuted = bodyTextColor ? `${bodyTextColor}dd` : 'rgba(255,255,255,0.92)';
+  const blur = Math.max(0, backgroundBlur ?? 0);
 
   return (
     <section style={{
       position: 'relative', padding: '80px 5%', overflow: 'hidden',
       background: backgroundImage ? undefined : heroBg,
-      color: textMain, ...bgStyle,
+      color: textMain,
     }}>
+      {backgroundImage && (
+        <div style={{
+          position: 'absolute', inset: 0,
+          backgroundImage: `url(${backgroundImage})`,
+          backgroundSize: 'cover', backgroundPosition: 'center',
+          filter: blur > 0 ? `blur(${blur}px)` : undefined,
+          opacity: backgroundOpacity ?? 1,
+          transform: blur > 0 ? 'scale(1.02)' : undefined,
+          zIndex: 0, pointerEvents: 'none',
+        }} />
+      )}
       {/* Dark overlay if using background image */}
       {backgroundImage && (
         <div style={{
           position: 'absolute', inset: 0,
           background: 'linear-gradient(135deg, rgba(234,88,12,0.85) 0%, rgba(245,158,11,0.75) 100%)',
+          opacity: overlayOpacity ?? 1,
           pointerEvents: 'none',
         }} />
       )}

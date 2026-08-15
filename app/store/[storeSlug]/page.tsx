@@ -259,6 +259,9 @@ export default async function StorefrontHomePage({
                 ctaLabel={hs.ctaLabel || 'Shop Now'}
                 ctaUrl={hs.ctaUrl || '#products'}
                 backgroundImage={hs.backgroundImage ?? null}
+                backgroundBlur={hs.backgroundBlur ?? 0}
+                backgroundOpacity={hs.backgroundOpacity ?? 1}
+                overlayOpacity={hs.overlayOpacity ?? 1}
                 textAlign={hs.textAlign ?? 'left'}
                 buttonStyle={config.buttonStyle ?? 'pill'}
                 socialLinks={footerSettings?.socials}

@@ -134,7 +134,9 @@ function SfHero({ theme, storeName, tagline, settings, primary, secondary, butto
   const bgImg = settings.backgroundImage;
   const textAlign = settings.textAlign ?? 'left';
   const badgeText = settings.showBadge !== false ? (settings.badgeText || '') : '';
-  const heroBg = bgImg ? `url(${bgImg}) center/cover` :
+  const bgBlur = Math.max(0, settings.backgroundBlur ?? 0);
+  const bgOpacity = settings.backgroundOpacity ?? 1;
+  const fallbackBg =
     theme === 'luxe'   ? '#111111' :
     theme === 'ankara' ? `linear-gradient(135deg,${primary}22 0%,${secondary}18 100%)` :
     theme === 'citrus' ? `linear-gradient(135deg,${primary} 0%,${secondary} 100%)` :
@@ -150,7 +152,17 @@ function SfHero({ theme, storeName, tagline, settings, primary, secondary, butto
   else radius = isCitrus ? 100 : isLuxe ? 0 : 'var(--sf-radius-sm)' as unknown as number;
 
   return (
-      <section style={{ background: heroBg, padding: isLuxe ? (isMobile(width) ? '48px 20px' : '72px 48px') : (isMobile(width) ? '44px 20px' : '60px 32px'), display: 'flex', flexDirection: 'column', gap: 16, minHeight: isMobile(width) ? 260 : 340, justifyContent: 'center', alignItems: align, textAlign }}>
+      <section style={{ background: fallbackBg, position: 'relative', isolation: 'isolate', overflow: 'hidden', padding: isLuxe ? (isMobile(width) ? '48px 20px' : '72px 48px') : (isMobile(width) ? '44px 20px' : '60px 32px'), display: 'flex', flexDirection: 'column', gap: 16, minHeight: isMobile(width) ? 260 : 340, justifyContent: 'center', alignItems: align, textAlign }}>
+        {bgImg && (
+          <div style={{
+            position: 'absolute', inset: 0,
+            backgroundImage: `url(${bgImg})`, backgroundSize: 'cover', backgroundPosition: 'center',
+            filter: bgBlur > 0 ? `blur(${bgBlur}px)` : undefined,
+            opacity: bgOpacity,
+            transform: bgBlur > 0 ? 'scale(1.02)' : undefined,
+            zIndex: -1, pointerEvents: 'none',
+          }} />
+        )}
 
         {badgeText && <p style={{
           fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase',

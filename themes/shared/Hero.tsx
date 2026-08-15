@@ -8,10 +8,25 @@ type H = ThemeHeroProps & { themeId: string };
 
 // ─── Shared helpers ────────────────────────────────────────────────────────────
 
-function bgStyle(backgroundImage?: string | null) {
-  return backgroundImage
-    ? { backgroundImage: `url(${backgroundImage})`, backgroundSize: 'cover' as const, backgroundPosition: 'center' as const }
-    : {};
+/**
+ * Absolute-positioned background image layer. Keeps the image separate from the
+ * section so blur/opacity only affect the photo, not the text on top.
+ */
+function HeroImageLayer({ image, blur, opacity }: { image?: string | null; blur?: number; opacity?: number }) {
+  if (!image) return null;
+  const b = Math.max(0, blur ?? 0);
+  return (
+    <div style={{
+      position: 'absolute', inset: 0,
+      backgroundImage: `url(${image})`,
+      backgroundSize: 'cover', backgroundPosition: 'center',
+      filter: b > 0 ? `blur(${b}px)` : undefined,
+      opacity: opacity ?? 1,
+      transform: b > 0 ? 'scale(1.02)' : undefined, // hide blur edge artifacts
+      zIndex: 0,
+      pointerEvents: 'none',
+    }} />
+  );
 }
 
 function alignStyle(textAlign?: string) {
@@ -34,8 +49,9 @@ function AtelierHero(p: H) {
   const t = THEME_TOKENS.atelier as ThemeTokens;
   const hasBg = Boolean(p.backgroundImage);
   return (
-    <section style={{ position: 'relative', padding: '92px 5%', overflow: 'hidden', background: hasBg ? undefined : t.bg, color: t.text, ...bgStyle(p.backgroundImage) }}>
-      {hasBg && <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,0,0.62) 0%, rgba(0,0,0,0.4) 100%)', pointerEvents: 'none' }} />}
+    <section style={{ position: 'relative', padding: '92px 5%', overflow: 'hidden', background: hasBg ? undefined : t.bg, color: t.text }}>
+      {hasBg && <HeroImageLayer image={p.backgroundImage} blur={p.backgroundBlur} opacity={p.backgroundOpacity} />}
+      {hasBg && <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,0,0.62) 0%, rgba(0,0,0,0.4) 100%)', opacity: p.overlayOpacity ?? 1, pointerEvents: 'none' }} />}
       <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, background: t.accent, opacity: 0.6, pointerEvents: 'none' }} />
       <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 1, background: t.accent, opacity: 0.6, pointerEvents: 'none' }} />
       <div style={{ position: 'relative', zIndex: 1, maxWidth: 880, margin: '0 auto', textAlign: textAl(p.textAlign), display: 'flex', flexDirection: 'column', alignItems: alignStyle(p.textAlign), gap: 22 }}>
@@ -81,8 +97,9 @@ function CitrusHero(p: H) {
   const t = THEME_TOKENS.citrus as ThemeTokens;
   const hasBg = Boolean(p.backgroundImage);
   return (
-    <section style={{ position: 'relative', padding: '84px 5%', overflow: 'hidden', background: hasBg ? undefined : t.bg, color: t.text, textAlign: 'center', ...bgStyle(p.backgroundImage) }}>
-      {hasBg && <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.25) 100%)', pointerEvents: 'none' }} />}
+    <section style={{ position: 'relative', padding: '84px 5%', overflow: 'hidden', background: hasBg ? undefined : t.bg, color: t.text, textAlign: 'center' }}>
+      {hasBg && <HeroImageLayer image={p.backgroundImage} blur={p.backgroundBlur} opacity={p.backgroundOpacity} />}
+      {hasBg && <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.25) 100%)', opacity: p.overlayOpacity ?? 1, pointerEvents: 'none' }} />}
       {!hasBg && <div style={{ position: 'absolute', inset: 0, opacity: 0.3, pointerEvents: 'none', backgroundImage: `radial-gradient(${t.accent2} 1.5px, transparent 1.5px)`, backgroundSize: '14px 14px' }} />}
       <div style={{ position: 'absolute', left: '50%', top: -70, transform: 'translateX(-50%)', width: 340, height: 240, borderRadius: '50%', background: t.accent, opacity: 0.12, filter: 'blur(50px)', pointerEvents: 'none' }} />
       <div style={{ position: 'relative', zIndex: 1, maxWidth: 720, margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
@@ -127,8 +144,9 @@ function NordlyHero(p: H) {
   const t = THEME_TOKENS.nordly as ThemeTokens;
   const hasBg = Boolean(p.backgroundImage);
   return (
-    <section style={{ position: 'relative', padding: '96px 5% 84px', overflow: 'hidden', background: hasBg ? undefined : t.bg, color: t.text, ...bgStyle(p.backgroundImage) }}>
-      {hasBg && <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.3) 100%)', pointerEvents: 'none' }} />}
+    <section style={{ position: 'relative', padding: '96px 5% 84px', overflow: 'hidden', background: hasBg ? undefined : t.bg, color: t.text }}>
+      {hasBg && <HeroImageLayer image={p.backgroundImage} blur={p.backgroundBlur} opacity={p.backgroundOpacity} />}
+      {hasBg && <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.3) 100%)', opacity: p.overlayOpacity ?? 1, pointerEvents: 'none' }} />}
       <div style={{ position: 'relative', zIndex: 1, maxWidth: 1000, margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: alignStyle(p.textAlign), textAlign: textAl(p.textAlign), gap: 18 }}>
         <p style={{ fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.24em', textTransform: 'uppercase', color: t.accent, margin: 0, fontFamily: t.fontBody }}>
           {p.businessCategory || 'Home & Living'}
@@ -168,8 +186,9 @@ function NeotechHero(p: H) {
   const t = THEME_TOKENS.neotech as ThemeTokens;
   const hasBg = Boolean(p.backgroundImage);
   return (
-    <section style={{ position: 'relative', padding: '88px 5%', overflow: 'hidden', background: hasBg ? undefined : t.bg, color: t.text, ...bgStyle(p.backgroundImage) }}>
-      {hasBg && <div style={{ position: 'absolute', inset: 0, background: 'rgba(10,14,23,0.66)', pointerEvents: 'none' }} />}
+    <section style={{ position: 'relative', padding: '88px 5%', overflow: 'hidden', background: hasBg ? undefined : t.bg, color: t.text }}>
+      {hasBg && <HeroImageLayer image={p.backgroundImage} blur={p.backgroundBlur} opacity={p.backgroundOpacity} />}
+      {hasBg && <div style={{ position: 'absolute', inset: 0, background: 'rgba(10,14,23,0.66)', opacity: p.overlayOpacity ?? 1, pointerEvents: 'none' }} />}
       {!hasBg && <div style={{ position: 'absolute', left: '50%', top: 4, transform: 'translateX(-50%)', width: 320, height: 160, borderRadius: '50%', filter: 'blur(56px)', opacity: 0.35, background: t.accent, pointerEvents: 'none' }} />}
       {!hasBg && <div style={{ position: 'absolute', inset: 0, opacity: 0.12, pointerEvents: 'none', backgroundImage: `linear-gradient(${t.border} 1px, transparent 1px), linear-gradient(90deg, ${t.border} 1px, transparent 1px)`, backgroundSize: '44px 44px' }} />}
       <div style={{ position: 'relative', zIndex: 1, maxWidth: 900, display: 'flex', flexDirection: 'column', alignItems: alignStyle(p.textAlign), textAlign: textAl(p.textAlign), gap: 18 }}>
@@ -217,8 +236,9 @@ function TerraHero(p: H) {
     ['🤲', 'Small batches'],
   ];
   return (
-    <section style={{ position: 'relative', padding: '92px 5%', overflow: 'hidden', background: hasBg ? undefined : t.bg, color: t.text, textAlign: 'center', ...bgStyle(p.backgroundImage) }}>
-      {hasBg && <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(58,51,39,0.55) 0%, rgba(58,51,39,0.3) 100%)', pointerEvents: 'none' }} />}
+    <section style={{ position: 'relative', padding: '92px 5%', overflow: 'hidden', background: hasBg ? undefined : t.bg, color: t.text, textAlign: 'center' }}>
+      {hasBg && <HeroImageLayer image={p.backgroundImage} blur={p.backgroundBlur} opacity={p.backgroundOpacity} />}
+      {hasBg && <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(58,51,39,0.55) 0%, rgba(58,51,39,0.3) 100%)', opacity: p.overlayOpacity ?? 1, pointerEvents: 'none' }} />}
       {!hasBg && <div style={{ position: 'absolute', inset: 0, opacity: 0.2, pointerEvents: 'none', backgroundImage: `radial-gradient(${t.accent2} 1px, transparent 1px)`, backgroundSize: '6px 6px' }} />}
       <div style={{ position: 'relative', zIndex: 1, maxWidth: 760, margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18 }}>
         <span style={{ fontSize: 26, lineHeight: 1 }}>🌿</span>
@@ -266,8 +286,9 @@ function VoltHero(p: H) {
   const t = THEME_TOKENS.volt as ThemeTokens;
   const hasBg = Boolean(p.backgroundImage);
   return (
-    <section style={{ position: 'relative', padding: '0 5% 0', overflow: 'hidden', background: hasBg ? undefined : t.bg, color: t.text, ...bgStyle(p.backgroundImage) }}>
-      {hasBg && <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.68)', pointerEvents: 'none' }} />}
+    <section style={{ position: 'relative', padding: '0 5% 0', overflow: 'hidden', background: hasBg ? undefined : t.bg, color: t.text }}>
+      {hasBg && <HeroImageLayer image={p.backgroundImage} blur={p.backgroundBlur} opacity={p.backgroundOpacity} />}
+      {hasBg && <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.68)', opacity: p.overlayOpacity ?? 1, pointerEvents: 'none' }} />}
       <div style={{ position: 'absolute', inset: 0, opacity: 0.18, pointerEvents: 'none', backgroundImage: `repeating-linear-gradient(45deg, ${t.accent} 0px, ${t.accent} 1px, transparent 1px, transparent 16px)` }} />
       <div style={{ position: 'relative', zIndex: 1, padding: '88px 0 72px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 40 }}>
@@ -313,8 +334,9 @@ function BotanicaHero(p: H) {
   const t = THEME_TOKENS.botanica as ThemeTokens;
   const hasBg = Boolean(p.backgroundImage);
   return (
-    <section style={{ position: 'relative', padding: '92px 5%', overflow: 'hidden', background: hasBg ? undefined : t.bg, color: t.text, textAlign: 'center', ...bgStyle(p.backgroundImage) }}>
-      {hasBg && <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(15,35,24,0.6) 0%, rgba(15,35,24,0.35) 100%)', pointerEvents: 'none' }} />}
+    <section style={{ position: 'relative', padding: '92px 5%', overflow: 'hidden', background: hasBg ? undefined : t.bg, color: t.text, textAlign: 'center' }}>
+      {hasBg && <HeroImageLayer image={p.backgroundImage} blur={p.backgroundBlur} opacity={p.backgroundOpacity} />}
+      {hasBg && <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(15,35,24,0.6) 0%, rgba(15,35,24,0.35) 100%)', opacity: p.overlayOpacity ?? 1, pointerEvents: 'none' }} />}
       {!hasBg && <div style={{ position: 'absolute', inset: 0, opacity: 0.22, pointerEvents: 'none', background: `radial-gradient(circle at 15% 20%, ${t.accent2} 0%, transparent 35%), radial-gradient(circle at 85% 75%, ${t.accent} 0%, transparent 40%)` }} />}
       <div style={{ position: 'relative', zIndex: 1, maxWidth: 720, margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
         <p style={{ fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.26em', textTransform: 'uppercase', color: t.accent, margin: 0, fontFamily: t.fontBody }}>
@@ -361,8 +383,9 @@ function PrismHero(p: H) {
   const t = THEME_TOKENS.prism as ThemeTokens;
   const hasBg = Boolean(p.backgroundImage);
   return (
-    <section style={{ position: 'relative', padding: '96px 5%', overflow: 'hidden', background: hasBg ? undefined : t.bg, color: t.text, textAlign: 'center', ...bgStyle(p.backgroundImage) }}>
-      {hasBg && <div style={{ position: 'absolute', inset: 0, background: 'rgba(20,10,40,0.45)', pointerEvents: 'none' }} />}
+    <section style={{ position: 'relative', padding: '96px 5%', overflow: 'hidden', background: hasBg ? undefined : t.bg, color: t.text, textAlign: 'center' }}>
+      {hasBg && <HeroImageLayer image={p.backgroundImage} blur={p.backgroundBlur} opacity={p.backgroundOpacity} />}
+      {hasBg && <div style={{ position: 'absolute', inset: 0, background: 'rgba(20,10,40,0.45)', opacity: p.overlayOpacity ?? 1, pointerEvents: 'none' }} />}
       {!hasBg && (
         <>
           <div style={{ position: 'absolute', top: -70, left: '12%', width: 220, height: 220, borderRadius: '50%', background: t.accent2, opacity: 0.35, filter: 'blur(60px)', pointerEvents: 'none' }} />

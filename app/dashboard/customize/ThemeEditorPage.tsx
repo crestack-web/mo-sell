@@ -51,6 +51,19 @@ function SGroup({ label }: { label: string }) {
   return <p className={styles.sGroup}>{label}</p>;
 }
 
+function Advanced({ title, defaultOpen, children }: { title: string; defaultOpen?: boolean; children: React.ReactNode }) {
+  const [open, setOpen] = useState(defaultOpen ?? false);
+  return (
+    <div className={styles.adv}>
+      <button className={styles.advToggle} type="button" onClick={() => setOpen(!open)} aria-expanded={open}>
+        <span>{title}</span>
+        <svg className={[styles.advChevron, open ? styles.advChevronOpen : ''].join(' ')} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      {open && <div className={styles.advBody}>{children}</div>}
+    </div>
+  );
+}
+
 function TF({ label, value, onChange, placeholder, hint }: {
   label: string; value: string; onChange: (v: string) => void; placeholder?: string; hint?: string;
 }) {
@@ -105,7 +118,7 @@ function ColorField({ label, value, onChange }: { label: string; value: string; 
   );
 }
 
-function HeroSettings({ s, upd, isLinkStyle, isCreator }: { s: HeroSectionSettings; upd: (p: Partial<HeroSectionSettings>) => void; isLinkStyle?: boolean; isCreator?: boolean }) {
+function HeroSettings({ s, upd, isLinkStyle, isCreator, isMobile }: { s: HeroSectionSettings; upd: (p: Partial<HeroSectionSettings>) => void; isLinkStyle?: boolean; isCreator?: boolean; isMobile?: boolean }) {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const handleHeroImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -132,8 +145,6 @@ function HeroSettings({ s, upd, isLinkStyle, isCreator }: { s: HeroSectionSettin
         <TF label="Heading" value={s.heading ?? ''} onChange={v => upd({ heading: v })} placeholder="Defaults to store name" />
         <TF label="Subheading" value={s.subheading ?? ''} onChange={v => upd({ subheading: v })} placeholder="Defaults to tagline" />
         <Toggle label="Show subheading" value={s.showTagline !== false} onChange={v => upd({ showTagline: v })} />
-        <TF label="Badge text" value={s.badgeText ?? ''} onChange={v => upd({ badgeText: v })} placeholder="e.g. New Collection" hint="Small decorative text shown above heading" />
-        <Toggle label="Show badge" value={s.showBadge !== false} onChange={v => upd({ showBadge: v })} hint="Show/hide the badge text above heading" />
         <TF label="Button text" value={s.ctaLabel ?? 'Shop Now'} onChange={v => upd({ ctaLabel: v })} />
         <TF label="Button link" value={s.ctaUrl ?? '#products'} onChange={v => upd({ ctaUrl: v })} />
         <SGroup label="STYLE" />
@@ -151,11 +162,27 @@ function HeroSettings({ s, upd, isLinkStyle, isCreator }: { s: HeroSectionSettin
           <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleHeroImageUpload} />
           <p className={styles.fHint}>Paste a URL or upload an image (max 5MB)</p>
         </div>
-        <div className={styles.field}>
-          <label className={styles.fLabel}>Overlay opacity</label>
-          <input className={styles.fInput} type="range" min={0} max={1} step={0.05} value={s.overlayOpacity ?? 0.4} onChange={e => upd({ overlayOpacity: Number(e.target.value) })} />
-          <p className={styles.fHint}>Darkness of the overlay on background images (0 = none, 1 = black)</p>
-        </div>
+        <Advanced title="Badge" defaultOpen={!isMobile}>
+          <TF label="Badge text" value={s.badgeText ?? ''} onChange={v => upd({ badgeText: v })} placeholder="e.g. New Collection" hint="Small decorative text shown above heading" />
+          <Toggle label="Show badge" value={s.showBadge !== false} onChange={v => upd({ showBadge: v })} hint="Show/hide the badge text above heading" />
+        </Advanced>
+        <Advanced title="Image effects" defaultOpen={!isMobile}>
+          <div className={styles.field}>
+            <label className={styles.fLabel}>Overlay opacity</label>
+            <input className={styles.fInput} type="range" min={0} max={1} step={0.05} value={s.overlayOpacity ?? 1} onChange={e => upd({ overlayOpacity: Number(e.target.value) })} />
+            <p className={styles.fHint}>Darkness of the overlay on background images (0 = none, 1 = black)</p>
+          </div>
+          <div className={styles.field}>
+            <label className={styles.fLabel}>Image blur</label>
+            <input className={styles.fInput} type="range" min={0} max={20} step={1} value={s.backgroundBlur ?? 0} onChange={e => upd({ backgroundBlur: Number(e.target.value) })} />
+            <p className={styles.fHint}>Blur the background image (0 = sharp, 20 = heavy blur)</p>
+          </div>
+          <div className={styles.field}>
+            <label className={styles.fLabel}>Image opacity</label>
+            <input className={styles.fInput} type="range" min={0.1} max={1} step={0.05} value={s.backgroundOpacity ?? 1} onChange={e => upd({ backgroundOpacity: Number(e.target.value) })} />
+            <p className={styles.fHint}>Fade the background image so theme colors show through (1 = fully visible)</p>
+          </div>
+        </Advanced>
       </>
     )}
     {isCreator && (
@@ -778,7 +805,7 @@ export function ThemeEditorPage() {
                   <span className={styles.settingsIcon}>{SectionIcons[activeSection.type]}</span>
                   <span className={styles.settingsTitle}>{SECTION_META[activeSection.type].label}</span>
                 </div>
-                {activeSection.type === 'hero'         && <HeroSettings         s={activeSection.settings as HeroSectionSettings}         upd={p => updateSettings(activeSection.id, p as Record<string,unknown>)} isLinkStyle={isLinkStyle} isCreator={isCreator} />}
+                {activeSection.type === 'hero'         && <HeroSettings         s={activeSection.settings as HeroSectionSettings}         upd={p => updateSettings(activeSection.id, p as Record<string,unknown>)} isLinkStyle={isLinkStyle} isCreator={isCreator} isMobile={isMobile} />}
                 {activeSection.type === 'announcement' && <AnnouncementSettings s={activeSection.settings as AnnouncementSectionSettings} upd={p => updateSettings(activeSection.id, p as Record<string,unknown>)} />}
                 {activeSection.type === 'featured'     && <FeaturedSettings     s={activeSection.settings as FeaturedSectionSettings}     upd={p => updateSettings(activeSection.id, p as Record<string,unknown>)} />}
                 {activeSection.type === 'collections'  && <CollectionsSettings  s={activeSection.settings as CollectionsSectionSettings}  upd={p => updateSettings(activeSection.id, p as Record<string,unknown>)} />}
@@ -850,12 +877,13 @@ export function ThemeEditorPage() {
                   <label className={styles.cLabel}><input type="color" value={secondary} onChange={e => { pushUndo(); setSecondary(e.target.value); mark(); }} className={styles.cPicker} aria-label="Accent color" />Accent</label>
                 </div>
                 <div className={styles.designDivider} />
-                <div className={styles.designGroup}>
-                  <p className={styles.designTitle}>Store Design</p>
-                  <div className={styles.field}>
-                    <label className={styles.fLabel}>Font family</label>
-                    <select className={styles.fSelect} value={fontFamily} onChange={e => { pushUndo(); setFontFamily(e.target.value); mark(); }}>
-                      <option value="">Theme default</option>
+                <Advanced title="Advanced store settings" defaultOpen={!isMobile}>
+                  <div className={styles.designGroup}>
+                    <p className={styles.designTitle}>Store Design</p>
+                    <div className={styles.field}>
+                      <label className={styles.fLabel}>Font family</label>
+                      <select className={styles.fSelect} value={fontFamily} onChange={e => { pushUndo(); setFontFamily(e.target.value); mark(); }}>
+                        <option value="">Theme default</option>
                       <option value="Plus Jakarta Sans">Plus Jakarta Sans</option>
                       <option value="DM Sans">DM Sans</option>
                       <option value="Playfair Display">Playfair Display</option>
@@ -897,7 +925,8 @@ export function ThemeEditorPage() {
                     </div>
                     <p className={styles.fHint}>Overrides the page background</p>
                   </div>
-                </div>
+                  </div>
+                </Advanced>
                 {(isCreator) && (
                   <>
                     <div className={styles.designDivider} />

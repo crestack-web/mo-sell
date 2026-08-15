@@ -41,6 +41,8 @@ export interface HeroSectionSettings {
   ctaUrl?: string;            // defaults to "#products"
   backgroundImage?: string | null;
   overlayOpacity?: number;    // 0-1
+  backgroundBlur?: number;    // px, 0 = sharp
+  backgroundOpacity?: number; // 0-1, 1 = fully visible image
   textAlign?: 'left' | 'center' | 'right';
   showTagline?: boolean;
   badgeText?: string;         // Small decorative text above heading (e.g. "New Collection", "Professional Services")
