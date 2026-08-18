@@ -219,6 +219,8 @@
   .summaryGrid { grid-template-columns: 1fr 1fr; }
   .custStats { grid-template-columns: 1fr 1fr; }
   .infoGrid { grid-template-columns: 1fr; }
-  .table th:nth-child(5), .table td:nth-child(5),
-  .table th:nth-child(6), .table td:nth-child(6) { display: none; }
+  /* Match orders: horizontal scroll instead of clipping/hiding columns */
+  .tableWrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .table { min-width: 720px; }
+  .table th, .table td { white-space: nowrap; }
 }
