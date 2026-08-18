@@ -24,7 +24,7 @@ export function extractFencedJson(
     } catch {
       try {
         const repaired = raw
-          .replace(/,\\s*([}\\]])/g, '$1')
+          .replace(/,\s*([}\]])/g, '$1')
           .replace(/'/g, '"');
         return JSON.parse(repaired) as Record<string, unknown>;
       } catch (e) {
