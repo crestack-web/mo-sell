@@ -53,7 +53,7 @@ interface UgcEarningOrder {
 }
 
 function fmt(n: number, currency = 'NGN') {
-  const sym = currency === 'NGN' ? '\u20a6' : currency === 'USD' ? '$' : currency + ' ';
+  const sym = currency === 'NGN' ? '\u20A6' : currency === 'USD' ? '$' : currency + ' ';
   return `${sym}${n.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
@@ -173,7 +173,7 @@ export function SellEarningsPage() {
   const billingPlan = (storeConfig as any)?.billingPlan;
   const currency = storeConfig?.currency ?? 'NGN';
   const isStandardPlan = billingModel === 'monthly' && billingPlan === 'standard';
-  const commissionLabel = isStandardPlan ? '5% \u00b7 10% digital' : pct(commissionRate);
+  const commissionLabel = isStandardPlan ? '5% \u00B7 10% digital' : pct(commissionRate);
 
   const promoteEarnings = useCallback(async (biz: string, items: Earning[]) => {
     const db = getDatabase();
@@ -232,7 +232,6 @@ export function SellEarningsPage() {
         processedAt: d.data().processedAt ? new Date(d.data().processedAt) : null,
         sentAt:      d.data().sentAt ? new Date(d.data().sentAt) : null,
       }));
-      // Newest first so status changes are obvious at the top of the list
       mappedPayouts.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
       setPayouts(mappedPayouts);
     } catch (err) {
@@ -260,8 +259,7 @@ export function SellEarningsPage() {
     };
   }, [load, user?.businessId]);
 
-  // Poll while any payout is still in flight (requested / sent) so the badge
-  // moves to Sent / Completed without requiring a manual hard refresh.
+  // Poll while any payout is still in flight (requested / sent)
   useEffect(() => {
     if (!user?.businessId) return;
     const inFlight = payouts.some(p => p.status === 'requested' || p.status === 'sent');
@@ -387,7 +385,7 @@ export function SellEarningsPage() {
         showToast(data.error ?? 'Cashout failed', 'error');
         return;
       }
-      showToast(`Cashout of ${fmt((data.amount ?? 0) / 100, currency)} initiated! Funds sent within 1\u20133 business days.`, 'success');
+      showToast(`Cashout of ${fmt((data.amount ?? 0) / 100, currency)} initiated! Funds sent within 1-3 business days.`, 'success');
       setCashoutOpen(false);
       setAcctNumber('');
       setAcctName('');
@@ -453,7 +451,7 @@ export function SellEarningsPage() {
       setConfirmOpen(false);
       setPayoutStep('confirm');
       setOtpCode('');
-      showToast(`Payout of ${fmt(paid, currency)} requested! Funds arrive in 1\u20133 business days.`, 'success');
+      showToast(`Payout of ${fmt(paid, currency)} requested! Funds arrive in 1-3 business days.`, 'success');
       await load();
       setTab('payouts');
     } catch {
@@ -468,7 +466,7 @@ export function SellEarningsPage() {
       <div className={styles.page}>
         <div className={styles.loading}>
           <div className={styles.spinner} />
-          <p>Loading earnings\u2026</p>
+          <p>Loading earnings...</p>
         </div>
       </div>
     );
@@ -485,7 +483,7 @@ export function SellEarningsPage() {
           <p className={styles.emptyTitle}>Enable Managed Payments first</p>
           <p className={styles.emptySub}>
             Turn on Managed Payments in Settings to let Busmo collect payments on your behalf.
-            A {pct(commissionRate || 0.05)} commission is charged per sale \u2014 your net earnings appear here and you can request a payout anytime.
+            A {pct(commissionRate || 0.05)} commission is charged per sale - your net earnings appear here and you can request a payout anytime.
           </p>
           <button className={styles.btnPrimary} onClick={() => navigateTo('settings')}>
             Go to Settings
@@ -513,7 +511,7 @@ export function SellEarningsPage() {
           ) : commissionRate > 0 ? (
             <p className={styles.sub}>Busmo collects on your behalf and charges {pct(commissionRate)} commission per sale.</p>
           ) : billingModel === 'monthly' ? (
-            <p className={styles.sub}>No per-sale commission \u2014 your monthly plan fee is only deducted when your revenue reaches the plan fee.</p>
+            <p className={styles.sub}>No per-sale commission - your monthly plan fee is only deducted when your revenue reaches the plan fee.</p>
           ) : (
             <p className={styles.sub}>Busmo collects on your behalf and charges {pct(commissionRate)} commission per sale.</p>
           )}
@@ -524,7 +522,7 @@ export function SellEarningsPage() {
             onClick={() => setCashoutOpen(true)}
             disabled={!hasUgcAvailable || cashingOut}
           >
-            {cashingOut ? 'Processing\u2026' : `Cash out ${hasUgcAvailable ? `(${fmt(ugcAvailable / 100, currency)})` : ''}`}
+            {cashingOut ? 'Processing...' : `Cash out ${hasUgcAvailable ? `(${fmt(ugcAvailable / 100, currency)})` : ''}`}
           </button>
         ) : (
           <button
@@ -532,7 +530,7 @@ export function SellEarningsPage() {
             onClick={() => { setPayoutStep('confirm'); setOtpCode(''); setConfirmOpen(true); }}
             disabled={!hasAvailable || !minPayoutMet || requesting}
           >
-            {requesting ? 'Processing\u2026' : `Request payout ${hasAvailable ? `(${fmt(available, currency)})` : ''}`}
+            {requesting ? 'Processing...' : `Request payout ${hasAvailable ? `(${fmt(available, currency)})` : ''}`}
           </button>
         )}
       </div>
@@ -597,7 +595,7 @@ export function SellEarningsPage() {
 
       {activeTab !== 'ugc' && pendingCount > 0 && (
         <div className={styles.infoBanner}>
-          <span>{pendingCount} earning{pendingCount !== 1 ? 's are' : ' is'} pending \u2014 funds become available 24 hours after the sale to allow for refunds.</span>
+          <span>{pendingCount} earning{pendingCount !== 1 ? 's are' : ' is'} pending - funds become available 24 hours after the sale to allow for refunds.</span>
         </div>
       )}
 
@@ -700,7 +698,7 @@ export function SellEarningsPage() {
                       )}
                     </td>
                     <td>{p.bankName}</td>
-                    <td><span className={styles.acctNum}>{p.accountNumber}</span> \u00b7 {p.accountName}</td>
+                    <td><span className={styles.acctNum}>{p.accountNumber}</span> {'\u00B7'} {p.accountName}</td>
                     <td className={[styles.tdRight, styles.netAmount].join(' ')}>{fmt(p.amount, currency)}</td>
                     <td>{p.earningIds.length}</td>
                     <td>
@@ -762,7 +760,7 @@ export function SellEarningsPage() {
           <div className={styles.modal} onClick={e => e.stopPropagation()}>
             <h3 className={styles.modalTitle}>Cash Out UGC Earnings</h3>
             <p className={styles.modalBody}>
-              You're cashing out <strong>{fmt(ugcAvailable / 100, currency)}</strong> from {ugcEligible.length} completed order{ugcEligible.length !== 1 ? 's' : ''}. Funds are sent to your bank within 1\u20133 business days.
+              You're cashing out <strong>{fmt(ugcAvailable / 100, currency)}</strong> from {ugcEligible.length} completed order{ugcEligible.length !== 1 ? 's' : ''}. Funds are sent to your bank within 1-3 business days.
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 14 }}>
               <select
@@ -791,16 +789,16 @@ export function SellEarningsPage() {
                 disabled={verifyingBank || acctNumber.length !== 10 || !bankCode}
                 style={{ alignSelf: 'flex-start' }}
               >
-                {verifyingBank ? 'Verifying\u2026' : 'Verify account'}
+                {verifyingBank ? 'Verifying...' : 'Verify account'}
               </button>
               {acctName && (
-                <p style={{ fontSize: '0.82rem', color: 'var(--sell-green)', fontWeight: 600 }}>\u2713 {acctName}</p>
+                <p style={{ fontSize: '0.82rem', color: 'var(--sell-green)', fontWeight: 600 }}>{'\u2713'} {acctName}</p>
               )}
             </div>
             <div className={styles.modalActions}>
               <button className={styles.btnSecondary} onClick={() => setCashoutOpen(false)}>Cancel</button>
               <button className={styles.btnPrimary} onClick={handleUgcCashout} disabled={cashingOut || !acctName}>
-                {cashingOut ? 'Processing\u2026' : 'Confirm cashout'}
+                {cashingOut ? 'Processing...' : 'Confirm cashout'}
               </button>
             </div>
           </div>
@@ -815,7 +813,7 @@ export function SellEarningsPage() {
                 <h3 className={styles.modalTitle}>Verify Payout</h3>
                 <p className={styles.modalBody}>
                   We sent a 6-digit code to <strong>{user?.email}</strong>. Enter it below to authorize your{' '}
-                  <strong>{fmt(available, currency)}</strong> payout. Funds arrive in 1\u20133 business days. The code expires in 10 minutes.
+                  <strong>{fmt(available, currency)}</strong> payout. Funds arrive in 1-3 business days. The code expires in 10 minutes.
                 </p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 14 }}>
                   <input
@@ -853,7 +851,7 @@ export function SellEarningsPage() {
                   You're requesting a payout of <strong>{fmt(available, currency)}</strong> from {availableCount} earning{availableCount !== 1 ? 's' : ''}. We'll email you a one-time code to authorize it.
                 </p>
                 <p className={styles.modalBody} style={{ marginTop: 8 }}>
-                  Funds sent to <strong>{(storeConfig as any)?.payoutAccountName}</strong> at <strong>{(storeConfig as any)?.payoutBankName}</strong> ({(storeConfig as any)?.payoutAccountNumber}) within 1\u20133 business days.
+                  Funds sent to <strong>{(storeConfig as any)?.payoutAccountName}</strong> at <strong>{(storeConfig as any)?.payoutBankName}</strong> ({(storeConfig as any)?.payoutAccountNumber}) within 1-3 business days.
                 </p>
               </>
             )}
@@ -861,11 +859,11 @@ export function SellEarningsPage() {
               <button className={styles.btnSecondary} onClick={() => setConfirmOpen(false)}>Cancel</button>
               {payoutStep === 'otp' ? (
                 <button className={styles.btnPrimary} onClick={handleVerifyPayoutOtp} disabled={requesting || otpCode.length !== 6}>
-                  {requesting ? 'Sending\u2026' : 'Verify & send payout'}
+                  {requesting ? 'Sending...' : 'Verify & send payout'}
                 </button>
               ) : (
                 <button className={styles.btnPrimary} onClick={handleSendPayoutOtp} disabled={requesting}>
-                  {requesting ? 'Sending code\u2026' : 'Send verification code'}
+                  {requesting ? 'Sending code...' : 'Send verification code'}
                 </button>
               )}
             </div>
@@ -879,7 +877,7 @@ export function SellEarningsPage() {
             <h3 className={styles.modalTitle}>Payout Requested</h3>
             <p className={styles.modalBody}>
               <strong>{fmt(payoutSuccess.amount, payoutSuccess.currency)}</strong> was requested successfully.
-              A confirmation email with your reference is on its way. Funds arrive in your bank within <strong>1\u20133 business days</strong>.
+              A confirmation email with your reference is on its way. Funds arrive in your bank within <strong>1-3 business days</strong>.
             </p>
             <div className={styles.modalActions} style={{ justifyContent: 'center' }}>
               <button className={styles.btnPrimary} onClick={() => setPayoutSuccess(null)}>Done</button>
