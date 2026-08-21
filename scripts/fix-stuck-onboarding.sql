@@ -96,7 +96,7 @@ BEGIN
       NULL,
       v_pending->'domainPurchaseRecord',
       v_pending->'onboardingAnswers',
-      'pay_as_you_go', 'active', 0.3,
+      'pay_as_you_go', 'active', 0.2,
       v_created_at, v_created_at
     );
   ELSE
@@ -104,7 +104,7 @@ BEGIN
     UPDATE public.businesses
        SET "billingModel"   = COALESCE("billingModel", 'pay_as_you_go'),
            "billingStatus"  = COALESCE("billingStatus", 'active'),
-           "commissionRate" = COALESCE("commissionRate", 0.3),
+           "commissionRate" = COALESCE("commissionRate", 0.2),
            "updatedAt"      = now()
      WHERE id = v_business_id;
   END IF;
