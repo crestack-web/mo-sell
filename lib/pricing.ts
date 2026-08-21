@@ -1,7 +1,7 @@
 // ─── MO Sell pricing model ────────────────────────────────────────────────────
 //
 // Two models:
-//   1. pay_as_you_go — 30% commission per sale, no monthly fee.
+//   1. pay_as_you_go — 20% commission per sale, no monthly fee.
 //   2. monthly       — no per-sale commission; a fixed plan fee that is deducted
 //                      from the earnings balance ONLY when the month's revenue
 //                      is >= the plan fee (conditional billing).
@@ -10,7 +10,7 @@ export const BILLING_MODEL_PAYG = 'pay_as_you_go';
 export const BILLING_MODEL_MONTHLY = 'monthly';
 
 /** Commission charged per sale for pay-as-you-go stores. */
-export const PAYG_COMMISSION_RATE = 0.3;
+export const PAYG_COMMISSION_RATE = 0.2;
 
 /** Legacy managed-payments commission (pre-pricing-model stores). */
 export const LEGACY_MANAGED_PAYMENTS_COMMISSION_RATE = 0.05;
