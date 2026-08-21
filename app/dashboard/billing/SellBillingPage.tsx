@@ -173,12 +173,12 @@ export function SellBillingPage() {
             <div className={styles.planName}>
               {isMonthly
                 ? `${activePlan?.name ?? 'Monthly'} plan — ${fmtNgn(data.feeNgn)}/month`
-                : 'Pay-as-you-go — 30% commission'}
+                : 'Pay-as-you-go — 20% commission'}
             </div>
             <div className={styles.planMeta}>
               {isMonthly
                 ? `Charges ${commissionDesc(activePlan?.id)}. The monthly fee is only deducted from your earnings when your revenue reaches the plan fee.`
-                : 'No monthly fee. MO Sell charges 30% commission on each sale — you keep 70%.'}
+                : 'No monthly fee. MO Sell charges 20% commission on each sale — you keep 80%.'}
             </div>
           </div>
           {isMonthly && (
@@ -206,7 +206,7 @@ export function SellBillingPage() {
         </h3>
         <p style={{ fontSize: '0.85rem', color: 'var(--sell-text-2)', marginBottom: 14, maxWidth: 620, lineHeight: 1.6 }}>
           Monthly plans charge a flat fee only in months where your revenue reaches the plan fee —
-          otherwise it&apos;s waived. The Standard plan charges 5% commission (10% on digital products);
+          otherwise it's waived. The Standard plan charges 5% commission (10% on digital products);
           Pro and Enterprise charge no commission. Switch back to pay-as-you-go anytime.
         </p>
         <div className={styles.plansGrid}>
@@ -245,7 +245,7 @@ export function SellBillingPage() {
             <p className={styles.emptySub}>
               {isMonthly
                 ? 'Once your monthly revenue reaches the plan fee, the fee will appear here.'
-                : 'You\'re on pay-as-you-go — no monthly charges apply.'}
+                : "You're on pay-as-you-go — no monthly charges apply."}
             </p>
           </div>
         ) : (
