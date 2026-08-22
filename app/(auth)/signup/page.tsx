@@ -74,7 +74,6 @@ export default function SellSignupPage() {
   const [userId, setUserId] = useState('');
   const [businessId, setBusinessId] = useState('');
 
-  // Resume after Google OAuth: /signup?onboarding=1
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('onboarding') !== '1') return;
@@ -98,7 +97,9 @@ export default function SellSignupPage() {
           session.user.user_metadata?.name ||
           ''
       );
-      setStep(2);
+      if (userData.businessName) setBusinessName(userData.businessName);
+      // Resume at business name if store not created yet
+      setStep(userData.onboardingComplete ? 3 : 2);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -189,6 +190,12 @@ export default function SellSignupPage() {
         { businessName, updatedAt: new Date().toISOString() },
         { merge: true }
       );
+      if (userId) {
+        await db.doc(`users/${userId}`).set(
+          { businessName, onboardingComplete: false, updatedAt: new Date().toISOString() },
+          { merge: true }
+        );
+      }
       posthog.capture('sell_signup_completed', { step: 2 });
       setStep(3);
     } catch (err: unknown) {
@@ -243,6 +250,17 @@ export default function SellSignupPage() {
       };
 
       await db.doc(`businesses/${bid}/store/config`).set(configData);
+      await db.doc(`businesses/${bid}`).set(
+        {
+          billingModel: 'pay_as_you_go',
+          billingStatus: 'active',
+          commissionRate: 0.2,
+          businessName: name,
+          ownerUserId: uid,
+          updatedAt: new Date().toISOString(),
+        },
+        { merge: true }
+      );
       await db.doc(`storeIndex/${storeSlug}`).set({
         businessId: bid,
         storeName: name,
@@ -252,6 +270,8 @@ export default function SellSignupPage() {
         {
           businessId: bid,
           onboardingComplete: true,
+          moSellAccess: true,
+          billingModel: 'pay_as_you_go',
           updatedAt: new Date().toISOString(),
         },
         { merge: true }
@@ -279,7 +299,6 @@ export default function SellSignupPage() {
       }}
     >
       <div style={{ width: '100%', maxWidth: 440 }}>
-        {/* Steps */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 28 }}>
           {[1, 2, 3].map(s => (
             <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -337,7 +356,6 @@ export default function SellSignupPage() {
             </div>
           )}
 
-          {/* Step 1 — Account */}
           {step === 1 && (
             <>
               <div style={{ textAlign: 'center', marginBottom: 24 }}>
@@ -347,15 +365,7 @@ export default function SellSignupPage() {
                   alt="Mo-sell"
                   style={{ width: 48, height: 48, objectFit: 'contain', marginBottom: 12 }}
                 />
-                <h1
-                  style={{
-                    fontFamily: FONT_DISPLAY,
-                    fontWeight: 800,
-                    fontSize: 22,
-                    color: C.text1,
-                    margin: '0 0 4px',
-                  }}
-                >
+                <h1 style={{ fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 22, color: C.text1, margin: '0 0 4px' }}>
                   {!otpSent ? 'Create your account' : 'Verify your email'}
                 </h1>
                 <p style={{ fontSize: 14, color: C.text2, margin: 0 }}>
@@ -370,21 +380,11 @@ export default function SellSignupPage() {
                     onClick={handleGoogleSignup}
                     disabled={loading}
                     style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 10,
-                      width: '100%',
-                      padding: 13,
-                      borderRadius: 10,
-                      border: `1.5px solid ${C.border}`,
-                      background: C.surface,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                      width: '100%', padding: 13, borderRadius: 10,
+                      border: `1.5px solid ${C.border}`, background: C.surface,
                       cursor: loading ? 'not-allowed' : 'pointer',
-                      color: C.text1,
-                      fontFamily: FONT_BODY,
-                      fontWeight: 600,
-                      fontSize: 14,
-                      marginBottom: 16,
+                      color: C.text1, fontFamily: FONT_BODY, fontWeight: 600, fontSize: 14, marginBottom: 16,
                     }}
                   >
                     <GoogleMark />
@@ -398,46 +398,17 @@ export default function SellSignupPage() {
                   </div>
 
                   <form onSubmit={handleSendOTP} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    <input
-                      type="text"
-                      placeholder="Full name"
-                      required
-                      value={fullName}
-                      onChange={e => setFullName(e.target.value)}
-                      style={inputStyle}
-                    />
-                    <input
-                      type="email"
-                      placeholder="Email address"
-                      required
-                      value={email}
-                      onChange={e => setEmail(e.target.value)}
-                      style={inputStyle}
-                    />
-                    <input
-                      type="password"
-                      placeholder="Password (min 6 characters)"
-                      required
-                      minLength={6}
-                      value={password}
-                      onChange={e => setPassword(e.target.value)}
-                      style={inputStyle}
-                    />
+                    <input type="text" placeholder="Full name" required value={fullName} onChange={e => setFullName(e.target.value)} style={inputStyle} />
+                    <input type="email" placeholder="Email address" required value={email} onChange={e => setEmail(e.target.value)} style={inputStyle} />
+                    <input type="password" placeholder="Password (min 6 characters)" required minLength={6} value={password} onChange={e => setPassword(e.target.value)} style={inputStyle} />
                     <button
                       type="submit"
                       disabled={loading}
                       style={{
-                        padding: 13,
-                        borderRadius: 10,
-                        border: 'none',
+                        padding: 13, borderRadius: 10, border: 'none',
                         cursor: loading ? 'not-allowed' : 'pointer',
-                        background: loading
-                          ? C.text3
-                          : `linear-gradient(135deg, ${C.primary}, ${C.accent})`,
-                        color: '#fff',
-                        fontFamily: FONT_DISPLAY,
-                        fontWeight: 700,
-                        fontSize: 15,
+                        background: loading ? C.text3 : `linear-gradient(135deg, ${C.primary}, ${C.accent})`,
+                        color: '#fff', fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 15,
                       }}
                     >
                       {loading ? 'Sending code…' : 'Continue →'}
@@ -447,53 +418,29 @@ export default function SellSignupPage() {
               ) : (
                 <form onSubmit={handleVerifyOTP} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   <input
-                    type="text"
-                    placeholder="6-digit code"
-                    required
-                    value={otp}
-                    maxLength={6}
+                    type="text" placeholder="6-digit code" required value={otp} maxLength={6}
                     onChange={e => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                    style={{
-                      ...inputStyle,
-                      textAlign: 'center',
-                      letterSpacing: 8,
-                      fontSize: 22,
-                    }}
+                    style={{ ...inputStyle, textAlign: 'center', letterSpacing: 8, fontSize: 22 }}
                   />
                   <button
                     type="submit"
                     disabled={loading || otp.length !== 6}
                     style={{
-                      padding: 13,
-                      borderRadius: 10,
-                      border: 'none',
+                      padding: 13, borderRadius: 10, border: 'none',
                       cursor: loading || otp.length !== 6 ? 'not-allowed' : 'pointer',
                       background: loading || otp.length !== 6 ? C.text3 : C.green,
-                      color: '#fff',
-                      fontFamily: FONT_DISPLAY,
-                      fontWeight: 700,
-                      fontSize: 15,
+                      color: '#fff', fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 15,
                     }}
                   >
                     {loading ? 'Verifying…' : 'Verify email →'}
                   </button>
                   <button
                     type="button"
-                    onClick={() => {
-                      setOtpSent(false);
-                      setOtp('');
-                      setError('');
-                    }}
+                    onClick={() => { setOtpSent(false); setOtp(''); setError(''); }}
                     style={{
-                      padding: 10,
-                      borderRadius: 10,
-                      border: `1.5px solid ${C.border}`,
-                      background: C.surface,
-                      color: C.text2,
-                      cursor: 'pointer',
-                      fontFamily: FONT_BODY,
-                      fontWeight: 600,
-                      fontSize: 13,
+                      padding: 10, borderRadius: 10, border: `1.5px solid ${C.border}`,
+                      background: C.surface, color: C.text2, cursor: 'pointer',
+                      fontFamily: FONT_BODY, fontWeight: 600, fontSize: 13,
                     }}
                   >
                     ← Edit email
@@ -503,54 +450,29 @@ export default function SellSignupPage() {
 
               <p style={{ textAlign: 'center', marginTop: 16, fontSize: 13, color: C.text2 }}>
                 Already have an account?{' '}
-                <a href="/login" style={{ color: C.primary, fontWeight: 600, textDecoration: 'none' }}>
-                  Log in
-                </a>
+                <a href="/login" style={{ color: C.primary, fontWeight: 600, textDecoration: 'none' }}>Log in</a>
               </p>
             </>
           )}
 
-          {/* Step 2 — Business name */}
           {step === 2 && (
             <>
               <div style={{ textAlign: 'center', marginBottom: 24 }}>
-                <h1
-                  style={{
-                    fontFamily: FONT_DISPLAY,
-                    fontWeight: 800,
-                    fontSize: 22,
-                    color: C.text1,
-                    margin: '0 0 4px',
-                  }}
-                >
+                <h1 style={{ fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 22, color: C.text1, margin: '0 0 4px' }}>
                   Name your business
                 </h1>
                 <p style={{ fontSize: 14, color: C.text2, margin: 0 }}>Step 2 of 3 — Store name</p>
               </div>
               <form onSubmit={handleSaveBusiness} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <input
-                  type="text"
-                  placeholder="Business name"
-                  required
-                  value={businessName}
-                  onChange={e => setBusinessName(e.target.value)}
-                  style={inputStyle}
-                />
+                <input type="text" placeholder="Business name" required value={businessName} onChange={e => setBusinessName(e.target.value)} style={inputStyle} />
                 <button
                   type="submit"
                   disabled={loading}
                   style={{
-                    padding: 13,
-                    borderRadius: 10,
-                    border: 'none',
+                    padding: 13, borderRadius: 10, border: 'none',
                     cursor: loading ? 'not-allowed' : 'pointer',
-                    background: loading
-                      ? C.text3
-                      : `linear-gradient(135deg, ${C.primary}, ${C.accent})`,
-                    color: '#fff',
-                    fontFamily: FONT_DISPLAY,
-                    fontWeight: 700,
-                    fontSize: 15,
+                    background: loading ? C.text3 : `linear-gradient(135deg, ${C.primary}, ${C.accent})`,
+                    color: '#fff', fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 15,
                   }}
                 >
                   {loading ? 'Saving…' : 'Continue →'}
@@ -559,7 +481,6 @@ export default function SellSignupPage() {
             </>
           )}
 
-          {/* Step 3 — Create free store */}
           {step === 3 && (
             <>
               <div style={{ textAlign: 'center', marginBottom: 20 }}>
@@ -569,15 +490,7 @@ export default function SellSignupPage() {
                   alt="Mo-sell"
                   style={{ width: 48, height: 48, objectFit: 'contain', marginBottom: 12 }}
                 />
-                <h1
-                  style={{
-                    fontFamily: FONT_DISPLAY,
-                    fontWeight: 800,
-                    fontSize: 22,
-                    color: C.text1,
-                    margin: '0 0 4px',
-                  }}
-                >
+                <h1 style={{ fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 22, color: C.text1, margin: '0 0 4px' }}>
                   Start selling free
                 </h1>
                 <p style={{ fontSize: 14, color: C.text2, margin: 0 }}>
@@ -585,15 +498,7 @@ export default function SellSignupPage() {
                 </p>
               </div>
 
-              <div
-                style={{
-                  borderRadius: 14,
-                  border: `2px solid ${C.primary}`,
-                  padding: 16,
-                  marginBottom: 16,
-                  background: `${C.primary}10`,
-                }}
-              >
+              <div style={{ borderRadius: 14, border: `2px solid ${C.primary}`, padding: 16, marginBottom: 16, background: `${C.primary}10` }}>
                 <div style={{ fontWeight: 700, color: C.text1, marginBottom: 8, fontFamily: FONT_DISPLAY }}>
                   {businessName || 'Your store'}
                 </div>
@@ -610,19 +515,10 @@ export default function SellSignupPage() {
                 onClick={handleCreateFreeStore}
                 disabled={creating}
                 style={{
-                  width: '100%',
-                  padding: 14,
-                  borderRadius: 12,
-                  border: 'none',
+                  width: '100%', padding: 14, borderRadius: 12, border: 'none',
                   cursor: creating ? 'not-allowed' : 'pointer',
-                  background: creating
-                    ? C.text3
-                    : `linear-gradient(135deg, ${C.primary}, ${C.accent})`,
-                  color: '#fff',
-                  fontFamily: FONT_DISPLAY,
-                  fontWeight: 700,
-                  fontSize: 16,
-                  marginBottom: 10,
+                  background: creating ? C.text3 : `linear-gradient(135deg, ${C.primary}, ${C.accent})`,
+                  color: '#fff', fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 16, marginBottom: 10,
                 }}
               >
                 {creating ? 'Creating your store…' : 'Create my free store →'}
@@ -633,16 +529,9 @@ export default function SellSignupPage() {
                 onClick={() => setStep(2)}
                 disabled={creating}
                 style={{
-                  width: '100%',
-                  padding: 10,
-                  borderRadius: 10,
-                  border: `1.5px solid ${C.border}`,
-                  background: C.surface,
-                  color: C.text2,
-                  cursor: 'pointer',
-                  fontFamily: FONT_BODY,
-                  fontWeight: 600,
-                  fontSize: 13,
+                  width: '100%', padding: 10, borderRadius: 10, border: `1.5px solid ${C.border}`,
+                  background: C.surface, color: C.text2, cursor: 'pointer',
+                  fontFamily: FONT_BODY, fontWeight: 600, fontSize: 13,
                 }}
               >
                 ← Back
