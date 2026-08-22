@@ -12,6 +12,7 @@ export function SellAuthGuard({ children }: Props) {
   const { user, userLoading } = useSell();
   const [subscriptionChecked, setSubscriptionChecked] = useState(false);
   const [hasAccess, setHasAccess] = useState(false);
+  const [needsOnboarding, setNeedsOnboarding] = useState(false);
 
   useEffect(() => {
     if (userLoading || !user) return;
@@ -27,11 +28,12 @@ export function SellAuthGuard({ children }: Props) {
 
         if (!userData) {
           setHasAccess(false);
+          setNeedsOnboarding(true);
           setSubscriptionChecked(true);
           return;
         }
 
-        // Check for active subscription
+        // Active MO Sell subscription
         const moSellSub = userData.moSellSubscription;
         if (moSellSub && moSellSub.status === 'active') {
           const endDate = new Date(moSellSub.endDate);
@@ -42,7 +44,7 @@ export function SellAuthGuard({ children }: Props) {
           }
         }
 
-        // Check general subscription (owner plans include MO Sell)
+        // Owner plan includes MO Sell
         if (userData.subscriptionStatus === 'active') {
           const endDate = new Date(userData.subscriptionEndDate);
           if (endDate > new Date()) {
@@ -52,13 +54,45 @@ export function SellAuthGuard({ children }: Props) {
           }
         }
 
-        // Check pay-as-you-go / monthly billing store (no legacy subscription required)
+        // Explicit PAYG / free access flags on the user profile
+        if (userData.moSellAccess === true || userData.billingModel === 'pay_as_you_go') {
+          if (userData.onboardingComplete === false) {
+            setNeedsOnboarding(true);
+            setHasAccess(false);
+            setSubscriptionChecked(true);
+            return;
+          }
+          setHasAccess(true);
+          setSubscriptionChecked(true);
+          return;
+        }
+
+        // Billing lives on the business doc and/or store/config (signup writes both)
         if (userData.businessId) {
           const businessSnap = await db.doc(`businesses/${userData.businessId}`).get();
           if (cancelled) return;
           const businessData = businessSnap.exists ? businessSnap.data() : {};
-          const billingModel = businessData.billingModel;
-          const billingStatus = businessData.billingStatus;
+
+          let billingModel = businessData.billingModel as string | undefined;
+          let billingStatus = businessData.billingStatus as string | undefined;
+
+          // Fallback: store config (where create-store writes commission / PAYG fields)
+          if (!billingModel) {
+            try {
+              const configSnap = await db
+                .doc(`businesses/${userData.businessId}/store/config`)
+                .get();
+              if (cancelled) return;
+              if (configSnap.exists) {
+                const cfg = configSnap.data() || {};
+                billingModel = cfg.billingModel || billingModel;
+                billingStatus = cfg.billingStatus || billingStatus;
+              }
+            } catch {
+              /* ignore missing config */
+            }
+          }
+
           if (billingModel === 'pay_as_you_go' || billingModel === 'monthly') {
             if (billingStatus !== 'canceled') {
               setHasAccess(true);
@@ -66,14 +100,29 @@ export function SellAuthGuard({ children }: Props) {
               return;
             }
           }
+
+          // Has a business but no billing yet → finish PAYG onboarding, not $10 subscribe
+          if (!billingModel && userData.onboardingComplete !== true) {
+            setNeedsOnboarding(true);
+            setHasAccess(false);
+            setSubscriptionChecked(true);
+            return;
+          }
+        } else {
+          // No business yet — still in signup
+          setNeedsOnboarding(true);
+          setHasAccess(false);
+          setSubscriptionChecked(true);
+          return;
         }
 
         setHasAccess(false);
+        setNeedsOnboarding(false);
         setSubscriptionChecked(true);
       } catch (err) {
         if (cancelled) return;
         console.error('[SellAuthGuard] Access check error:', err);
-        setHasAccess(true); // Allow on error
+        setHasAccess(true);
         setSubscriptionChecked(true);
       }
     }
@@ -88,9 +137,10 @@ export function SellAuthGuard({ children }: Props) {
     if (!user) {
       router.replace('/login');
     } else if (!hasAccess) {
-      router.replace('/subscribe');
+      // Incomplete signup → continue PAYG onboarding, not the legacy $10 page
+      router.replace(needsOnboarding ? '/signup?onboarding=1' : '/subscribe');
     }
-  }, [user, userLoading, subscriptionChecked, hasAccess, router]);
+  }, [user, userLoading, subscriptionChecked, hasAccess, needsOnboarding, router]);
 
   if (userLoading || !subscriptionChecked) {
     return (
