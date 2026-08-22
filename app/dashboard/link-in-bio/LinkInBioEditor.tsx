@@ -1,3 +1,3 @@
 'use client';
 
-export { default } from './LinkInBioEditorImpl';
+export { LinkInBioEditor } from './LinkInBioEditorImpl';
