@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Monitor, Tablet, Smartphone, Undo2, Redo2, ChevronLeft } from 'lucide-react';
+import { Monitor, Tablet, Smartphone, Undo2, Redo2, ChevronLeft, Pencil, X } from 'lucide-react';
 import { SocialIcon, SOCIAL_DEFS, SOCIAL_KEYS, normalizeSocialValue, socialStatus } from '@/components/SocialBrand';
 import { getDatabase } from '@/lib/database/adapter';
 import { useSell } from '@/context/SellContext';
@@ -312,14 +312,11 @@ function SocialField({ platform, value, onChange }: {
   const def = SOCIAL_DEFS[platform];
   const [focused, setFocused] = useState(false);
   const display = value || def?.base || '';
-
   const status = socialStatus(platform, display);
-
   const handleBlur = () => {
     setFocused(false);
     onChange(normalizeSocialValue(platform, display));
   };
-
   return (
     <div style={{ marginBottom: 7 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
@@ -386,7 +383,7 @@ function FooterSettings({ s, upd }: { s: FooterSectionSettings; upd: (p: Partial
 
 export function ThemeEditorPage() {
   const router = useRouter();
-  const { user, storeConfig, refreshStoreConfig, showToast, navigateTo } = useSell();
+  const { user, storeConfig, refreshStoreConfig, showToast } = useSell();
 
   const [sections,  setSections]  = useState<StoreSection[]>([]);
   const [theme,     setTheme]     = useState<StorefrontTheme>('luxe');
@@ -399,6 +396,7 @@ export function ThemeEditorPage() {
   const [products,  setProducts]  = useState<StorefrontProduct[]>([]);
   const [collections, setCollections] = useState<StoreCollection[]>([]);
   const [isMobile, setIsMobile] = useState(false);
+  const [mobileEditorOpen, setMobileEditorOpen] = useState(false);
   const [dragId, setDragId] = useState<string | null>(null);
   const [fontFamily, setFontFamily] = useState<string>('');
   const [buttonStyle, setButtonStyle] = useState<'pill' | 'square' | 'rounded'>('pill');
@@ -417,11 +415,9 @@ export function ThemeEditorPage() {
 
   useEffect(() => {
     const checkMobile = () => {
-      const userAgent = typeof window !== 'undefined' ? navigator.userAgent : '';
-      const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent) ||
-                           (typeof window !== 'undefined' && window.innerWidth < 768);
-      setIsMobile(isMobileDevice);
-      if (isMobileDevice) setDevice('mobile');
+      const mobile = typeof window !== 'undefined' && window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (mobile) setDevice('mobile');
     };
     checkMobile();
     if (typeof window !== 'undefined') {
@@ -578,19 +574,6 @@ export function ThemeEditorPage() {
   }, [dragId, pushUndo, mark]);
   const handleDragEnd = useCallback(() => { setDragId(null); }, []);
 
-  const moveSection = useCallback((id: string, dir: -1 | 1) => {
-    pushUndo();
-    setSections(prev => {
-      const arr = [...prev];
-      const idx = arr.findIndex(s => s.id === id);
-      const t = idx + dir;
-      if (t < 0 || t >= arr.length) return prev;
-      [arr[idx], arr[t]] = [arr[t], arr[idx]];
-      return arr.map((s, i) => ({ ...s, order: i }));
-    });
-    mark();
-  }, [pushUndo, mark]);
-
   const toggleSection = useCallback((id: string) => {
     pushUndo();
     setSections(prev => prev.map(s => s.id === id ? { ...s, enabled: !s.enabled } : s));
@@ -642,7 +625,7 @@ export function ThemeEditorPage() {
       console.error('[ThemeEditor]', err);
       showToast('Failed to publish. Try again.', 'error');
     } finally { setApplying(false); }
-  }, [user, storeConfig, theme, primary, secondary, fontFamily, buttonStyle, bodyTextColor, sections, refreshStoreConfig, showToast]);
+  }, [user, storeConfig, theme, primary, secondary, fontFamily, buttonStyle, bodyTextColor, bgColor, sections, refreshStoreConfig, showToast]);
 
   const storeName = storeConfig?.storeName ?? 'Your Store';
   const tagline   = storeConfig?.tagline   ?? 'Shop our latest collection';
@@ -651,18 +634,6 @@ export function ThemeEditorPage() {
   const headerSection = sections.find(s => s.id === 'header');
   const hideStoreNameWithLogo = headerSection ? (headerSection.settings as HeaderSectionSettings).hideStoreNameWithLogo : false;
 
-  const handlePreview = useCallback(() => {
-    const previewData = {
-      theme, storeName, tagline, primaryColor: primary, secondaryColor: secondary, logoUrl, sections,
-      storeSlug: storeConfig?.storeSlug, products, collections, fontFamily: fontFamily || null,
-      buttonStyle, bodyTextColor: bodyTextColor || null, hideStoreNameWithLogo,
-      bgColor: bgColor || null,
-    };
-    sessionStorage.setItem('mobilePreviewData', JSON.stringify(previewData));
-    window.open('/dashboard/mobile-preview', '_blank');
-  }, [theme, storeName, tagline, primary, secondary, logoUrl, sections, storeConfig, products, collections, fontFamily, buttonStyle, bodyTextColor, bgColor, hideStoreNameWithLogo]);
-
-  // Sync to sessionStorage so theme-preview iframes get real products/collections
   useEffect(() => {
     sessionStorage.setItem('mobilePreviewData', JSON.stringify({
       theme, storeName, tagline, primaryColor: primary, secondaryColor: secondary, logoUrl, sections,
@@ -677,13 +648,14 @@ export function ThemeEditorPage() {
     sections, storeSlug: storeConfig?.storeSlug ?? '', products, collections,
     fontFamily: fontFamily || null, buttonStyle, bodyTextColor: bodyTextColor || null, hideStoreNameWithLogo,
     bgColor: bgColor || null,
-    onSectionClick: (id: string) => setActiveId(id),
+    onSectionClick: (id: string) => {
+      setActiveId(id);
+      if (isMobile) setMobileEditorOpen(true);
+    },
   };
 
   return (
     <div className={styles.root}>
-
-      {/* ── Topbar ── */}
       <div className={styles.topbar}>
         <div className={styles.topbarLeft}>
           <button
@@ -735,10 +707,7 @@ export function ThemeEditorPage() {
         </div>
       </div>
 
-      {/* ── Two-column body ── */}
       <div className={styles.body}>
-
-        {/* Preview */}
         <div className={styles.previewWrap} ref={previewWrapRef}>
           <div className={styles.previewContainer}>
             <div
@@ -757,11 +726,31 @@ export function ThemeEditorPage() {
               </div>
             </div>
           </div>
+
+          <div className={styles.phoneFrame}>
+            <div className={styles.phoneScreen}>
+              <div className={styles.phoneInner}>
+                <CartProvider storeSlug={storeConfig?.storeSlug ?? ''}>
+                  <StorefrontCanvas {...canvasProps} width={375} />
+                </CartProvider>
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Settings */}
-        <div className={styles.settingsPanel}>
-          {/* Section list */}
+        <div className={[styles.settingsPanel, mobileEditorOpen ? styles.settingsPanelOpen : ''].join(' ')}>
+          <div className={styles.panelHeader}>
+            <span className={styles.panelHeaderTitle}>Edit storefront</span>
+            <button
+              className={styles.mobileClose}
+              onClick={() => setMobileEditorOpen(false)}
+              aria-label="Close editor"
+              type="button"
+            >
+              <X size={16} />
+            </button>
+          </div>
+
           <div className={styles.sectionList}>
             {sections.map(sec => {
               const meta = SECTION_META[sec.type];
@@ -794,7 +783,6 @@ export function ThemeEditorPage() {
             })}
           </div>
 
-          {/* Settings content */}
           <div className={styles.settingsContent}>
             {activeSection ? (
               <>
@@ -864,14 +852,6 @@ export function ThemeEditorPage() {
                 </div>
                 <div className={styles.designDivider} />
                 <div className={styles.designGroup}>
-                  <p className={styles.designTitle} style={{ margin: '0 0 6px' }}>Link-in-Bio</p>
-                  <p className={styles.fHint} style={{ margin: 0 }}>
-                    Your link-in-bio is a separate page with its own themes. Edit it from the &quot;Link in Bio&quot;
-                    page in the sidebar.
-                  </p>
-                </div>
-                <div className={styles.designDivider} />
-                <div className={styles.designGroup}>
                   <p className={styles.designTitle}>Brand Colors</p>
                   <label className={styles.cLabel}><input type="color" value={primary} onChange={e => { pushUndo(); setPrimary(e.target.value); mark(); }} className={styles.cPicker} aria-label="Primary color" />Primary</label>
                   <label className={styles.cLabel}><input type="color" value={secondary} onChange={e => { pushUndo(); setSecondary(e.target.value); mark(); }} className={styles.cPicker} aria-label="Accent color" />Accent</label>
@@ -884,50 +864,50 @@ export function ThemeEditorPage() {
                       <label className={styles.fLabel}>Font family</label>
                       <select className={styles.fSelect} value={fontFamily} onChange={e => { pushUndo(); setFontFamily(e.target.value); mark(); }}>
                         <option value="">Theme default</option>
-                      <option value="Plus Jakarta Sans">Plus Jakarta Sans</option>
-                      <option value="DM Sans">DM Sans</option>
-                      <option value="Playfair Display">Playfair Display</option>
-                      <option value="Sora">Sora</option>
-                      <option value="Inter">Inter</option>
-                      <option value="Poppins">Poppins</option>
-                      <option value="Montserrat">Montserrat</option>
-                      <option value="Raleway">Raleway</option>
-                      <option value="Cormorant Garamond">Cormorant Garamond</option>
-                      <option value="Lora">Lora</option>
-                      <option value="Space Grotesk">Space Grotesk</option>
-                      <option value="Outfit">Outfit</option>
-                      <option value="Manrope">Manrope</option>
-                    </select>
-                  </div>
-                  <div className={styles.field}>
-                    <label className={styles.fLabel}>Button style</label>
-                    <select className={styles.fSelect} value={buttonStyle} onChange={e => { pushUndo(); setButtonStyle(e.target.value as 'pill' | 'square' | 'rounded'); mark(); }}>
-                      <option value="pill">Pill (rounded full)</option>
-                      <option value="rounded">Rounded</option>
-                      <option value="square">Square</option>
-                    </select>
-                  </div>
-                  <div className={styles.field}>
-                    <label className={styles.fLabel}>Text color override</label>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <input type="color" value={bodyTextColor || '#1a1a1a'} onChange={e => { pushUndo(); setBodyTextColor(e.target.value); mark(); }}
-                        style={{ width: 32, height: 32, borderRadius: 7, border: '1.5px solid var(--sell-border)', cursor: 'pointer', padding: 2, background: 'transparent', flexShrink: 0 }} />
-                      <input className={styles.fInput} value={bodyTextColor} onChange={e => { pushUndo(); setBodyTextColor(e.target.value); mark(); }} placeholder="Theme default" style={{ width: 90 }} />
+                        <option value="Plus Jakarta Sans">Plus Jakarta Sans</option>
+                        <option value="DM Sans">DM Sans</option>
+                        <option value="Playfair Display">Playfair Display</option>
+                        <option value="Sora">Sora</option>
+                        <option value="Inter">Inter</option>
+                        <option value="Poppins">Poppins</option>
+                        <option value="Montserrat">Montserrat</option>
+                        <option value="Raleway">Raleway</option>
+                        <option value="Cormorant Garamond">Cormorant Garamond</option>
+                        <option value="Lora">Lora</option>
+                        <option value="Space Grotesk">Space Grotesk</option>
+                        <option value="Outfit">Outfit</option>
+                        <option value="Manrope">Manrope</option>
+                      </select>
                     </div>
-                    <p className={styles.fHint}>Overrides the main text color across the store</p>
-                  </div>
-                  <div className={styles.field}>
-                    <label className={styles.fLabel}>Background color override</label>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <input type="color" value={bgColor || '#ffffff'} onChange={e => { pushUndo(); setBgColor(e.target.value); mark(); }}
-                        style={{ width: 32, height: 32, borderRadius: 7, border: '1.5px solid var(--sell-border)', cursor: 'pointer', padding: 2, background: 'transparent', flexShrink: 0 }} />
-                      <input className={styles.fInput} value={bgColor} onChange={e => { pushUndo(); setBgColor(e.target.value); mark(); }} placeholder="Theme default" style={{ width: 90 }} />
+                    <div className={styles.field}>
+                      <label className={styles.fLabel}>Button style</label>
+                      <select className={styles.fSelect} value={buttonStyle} onChange={e => { pushUndo(); setButtonStyle(e.target.value as 'pill' | 'square' | 'rounded'); mark(); }}>
+                        <option value="pill">Pill (rounded full)</option>
+                        <option value="rounded">Rounded</option>
+                        <option value="square">Square</option>
+                      </select>
                     </div>
-                    <p className={styles.fHint}>Overrides the page background</p>
-                  </div>
+                    <div className={styles.field}>
+                      <label className={styles.fLabel}>Text color override</label>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <input type="color" value={bodyTextColor || '#1a1a1a'} onChange={e => { pushUndo(); setBodyTextColor(e.target.value); mark(); }}
+                          style={{ width: 32, height: 32, borderRadius: 7, border: '1.5px solid var(--sell-border)', cursor: 'pointer', padding: 2, background: 'transparent', flexShrink: 0 }} />
+                        <input className={styles.fInput} value={bodyTextColor} onChange={e => { pushUndo(); setBodyTextColor(e.target.value); mark(); }} placeholder="Theme default" style={{ width: 90 }} />
+                      </div>
+                      <p className={styles.fHint}>Overrides the main text color across the store</p>
+                    </div>
+                    <div className={styles.field}>
+                      <label className={styles.fLabel}>Background color override</label>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <input type="color" value={bgColor || '#ffffff'} onChange={e => { pushUndo(); setBgColor(e.target.value); mark(); }}
+                          style={{ width: 32, height: 32, borderRadius: 7, border: '1.5px solid var(--sell-border)', cursor: 'pointer', padding: 2, background: 'transparent', flexShrink: 0 }} />
+                        <input className={styles.fInput} value={bgColor} onChange={e => { pushUndo(); setBgColor(e.target.value); mark(); }} placeholder="Theme default" style={{ width: 90 }} />
+                      </div>
+                      <p className={styles.fHint}>Overrides the page background</p>
+                    </div>
                   </div>
                 </Advanced>
-                {(isCreator) && (
+                {isCreator && (
                   <>
                     <div className={styles.designDivider} />
                     <div className={styles.designGroup}>
@@ -943,9 +923,16 @@ export function ThemeEditorPage() {
             )}
           </div>
         </div>
-
       </div>
 
+      <button
+        className={styles.mobileFab}
+        onClick={() => setMobileEditorOpen(true)}
+        type="button"
+        style={{ display: mobileEditorOpen ? 'none' : undefined }}
+      >
+        <Pencil size={14} /> Edit
+      </button>
     </div>
   );
 }
