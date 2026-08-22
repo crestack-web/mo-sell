@@ -49,7 +49,7 @@ export async function PATCH(req: NextRequest) {
 
     const { data: biz } = await admin
       .from('businesses')
-      .select('id, ownerUserId')
+      .select('id, ownerUserId, linkBio')
       .eq('id', businessId)
       .maybeSingle();
 
@@ -85,11 +85,49 @@ export async function PATCH(req: NextRequest) {
       if (allowed.has(k)) clean[k] = v;
     }
 
+    // Deep-merge linkBio so socials/name/bio never wipe other design fields,
+    // and so a partial client payload still lands socials correctly.
+    if (clean.linkBio && typeof clean.linkBio === 'object') {
+      const existing =
+        biz?.linkBio && typeof biz.linkBio === 'object' && !Array.isArray(biz.linkBio)
+          ? (biz.linkBio as Record<string, unknown>)
+          : {};
+      const incoming = clean.linkBio as Record<string, unknown>;
+
+      // Normalize socials to [{ platform, url }]
+      let socials = incoming.socials;
+      if (Array.isArray(socials)) {
+        socials = socials
+          .map((s: any) => ({
+            platform: String(s?.platform || 'instagram').toLowerCase().trim(),
+            url: String(s?.url || '').trim(),
+          }))
+          .filter((s: { url: string }) => !!s.url);
+      } else if (socials && typeof socials === 'object') {
+        // Accept map form { instagram: '@x' }
+        socials = Object.entries(socials as Record<string, string>)
+          .map(([platform, url]) => ({
+            platform: platform.toLowerCase().trim(),
+            url: String(url || '').trim(),
+          }))
+          .filter(s => !!s.url);
+      } else {
+        socials = Array.isArray(existing.socials) ? existing.socials : [];
+      }
+
+      clean.linkBio = {
+        ...existing,
+        ...incoming,
+        socials,
+        updatedAt: new Date().toISOString(),
+      };
+    }
+
     const { data: updated, error } = await admin
       .from('businesses')
       .update(clean)
       .eq('id', businessId)
-      .select('id')
+      .select('id, linkBio, storeName')
       .maybeSingle();
 
     if (error) {
@@ -100,7 +138,11 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: 'Business not found' }, { status: 404 });
     }
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({
+      ok: true,
+      linkBio: updated.linkBio ?? null,
+      storeName: updated.storeName ?? null,
+    });
   } catch (err: any) {
     console.error('[api/store/config]', err);
     return NextResponse.json({ error: err?.message || 'Server error' }, { status: 500 });

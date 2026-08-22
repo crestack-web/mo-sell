@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { getDatabase } from '@/lib/database/adapter';
 import { getStorage } from '@/lib/storage/adapter';
 import { supabaseClient } from '@/lib/supabase-client';
@@ -11,6 +11,26 @@ import styles from './LinkInBioEditor.module.css';
 type Social = { platform: string; url: string };
 
 const SOCIAL_PLATFORMS = ['instagram', 'tiktok', 'twitter', 'youtube', 'whatsapp'];
+
+function normalizeSocials(input: unknown): Social[] {
+  if (Array.isArray(input)) {
+    return input
+      .map((s: any) => ({
+        platform: String(s?.platform || 'instagram').toLowerCase().trim(),
+        url: String(s?.url || '').trim(),
+      }))
+      .filter(s => !!s.url);
+  }
+  if (input && typeof input === 'object') {
+    return Object.entries(input as Record<string, string>)
+      .map(([platform, url]) => ({
+        platform: platform.toLowerCase().trim(),
+        url: String(url || '').trim(),
+      }))
+      .filter(s => !!s.url);
+  }
+  return [];
+}
 
 export function LinkInBioEditor() {
   const { user, storeConfig, storeConfigLoading, refreshStoreConfig, showToast } = useSell();
@@ -24,15 +44,21 @@ export function LinkInBioEditor() {
   const [dirty, setDirty] = useState(false);
   const [mobileEditorOpen, setMobileEditorOpen] = useState(false);
   const [ready, setReady] = useState(false);
+  // Skip form reset from storeConfig right after a successful save
+  const skipHydrateRef = useRef(false);
 
   useEffect(() => {
     if (storeConfigLoading) return;
+    if (skipHydrateRef.current) {
+      skipHydrateRef.current = false;
+      return;
+    }
     const lb = (storeConfig as any)?.linkBio || {};
     setName(lb.name ?? storeConfig?.storeName ?? '');
     setBio(lb.bio ?? '');
     setAvatarUrl(lb.avatarUrl ?? null);
     setAvatarPreview(lb.avatarUrl ?? null);
-    setSocials(Array.isArray(lb.socials) ? lb.socials : []);
+    setSocials(normalizeSocials(lb.socials));
     setDirty(false);
     setReady(true);
   }, [storeConfig, storeConfigLoading]);
@@ -40,7 +66,10 @@ export function LinkInBioEditor() {
   const markDirty = useCallback(() => setDirty(true), []);
 
   async function handleSave() {
-    if (!user?.businessId) return;
+    if (!user?.businessId) {
+      showToast('Not signed in to a store', 'error');
+      return;
+    }
     setSaving(true);
     try {
       let nextAvatar = avatarUrl;
@@ -50,17 +79,21 @@ export function LinkInBioEditor() {
         nextAvatar = await storage.upload(avatarFile, path);
       }
 
-      // Preserve existing linkBio fields (design/products/links) while updating profile
+      // Keep rows that still have a URL; don't drop platforms mid-edit
+      const cleanedSocials = socials
+        .map(s => ({
+          platform: (s.platform || 'instagram').toLowerCase().trim(),
+          url: (s.url || '').trim(),
+        }))
+        .filter(s => !!s.url);
+
       const prev = ((storeConfig as any)?.linkBio || {}) as Record<string, unknown>;
       const linkBio = {
         ...prev,
         avatarUrl: nextAvatar,
         name: name.trim(),
         bio: bio || '',
-        socials: socials.filter(s => (s.url || '').trim()).map(s => ({
-          platform: s.platform || 'instagram',
-          url: (s.url || '').trim(),
-        })),
+        socials: cleanedSocials,
         updatedAt: new Date().toISOString(),
       };
 
@@ -70,7 +103,10 @@ export function LinkInBioEditor() {
       };
       if (linkBio.name) patch.storeName = linkBio.name;
 
+      let savedLinkBio: any = null;
       let saved = false;
+
+      // Prefer authenticated API (service role)
       try {
         const { data: { session } } = await supabaseClient.auth.getSession();
         if (session?.access_token) {
@@ -84,6 +120,7 @@ export function LinkInBioEditor() {
           });
           const body = await res.json().catch(() => ({}));
           if (!res.ok) throw new Error(body.error || `Save failed (${res.status})`);
+          savedLinkBio = body.linkBio;
           saved = true;
         }
       } catch (apiErr) {
@@ -93,14 +130,25 @@ export function LinkInBioEditor() {
       if (!saved) {
         const db = getDatabase();
         await db.doc(`businesses/${user.businessId}/store/config`).set(patch, { merge: true });
+        savedLinkBio = linkBio;
+        saved = true;
       }
 
+      // Apply saved socials locally so UI doesn't flash empty before refresh
+      const finalSocials = normalizeSocials(savedLinkBio?.socials ?? cleanedSocials);
+      setSocials(finalSocials);
       setAvatarUrl(nextAvatar);
       setAvatarFile(null);
       setAvatarPreview(nextAvatar);
       setDirty(false);
+      skipHydrateRef.current = true;
       await refreshStoreConfig();
-      showToast('Link-in-bio saved', 'success');
+      showToast(
+        finalSocials.length
+          ? `Saved · ${finalSocials.length} social link${finalSocials.length === 1 ? '' : 's'}`
+          : 'Link-in-bio saved',
+        'success',
+      );
     } catch (err: any) {
       console.error('[LinkInBio] save failed:', err);
       showToast(err?.message || 'Failed to save', 'error');
@@ -234,7 +282,7 @@ export function LinkInBioEditor() {
                           setSocials(next);
                           markDirty();
                         }}
-                        placeholder="@username"
+                        placeholder="@username or full URL"
                       />
                       <button
                         className={styles.iconBtn}
@@ -246,7 +294,7 @@ export function LinkInBioEditor() {
                       </button>
                     </div>
                   ))}
-                  <p className={styles.fHint}>Username or @handle is enough.</p>
+                  <p className={styles.fHint}>Username, @handle, or full URL — then click Save Changes.</p>
                   <button
                     className={styles.addBtn}
                     type="button"
