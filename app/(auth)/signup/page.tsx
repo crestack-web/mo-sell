@@ -1,12 +1,21 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabaseClient } from '@/lib/supabase-client';
-import { getDatabase } from '@/lib/database/adapter';
-import { THEMES } from '@/themes/registry';
-import posthog from 'posthog-js';
 
-// Full signup restored from 18d2809 with 20% commission — content loaded from verified local restore
-// If this stub is still present, the full file push failed size limits.
-export { default } from './page.full';
+/**
+ * Build fix: previous page.tsx re-exported missing ./page.full (broke Vercel).
+ * Minimal working page — full multi-step signup restored in follow-up if needed.
+ * For now routes users through welcome; login still works at /login.
+ */
+export default function SellSignupPage() {
+  const router = useRouter();
+  useEffect(() => {
+    router.replace('/welcome');
+  }, [router]);
+  return (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'system-ui, sans-serif', background: '#F0F9FF' }}>
+      <p style={{ color: '#3D5A7A', fontSize: 14 }}>Loading signup…</p>
+    </div>
+  );
+}
