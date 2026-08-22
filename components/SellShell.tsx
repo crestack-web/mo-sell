@@ -5,6 +5,7 @@ import { useSell } from '@/context/SellContext';
 import { SellSidebar } from './SellSidebar';
 import { SellTopbar } from './SellTopbar';
 import { SellBottomNav } from './SellBottomNav';
+import { SellTour } from './SellTour';
 import styles from './SellShell.module.css';
 
 interface SellShellProps {
@@ -34,6 +35,9 @@ export function SellShell({ children }: SellShellProps) {
 
       {/* Mobile bottom nav */}
       <SellBottomNav />
+
+      {/* New-user product tour */}
+      <SellTour />
 
       {/* Toast */}
       {toast.visible && (

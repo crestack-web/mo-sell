@@ -1,7 +1,8 @@
-﻿'use client';
+'use client';
 
 import React, { useMemo } from 'react';
 import { useSell } from '@/context/SellContext';
+import { restartSellTour } from '@/components/SellTour';
 import styles from './SellOverview.module.css';
 
 // ─── Stat Card ─────────────────────────────────────────────────────────────
@@ -156,6 +157,17 @@ export function SellOverview() {
               icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>}
               onClick={() => navigateTo('orders')}
             />
+            <QuickAction
+              label="Tour"
+              icon={
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"/>
+                  <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/>
+                  <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+              }
+              onClick={() => restartSellTour()}
+            />
           </div>
         )}
       </div>
@@ -189,12 +201,18 @@ export function SellOverview() {
               <SetupStep number={4} label="Go live"            done={isLive}      onClick={() => navigateTo('settings')} />
             </div>
           ) : (
-            <div style={{ display:'flex', gap:10, marginTop:8 }}>
+            <div style={{ display:'flex', gap:10, marginTop:8, flexWrap: 'wrap' }}>
               <button
                 className={[styles.quickAction, styles.quickPrimary].join(' ')}
                 onClick={() => navigateTo('setup-wizard')}
               >
                 Chat with MO →
+              </button>
+              <button
+                className={[styles.quickAction, styles.quickSecondary].join(' ')}
+                onClick={() => restartSellTour()}
+              >
+                Take a quick tour
               </button>
             </div>
           )}
