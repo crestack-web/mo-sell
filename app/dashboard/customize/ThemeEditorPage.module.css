@@ -98,6 +98,35 @@
 .previewInner::-webkit-scrollbar { width: 3px; }
 .previewInner::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 3px; }
 
+/* Phone frame used on mobile — matches link-in-bio */
+.phoneFrame {
+  display: none;
+  width: 280px;
+  height: 560px;
+  border-radius: 36px;
+  background: #1a1a1a;
+  padding: 10px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+  margin: 0 auto;
+  flex-shrink: 0;
+}
+
+.phoneScreen {
+  width: 100%;
+  height: 100%;
+  border-radius: 28px;
+  overflow: hidden;
+  background: #fff;
+  position: relative;
+}
+
+.phoneInner {
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
 /* ── Settings panel ── */
 .settingsPanel {
   background: var(--sell-surface);
@@ -266,6 +295,64 @@
 .colorSwatch:hover { transform: scale(1.1); }
 .colorSwatchActive { border-color: var(--sell-primary); box-shadow: 0 0 0 2px var(--sell-primary); }
 
+/* Mobile FAB + close — same pattern as link-in-bio */
+.mobileFab {
+  display: none;
+  position: fixed;
+  right: 16px;
+  bottom: 80px;
+  z-index: 90;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 18px;
+  border: none;
+  border-radius: 100px;
+  background: var(--sell-primary, #0ea5e9);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(14, 165, 233, 0.4);
+  font-family: var(--sell-font-body);
+}
+
+.mobileClose {
+  display: none;
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  margin-left: auto;
+  border: none;
+  background: transparent;
+  color: var(--sell-text-2, #64748b);
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+}
+
+.mobileClose:hover {
+  background: var(--sell-bg);
+  color: var(--sell-text-1);
+}
+
+.panelHeader {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--sell-border);
+  background: var(--sell-surface-2, #f8fafc);
+  flex-shrink: 0;
+}
+
+.panelHeaderTitle {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--sell-text-1);
+  font-family: var(--sell-font-display);
+}
+
 /* ── Responsive ── */
 @media (max-width: 1100px) {
   .body {
@@ -277,12 +364,89 @@
 @media (max-width: 768px) {
   .body {
     grid-template-columns: 1fr;
+    overflow: auto;
   }
-  .previewWrap { display: none; }
-  .settingsPanel { border-left: none; }
-  .sectionList { max-height: 34%; }
-  .settingsContent { padding: 14px; gap: 12px; }
-  .topbarCenter { display: none; }
-  .topbarTitle { font-size: 0.9rem; }
-  .publishBtn { padding: 8px 14px; font-size: 0.8rem; }
+
+  /* Show phone preview centered (like link-in-bio) */
+  .previewWrap {
+    display: flex;
+    background: var(--sell-bg);
+    padding: 16px 12px 100px;
+    overflow: visible;
+    min-height: auto;
+  }
+
+  .previewContainer {
+    display: none;
+  }
+
+  .phoneFrame {
+    display: block;
+  }
+
+  /* Hide settings until FAB opens full-screen editor */
+  .settingsPanel {
+    display: none;
+    border-left: none;
+  }
+
+  .settingsPanelOpen {
+    display: flex;
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    border-radius: 0;
+    border: none;
+  }
+
+  .panelHeader {
+    display: flex;
+  }
+
+  .mobileFab {
+    display: flex;
+  }
+
+  .mobileClose {
+    display: flex;
+  }
+
+  .sectionList {
+    max-height: 34%;
+  }
+
+  .settingsContent {
+    padding: 14px;
+    gap: 12px;
+  }
+
+  .topbarCenter {
+    display: none;
+  }
+
+  .topbarTitle {
+    font-size: 0.9rem;
+  }
+
+  .publishBtn {
+    padding: 8px 14px;
+    font-size: 0.8rem;
+  }
+
+  .liveBadge {
+    display: none;
+  }
+}
+
+@media (max-width: 500px) {
+  .phoneFrame {
+    width: 240px;
+    height: 480px;
+    border-radius: 30px;
+    padding: 8px;
+  }
+
+  .phoneScreen {
+    border-radius: 24px;
+  }
 }
