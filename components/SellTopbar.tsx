@@ -4,35 +4,14 @@ import React, { useCallback } from 'react';
 import { useSell } from '../context/SellContext';
 import styles from './SellTopbar.module.css';
 
-const PAGE_LABELS: Record<string, string> = {
-  overview:    'Overview',
-  products:    'Products',
-  collections: 'Collections',
-  orders:      'Orders',
-  shipping:    'Shipping & Delivery',
-  analytics:   'Analytics',
-  earnings:    'Earnings',
-  billing:     'Billing',
-  settings:    'Store Settings',
-  'setup-wizard': 'Store Setup',
-  'ask-mo':    'Ask Mo',
-  'content-hub':   'Content Hub',
-  more:        'More',
-  storefront:  'Storefront',
-  'link-in-bio': 'Link in Bio',
-  bookings:    'Bookings',
-  customers:   'Customers',
-};
-
 const LOGO_URL = 'https://res.cloudinary.com/dzjoqbg2u/image/upload/v1785078071/mosell_gpzl2q.png';
 
 export function SellTopbar() {
   const {
-    activePage, toggleTheme, theme,
+    toggleTheme, theme,
     user, storeConfig, navigateTo, showToast,
   } = useSell();
 
-  const pageTitle   = PAGE_LABELS[activePage] ?? 'MO Sell';
   const storeSlug   = storeConfig?.storeSlug;
   const storeStatus = storeConfig?.status ?? null;
 
@@ -67,7 +46,7 @@ export function SellTopbar() {
         type="button"
         className={styles.logoBtn}
         onClick={() => navigateTo('overview')}
-        aria-label="MO-SELL home"
+        aria-label="Mo-sell home"
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
@@ -75,12 +54,11 @@ export function SellTopbar() {
           alt="Mo-sell"
           className={styles.logoImg}
         />
-        <span className={styles.logoText}>MO-SELL</span>
       </button>
 
-      {/* Title */}
+      {/* App name (not page title) */}
       <div className={styles.titleBlock}>
-        <h1 className={styles.title}>{pageTitle}</h1>
+        <h1 className={styles.title}>Mo-sell</h1>
         {storeConfig?.storeName && (
           <p className={styles.subtitle}>{storeConfig.storeName}</p>
         )}
