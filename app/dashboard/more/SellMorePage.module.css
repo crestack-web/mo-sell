@@ -1,0 +1,205 @@
+.page {
+  max-width: 560px;
+  margin: 0 auto;
+  padding-bottom: 24px;
+}
+
+.storePill {
+  margin-bottom: 20px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--sell-border);
+  background: var(--sell-surface-2);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.storeDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dotActive  { background: var(--sell-green); box-shadow: 0 0 0 3px var(--sell-green-bg); }
+.dotDraft   { background: var(--sell-amber); box-shadow: 0 0 0 3px var(--sell-amber-bg); }
+.dotPaused  { background: var(--sell-red);   box-shadow: 0 0 0 3px var(--sell-red-bg); }
+.dotNone    { background: var(--sell-text-3); }
+
+.storeInfo { min-width: 0; }
+
+.storeName {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--sell-text-1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.storeStatus {
+  font-size: 0.75rem;
+  color: var(--sell-text-3);
+}
+
+.section {
+  margin-bottom: 20px;
+}
+
+.sectionLabel {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--sell-text-3);
+  text-transform: uppercase;
+  margin: 0 0 8px 4px;
+}
+
+.navList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  border: 1px solid var(--sell-border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--sell-surface);
+}
+
+.navLink {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 14px;
+  border: none;
+  border-bottom: 1px solid var(--sell-border-subtle);
+  background: transparent;
+  cursor: pointer;
+  font-family: var(--sell-font-body);
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--sell-text-1);
+  text-align: left;
+  transition: background 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.navList li:last-child .navLink {
+  border-bottom: none;
+}
+
+.navLink:active {
+  background: var(--sell-bg);
+}
+
+.active {
+  background: var(--sell-primary-lt) !important;
+  color: var(--sell-primary) !important;
+}
+
+.navIcon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--sell-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--sell-text-2);
+}
+
+.active .navIcon {
+  background: var(--sell-primary-lt);
+  color: var(--sell-primary);
+}
+
+.navIcon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.navLabel {
+  flex: 1;
+  min-width: 0;
+}
+
+.badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 100px;
+  background: var(--sell-primary);
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.chevron {
+  width: 16px;
+  height: 16px;
+  color: var(--sell-text-3);
+  flex-shrink: 0;
+}
+
+.userCard {
+  margin-top: 8px;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid var(--sell-border);
+  background: var(--sell-surface);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.userInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.userName {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--sell-text-1);
+}
+
+.userRole {
+  font-size: 0.75rem;
+  color: var(--sell-text-3);
+  text-transform: capitalize;
+}
+
+.logoutBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--sell-border);
+  background: var(--sell-bg);
+  color: var(--sell-text-2);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--sell-font-body);
+}
+
+.logoutBtn:active {
+  background: var(--sell-surface-2);
+}

@@ -17,11 +17,18 @@ const PAGE_LABELS: Record<string, string> = {
   'setup-wizard': 'Store Setup',
   'ask-mo':    'Ask Mo',
   'content-hub':   'Content Hub',
+  more:        'More',
+  storefront:  'Storefront',
+  'link-in-bio': 'Link in Bio',
+  bookings:    'Bookings',
+  customers:   'Customers',
 };
+
+const LOGO_URL = 'https://res.cloudinary.com/dzjoqbg2u/image/upload/v1785078071/mosell_gpzl2q.png';
 
 export function SellTopbar() {
   const {
-    activePage, openSidebar, toggleTheme, theme,
+    activePage, toggleTheme, theme,
     user, storeConfig, navigateTo, showToast,
   } = useSell();
 
@@ -55,13 +62,20 @@ export function SellTopbar() {
 
   return (
     <header className={styles.topbar}>
-      {/* Hamburger */}
-      <button className={styles.hamburger} onClick={openSidebar} aria-label="Open navigation">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-          <line x1="3" y1="12" x2="21" y2="12"/>
-          <line x1="3" y1="6"  x2="21" y2="6"/>
-          <line x1="3" y1="18" x2="21" y2="18"/>
-        </svg>
+      {/* App logo — always visible */}
+      <button
+        type="button"
+        className={styles.logoBtn}
+        onClick={() => navigateTo('overview')}
+        aria-label="MO-SELL home"
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={LOGO_URL}
+          alt="Mo-sell"
+          className={styles.logoImg}
+        />
+        <span className={styles.logoText}>MO-SELL</span>
       </button>
 
       {/* Title */}

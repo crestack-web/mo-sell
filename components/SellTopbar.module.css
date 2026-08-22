@@ -12,25 +12,44 @@
   z-index: 10;
 }
 
-/* ── Hamburger (mobile) ── */
-.hamburger {
-  width: 36px;
-  height: 36px;
+/* ── App logo (always visible) ── */
+.logoBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   border: none;
   background: none;
   cursor: pointer;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  color: var(--sell-text-2);
-  border-radius: var(--sell-radius-sm);
+  padding: 4px 6px 4px 0;
   flex-shrink: 0;
+  border-radius: var(--sell-radius-sm);
+  transition: background var(--sell-transition);
 }
 
-.hamburger:hover { background: var(--sell-bg); }
-.hamburger svg { width: 20px; height: 20px; }
+.logoBtn:hover {
+  background: var(--sell-bg);
+}
 
-@media (max-width: 768px) { .hamburger { display: flex; } }
+.logoImg {
+  height: 28px;
+  width: auto;
+  object-fit: contain;
+  object-position: left center;
+  display: block;
+}
+
+.logoText {
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--sell-text-1);
+  white-space: nowrap;
+  font-family: var(--sell-font-display);
+}
+
+@media (max-width: 480px) {
+  .logoText { display: none; }
+}
 
 /* ── Title block ── */
 .titleBlock { flex: 1; min-width: 0; }
@@ -53,6 +72,10 @@
   overflow: hidden;
   text-overflow: ellipsis;
   margin-top: 1px;
+}
+
+@media (max-width: 640px) {
+  .subtitle { display: none; }
 }
 
 /* ── Actions ── */
@@ -95,6 +118,10 @@
 .dotDraft   { background: var(--sell-amber); }
 .dotPaused  { background: var(--sell-red); }
 .dotNone    { background: var(--sell-text-3); }
+
+@media (max-width: 640px) {
+  .statusBadge { display: none; }
+}
 
 /* ── View store link ── */
 .viewStoreBtn {

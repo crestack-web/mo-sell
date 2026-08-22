@@ -2,6 +2,7 @@
    MO Sell Sidebar
    Distinct identity: sky-blue primary, deeper
    navy background, commerce-focused nav items.
+   Desktop only — hidden on mobile (≤768px).
 ───────────────────────────────────────────── */
 
 .sidebar {
@@ -15,18 +16,14 @@
   z-index: 20;
 }
 
-/* ── Mobile slide-in ── */
+/* ── Mobile: fully remove sidebar ── */
 @media (max-width: 768px) {
   .sidebar {
-    position: fixed;
-    top: 0; left: 0;
-    height: 100%;
-    transform: translateX(-100%);
-    transition: transform 0.26s cubic-bezier(0.4, 0, 0.2, 1);
-    width: var(--sell-sidebar-width) !important;
-    box-shadow: var(--sell-shadow-lg);
+    display: none !important;
   }
-  .open { transform: translateX(0); }
+  .overlay {
+    display: none !important;
+  }
 }
 
 .overlay {
@@ -37,10 +34,6 @@
   z-index: 19;
   backdrop-filter: blur(2px);
   cursor: pointer;
-}
-
-@media (max-width: 768px) {
-  .overlay { display: block; }
 }
 
 /* ── Logo row ── */
@@ -97,9 +90,6 @@
   transition: opacity 0.18s;
 }
 
-
-
-
 .storeDot {
   width: 7px;
   height: 7px;
@@ -154,9 +144,6 @@
   transition: opacity 0.15s;
   display: block;
 }
-
-
-
 
 /* ── Nav list ── */
 .navList { list-style: none; padding: 0 8px; }
@@ -215,9 +202,6 @@
   text-overflow: ellipsis;
 }
 
-
-
-
 /* ── Badge ── */
 .badge {
   margin-left: auto;
@@ -231,12 +215,6 @@
 
 .badgeCount { background: var(--sell-primary); color: #fff; }
 .badgeNew   { background: var(--sell-accent-lt); color: var(--sell-accent); }
-
-
-
-
-
-
 
 /* ── Divider ── */
 .divider {
@@ -326,9 +304,6 @@
   max-width: 140px;
   text-align: left;
 }
-
-
-
 
 .userName { font-size: 0.85rem; font-weight: 600; color: var(--sell-text-1); white-space: nowrap; }
 .userRole  { font-size: 0.72rem; color: var(--sell-text-3); white-space: nowrap; }

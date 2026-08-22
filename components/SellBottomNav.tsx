@@ -6,7 +6,7 @@ import type { SellPageId } from '../context/SellContext';
 import styles from './SellBottomNav.module.css';
 
 interface NavItem {
-  id: SellPageId | '__more';
+  id: SellPageId;
   label: string;
   icon: React.ReactNode;
 }
@@ -46,7 +46,7 @@ const NAV_ITEMS: NavItem[] = [
     ),
   },
   {
-    id: 'content-hub' as SellPageId,
+    id: 'content-hub',
     label: 'Content',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -55,7 +55,7 @@ const NAV_ITEMS: NavItem[] = [
     ),
   },
   {
-    id: '__more',
+    id: 'more',
     label: 'More',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -67,23 +67,22 @@ const NAV_ITEMS: NavItem[] = [
   },
 ];
 
+const PRIMARY_IDS = new Set<SellPageId>(['overview', 'products', 'orders', 'content-hub']);
+
 export function SellBottomNav() {
-  const { activePage, navigateTo, openSidebar, quickStats } = useSell();
+  const { activePage, navigateTo, quickStats } = useSell();
 
   function handleTap(item: NavItem) {
-    if (item.id === '__more') {
-      openSidebar();
-    } else {
-      navigateTo(item.id);
-    }
+    navigateTo(item.id);
   }
 
   return (
     <nav className={styles.bottomNav} role="navigation" aria-label="Mobile navigation">
       {NAV_ITEMS.map(item => {
-        const isActive = item.id === '__more'
-          ? !NAV_ITEMS.some(n => n.id !== '__more' && n.id === activePage)
-          : activePage === item.id;
+        const isActive =
+          item.id === 'more'
+            ? activePage === 'more' || !PRIMARY_IDS.has(activePage)
+            : activePage === item.id;
 
         return (
           <button
