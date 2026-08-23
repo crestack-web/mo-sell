@@ -525,40 +525,101 @@ function LessonCard({
   );
 }
 
-// ── Testimonial card ───────────────────────────────────────────────────────
-function TestimonialCard({ 
-  name, 
-  business, 
-  quote,
-  avatarColor 
-}: { 
-  name: string;
-  business: string;
-  quote: string;
-  avatarColor: string;
-}) {
+// ── Creators & Sellers auto image slider ───────────────────────────────────
+const CREATOR_SLIDES = [
+  {
+    src: 'https://res.cloudinary.com/dzjoqbg2u/image/upload/v1787412934/Life_of_majnun_-_1_s4qbgs.png',
+    alt: 'Creator and seller on MO Sell',
+  },
+  {
+    src: 'https://res.cloudinary.com/dzjoqbg2u/image/upload/v1787412931/Life_of_majnun_-_2_aenzh3.png',
+    alt: 'Creator and seller on MO Sell',
+  },
+  {
+    src: 'https://res.cloudinary.com/dzjoqbg2u/image/upload/v1787412933/Life_of_majnun_-_3_rlt0dp.png',
+    alt: 'Creator and seller on MO Sell',
+  },
+];
+
+function CreatorsSlider() {
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setIndex((prev) => (prev + 1) % CREATOR_SLIDES.length);
+    }, 4000);
+    return () => clearInterval(timer);
+  }, []);
+
   return (
-    <div style={{
-      background: C.surface, borderRadius: 20, padding: '28px 24px',
-      border: `1px solid ${C.border}`,
-      boxShadow: '0 2px 12px rgba(14,88,140,0.06)',
-      display: 'flex', flexDirection: 'column', gap: 16,
-    }}>
-      <div style={{ fontSize: 24, color: C.primary }}>"</div>
-      <div style={{ fontSize: 15, color: C.text2, lineHeight: 1.7, fontStyle: 'italic' }}>{quote}</div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <div style={{
-          width: 44, height: 44, borderRadius: 12,
-          background: avatarColor,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: 'white', fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 18,
-        }}>
-          {name.charAt(0)}
-        </div>
-        <div>
-          <div style={{ fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 14, color: C.text1 }}>{name}</div>
-          <div style={{ fontSize: 12, color: C.text3 }}>{business}</div>
-        </div>
+    <div style={{ position: 'relative', maxWidth: 720, margin: '0 auto' }}>
+      <div
+        style={{
+          position: 'relative',
+          borderRadius: 24,
+          overflow: 'hidden',
+          border: `1px solid ${C.border}`,
+          boxShadow: '0 8px 32px rgba(14,88,140,0.12)',
+          background: C.surface,
+          aspectRatio: '16 / 10',
+        }}
+      >
+        {CREATOR_SLIDES.map((slide, i) => (
+          <div
+            key={slide.src}
+            style={{
+              position: 'absolute',
+              inset: 0,
+              opacity: i === index ? 1 : 0,
+              transition: 'opacity 0.7s ease-in-out',
+              pointerEvents: i === index ? 'auto' : 'none',
+            }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={slide.src}
+              alt={slide.alt}
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                display: 'block',
+              }}
+            />
+          </div>
+        ))}
+      </div>
+
+      {/* Dots */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          gap: 10,
+          marginTop: 20,
+        }}
+      >
+        {CREATOR_SLIDES.map((_, i) => (
+          <button
+            key={i}
+            type="button"
+            aria-label={`Go to slide ${i + 1}`}
+            onClick={() => setIndex(i)}
+            style={{
+              width: i === index ? 28 : 10,
+              height: 10,
+              borderRadius: 100,
+              border: 'none',
+              cursor: 'pointer',
+              padding: 0,
+              background:
+                i === index
+                  ? `linear-gradient(135deg, ${C.primary} 0%, ${C.accent} 100%)`
+                  : C.border,
+              transition: 'width 0.3s ease, background 0.3s ease',
+            }}
+          />
+        ))}
       </div>
     </div>
   );
@@ -1082,7 +1143,7 @@ export default function WelcomePage() {
       </section>
 
       {/* ════════════════════════════════════════════════════════════════════════
-          SOCIAL PROOF — Real stories
+          CREATORS & SELLERS — Auto image slider
       ════════════════════════════════════════════════════════════════════════ */}
       <section style={{ padding: '60px 5%', background: C.surface }}>
         <div style={{ maxWidth: 1160, margin: '0 auto' }}>
@@ -1091,37 +1152,14 @@ export default function WelcomePage() {
               fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 'clamp(1.5rem, 3vw, 2rem)',
               color: C.text1, letterSpacing: '-0.025em', marginBottom: 12,
             }}>
-              Sellers who let their businesses fly
+              Creators & sellers already on MO Sell
             </div>
-            <p style={{ fontSize: 14, color: C.text2, maxWidth: 420, margin: '0 auto' }}>
-              Real stories from real sellers using MO to grow their businesses.
+            <p style={{ fontSize: 14, color: C.text2, maxWidth: 480, margin: '0 auto' }}>
+              Join the community of creators and sellers building and growing their businesses with MO.
             </p>
           </div>
-          
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', 
-            gap: 24 
-          }}>
-            <TestimonialCard
-              name="Chioma A."
-              business="Adire Fashion"
-              quote="I went from selling fabrics at the local market to having customers across Nigeria. MO made it possible without me needing to learn any technical skills."
-              avatarColor={C.green}
-            />
-            <TestimonialCard
-              name="Emeka O."
-              business="Digital Courses"
-              quote="My course was ready to sell in under an hour. MO understood exactly what I was teaching and created a store that looked professional from day one."
-              avatarColor={C.purple}
-            />
-            <TestimonialCard
-              name="Fatima B."
-              business="Natural Skincare"
-              quote="The best part is that I can focus on making my products while MO handles the store. My first sale came within 3 days of launching."
-              avatarColor={C.red}
-            />
-          </div>
+
+          <CreatorsSlider />
         </div>
       </section>
 
