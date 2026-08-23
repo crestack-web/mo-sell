@@ -573,6 +573,7 @@ function CreatorsSlider() {
                     height: 'auto',
                     objectFit: 'contain',
                     display: 'block',
+                    borderRadius: 10,
                   }}
                 />
               </div>
@@ -591,15 +592,15 @@ function CreatorsSlider() {
         }
         .creators-slider-item {
           flex: 0 0 auto;
-          width: min(380px, 72vw);
-          height: clamp(240px, 36vw, 360px);
+          width: min(440px, 78vw);
+          height: clamp(280px, 40vw, 400px);
           display: flex;
           align-items: center;
           justify-content: center;
           background: ${C.bg};
           border-radius: 16px;
           border: 1px solid ${C.border};
-          padding: 16px;
+          padding: 14px;
           box-sizing: border-box;
         }
         @keyframes creators-slide {
@@ -611,8 +612,8 @@ function CreatorsSlider() {
         }
         @media (max-width: 640px) {
           .creators-slider-item {
-            width: min(280px, 78vw);
-            height: clamp(200px, 55vw, 280px);
+            width: min(320px, 84vw);
+            height: clamp(230px, 60vw, 320px);
             padding: 12px;
           }
           .creators-slider-track {
