@@ -60,6 +60,7 @@ export default function AuthCallbackPage() {
             plan: 'starter',
             moSellAccess: true,
             emailVerified: true,
+            onboardingComplete: false,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
           });
@@ -74,7 +75,7 @@ export default function AuthCallbackPage() {
               name: displayName,
             }),
           }).catch(() => {});
-        } else {
+        } else if (!userData.onboardingComplete) {
           await db.doc(`users/${user.id}`).set(
             { businessId, updatedAt: new Date().toISOString() },
             { merge: true },
@@ -87,6 +88,7 @@ export default function AuthCallbackPage() {
             businessName: `${displayName}'s Business`,
             businessType: '',
             createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
           },
           { merge: true },
         );
@@ -94,7 +96,8 @@ export default function AuthCallbackPage() {
         router.replace('/signup?onboarding=1');
       } catch (profileError) {
         console.error('Auth callback: failed to ensure user profile:', profileError);
-        router.replace('/dashboard');
+        // Still send to onboarding — complete-onboarding API can create missing rows
+        router.replace('/signup?onboarding=1');
       }
     };
 

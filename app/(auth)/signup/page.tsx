@@ -210,74 +210,33 @@ export default function SellSignupPage() {
     setError('');
     try {
       const {
-        data: { user: currentUser },
-      } = await supabaseClient.auth.getUser();
-      if (!currentUser) throw new Error('Not authenticated');
+        data: { session },
+      } = await supabaseClient.auth.getSession();
+      if (!session?.user || !session.access_token) {
+        throw new Error('Not authenticated. Please sign in again.');
+      }
 
-      const db = getDatabase();
-      const uid = userId || currentUser.id;
-      const bid = businessId || `biz_${currentUser.id.slice(0, 12)}`;
+      const bid = businessId || `biz_${session.user.id.slice(0, 12)}`;
       const name = businessName.trim() || 'My Store';
-      const storeSlug = slugify(name) || `store-${uid.slice(0, 8)}`;
 
-      const configData = {
-        storeSlug,
-        storeName: name,
-        logoUrl: null,
-        primaryColor: '#0EA5E9',
-        secondaryColor: '#6366F1',
-        businessCategory: 'physical-products',
-        currency: 'NGN',
-        contactEmail: currentUser.email || email || '',
-        contactPhone: '',
-        status: 'draft',
-        theme: 'luxe',
-        tagline: '',
-        storePolicy: '',
-        paystackPublicKey: '',
-        enabledProductTypes: ['physical'],
-        pickupLocations: [],
-        customDomain: null,
-        customDomainStatus: 'pending',
-        customDomainVerifiedAt: null,
-        domainPurchaseRecord: null,
-        onboardingAnswers: {},
-        billingModel: 'pay_as_you_go',
-        billingStatus: 'active',
-        commissionRate: 0.2,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-
-      await db.doc(`businesses/${bid}/store/config`).set(configData);
-      await db.doc(`businesses/${bid}`).set(
-        {
-          billingModel: 'pay_as_you_go',
-          billingStatus: 'active',
-          commissionRate: 0.2,
-          businessName: name,
-          ownerUserId: uid,
-          updatedAt: new Date().toISOString(),
+      // Server-side completion (service role) so Google + email sign-ups
+      // are not blocked by RLS or invalid client-side column writes.
+      const response = await fetch('/api/auth/complete-onboarding', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
         },
-        { merge: true }
-      );
-      await db.doc(`storeIndex/${storeSlug}`).set({
-        businessId: bid,
-        storeName: name,
-        updatedAt: new Date().toISOString(),
+        body: JSON.stringify({ businessName: name, businessId: bid }),
       });
-      await db.doc(`users/${uid}`).set(
-        {
-          businessId: bid,
-          onboardingComplete: true,
-          moSellAccess: true,
-          billingModel: 'pay_as_you_go',
-          updatedAt: new Date().toISOString(),
-        },
-        { merge: true }
-      );
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || 'Something went wrong. Please try again.');
+      }
 
-      posthog.capture('sell_payg_store_created', { businessId: bid });
+      posthog.capture('sell_payg_store_created', {
+        businessId: data.businessId || bid,
+      });
       router.push('/dashboard');
     } catch (err: unknown) {
       console.error('[Signup] store creation error:', err);
