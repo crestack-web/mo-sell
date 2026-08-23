@@ -585,10 +585,10 @@ function CreatorsSlider() {
       <style>{`
         .creators-slider-track {
           display: flex;
-          gap: 20px;
+          gap: 8px;
           width: max-content;
           animation: creators-slide 18s linear infinite;
-          padding: 0 12px;
+          padding: 0 8px;
         }
         .creators-slider-item {
           flex: 0 0 auto;
@@ -597,10 +597,10 @@ function CreatorsSlider() {
           display: flex;
           align-items: center;
           justify-content: center;
-          background: ${C.bg};
-          border-radius: 16px;
-          border: 1px solid ${C.border};
-          padding: 14px;
+          background: transparent;
+          border-radius: 12px;
+          border: none;
+          padding: 4px;
           box-sizing: border-box;
         }
         @keyframes creators-slide {
@@ -614,10 +614,10 @@ function CreatorsSlider() {
           .creators-slider-item {
             width: min(320px, 84vw);
             height: clamp(230px, 60vw, 320px);
-            padding: 12px;
+            padding: 2px;
           }
           .creators-slider-track {
-            gap: 14px;
+            gap: 6px;
             animation-duration: 14s;
           }
         }
