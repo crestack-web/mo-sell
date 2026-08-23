@@ -542,85 +542,85 @@ const CREATOR_SLIDES = [
 ];
 
 function CreatorsSlider() {
-  const [index, setIndex] = useState(0);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setIndex((prev) => (prev + 1) % CREATOR_SLIDES.length);
-    }, 4000);
-    return () => clearInterval(timer);
-  }, []);
+  // Two identical sequences side-by-side for a seamless infinite loop
+  const track = [...CREATOR_SLIDES, ...CREATOR_SLIDES];
 
   return (
-    <div style={{ position: 'relative', maxWidth: 720, margin: '0 auto' }}>
+    <div style={{ maxWidth: 1100, margin: '0 auto' }}>
       <div
+        className="creators-slider-frame"
         style={{
-          position: 'relative',
           borderRadius: 24,
           overflow: 'hidden',
           border: `1px solid ${C.border}`,
           boxShadow: '0 8px 32px rgba(14,88,140,0.12)',
           background: C.surface,
-          aspectRatio: '16 / 10',
+          padding: '24px 0',
         }}
       >
-        {CREATOR_SLIDES.map((slide, i) => (
-          <div
-            key={slide.src}
-            style={{
-              position: 'absolute',
-              inset: 0,
-              opacity: i === index ? 1 : 0,
-              transition: 'opacity 0.7s ease-in-out',
-              pointerEvents: i === index ? 'auto' : 'none',
-            }}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={slide.src}
-              alt={slide.alt}
-              style={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
-                display: 'block',
-              }}
-            />
+        <div className="creators-slider-viewport" style={{ overflow: 'hidden', width: '100%' }}>
+          <div className="creators-slider-track">
+            {track.map((slide, i) => (
+              <div key={`${slide.src}-${i}`} className="creators-slider-item">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={slide.src}
+                  alt={slide.alt}
+                  style={{
+                    maxWidth: '100%',
+                    maxHeight: '100%',
+                    width: 'auto',
+                    height: 'auto',
+                    objectFit: 'contain',
+                    display: 'block',
+                  }}
+                />
+              </div>
+            ))}
           </div>
-        ))}
+        </div>
       </div>
 
-      {/* Dots */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'center',
-          gap: 10,
-          marginTop: 20,
-        }}
-      >
-        {CREATOR_SLIDES.map((_, i) => (
-          <button
-            key={i}
-            type="button"
-            aria-label={`Go to slide ${i + 1}`}
-            onClick={() => setIndex(i)}
-            style={{
-              width: i === index ? 28 : 10,
-              height: 10,
-              borderRadius: 100,
-              border: 'none',
-              cursor: 'pointer',
-              padding: 0,
-              background:
-                i === index
-                  ? `linear-gradient(135deg, ${C.primary} 0%, ${C.accent} 100%)`
-                  : C.border,
-              transition: 'width 0.3s ease, background 0.3s ease',
-            }}
-          />
-        ))}
-      </div>
+      <style>{`
+        .creators-slider-track {
+          display: flex;
+          gap: 20px;
+          width: max-content;
+          animation: creators-slide 18s linear infinite;
+          padding: 0 12px;
+        }
+        .creators-slider-item {
+          flex: 0 0 auto;
+          width: min(380px, 72vw);
+          height: clamp(240px, 36vw, 360px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: ${C.bg};
+          border-radius: 16px;
+          border: 1px solid ${C.border};
+          padding: 16px;
+          box-sizing: border-box;
+        }
+        @keyframes creators-slide {
+          0%   { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+        .creators-slider-frame:hover .creators-slider-track {
+          animation-play-state: paused;
+        }
+        @media (max-width: 640px) {
+          .creators-slider-item {
+            width: min(280px, 78vw);
+            height: clamp(200px, 55vw, 280px);
+            padding: 12px;
+          }
+          .creators-slider-track {
+            gap: 14px;
+            animation-duration: 14s;
+          }
+        }
+      `}</style>
     </div>
   );
 }
