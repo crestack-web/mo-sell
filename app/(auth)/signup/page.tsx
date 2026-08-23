@@ -237,7 +237,7 @@ export default function SellSignupPage() {
       posthog.capture('sell_payg_store_created', {
         businessId: data.businessId || bid,
       });
-      router.push('/dashboard');
+      router.push('/dashboard/overview?welcome=1');
     } catch (err: unknown) {
       console.error('[Signup] store creation error:', err);
       setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');

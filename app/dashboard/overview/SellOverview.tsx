@@ -1,9 +1,12 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useSell } from '@/context/SellContext';
 import { restartSellTour } from '@/components/SellTour';
+import { getStorePublicUrl } from '@/lib/store-url';
 import styles from './SellOverview.module.css';
+
+const WELCOME_DISMISS_KEY = 'mo-sell-welcome-dismissed';
 
 // ─── Stat Card ─────────────────────────────────────────────────────────────
 
@@ -108,7 +111,9 @@ function SetupStep({ number, label, done, onClick }: SetupStepProps) {
 // ─── Main Component ────────────────────────────────────────────────────────
 
 export function SellOverview() {
-  const { storeConfig, quickStats, navigateTo, user } = useSell();
+  const { storeConfig, quickStats, navigateTo, user, showToast } = useSell();
+  const [welcomeOpen, setWelcomeOpen] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
 
   const currency = storeConfig?.currency ?? 'NGN';
   const symbol   = currency === 'NGN' ? '₦' : currency === 'USD' ? '$' : currency + ' ';
@@ -120,27 +125,118 @@ export function SellOverview() {
     return `${symbol}${n.toLocaleString()}`;
   }, [quickStats.monthlyRevenue, symbol]);
 
-  // Setup checklist: what has the merchant configured?
+  // First-session activation checklist (not domain / billing)
   const hasStore     = !!storeConfig;
   const hasProducts  = quickStats.totalProducts > 0;
-  const hasCustomDomain = !!storeConfig?.customDomain;
   const isLive       = storeConfig?.status === 'active';
-  const setupDone    = hasStore && hasProducts && isLive;
-  const setupProgress = [hasStore, hasProducts, hasCustomDomain, isLive].filter(Boolean).length;
+  const storeUrl     = storeConfig?.storeSlug
+    ? getStorePublicUrl(
+        storeConfig.storeSlug,
+        storeConfig.customDomain,
+        storeConfig.customDomainStatus === 'verified'
+      )
+    : '';
+
+  // Show checklist until they have at least one product (core activation)
+  const setupDone = hasStore && hasProducts;
+  const setupProgress = [hasStore, hasProducts, isLive || linkCopied].filter(Boolean).length;
+
+  // Welcome modal after signup (?welcome=1)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('welcome') !== '1') return;
+    try {
+      if (localStorage.getItem(WELCOME_DISMISS_KEY) === '1') return;
+    } catch { /* noop */ }
+    setWelcomeOpen(true);
+    // Clean URL without reload
+    const url = new URL(window.location.href);
+    url.searchParams.delete('welcome');
+    window.history.replaceState({}, '', url.pathname + url.search);
+  }, []);
+
+  const dismissWelcome = () => {
+    setWelcomeOpen(false);
+    try {
+      localStorage.setItem(WELCOME_DISMISS_KEY, '1');
+    } catch { /* noop */ }
+  };
+
+  const copyStoreLink = async () => {
+    if (!storeUrl) return;
+    try {
+      await navigator.clipboard.writeText(storeUrl);
+      setLinkCopied(true);
+      showToast('Store link copied — share it anywhere', 'success');
+    } catch {
+      showToast('Could not copy link', 'error');
+    }
+  };
+
+  const openStorePreview = () => {
+    if (!storeConfig?.storeSlug) return;
+    window.open(`/store/${storeConfig.storeSlug}`, '_blank', 'noopener,noreferrer');
+  };
 
   return (
     <div className={styles.overview}>
+
+      {/* ── First-session welcome modal ── */}
+      {welcomeOpen && (
+        <div className={styles.welcomeOverlay} role="dialog" aria-modal="true" aria-labelledby="welcome-title">
+          <div className={styles.welcomeModal}>
+            <button type="button" className={styles.welcomeClose} onClick={dismissWelcome} aria-label="Close">
+              ×
+            </button>
+            <div className={styles.welcomeEmoji}>🎉</div>
+            <h2 id="welcome-title" className={styles.welcomeTitle}>Your store is live</h2>
+            <p className={styles.welcomeBody}>
+              Three quick steps and you can start selling. No tech setup — just add something to sell and share your link.
+            </p>
+            <ol className={styles.welcomeList}>
+              <li><strong>Add your first product</strong> — photo, name, and price</li>
+              <li><strong>Preview your store</strong> — see what customers see</li>
+              <li><strong>Share your link</strong> — Instagram, WhatsApp, TikTok…</li>
+            </ol>
+            <button
+              type="button"
+              className={[styles.quickAction, styles.quickPrimary].join(' ')}
+              style={{ width: '100%', justifyContent: 'center', padding: '14px 20px' }}
+              onClick={() => {
+                dismissWelcome();
+                navigateTo('products');
+              }}
+            >
+              Add my first product →
+            </button>
+            <button
+              type="button"
+              className={styles.welcomeSkip}
+              onClick={dismissWelcome}
+            >
+              I&apos;ll explore first
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── Welcome header ── */}
       <div className={styles.header}>
         <div>
           <h2 className={styles.heading}>
-            {storeConfig ? `Welcome back, ${user?.shortName} 👋` : `Let's set up your store, ${user?.shortName} 👋`}
+            {storeConfig
+              ? hasProducts
+                ? `Welcome back, ${user?.shortName} 👋`
+                : `Your store is ready, ${user?.shortName} 👋`
+              : `Let's set up your store, ${user?.shortName} 👋`}
           </h2>
           <p className={styles.subheading}>
             {storeConfig
-              ? 'Here\'s how your store is performing this month.'
-              : 'MO Sell gives you a beautiful online store in minutes — fully connected to Busmo.'}
+              ? hasProducts
+                ? "Here's how your store is performing this month."
+                : 'Add a product and share your link — that\'s how first sales start.'
+              : 'MO Sell gives you a beautiful online store in minutes.'}
           </p>
         </div>
 
@@ -172,36 +268,52 @@ export function SellOverview() {
         )}
       </div>
 
-      {/* ── Setup checklist (no store yet) ── */}
+      {/* ── First-session activation checklist ── */}
       {!setupDone && (
         <div className={styles.setupCard}>
           <div className={styles.setupCardHeader}>
             <div>
               <p className={styles.setupCardTitle}>
-                {storeConfig ? 'Finish setting up your store' : 'Set up your store with MO'}
+                {storeConfig ? 'Get your first sale' : 'Set up your store'}
               </p>
               <p className={styles.setupCardSub}>
-                {storeConfig ? `${setupProgress} of 4 steps complete` : 'Chat with MO to configure your store — name, theme, products, and more.'}
+                {storeConfig
+                  ? `${setupProgress} of 3 steps · start with a product, then share`
+                  : 'Create your store, then add something to sell.'}
               </p>
             </div>
             {storeConfig && (
               <div className={styles.setupProgress}>
                 <div className={styles.setupProgressBar}>
-                  <div className={styles.setupProgressFill} style={{ width: `${(setupProgress / 4) * 100}%` }} />
+                  <div className={styles.setupProgressFill} style={{ width: `${(setupProgress / 3) * 100}%` }} />
                 </div>
-                <span className={styles.setupProgressLabel}>{Math.round((setupProgress / 4) * 100)}%</span>
+                <span className={styles.setupProgressLabel}>{Math.round((setupProgress / 3) * 100)}%</span>
               </div>
             )}
           </div>
           {storeConfig ? (
             <div className={styles.setupSteps}>
-              <SetupStep number={1} label="Create your store" done={hasStore}    onClick={() => navigateTo('setup-wizard')} />
-              <SetupStep number={2} label="Add your products"  done={hasProducts} onClick={() => navigateTo('products')} />
-              <SetupStep number={3} label="Connect a domain"   done={hasCustomDomain} onClick={() => navigateTo('settings')} />
-              <SetupStep number={4} label="Go live"            done={isLive}      onClick={() => navigateTo('settings')} />
+              <SetupStep
+                number={1}
+                label="Add your first product"
+                done={hasProducts}
+                onClick={() => navigateTo('products')}
+              />
+              <SetupStep
+                number={2}
+                label="Preview your store"
+                done={false}
+                onClick={openStorePreview}
+              />
+              <SetupStep
+                number={3}
+                label={linkCopied ? 'Link copied — share it' : 'Share your store link'}
+                done={linkCopied}
+                onClick={copyStoreLink}
+              />
             </div>
           ) : (
-            <div style={{ display:'flex', gap:10, marginTop:8, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 10, marginTop: 8, flexWrap: 'wrap' }}>
               <button
                 className={[styles.quickAction, styles.quickPrimary].join(' ')}
                 onClick={() => navigateTo('setup-wizard')}

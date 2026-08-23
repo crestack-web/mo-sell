@@ -71,6 +71,95 @@
 .qaIcon { display: flex; align-items: center; }
 .qaLabel {}
 
+/* ── First-session welcome modal ── */
+.welcomeOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: rgba(12, 26, 46, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  backdrop-filter: blur(4px);
+}
+
+.welcomeModal {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  background: var(--sell-surface, #fff);
+  border-radius: 20px;
+  padding: 28px 24px 22px;
+  box-shadow: 0 20px 50px rgba(14, 88, 140, 0.18);
+  border: 1px solid var(--sell-border, #e0effa);
+  text-align: center;
+}
+
+.welcomeClose {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  border: none;
+  background: transparent;
+  font-size: 22px;
+  line-height: 1;
+  color: var(--sell-text-3, #8aaabf);
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+.welcomeEmoji {
+  font-size: 36px;
+  margin-bottom: 8px;
+}
+
+.welcomeTitle {
+  font-family: var(--sell-font-display);
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--sell-text-1, #0c1a2e);
+  margin: 0 0 8px;
+}
+
+.welcomeBody {
+  font-size: 0.9rem;
+  color: var(--sell-text-2, #3d5a7a);
+  line-height: 1.55;
+  margin: 0 0 16px;
+}
+
+.welcomeList {
+  text-align: left;
+  margin: 0 0 20px;
+  padding: 12px 16px 12px 32px;
+  background: var(--sell-bg, #f0f9ff);
+  border-radius: 12px;
+  border: 1px solid var(--sell-border, #e0effa);
+  font-size: 0.85rem;
+  color: var(--sell-text-2, #3d5a7a);
+  line-height: 1.65;
+}
+
+.welcomeList strong {
+  color: var(--sell-text-1, #0c1a2e);
+}
+
+.welcomeSkip {
+  margin-top: 12px;
+  border: none;
+  background: none;
+  color: var(--sell-text-3, #8aaabf);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--sell-font-body);
+}
+
+.welcomeSkip:hover {
+  color: var(--sell-text-2, #3d5a7a);
+}
+
 /* ── Setup card ── */
 .setupCard {
   background: var(--sell-surface);

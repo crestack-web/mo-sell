@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
       currency: 'NGN',
       contactEmail: user.email || '',
       contactPhone: '',
-      status: 'draft',
+      status: 'active',
       theme: 'luxe',
       tagline: '',
       storePolicy: '',
