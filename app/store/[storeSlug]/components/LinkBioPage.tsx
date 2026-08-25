@@ -5,6 +5,7 @@ import type { ProductCardData } from '@/themes/types';
 import { ProductModal } from './ProductModal';
 import { getLinkBioLayout } from './layouts/index';
 import type { CustomLink } from './layouts/index';
+import { isVerifiedCreator } from '@/lib/verified-creators';
 
 interface LinkBioConfig {
   avatarUrl: string | null;
@@ -114,6 +115,7 @@ export function LinkBioPage({ theme, config, products, linkBio }: LinkBioPagePro
             textColor={textColor}
             textColor2={textColor2}
             textColor3={textColor3}
+            verified={isVerifiedCreator(config.contactEmail)}
             onProductClick={(p) => { window.location.href = `/${config.storeSlug}/product/${p.id}`; }}
           />
         </div>
