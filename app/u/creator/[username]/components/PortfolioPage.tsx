@@ -3,6 +3,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Star, Clock, Play, Check, Shield, ChevronRight, Loader2, User as UserIcon, AlertTriangle, Package, Instagram, Music2, Youtube, Twitter, ExternalLink, Mail, X, BadgeCheck } from 'lucide-react';
 import { UGCRequestModal } from './UGCRequestModal';
+import { getVideoThumbnail, isDirectVideo } from '@/lib/youtube';
+import { VideoEmbed } from '@/components/VideoEmbed';
 import { isVerifiedCreator } from '@/lib/verified-creators';
 import { VerifiedBadge } from '@/app/store/[storeSlug]/components/layouts/VerifiedBadge';
 const TikTokIcon = ({ size = 14, color = 'currentColor' }: { size?: number; color?: string }) => (
@@ -42,7 +44,6 @@ const formatFollowerCount = (num: number): string => {
   return num.toString();
 };
 
-import { getVideoThumbnail, getVideoEmbedUrl, isDirectVideo } from '@/lib/youtube';
 
 interface CreatorData {
   id: string;
@@ -419,51 +420,9 @@ export function PortfolioPage({ username }: PortfolioPageProps) {
           >
             <X size={20} />
           </button>
-          {(() => {
-            const embed = getVideoEmbedUrl(selectedVideo.url);
-            if (embed) {
-              return (
-                <div
-                  style={{
-                    width: '100%', maxWidth: 420, aspectRatio: '9 / 16', maxHeight: '90dvh',
-                    background: '#000', borderRadius: 16, overflow: 'hidden',
-                  }}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <iframe
-                    src={embed}
-                    title="Video preview"
-                    style={{ width: '100%', height: '100%', border: 'none' }}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                  />
-                </div>
-              );
-            }
-            if (isDirectVideo(selectedVideo.url)) {
-              return (
-                <video
-                  src={selectedVideo.url}
-                  controls
-                  autoPlay
-                  playsInline
-                  preload="auto"
-                  style={{
-                    width: '100%', maxWidth: 420, aspectRatio: '9 / 16', maxHeight: '90dvh',
-                    background: '#000', borderRadius: 16, objectFit: 'contain',
-                  }}
-                  onClick={(e) => e.stopPropagation()}
-                />
-              );
-            }
-            return (
-              <div style={{ color: '#FFFFFF', fontSize: 14 }} onClick={(e) => e.stopPropagation()}>
-                <a href={selectedVideo.url} target="_blank" rel="noopener noreferrer" style={{ color: '#0EA5E9', fontWeight: 600 }}>
-                  Open video
-                </a>
-              </div>
-            );
-          })()}
+          <div onClick={(e) => e.stopPropagation()}>
+            <VideoEmbed url={selectedVideo.url} />
+          </div>
         </div>
       )}
     </div>
