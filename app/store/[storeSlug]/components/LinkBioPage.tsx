@@ -45,8 +45,16 @@ export function LinkBioPage({ theme, config, products, linkBio }: LinkBioPagePro
   >(null);
 
   const raw = (linkBio ?? {}) as Partial<LinkBioConfig>;
+  const MO_SELL_BRAND = 'mosell_gpzl2q';
+  const isBrandLogo = (u?: string | null) => !!u && u.includes(MO_SELL_BRAND);
+  // Creator profile photo first; store logo only if it is not the MO-Sell brand mark
+  const resolvedAvatar =
+    (typeof raw.avatarUrl === 'string' && raw.avatarUrl.trim() && !isBrandLogo(raw.avatarUrl)
+      ? raw.avatarUrl.trim()
+      : null) ||
+    (config.logoUrl && !isBrandLogo(config.logoUrl) ? config.logoUrl : null);
   const bio = {
-    avatarUrl: 'avatarUrl' in raw ? raw.avatarUrl : config.logoUrl,
+    avatarUrl: resolvedAvatar,
     name: raw.name || config.storeName,
     bio: raw.bio || (config.tagline ?? ''),
     socials: Array.isArray(raw.socials) ? raw.socials : [],

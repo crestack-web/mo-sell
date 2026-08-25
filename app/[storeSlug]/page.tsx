@@ -45,19 +45,46 @@ async function getProducts(businessId: string) {
   } catch { return []; }
 }
 
+const MO_SELL_BRAND_LOGO = 'mosell_gpzl2q';
+
+function isMoSellBrandLogo(url?: string | null): boolean {
+  return !!url && url.includes(MO_SELL_BRAND_LOGO);
+}
+
+/** Prefer creator profile photo for link previews; never use the MO-Sell brand mark. */
+function bioShareImage(config: { logoUrl?: string | null; linkBio?: any; storeName?: string }): string | null {
+  const linkBio = (config as any).linkBio ?? {};
+  const avatar = typeof linkBio.avatarUrl === 'string' ? linkBio.avatarUrl.trim() : '';
+  if (avatar && !isMoSellBrandLogo(avatar)) return avatar;
+  const logo = config.logoUrl?.trim() || '';
+  if (logo && !isMoSellBrandLogo(logo)) return logo;
+  return null;
+}
+
 export async function generateMetadata(
   { params }: { params: Promise<{ storeSlug: string }> }
 ): Promise<Metadata> {
   const { storeSlug } = await params;
   const config = await getStoreConfig(storeSlug);
   if (!config) return { title: 'Store' };
+  const name = ((config as any).linkBio?.name || config.storeName || 'Store').trim();
+  const description =
+    ((config as any).linkBio?.bio || config.tagline || `${name} — link-in-bio`).trim();
+  const image = bioShareImage(config as any);
   return {
-    title: config.storeName,
-    description: config.tagline ?? `${config.storeName} — link-in-bio`,
+    title: name,
+    description,
     openGraph: {
-      title: config.storeName,
-      description: config.tagline ?? `${config.storeName} — link-in-bio`,
-      images: config.logoUrl ? [config.logoUrl] : [],
+      title: name,
+      description,
+      type: 'profile',
+      images: image ? [{ url: image }] : [],
+    },
+    twitter: {
+      card: image ? 'summary_large_image' : 'summary',
+      title: name,
+      description,
+      images: image ? [image] : [],
     },
   };
 }

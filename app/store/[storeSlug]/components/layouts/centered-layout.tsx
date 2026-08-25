@@ -29,7 +29,7 @@ export function CenteredLayout({ config, bio, visibleProducts, isLightBg, textCo
         {bio.avatarUrl ? (
           <img src={bio.avatarUrl} alt={bio.name}
             style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-        ) : config.logoUrl ? (
+        ) : (config.logoUrl && !String(config.logoUrl).includes('mosell_gpzl2q')) ? (
           <img src={config.logoUrl} alt={bio.name}
             style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         ) : (

@@ -58,7 +58,7 @@ function Avatar({ bio, config, theme, isLightBg, size = 96 }: { bio: LayoutProps
     }}>
       {bio.avatarUrl ? (
         <img src={bio.avatarUrl} alt={bio.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-      ) : config.logoUrl ? (
+      ) : (config.logoUrl && !String(config.logoUrl).includes('mosell_gpzl2q')) ? (
         <img src={config.logoUrl} alt={bio.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
       ) : (
         <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', fontWeight: 700 }}>{initials}</div>
