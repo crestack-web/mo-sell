@@ -539,6 +539,10 @@ const CREATOR_SLIDES = [
     src: 'https://res.cloudinary.com/dzjoqbg2u/image/upload/v1787412933/Life_of_majnun_-_3_rlt0dp.png',
     alt: 'Creator and seller on MO Sell',
   },
+  {
+    src: 'https://res.cloudinary.com/dzjoqbg2u/image/upload/v1787641326/Life_of_majnun_-_4_vqmwmf.png',
+    alt: 'Creator and seller on MO Sell',
+  },
 ];
 
 function CreatorsSlider() {
