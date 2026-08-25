@@ -50,4 +50,6 @@ export interface LayoutProps {
   textColor2: string;
   textColor3: string;
   onProductClick: (product: ProductCardData & { description?: string; digitalFileUrl?: string | null }) => void;
+  /** Purple verified badge next to the creator name (allowlisted emails). */
+  verified?: boolean;
 }
