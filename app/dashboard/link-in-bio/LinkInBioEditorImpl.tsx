@@ -6,6 +6,7 @@ import { getStorage } from '@/lib/storage/adapter';
 import { supabaseClient } from '@/lib/supabase-client';
 import { useSell } from '@/context/SellContext';
 import { THEMES, resolveLinkBioTheme } from '@/themes/registry';
+import { getThemeCssVars } from '@/components/theme-css-vars';
 import type { ProductCardData } from '@/themes/types';
 import { getLinkBioLayout, type CustomLink } from '@/app/store/[storeSlug]/components/layouts/index';
 import { ExternalLink, Eye, EyeOff, X, Pencil, Instagram, Twitter, Youtube, Music2, MessageCircle } from 'lucide-react';
@@ -279,6 +280,23 @@ export function LinkInBioEditor() {
   const Layout = getLinkBioLayout(theme);
   const primary = storeConfig?.primaryColor ?? '#0EA5E9';
   const secondary = storeConfig?.secondaryColor ?? '#6366F1';
+  const themeVars = getThemeCssVars(theme as any, primary, secondary);
+
+  // Match live LinkBioPage light/dark + background logic
+  const LIGHT_BGS = ['#FFFFFF', '#F9FAFB', '#FFF7ED', '#ECFDF5', '#F0F9FF', '#FFC93C', '#EDE7D9'];
+  const bgType = form.backgroundType || 'solid';
+  const bgValue = form.backgroundValue || '#0A0A0A';
+  const isLightBg = bgType === 'solid' && LIGHT_BGS.includes(bgValue);
+  const textColor = isLightBg ? '#0f172a' : '#fff';
+  const textColor2 = isLightBg ? '#64748b' : 'rgba(255,255,255,0.7)';
+  const textColor3 = isLightBg ? '#94a3b8' : 'rgba(255,255,255,0.4)';
+  const isDefaultSolid = bgType === 'solid' && (!bgValue || bgValue === '#0A0A0A');
+  const previewBgStyle: React.CSSProperties =
+    bgType === 'image' || bgType === 'pattern'
+      ? { backgroundColor: '#111' }
+      : isDefaultSolid
+        ? { background: 'var(--sf-bg, #0A0A0A)' }
+        : { background: bgValue };
 
   return (
     <div className={styles.page}>
@@ -297,44 +315,55 @@ export function LinkInBioEditor() {
       <div className={styles.body}>
         <div className={styles.previewCol}>
           <div className={styles.phoneFrame}>
-            <div className={styles.phoneScreen}>
-              {Layout ? (
-                <Layout
-                  config={{
-                    storeSlug: storeConfig?.storeSlug ?? '',
-                    storeName: form.name || storeConfig?.storeName || 'Store',
-                    logoUrl: form.avatarUrl,
-                    primaryColor: primary,
-                    secondaryColor: secondary,
-                    currency: storeConfig?.currency ?? 'NGN',
-                    tagline: form.bio,
-                    contactEmail: '',
-                    contactPhone: '',
-                    paystackPublicKey: '',
-                  }}
-                  bio={{
-                    avatarUrl: avatarPreview || form.avatarUrl,
-                    name: form.name,
-                    bio: form.bio,
-                    socials: form.socials.filter(s => s.url),
-                    displayType: form.displayType,
-                    backgroundType: form.backgroundType,
-                    backgroundValue: form.backgroundValue,
-                    customLinks: form.customLinks.filter(cl => cl.label && cl.url),
-                  }}
-                  visibleProducts={visibleProducts as any}
-                  isLightBg={form.backgroundValue === '#FFFFFF' || form.backgroundValue === '#F9FAFB'}
-                  textColor="#fff"
-                  textColor2="rgba(255,255,255,0.75)"
-                  textColor3="rgba(255,255,255,0.55)"
-                  onProductClick={() => {}}
-                />
-              ) : (
-                <div style={{ padding: 24, textAlign: 'center', color: '#fff' }}>
-                  <div style={{ fontWeight: 700, marginBottom: 8 }}>{form.name || 'Your name'}</div>
-                  <div style={{ fontSize: 13, opacity: 0.8 }}>{form.bio || 'Your bio'}</div>
-                </div>
-              )}
+            <div className={styles.phoneScreen} style={{ ...themeVars, ...previewBgStyle } as React.CSSProperties}>
+              {bgType === 'image' && bgValue ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={bgValue} alt="" className={styles.bgImg} />
+              ) : null}
+              {bgType === 'pattern' && bgValue ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={bgValue} alt="" className={styles.bgImg} style={{ opacity: 0.15 }} />
+              ) : null}
+              <div style={{ position: 'relative', zIndex: 1, width: '100%', minHeight: '100%' }}>
+                {Layout ? (
+                  <Layout
+                    config={{
+                      storeSlug: storeConfig?.storeSlug ?? '',
+                      storeName: form.name || storeConfig?.storeName || 'Store',
+                      logoUrl: form.avatarUrl,
+                      primaryColor: primary,
+                      secondaryColor: secondary,
+                      currency: storeConfig?.currency ?? 'NGN',
+                      tagline: form.bio,
+                      contactEmail: '',
+                      contactPhone: '',
+                      paystackPublicKey: '',
+                    }}
+                    bio={{
+                      avatarUrl: avatarPreview || form.avatarUrl,
+                      name: form.name,
+                      bio: form.bio,
+                      socials: form.socials.filter(s => s.url),
+                      displayType: form.displayType,
+                      backgroundType: form.backgroundType,
+                      backgroundValue: form.backgroundValue,
+                      customLinks: form.customLinks.filter(cl => cl.label && cl.url),
+                      productDisplayTypes: form.productDisplayTypes,
+                    }}
+                    visibleProducts={visibleProducts as any}
+                    isLightBg={isLightBg}
+                    textColor={textColor}
+                    textColor2={textColor2}
+                    textColor3={textColor3}
+                    onProductClick={() => {}}
+                  />
+                ) : (
+                  <div style={{ padding: 24, textAlign: 'center', color: textColor }}>
+                    <div style={{ fontWeight: 700, marginBottom: 8 }}>{form.name || 'Your name'}</div>
+                    <div style={{ fontSize: 13, opacity: 0.8 }}>{form.bio || 'Your bio'}</div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -437,16 +466,45 @@ export function LinkInBioEditor() {
                 <div className={styles.field}>
                   <label className={styles.fLabel}>Theme</label>
                   <div className={styles.themeGrid}>
-                    {THEMES.filter(t => t.type === 'link-style').slice(0, 24).map(t => (
-                      <button
-                        key={t.id}
-                        type="button"
-                        className={[styles.themeCard, theme === t.id ? styles.themeCardActive : ''].join(' ')}
-                        onClick={() => handleThemeSelect(t.id)}
-                      >
-                        <span className={styles.themeName}>{t.name}</span>
-                      </button>
-                    ))}
+                    {THEMES.filter(t => t.type === 'link-style').slice(0, 24).map(t => {
+                      const isActive = theme === t.id;
+                      const accent = t.previewAccent || '#0EA5E9';
+                      const bg = t.previewBg || '#0A0A0A';
+                      const LIGHT_MOCK_BGS = new Set(['#FFFFFF', '#F9FAFB', '#FFF7ED', '#ECFDF5', '#F0F9FF', '#FFC93C', '#EDE7D9', '#E5E3DE', '#FFF4DE', '#F7F5F0', '#F1EEE4', '#F5F5F4']);
+                      const lightMock = LIGHT_MOCK_BGS.has(bg.toUpperCase()) || LIGHT_MOCK_BGS.has(bg);
+                      const mockText = lightMock ? '#0f172a' : '#FFFFFF';
+                      const mockMuted = lightMock ? 'rgba(15,23,42,0.45)' : 'rgba(255,255,255,0.55)';
+                      return (
+                        <button
+                          key={t.id}
+                          type="button"
+                          className={[styles.themeCard, isActive ? styles.themeCardActive : ''].join(' ')}
+                          onClick={() => handleThemeSelect(t.id)}
+                          title={t.description || t.name}
+                        >
+                          <div
+                            className={styles.themeMock}
+                            style={{
+                              background: bg,
+                              fontFamily: t.previewFont ? `${t.previewFont}, system-ui, sans-serif` : undefined,
+                            }}
+                          >
+                            <div className={styles.themeMockAvatar} style={{ background: accent, boxShadow: `0 0 0 2px ${accent}55` }} />
+                            <div className={styles.themeMockName} style={{ color: mockText }}>{t.name.split(' ')[0]}</div>
+                            <div className={styles.themeMockLine} style={{ background: mockMuted }} />
+                            <div className={styles.themeMockBtns}>
+                              <span className={styles.themeMockBtn} style={{ background: accent, color: lightMock ? '#0f172a' : '#fff' }} />
+                              <span className={styles.themeMockBtn} style={{ background: lightMock ? 'rgba(15,23,42,0.12)' : 'rgba(255,255,255,0.18)' }} />
+                              <span className={styles.themeMockBtn} style={{ background: lightMock ? 'rgba(15,23,42,0.08)' : 'rgba(255,255,255,0.12)' }} />
+                            </div>
+                            {t.badge ? (
+                              <span className={styles.themeMockBadge} style={{ color: t.badge.color, background: t.badge.bg }}>{t.badge.label}</span>
+                            ) : null}
+                          </div>
+                          <span className={styles.themeName}>{t.name}</span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
                 <div className={styles.field}>
