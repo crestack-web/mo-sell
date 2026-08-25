@@ -3,8 +3,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Star, Clock, Play, Check, Shield, ChevronRight, Loader2, User as UserIcon, AlertTriangle, Package, Instagram, Music2, Youtube, Twitter, ExternalLink, Mail, X, BadgeCheck } from 'lucide-react';
 import { UGCRequestModal } from './UGCRequestModal';
-import { getVideoThumbnail, isDirectVideo } from '@/lib/youtube';
 import { VideoEmbed } from '@/components/VideoEmbed';
+import { VideoPoster } from '@/components/VideoPoster';
 import { isVerifiedCreator } from '@/lib/verified-creators';
 import { VerifiedBadge } from '@/app/store/[storeSlug]/components/layouts/VerifiedBadge';
 const TikTokIcon = ({ size = 14, color = 'currentColor' }: { size?: number; color?: string }) => (
@@ -287,10 +287,7 @@ export function PortfolioPage({ username }: PortfolioPageProps) {
         <h2 style={s.sectionTitle}>{creator.portfolioImages?.length ? 'Videos' : 'Portfolio'}</h2>
         {creator.sampleVideos && creator.sampleVideos.length > 0 ? (
           <div style={s.grid}>
-            {creator.sampleVideos.map((video) => {
-              const thumb = getVideoThumbnail(video);
-              const canNativePlay = isDirectVideo(video.url);
-              return (
+            {creator.sampleVideos.map((video) => (
                 <div
                   key={video.id}
                   style={{ ...s.videoCard, cursor: 'pointer' }}
@@ -305,49 +302,10 @@ export function PortfolioPage({ username }: PortfolioPageProps) {
                   }}
                 >
                   <div style={s.videoThumb}>
-                    {thumb ? (
-                      <img
-                        src={thumb}
-                        alt=""
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        loading="lazy"
-                        onError={(e) => {
-                          const el = e.target as HTMLImageElement;
-                          el.style.display = 'none';
-                          // fall back to muted video frame if available
-                          const sibling = el.parentElement?.querySelector('video');
-                          if (sibling) (sibling as HTMLVideoElement).style.display = 'block';
-                        }}
-                      />
-                    ) : null}
-                    {canNativePlay ? (
-                      <video
-                        src={video.url}
-                        muted
-                        playsInline
-                        preload="metadata"
-                        style={{
-                          width: '100%',
-                          height: '100%',
-                          objectFit: 'cover',
-                          display: thumb ? 'none' : 'block',
-                          position: thumb ? 'absolute' : 'relative',
-                          inset: 0,
-                        }}
-                      />
-                    ) : null}
-                    {!thumb && !canNativePlay ? (
-                      <div style={s.videoPlaceholder}>
-                        <Play size={20} color="#6B7280" />
-                      </div>
-                    ) : null}
-                    <div style={s.videoPlay}>
-                      <Play size={18} color="#FFFFFF" fill="#FFFFFF" style={{ marginLeft: 2 }} />
-                    </div>
+                    <VideoPoster video={video} playIconSize={18} />
                   </div>
                 </div>
-              );
-            })}
+              ))}
           </div>
         ) : (
           <div style={s.emptyPortfolio}>

@@ -109,3 +109,49 @@ export function isDirectVideo(url: string): boolean {
   if (isCloudinaryVideo(url)) return true;
   return false;
 }
+
+/** Fetch TikTok oEmbed thumbnail (server-side only — TikTok blocks browser CORS). */
+export async function fetchTikTokThumbnail(url: string): Promise<string | null> {
+  if (!url || !isTikTokUrl(url)) return null;
+  try {
+    // Prefer a canonical video URL when we already have an id (oEmbed is more reliable)
+    let oembedUrl = url.trim();
+    const id = getTikTokVideoId(oembedUrl);
+    if (id) {
+      oembedUrl = `https://www.tiktok.com/video/${id}`;
+    }
+
+    const res = await fetch(
+      `https://www.tiktok.com/oembed?url=${encodeURIComponent(oembedUrl)}`,
+      {
+        headers: {
+          'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          Accept: 'application/json',
+        },
+        signal: AbortSignal.timeout(8000),
+      },
+    );
+    if (!res.ok) return null;
+    const data = (await res.json()) as { thumbnail_url?: string };
+    return data.thumbnail_url ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Resolve a display thumbnail for any supported video URL.
+ * Sync sources first; for TikTok falls back to oEmbed (async, server-side).
+ */
+export async function resolveVideoThumbnail(video: {
+  url?: string;
+  thumbnail?: string | null;
+  thumbnailUrl?: string | null;
+}): Promise<string | null> {
+  const sync = getVideoThumbnail(video);
+  if (sync) return sync;
+  const url = video.url ?? '';
+  if (isTikTokUrl(url)) return fetchTikTokThumbnail(url);
+  return null;
+}

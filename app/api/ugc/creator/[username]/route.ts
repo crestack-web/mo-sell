@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCreatorByUsername, listVideos } from '@/lib/ugc';
 import { getSupabaseServer } from '@/lib/database/postgresql-adapter';
+import { resolveVideoThumbnail } from '@/lib/youtube';
 
 export async function GET(
   _req: NextRequest,
@@ -15,6 +16,19 @@ export async function GET(
     }
 
     const videos = (await listVideos({ creatorId: creator.userId, hasWatermark: true, limit: 9 })) as any[];
+
+    // Attach poster images (YouTube / Cloudinary sync + TikTok oEmbed)
+    const sampleVideos = await Promise.all(
+      videos.map(async (v) => {
+        const thumbnailUrl =
+          (await resolveVideoThumbnail({
+            url: v.url,
+            thumbnail: v.thumbnail,
+            thumbnailUrl: v.thumbnailUrl,
+          })) ?? v.thumbnailUrl ?? v.thumbnail ?? null;
+        return { ...v, thumbnailUrl, thumbnail: thumbnailUrl ?? v.thumbnail ?? null };
+      }),
+    );
 
     let completedCount = 0;
     try {
@@ -32,7 +46,7 @@ export async function GET(
     return NextResponse.json({
       creator: {
         ...creator,
-        sampleVideos: videos,
+        sampleVideos,
         completedOrders: completedCount,
         currency: creator.currency ?? 'NGN',
         price30sDisplay: (creator.price30s ?? 0) / 100,
