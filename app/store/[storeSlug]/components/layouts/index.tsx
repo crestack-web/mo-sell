@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Instagram, Twitter, Youtube, Music2, MessageCircle } from 'lucide-react';
 import type { ProductCardData } from '@/themes/types';
 import { socialUrl } from '@/lib/socials';
+import { VerifiedName } from './VerifiedBadge';
 
 export interface CustomLink { id: string; label: string; url: string }
 
@@ -26,6 +27,8 @@ export interface LayoutProps {
   visibleProducts: (ProductCardData & { description?: string; digitalFileUrl?: string | null })[];
   isLightBg: boolean; textColor: string; textColor2: string; textColor3: string;
   onProductClick: (p: ProductCardData & { description?: string; digitalFileUrl?: string | null }) => void;
+  /** Purple verified badge next to the creator name (allowlisted emails). */
+  verified?: boolean;
 }
 
 const SOCIAL_ICONS: Record<string, React.ReactNode> = {
@@ -152,7 +155,7 @@ function getSpec(theme: string) {
 /* ─── 1. ankara — stripes ─────────────────────────────────────────────────── */
 
 export function AnkaraLayout(p: LayoutProps) {
-  const { config, bio, visibleProducts, isLightBg, textColor, textColor2, textColor3, onProductClick } = p;
+  const { config, bio, visibleProducts, isLightBg, textColor, textColor2, textColor3, onProductClick, verified } = p;
   const spec = getSpec('ankara');
   return (
     <div style={{ width: '100%', maxWidth: 600, margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '0 24px 32px', textAlign: 'center' }}>
@@ -161,7 +164,7 @@ export function AnkaraLayout(p: LayoutProps) {
         background: 'repeating-linear-gradient(45deg, var(--sf-accent-2, #00A896) 0 10px, transparent 10px 20px)',
       }} />
       <Avatar bio={bio} config={config} theme="ankara" isLightBg={isLightBg} />
-      <h1 style={{ margin: 0, fontFamily: spec.fontDisplay, fontSize: '1.5rem', fontWeight: 800, color: 'var(--sf-text-1, ' + textColor + ')' }}>{bio.name}</h1>
+      <VerifiedName as="h1" name={bio.name} verified={verified} style={{ margin: 0, fontFamily: spec.fontDisplay, fontSize: '1.5rem', fontWeight: 800, color: 'var(--sf-text-1, ' + textColor + ')' }} />
       <p style={{ margin: '6px 0 0', fontSize: '0.82rem', fontWeight: 600, color: 'var(--sf-text-2, ' + textColor2 + ')' }}>
         <span style={{ color: 'var(--sf-accent, ' + config.primaryColor + ')' }}>↳</span> @{config.storeSlug}
       </p>
@@ -176,12 +179,12 @@ export function AnkaraLayout(p: LayoutProps) {
 /* ─── 2. midnight — frame ──────────────────────────────────────────────────── */
 
 export function MidnightLayout(p: LayoutProps) {
-  const { config, bio, visibleProducts, isLightBg, textColor, textColor2, textColor3, onProductClick } = p;
+  const { config, bio, visibleProducts, isLightBg, textColor, textColor2, textColor3, onProductClick, verified } = p;
   const spec = getSpec('midnight');
   return (
     <div style={{ width: '100%', maxWidth: 600, margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '56px 24px 32px', textAlign: 'center' }}>
       <Avatar bio={bio} config={config} theme="midnight" isLightBg={isLightBg} size={88} />
-      <h1 style={{ margin: 0, fontFamily: spec.fontDisplay, fontSize: '1.5rem', fontWeight: 600, letterSpacing: '0.01em', color: 'var(--sf-text-1, ' + textColor + ')' }}>{bio.name}</h1>
+      <VerifiedName as="h1" name={bio.name} verified={verified} style={{ margin: 0, fontFamily: spec.fontDisplay, fontSize: '1.5rem', fontWeight: 600, letterSpacing: '0.01em', color: 'var(--sf-text-1, ' + textColor + ')' }} />
       <p style={{ margin: '6px 0 0', fontSize: '0.75rem', fontWeight: 500, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--sf-accent, #C9A227)' }}>
         @{config.storeSlug}
       </p>
@@ -196,7 +199,7 @@ export function MidnightLayout(p: LayoutProps) {
 /* ─── 3. harmattan — horizon ───────────────────────────────────────────────── */
 
 export function HarmattanLayout(p: LayoutProps) {
-  const { config, bio, visibleProducts, isLightBg, textColor, textColor2, textColor3, onProductClick } = p;
+  const { config, bio, visibleProducts, isLightBg, textColor, textColor2, textColor3, onProductClick, verified } = p;
   const spec = getSpec('harmattan');
   return (
     <div style={{ width: '100%', maxWidth: 600, margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '56px 24px 32px', textAlign: 'center' }}>
@@ -205,7 +208,7 @@ export function HarmattanLayout(p: LayoutProps) {
         background: 'linear-gradient(90deg, var(--sf-accent-2, #8A7A62), var(--sf-accent, #4C6B8A))',
       }} />
       <Avatar bio={bio} config={config} theme="harmattan" isLightBg={isLightBg} />
-      <h1 style={{ margin: 0, fontFamily: spec.fontDisplay, fontSize: '1.6rem', fontWeight: 600, letterSpacing: '0.01em', color: 'var(--sf-text-1, ' + textColor + ')' }}>{bio.name}</h1>
+      <VerifiedName as="h1" name={bio.name} verified={verified} style={{ margin: 0, fontFamily: spec.fontDisplay, fontSize: '1.6rem', fontWeight: 600, letterSpacing: '0.01em', color: 'var(--sf-text-1, ' + textColor + ')' }} />
       <p style={{ margin: '6px 0 0', fontSize: '0.78rem', fontWeight: 500, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--sf-text-2, ' + textColor2 + ')' }}>
         <span style={{ color: 'var(--sf-accent, #4C6B8A)' }}>↳</span> @{config.storeSlug}
       </p>
@@ -220,7 +223,7 @@ export function HarmattanLayout(p: LayoutProps) {
 /* ─── 4. neon — scan ───────────────────────────────────────────────────────── */
 
 export function NeonLayout(p: LayoutProps) {
-  const { config, bio, visibleProducts, isLightBg, textColor, textColor2, textColor3, onProductClick } = p;
+  const { config, bio, visibleProducts, isLightBg, textColor, textColor2, textColor3, onProductClick, verified } = p;
   const spec = getSpec('neon');
   return (
     <div style={{ width: '100%', maxWidth: 600, margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '56px 24px 32px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
@@ -230,7 +233,7 @@ export function NeonLayout(p: LayoutProps) {
       }} />
       <div style={{ position: 'relative', zIndex: 1 }}>
         <Avatar bio={bio} config={config} theme="neon" isLightBg={isLightBg} size={84} />
-        <h1 style={{ margin: 0, fontFamily: spec.fontDisplay, fontSize: '1.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--sf-text-1, ' + textColor + ')' }}>{bio.name}</h1>
+        <VerifiedName as="h1" name={bio.name} verified={verified} style={{ margin: 0, fontFamily: spec.fontDisplay, fontSize: '1.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--sf-text-1, ' + textColor + ')' }} />
         <p style={{ margin: '6px 0 0', fontSize: '0.8rem', fontWeight: 600, color: 'var(--sf-accent-2, #00F0FF)' }}>@{config.storeSlug}</p>
         {bio.bio && <p style={{ margin: '14px 0 20px', fontSize: '0.88rem', color: 'var(--sf-text-2, ' + textColor2 + ')', maxWidth: 400, lineHeight: 1.6 }}>{bio.bio}</p>}
         <div style={{ marginBottom: 28 }}><SocialRow socials={bio.socials} isLightBg={isLightBg} textColor={textColor} /></div>
@@ -244,7 +247,7 @@ export function NeonLayout(p: LayoutProps) {
 /* ─── 5. sunset — blobs ────────────────────────────────────────────────────── */
 
 export function SunsetLayout(p: LayoutProps) {
-  const { config, bio, visibleProducts, isLightBg, textColor, textColor2, textColor3, onProductClick } = p;
+  const { config, bio, visibleProducts, isLightBg, textColor, textColor2, textColor3, onProductClick, verified } = p;
   const spec = getSpec('sunset');
   return (
     <div style={{ width: '100%', maxWidth: 600, margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '56px 24px 32px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
@@ -252,7 +255,7 @@ export function SunsetLayout(p: LayoutProps) {
       <div style={{ position: 'absolute', top: 80, right: -60, width: 150, height: 150, borderRadius: '50%', background: '#6E3AFF', opacity: 0.55, filter: 'blur(48px)', pointerEvents: 'none' }} />
       <div style={{ position: 'relative', zIndex: 1 }}>
         <Avatar bio={bio} config={config} theme="sunset" isLightBg={isLightBg} />
-        <h1 style={{ margin: 0, fontFamily: spec.fontDisplay, fontSize: '1.6rem', fontWeight: 700, color: 'var(--sf-text-1, ' + textColor + ')' }}>{bio.name}</h1>
+        <VerifiedName as="h1" name={bio.name} verified={verified} style={{ margin: 0, fontFamily: spec.fontDisplay, fontSize: '1.6rem', fontWeight: 700, color: 'var(--sf-text-1, ' + textColor + ')' }} />
         <p style={{ margin: '6px 0 0', fontSize: '0.82rem', fontWeight: 600, color: 'var(--sf-text-2, ' + textColor2 + ')' }}>
           <span style={{ color: 'var(--sf-accent-2, #FFD24C)' }}>↳</span> @{config.storeSlug}
         </p>
@@ -268,12 +271,12 @@ export function SunsetLayout(p: LayoutProps) {
 /* ─── 6. mono — stamp ──────────────────────────────────────────────────────── */
 
 export function MonoLayout(p: LayoutProps) {
-  const { config, bio, visibleProducts, isLightBg, textColor, textColor2, textColor3, onProductClick } = p;
+  const { config, bio, visibleProducts, isLightBg, textColor, textColor2, textColor3, onProductClick, verified } = p;
   const spec = getSpec('mono');
   return (
     <div style={{ width: '100%', maxWidth: 600, margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '56px 24px 32px', textAlign: 'center' }}>
       <Avatar bio={bio} config={config} theme="mono" isLightBg={isLightBg} size={88} />
-      <h1 style={{ margin: 0, fontFamily: spec.fontDisplay, fontSize: '1.5rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.01em', color: 'var(--sf-text-1, ' + textColor + ')' }}>{bio.name}</h1>
+      <VerifiedName as="h1" name={bio.name} verified={verified} style={{ margin: 0, fontFamily: spec.fontDisplay, fontSize: '1.5rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.01em', color: 'var(--sf-text-1, ' + textColor + ')' }} />
       <p style={{ margin: '6px 0 0', fontSize: '0.75rem', fontWeight: 600, color: 'var(--sf-text-2, ' + textColor2 + ')' }}>@{config.storeSlug}</p>
       {bio.bio && <p style={{ margin: '14px 0 20px', fontSize: '0.88rem', color: 'var(--sf-text-2, ' + textColor2 + ')', maxWidth: 400, lineHeight: 1.6 }}>{bio.bio}</p>}
       <div style={{ marginBottom: 28 }}><SocialRow socials={bio.socials} isLightBg={isLightBg} textColor={textColor} /></div>
@@ -567,7 +570,7 @@ function LinkBioDeco({ theme }: { theme: string }) {
 /* ─── 7. blush — soft grid layout ─────────────────────────────────────────── */
 
 export function BlushLayout(p: LayoutProps) {
-  const { config, bio, textColor, textColor2, textColor3, onProductClick } = p;
+  const { config, bio, textColor, textColor2, textColor3, onProductClick, verified } = p;
   const items = buildLinkItems(p);
   return (
     <div style={{ width: '100%', maxWidth: 600, margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '48px 24px 32px', gap: 14 }}>
@@ -575,7 +578,7 @@ export function BlushLayout(p: LayoutProps) {
         <div style={{ position: 'absolute', width: 96, height: 96, borderRadius: '50%', border: '1px solid var(--sf-accent, #D88C9A)' }} />
         <Avatar bio={bio} config={config} theme="blush" isLightBg={true} size={80} />
       </div>
-      <h1 style={{ margin: 0, fontFamily: 'var(--sf-font, Georgia, serif)', fontSize: '1.05rem', fontWeight: 700, color: 'var(--sf-text-1, ' + textColor + ')' }}>{bio.name}</h1>
+      <VerifiedName as="h1" name={bio.name} verified={verified} style={{ margin: 0, fontFamily: 'var(--sf-font, Georgia, serif)', fontSize: '1.05rem', fontWeight: 700, color: 'var(--sf-text-1, ' + textColor + ')' }} />
       <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--sf-text-2, ' + textColor2 + ')' }}>{bio.bio || ('@' + config.storeSlug)}</p>
       <div><SocialRow socials={bio.socials} isLightBg={true} textColor={textColor} /></div>
       {items.length > 0 && (
@@ -599,14 +602,14 @@ export function BlushLayout(p: LayoutProps) {
 /* ─── 8. rose — masthead + numbered index ─────────────────────────────────── */
 
 export function RoseLayout(p: LayoutProps) {
-  const { config, bio, textColor, textColor2, textColor3, onProductClick } = p;
+  const { config, bio, textColor, textColor2, textColor3, onProductClick, verified } = p;
   const items = buildLinkItems(p);
   return (
     <div style={{ width: '100%', maxWidth: 600, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 18, padding: '56px 24px 32px', position: 'relative', overflow: 'hidden' }}>
       <LinkBioDeco theme="rose" />
       <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', gap: 18 }}>
         <div style={{ textAlign: 'center', paddingTop: 8 }}>
-          <p style={{ margin: 0, fontFamily: 'var(--sf-font, Georgia, serif)', fontSize: '22px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', lineHeight: 1, color: 'var(--sf-text-1, ' + textColor + ')' }}>{bio.name}</p>
+          <VerifiedName as="p" name={bio.name} verified={verified} style={{ margin: 0, fontFamily: 'var(--sf-font, Georgia, serif)', fontSize: '22px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', lineHeight: 1, color: 'var(--sf-text-1, ' + textColor + ')' }} />
           <p style={{ margin: '8px 0 0', fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.15em', color: 'var(--sf-text-2, ' + textColor2 + ')' }}>{bio.bio || ('@' + config.storeSlug)}</p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14 }}>
@@ -635,7 +638,7 @@ export function RoseLayout(p: LayoutProps) {
 /* ─── 9. pearl — glass hero + floating tile grid ──────────────────────────── */
 
 export function PearlLayout(p: LayoutProps) {
-  const { config, bio, textColor, textColor2, textColor3, onProductClick } = p;
+  const { config, bio, textColor, textColor2, textColor3, onProductClick, verified } = p;
   const items = buildLinkItems(p);
   return (
     <div style={{ width: '100%', maxWidth: 600, margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20, padding: '56px 24px 32px', position: 'relative', overflow: 'hidden' }}>
@@ -643,7 +646,7 @@ export function PearlLayout(p: LayoutProps) {
       <div style={{ position: 'relative', zIndex: 1, width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
         <div style={{ position: 'relative', width: '100%' }}>
           <div style={{ borderRadius: 'var(--sf-radius-lg, 24px)', padding: '52px 16px 16px', textAlign: 'center', background: 'var(--sf-surface, rgba(255,255,255,0.4))', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', border: '1px solid var(--sf-border, rgba(255,255,255,0.6))' }}>
-            <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: 'var(--sf-text-1, ' + textColor + ')', fontFamily: 'var(--sf-font, Verdana, sans-serif)' }}>{bio.name}</p>
+            <VerifiedName as="p" name={bio.name} verified={verified} style={{ margin: 0, fontSize: 14, fontWeight: 700, color: 'var(--sf-text-1, ' + textColor + ')', fontFamily: 'var(--sf-font, Verdana, sans-serif)' }} />
             <p style={{ margin: '2px 0 0', fontSize: 10, color: 'var(--sf-text-2, ' + textColor2 + ')' }}>{bio.bio || ('@' + config.storeSlug)}</p>
             <div style={{ display: 'flex', justifyContent: 'center', marginTop: 8 }}><SocialRow socials={bio.socials} isLightBg={true} textColor={textColor} /></div>
           </div>
@@ -673,7 +676,7 @@ export function PearlLayout(p: LayoutProps) {
 /* ─── 10. cherry — asymmetric sticker collage ─────────────────────────────── */
 
 export function CherryLayout(p: LayoutProps) {
-  const { config, bio, textColor, textColor3, onProductClick } = p;
+  const { config, bio, textColor, textColor3, onProductClick, verified } = p;
   const items = buildLinkItems(p);
   const rotations = [-2, 1.5, -1, 2];
   const socials = bio.socials.filter(s => s.url);
@@ -684,7 +687,7 @@ export function CherryLayout(p: LayoutProps) {
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
           <div style={{ transform: 'rotate(-6deg)' }}><Avatar bio={bio} config={config} theme="cherry" isLightBg={false} size={56} /></div>
           <div style={{ paddingTop: 4, textAlign: 'left' }}>
-            <p style={{ margin: 0, fontSize: '18px', fontWeight: 900, textTransform: 'uppercase', lineHeight: 1.1, color: '#FFFFFF', fontFamily: 'var(--sf-font, Arial Black, Impact, sans-serif)' }}>{bio.name}</p>
+            <VerifiedName as="p" name={bio.name} verified={verified} style={{ margin: 0, fontSize: '18px', fontWeight: 900, textTransform: 'uppercase', lineHeight: 1.1, color: '#FFFFFF', fontFamily: 'var(--sf-font, Arial Black, Impact, sans-serif)' }} />
             <p style={{ margin: '6px 0 0', fontSize: 10, color: '#FFFFFF', opacity: 0.8 }}>{bio.bio || ('@' + config.storeSlug)}</p>
           </div>
         </div>
@@ -721,7 +724,7 @@ export function CherryLayout(p: LayoutProps) {
 /* ─── 11. quiet — left-aligned minimal list ───────────────────────────────── */
 
 export function QuietLayout(p: LayoutProps) {
-  const { config, bio, textColor, textColor2, textColor3, onProductClick } = p;
+  const { config, bio, textColor, textColor2, textColor3, onProductClick, verified } = p;
   const items = buildLinkItems(p);
   const socials = bio.socials.filter(s => s.url);
   const initials = bio.name.charAt(0).toUpperCase();
@@ -732,7 +735,7 @@ export function QuietLayout(p: LayoutProps) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 600, border: '1px solid var(--sf-accent, #B08968)', color: 'var(--sf-accent, #B08968)', fontFamily: 'var(--sf-font, Helvetica Neue, sans-serif)' }}>{initials}</div>
           <div>
-            <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--sf-text-1, ' + textColor + ')', fontFamily: 'var(--sf-font, Helvetica Neue, sans-serif)' }}>{bio.name}</p>
+            <VerifiedName as="p" name={bio.name} verified={verified} style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--sf-text-1, ' + textColor + ')', fontFamily: 'var(--sf-font, Helvetica Neue, sans-serif)' }} />
             <p style={{ margin: 0, fontSize: 10, color: 'var(--sf-text-2, ' + textColor2 + ')' }}>{bio.bio || ('@' + config.storeSlug)}</p>
           </div>
         </div>
@@ -768,7 +771,7 @@ export function QuietLayout(p: LayoutProps) {
 /* ─── 12. concrete — header row + block grid ──────────────────────────────── */
 
 export function ConcreteLayout(p: LayoutProps) {
-  const { config, bio, textColor, textColor2, textColor3, onProductClick } = p;
+  const { config, bio, textColor, textColor2, textColor3, onProductClick, verified } = p;
   const items = buildLinkItems(p);
   const socials = bio.socials.filter(s => s.url);
   const initials = bio.name.charAt(0).toUpperCase();
@@ -779,7 +782,7 @@ export function ConcreteLayout(p: LayoutProps) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingBottom: 12, borderBottom: '1px solid var(--sf-border, #D4D1C8)' }}>
           <div style={{ width: 56, height: 56, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, background: 'var(--sf-accent, #8C8A82)', color: '#FFFFFF', fontFamily: 'var(--sf-font, Arial, sans-serif)', border: '2px solid var(--sf-text-1, #2B2A28)' }}>{initials}</div>
           <div>
-            <p style={{ margin: 0, fontSize: 13, fontWeight: 700, textTransform: 'uppercase', color: 'var(--sf-text-1, ' + textColor + ')', fontFamily: 'var(--sf-font, Arial, sans-serif)' }}>{bio.name}</p>
+            <VerifiedName as="p" name={bio.name} verified={verified} style={{ margin: 0, fontSize: 13, fontWeight: 700, textTransform: 'uppercase', color: 'var(--sf-text-1, ' + textColor + ')', fontFamily: 'var(--sf-font, Arial, sans-serif)' }} />
             <p style={{ margin: 0, fontSize: '9.5px', fontFamily: 'Courier New, monospace', color: 'var(--sf-text-2, ' + textColor2 + ')' }}>{bio.bio || ('@' + config.storeSlug)}</p>
           </div>
         </div>
@@ -810,7 +813,7 @@ export function ConcreteLayout(p: LayoutProps) {
 /* ─── 13. chrome — HUD list, offset rows ──────────────────────────────────── */
 
 export function ChromeLayout(p: LayoutProps) {
-  const { config, bio, textColor, textColor2, textColor3, onProductClick } = p;
+  const { config, bio, textColor, textColor2, textColor3, onProductClick, verified } = p;
   const items = buildLinkItems(p);
   const socials = bio.socials.filter(s => s.url);
   return (
@@ -822,7 +825,7 @@ export function ChromeLayout(p: LayoutProps) {
           <Avatar bio={bio} config={config} theme="chrome" isLightBg={false} size={80} />
         </div>
         <div style={{ textAlign: 'center' }}>
-          <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: 'var(--sf-text-1, ' + textColor + ')', fontFamily: 'var(--sf-font, Arial, sans-serif)' }}>{bio.name}</p>
+          <VerifiedName as="p" name={bio.name} verified={verified} style={{ margin: 0, fontSize: 14, fontWeight: 700, color: 'var(--sf-text-1, ' + textColor + ')', fontFamily: 'var(--sf-font, Arial, sans-serif)' }} />
           <p style={{ margin: '2px 0 0', fontSize: 10, color: 'var(--sf-text-2, ' + textColor2 + ')' }}>{bio.bio || ('@' + config.storeSlug)}</p>
         </div>
         {socials.length > 0 && (

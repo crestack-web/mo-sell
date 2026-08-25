@@ -3,6 +3,7 @@
 import React from 'react';
 import { Instagram, Twitter, Youtube, Music2, MessageCircle } from 'lucide-react';
 import type { LayoutProps } from './types';
+import { VerifiedName } from './VerifiedBadge';
 
 const SOCIAL_ICONS: Record<string, React.ReactNode> = {
   instagram: <Instagram size={20} />,
@@ -12,7 +13,7 @@ const SOCIAL_ICONS: Record<string, React.ReactNode> = {
   whatsapp: <MessageCircle size={20} />,
 };
 
-export function GlowLayout({ config, bio, visibleProducts, isLightBg, textColor, textColor2, textColor3, onProductClick }: LayoutProps) {
+export function GlowLayout({ config, bio, visibleProducts, isLightBg, textColor, textColor2, textColor3, onProductClick, verified }: LayoutProps) {
   return (
     <div style={{
       width: '100%', maxWidth: 600, margin: '0 auto',
@@ -45,10 +46,10 @@ export function GlowLayout({ config, bio, visibleProducts, isLightBg, textColor,
         )}
       </div>
 
-      <h1 style={{
+      <VerifiedName as="h1" name={bio.name} verified={verified} style={{
         margin: '0 0 4px', fontSize: '1.35rem', fontWeight: 800,
         color: textColor, letterSpacing: '-0.02em',
-      }}>{bio.name}</h1>
+      }} />
 
       {bio.bio && (
         <p style={{
