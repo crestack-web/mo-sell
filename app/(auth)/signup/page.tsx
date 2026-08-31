@@ -1,28 +1,23 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { supabaseClient } from '@/lib/supabase-client';
-import { getDatabase } from '@/lib/database/adapter';
 import posthog from 'posthog-js';
 
+const FONT_BODY = 'system-ui, -apple-system, sans-serif';
+const FONT_DISPLAY = FONT_BODY;
 const C = {
   primary: '#0EA5E9',
-  primaryDk: '#0369A1',
   accent: '#6366F1',
-  bg: '#F0F9FF',
   surface: '#FFFFFF',
-  border: '#E0EFFA',
-  text1: '#0C1A2E',
-  text2: '#3D5A7A',
-  text3: '#8AAABF',
-  green: '#16A34A',
-  greenBg: '#DCFCE7',
-  red: '#DC2626',
-  redBg: '#FEE2E2',
+  border: '#E2E8F0',
+  text1: '#0F172A',
+  text2: '#475569',
+  text3: '#94A3B8',
+  bg: '#F4F8FC',
 };
-const FONT_DISPLAY = "'Clash Display','Plus Jakarta Sans',sans-serif";
-const FONT_BODY = "'Plus Jakarta Sans',system-ui,sans-serif";
 
 function slugify(s: string) {
   return s
@@ -31,6 +26,22 @@ function slugify(s: string) {
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-')
     .slice(0, 30);
+}
+
+function BusmoMark() {
+  return (
+    <img
+      src="https://busmo.app/sidebar-logo.png"
+      alt=""
+      width={18}
+      height={18}
+      style={{ borderRadius: 4, objectFit: 'contain' }}
+      onError={(e) => {
+        const el = e.currentTarget;
+        el.style.display = 'none';
+      }}
+    />
+  );
 }
 
 function GoogleMark() {
@@ -50,57 +61,31 @@ const inputStyle: React.CSSProperties = {
   border: `1.5px solid ${C.border}`,
   fontSize: 14,
   fontFamily: FONT_BODY,
-  outline: 'none',
+  color: C.text1,
   background: '#F8FBFF',
-  width: '100%',
-  boxSizing: 'border-box',
+  outline: 'none',
 };
 
 export default function SellSignupPage() {
   const router = useRouter();
-
-  const [step, setStep] = useState<1 | 2 | 3>(1);
-  const [otpSent, setOtpSent] = useState(false);
-
+  const searchParams = useSearchParams();
+  const [step, setStep] = useState(1);
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [otp, setOtp] = useState('');
-  const [businessName, setBusinessName] = useState('');
-
+  const [otpSent, setOtpSent] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
   const [userId, setUserId] = useState('');
   const [businessId, setBusinessId] = useState('');
+  const [storeName, setStoreName] = useState('');
+  const [storeSlug, setStoreSlug] = useState('');
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('onboarding') !== '1') return;
-    (async () => {
-      const {
-        data: { session },
-      } = await supabaseClient.auth.getSession();
-      if (!session?.user) {
-        router.replace('/signup');
-        return;
-      }
-      const db = getDatabase();
-      const userDoc = await db.doc(`users/${session.user.id}`).get();
-      const userData = userDoc.exists ? userDoc.data() : {};
-      setUserId(session.user.id);
-      setBusinessId(userData.businessId || `biz_${session.user.id.slice(0, 12)}`);
-      setEmail(session.user.email || '');
-      setFullName(
-        userData.fullName ||
-          session.user.user_metadata?.full_name ||
-          session.user.user_metadata?.name ||
-          ''
-      );
-      if (userData.businessName) setBusinessName(userData.businessName);
-      // Resume at business name if store not created yet
-      setStep(userData.onboardingComplete ? 3 : 2);
-    })();
+    if (searchParams.get('onboarding') === '1') {
+      setStep(2);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -128,6 +113,13 @@ export default function SellSignupPage() {
       setError('Google sign-up failed. Please try again.');
       setLoading(false);
     }
+  };
+
+  const handleBusmoSignup = () => {
+    setLoading(true);
+    setError('');
+    const busmoUrl = (process.env.NEXT_PUBLIC_BUSMO_APP_URL || 'https://busmo.app').replace(/\/$/, '');
+    window.location.href = `${busmoUrl}/auth/mo-sell-handoff`;
   };
 
   const handleSendOTP = async (e: React.FormEvent) => {
@@ -180,250 +172,92 @@ export default function SellSignupPage() {
     }
   };
 
-  const handleSaveBusiness = async (e: React.FormEvent) => {
+  const handleStoreSetup = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
     try {
-      const db = getDatabase();
-      await db.doc(`businesses/${businessId}`).set(
-        { businessName, updatedAt: new Date().toISOString() },
-        { merge: true }
-      );
-      if (userId) {
-        await db.doc(`users/${userId}`).set(
-          { businessName, onboardingComplete: false, updatedAt: new Date().toISOString() },
-          { merge: true }
-        );
-      }
+      const slug = storeSlug || slugify(storeName);
+      const response = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'complete-onboarding',
+          storeName,
+          storeSlug: slug,
+          businessId: businessId || undefined,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to set up store');
       posthog.capture('sell_signup_completed', { step: 2 });
-      setStep(3);
+      router.replace('/dashboard');
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to save');
+      setError(err instanceof Error ? err.message : 'Failed to set up store');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCreateFreeStore = async () => {
-    setCreating(true);
-    setError('');
-    try {
-      const {
-        data: { session },
-      } = await supabaseClient.auth.getSession();
-      if (!session?.user || !session.access_token) {
-        throw new Error('Not authenticated. Please sign in again.');
-      }
-
-      const bid = businessId || `biz_${session.user.id.slice(0, 12)}`;
-      const name = businessName.trim() || 'My Store';
-
-      // Server-side completion (service role) so Google + email sign-ups
-      // are not blocked by RLS or invalid client-side column writes.
-      const response = await fetch('/api/auth/complete-onboarding', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({ businessName: name, businessId: bid }),
-      });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        throw new Error(data.error || 'Something went wrong. Please try again.');
-      }
-
-      posthog.capture('sell_payg_store_created', {
-        businessId: data.businessId || bid,
-      });
-      router.push('/dashboard/overview?welcome=1');
-    } catch (err: unknown) {
-      console.error('[Signup] store creation error:', err);
-      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
-      setCreating(false);
-    }
-  };
-
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '32px 16px',
-        background: `linear-gradient(135deg, ${C.bg} 0%, #E0E7FF 100%)`,
-        fontFamily: FONT_BODY,
-      }}
-    >
-      <div style={{ width: '100%', maxWidth: 440 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 28 }}>
-          {[1, 2, 3].map(s => (
-            <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div
+    <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, fontFamily: FONT_BODY }}>
+      <div style={{ width: '100%', maxWidth: 420 }}>
+        <div style={{ background: C.surface, borderRadius: 16, padding: 28, border: `1px solid ${C.border}`, boxShadow: '0 8px 30px rgba(15,23,42,0.06)' }}>
+          <div style={{ marginBottom: 20 }}>
+            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: C.text1 }}>Create your Mo-sell account</h1>
+            <p style={{ fontSize: 14, color: C.text2, margin: '6px 0 0' }}>
+              {!otpSent && step === 1 ? 'Step 1 of 3 — Account info' : otpSent && step === 1 ? `Code sent to ${email}` : 'Set up your store'}
+            </p>
+          </div>
+
+          {error ? (
+            <div style={{ marginBottom: 12, padding: 10, borderRadius: 8, background: '#FEF2F2', color: '#B91C1C', fontSize: 13 }}>{error}</div>
+          ) : null}
+
+          {step === 1 && !otpSent ? (
+            <>
+              <button
+                type="button"
+                onClick={handleGoogleSignup}
+                disabled={loading}
                 style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: 13,
-                  fontWeight: 700,
-                  background: step >= s ? `linear-gradient(135deg, ${C.primary}, ${C.accent})` : C.border,
-                  color: step >= s ? '#fff' : C.text3,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                  width: '100%', padding: 13, borderRadius: 10,
+                  border: `1.5px solid ${C.border}`, background: C.surface,
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  color: C.text1, fontFamily: FONT_BODY, fontWeight: 600, fontSize: 14, marginBottom: 10,
                 }}
               >
-                {s}
-              </div>
-              {s < 3 && (
-                <div
-                  style={{
-                    width: 24,
-                    height: 2,
-                    background: step > s ? C.primary : C.border,
-                    borderRadius: 1,
-                  }}
-                />
-              )}
-            </div>
-          ))}
-        </div>
+                <GoogleMark />
+                {loading ? 'Redirecting…' : 'Continue with Google'}
+              </button>
 
-        <div
-          style={{
-            background: C.surface,
-            borderRadius: 20,
-            padding: '32px 28px',
-            border: `1px solid ${C.border}`,
-            boxShadow: '0 8px 32px rgba(14,88,140,0.08)',
-          }}
-        >
-          {error && (
-            <div
-              style={{
-                padding: '10px 14px',
-                borderRadius: 10,
-                background: C.redBg,
-                color: C.red,
-                fontSize: 13,
-                marginBottom: 16,
-              }}
-            >
-              {error}
-            </div>
-          )}
+              <button
+                type="button"
+                onClick={handleBusmoSignup}
+                disabled={loading}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                  width: '100%', padding: 13, borderRadius: 10,
+                  border: `1.5px solid ${C.border}`, background: C.surface,
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  color: C.text1, fontFamily: FONT_BODY, fontWeight: 600, fontSize: 14, marginBottom: 16,
+                }}
+              >
+                <BusmoMark />
+                {loading ? 'Redirecting…' : 'Continue with Busmo'}
+              </button>
 
-          {step === 1 && (
-            <>
-              <div style={{ textAlign: 'center', marginBottom: 24 }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1785078071/mosell_gpzl2q.png"
-                  alt="Mo-sell"
-                  style={{ width: 48, height: 48, objectFit: 'contain', marginBottom: 12 }}
-                />
-                <h1 style={{ fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 22, color: C.text1, margin: '0 0 4px' }}>
-                  {!otpSent ? 'Create your account' : 'Verify your email'}
-                </h1>
-                <p style={{ fontSize: 14, color: C.text2, margin: 0 }}>
-                  {!otpSent ? 'Step 1 of 3 — Account info' : `Code sent to ${email}`}
-                </p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                <div style={{ flex: 1, height: 1, background: C.border }} />
+                <span style={{ fontSize: 12, color: C.text3, fontWeight: 500 }}>or email</span>
+                <div style={{ flex: 1, height: 1, background: C.border }} />
               </div>
 
-              {!otpSent ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={handleGoogleSignup}
-                    disabled={loading}
-                    style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-                      width: '100%', padding: 13, borderRadius: 10,
-                      border: `1.5px solid ${C.border}`, background: C.surface,
-                      cursor: loading ? 'not-allowed' : 'pointer',
-                      color: C.text1, fontFamily: FONT_BODY, fontWeight: 600, fontSize: 14, marginBottom: 16,
-                    }}
-                  >
-                    <GoogleMark />
-                    {loading ? 'Redirecting…' : 'Continue with Google'}
-                  </button>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-                    <div style={{ flex: 1, height: 1, background: C.border }} />
-                    <span style={{ fontSize: 12, color: C.text3, fontWeight: 500 }}>or email</span>
-                    <div style={{ flex: 1, height: 1, background: C.border }} />
-                  </div>
-
-                  <form onSubmit={handleSendOTP} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    <input type="text" placeholder="Full name" required value={fullName} onChange={e => setFullName(e.target.value)} style={inputStyle} />
-                    <input type="email" placeholder="Email address" required value={email} onChange={e => setEmail(e.target.value)} style={inputStyle} />
-                    <input type="password" placeholder="Password (min 6 characters)" required minLength={6} value={password} onChange={e => setPassword(e.target.value)} style={inputStyle} />
-                    <button
-                      type="submit"
-                      disabled={loading}
-                      style={{
-                        padding: 13, borderRadius: 10, border: 'none',
-                        cursor: loading ? 'not-allowed' : 'pointer',
-                        background: loading ? C.text3 : `linear-gradient(135deg, ${C.primary}, ${C.accent})`,
-                        color: '#fff', fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 15,
-                      }}
-                    >
-                      {loading ? 'Sending code…' : 'Continue →'}
-                    </button>
-                  </form>
-                </>
-              ) : (
-                <form onSubmit={handleVerifyOTP} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  <input
-                    type="text" placeholder="6-digit code" required value={otp} maxLength={6}
-                    onChange={e => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                    style={{ ...inputStyle, textAlign: 'center', letterSpacing: 8, fontSize: 22 }}
-                  />
-                  <button
-                    type="submit"
-                    disabled={loading || otp.length !== 6}
-                    style={{
-                      padding: 13, borderRadius: 10, border: 'none',
-                      cursor: loading || otp.length !== 6 ? 'not-allowed' : 'pointer',
-                      background: loading || otp.length !== 6 ? C.text3 : C.green,
-                      color: '#fff', fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 15,
-                    }}
-                  >
-                    {loading ? 'Verifying…' : 'Verify email →'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setOtpSent(false); setOtp(''); setError(''); }}
-                    style={{
-                      padding: 10, borderRadius: 10, border: `1.5px solid ${C.border}`,
-                      background: C.surface, color: C.text2, cursor: 'pointer',
-                      fontFamily: FONT_BODY, fontWeight: 600, fontSize: 13,
-                    }}
-                  >
-                    ← Edit email
-                  </button>
-                </form>
-              )}
-
-              <p style={{ textAlign: 'center', marginTop: 16, fontSize: 13, color: C.text2 }}>
-                Already have an account?{' '}
-                <a href="/login" style={{ color: C.primary, fontWeight: 600, textDecoration: 'none' }}>Log in</a>
-              </p>
-            </>
-          )}
-
-          {step === 2 && (
-            <>
-              <div style={{ textAlign: 'center', marginBottom: 24 }}>
-                <h1 style={{ fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 22, color: C.text1, margin: '0 0 4px' }}>
-                  Name your business
-                </h1>
-                <p style={{ fontSize: 14, color: C.text2, margin: 0 }}>Step 2 of 3 — Store name</p>
-              </div>
-              <form onSubmit={handleSaveBusiness} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <input type="text" placeholder="Business name" required value={businessName} onChange={e => setBusinessName(e.target.value)} style={inputStyle} />
+              <form onSubmit={handleSendOTP} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <input type="text" placeholder="Full name" required value={fullName} onChange={(e) => setFullName(e.target.value)} style={inputStyle} />
+                <input type="email" placeholder="Email address" required value={email} onChange={(e) => setEmail(e.target.value)} style={inputStyle} />
+                <input type="password" placeholder="Password (min 6 characters)" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} style={inputStyle} />
                 <button
                   type="submit"
                   disabled={loading}
@@ -434,71 +268,45 @@ export default function SellSignupPage() {
                     color: '#fff', fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 15,
                   }}
                 >
-                  {loading ? 'Saving…' : 'Continue →'}
+                  {loading ? 'Sending…' : 'Continue'}
                 </button>
               </form>
+              <p style={{ marginTop: 16, fontSize: 13, color: C.text2, textAlign: 'center' }}>
+                Already have an account? <Link href="/login" style={{ color: C.primary, fontWeight: 600 }}>Log in</Link>
+              </p>
             </>
-          )}
+          ) : null}
 
-          {step === 3 && (
-            <>
-              <div style={{ textAlign: 'center', marginBottom: 20 }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1785078071/mosell_gpzl2q.png"
-                  alt="Mo-sell"
-                  style={{ width: 48, height: 48, objectFit: 'contain', marginBottom: 12 }}
-                />
-                <h1 style={{ fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 22, color: C.text1, margin: '0 0 4px' }}>
-                  Start selling free
-                </h1>
-                <p style={{ fontSize: 14, color: C.text2, margin: 0 }}>
-                  Pay 20% only when you sell · No card required
-                </p>
-              </div>
-
-              <div style={{ borderRadius: 14, border: `2px solid ${C.primary}`, padding: 16, marginBottom: 16, background: `${C.primary}10` }}>
-                <div style={{ fontWeight: 700, color: C.text1, marginBottom: 8, fontFamily: FONT_DISPLAY }}>
-                  {businessName || 'Your store'}
-                </div>
-                <ul style={{ margin: 0, paddingLeft: 18, color: C.text2, fontSize: 13, lineHeight: 1.6 }}>
-                  <li>AI-powered store builder</li>
-                  <li>Unlimited products</li>
-                  <li>Paystack payments</li>
-                  <li>20% commission · cancel anytime</li>
-                </ul>
-              </div>
-
-              <button
-                type="button"
-                onClick={handleCreateFreeStore}
-                disabled={creating}
-                style={{
-                  width: '100%', padding: 14, borderRadius: 12, border: 'none',
-                  cursor: creating ? 'not-allowed' : 'pointer',
-                  background: creating ? C.text3 : `linear-gradient(135deg, ${C.primary}, ${C.accent})`,
-                  color: '#fff', fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 16, marginBottom: 10,
-                }}
-              >
-                {creating ? 'Creating your store…' : 'Create my free store →'}
+          {step === 1 && otpSent ? (
+            <form onSubmit={handleVerifyOTP} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <input type="text" placeholder="6-digit code" required value={otp} maxLength={6} onChange={(e) => setOtp(e.target.value)} style={inputStyle} />
+              <button type="submit" disabled={loading} style={{
+                padding: 13, borderRadius: 10, border: 'none', cursor: loading ? 'not-allowed' : 'pointer',
+                background: loading ? C.text3 : `linear-gradient(135deg, ${C.primary}, ${C.accent})`,
+                color: '#fff', fontWeight: 700, fontSize: 15,
+              }}>
+                {loading ? 'Verifying…' : 'Verify email'}
               </button>
+            </form>
+          ) : null}
 
-              <button
-                type="button"
-                onClick={() => setStep(2)}
-                disabled={creating}
-                style={{
-                  width: '100%', padding: 10, borderRadius: 10, border: `1.5px solid ${C.border}`,
-                  background: C.surface, color: C.text2, cursor: 'pointer',
-                  fontFamily: FONT_BODY, fontWeight: 600, fontSize: 13,
-                }}
-              >
-                ← Back
+          {step === 2 ? (
+            <form onSubmit={handleStoreSetup} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <input type="text" placeholder="Store name" required value={storeName} onChange={(e) => {
+                setStoreName(e.target.value);
+                setStoreSlug(slugify(e.target.value));
+              }} style={inputStyle} />
+              <input type="text" placeholder="Store slug" required value={storeSlug} onChange={(e) => setStoreSlug(slugify(e.target.value))} style={inputStyle} />
+              <button type="submit" disabled={loading} style={{
+                padding: 13, borderRadius: 10, border: 'none', cursor: loading ? 'not-allowed' : 'pointer',
+                background: loading ? C.text3 : `linear-gradient(135deg, ${C.primary}, ${C.accent})`,
+                color: '#fff', fontWeight: 700, fontSize: 15,
+              }}>
+                {loading ? 'Saving…' : 'Finish setup'}
               </button>
-            </>
-          )}
+            </form>
+          ) : null}
         </div>
-
         <p style={{ textAlign: 'center', marginTop: 20, fontSize: 12, color: C.text3 }}>
           © {new Date().getFullYear()} Busmo · Mo-sell
         </p>
