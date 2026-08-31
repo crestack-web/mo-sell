@@ -1,8 +1,9 @@
 /**
  * MO Sell Integration Bridge
  *
- * Writes a confirmed Paystack order into store modules and, when linked,
- * syncs physical product sales back to Busmo (stock + sales row).
+ * Single transactional function that runs after Paystack/Whop payment is verified.
+ * Writes the confirmed order into store modules (order, stock, customer, earnings)
+ * and, when linked, syncs physical product sales back to Busmo.
  */
 
 import { getSupabaseServer } from '@/lib/database/postgresql-adapter';
@@ -60,51 +61,82 @@ async function sendNewOrderEmail(params: {
   }
 }
 
-export async function runIntegrationBridge(
+// ─── Main function ─────────────────────────────────────────────────────────────
+
+export async function processConfirmedOrder(
   params: IntegrationBridgeParams
 ): Promise<IntegrationBridgeResult> {
-  const {
-    businessId,
-    sessionId,
-    session,
-    config,
-    paystackData,
-    verifiedTotal,
-    settlementDate,
-  } = params;
-
+  const { businessId, sessionId, paystackData, settlementDate } = params;
   const supabase = getSupabaseServer();
   if (!supabase) throw new Error('Database not configured');
-
-  const orderId = `ord_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
-  const orderNumber = paystackData?.reference || orderId;
   const timestamp = new Date().toISOString();
-  const storeName = config?.storeName || config?.businessName || 'Store';
-  const orderUrl = config?.storeSlug
-    ? `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://mo-sell.store'}/store/${config.storeSlug}`
-    : process.env.NEXT_PUBLIC_APP_URL ?? 'https://mo-sell.store';
+
+  // 1. Load checkout session
+  const { data: sessionRow, error: sessionError } = await supabase
+    .from('checkoutSessions')
+    .select('*')
+    .eq('id', sessionId)
+    .eq('businessId', businessId)
+    .maybeSingle();
+  if (sessionError) throw sessionError;
+  if (!sessionRow) {
+    throw new Error(`CheckoutSession ${sessionId} not found`);
+  }
+  const session = sessionRow as unknown as CheckoutSession;
+
+  // 2. Load store config for email + canonical URL
+  const { data: configRow } = await supabase
+    .from('businesses')
+    .select('*')
+    .eq('id', businessId)
+    .maybeSingle();
+  const config = (configRow ?? undefined) as StoreConfig | undefined;
+
+  const storeName = config?.storeName ?? 'Your Store';
+  const storeLinkBase =
+    config?.customDomainStatus === 'verified' && config?.customDomain
+      ? `https://${config.customDomain}`
+      : `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://mo-sell.store'}/store/${config?.storeSlug ?? ''}`;
+
+  // 3. Derive order total from Paystack (source of truth: kobo → NGN)
+  const verifiedTotal = paystackData.amount / 100;
+  const orderId = 'ord_' + crypto.randomUUID();
+  const { data: orderNumberSeq, error: orderNumberError } = await supabase
+    .rpc('next_order_number', { p_business_id: businessId });
+  if (orderNumberError || orderNumberSeq == null) {
+    throw new Error(orderNumberError?.message ?? 'Failed to generate order number');
+  }
+  const orderNumber = `ORD-${String(orderNumberSeq).padStart(5, '0')}`;
+  const orderUrl = `${storeLinkBase}/order/${orderId}`;
 
   try {
+    // ── Write 1: Create StoreOrder ─────────────────────────────────────────────
     const { error: orderError } = await supabase.from('storeOrders').insert({
       id: orderId,
       businessId,
       orderNumber,
-      customerName: session.customerName,
-      customerEmail: session.customerEmail,
-      customerPhone: session.customerPhone,
-      deliveryOption: session.deliveryOption,
+      customerName:    session.customerName,
+      customerEmail:   session.customerEmail,
+      customerPhone:   session.customerPhone,
+      deliveryOption:  session.deliveryOption,
       shippingAddress: session.shippingAddress,
-      shippingZoneId: session.shippingZoneId,
-      shippingCost: session.shippingCost,
-      lineItems: session.lineItems,
-      subtotal: session.subtotal,
-      total: verifiedTotal,
+      shippingZoneId:  session.shippingZoneId,
+      shippingCost:    session.shippingCost,
+      lineItems:       session.lineItems,
+      subtotal:        session.subtotal,
+      total:           verifiedTotal,
       paystackReference: paystackData.reference,
-      status: 'paid',
-      paymentStatus: 'paid',
-      trackingNumber: null,
-      carrier: null,
-      statusHistory: [{ status: 'paid', timestamp, changedBy: 'system' }],
+      paymentStatus:   'paid',
+      paymentMethod:   'paystack',
+      status:          'confirmed',
+      inventoryChanges: session.lineItems
+        .filter((item) => item.productType === 'physical' && item.productId)
+        .map((item) => ({
+          productId: item.productId,
+          quantity:  item.quantity,
+          changeType: 'sale',
+          changedBy: 'system',
+        })),
       integrationStatus: 'completed',
       settlementDate: settlementDate ?? null,
       createdAt: timestamp,
@@ -112,7 +144,8 @@ export async function runIntegrationBridge(
     });
     if (orderError) throw orderError;
 
-    const physicalItems = session.lineItems.filter((item) => item.productType === 'physical');
+    // ── Write 2: Decrement stock (physical products only) ──────────────────────
+    const physicalItems = session.lineItems.filter(item => item.productType === 'physical');
     for (const item of physicalItems) {
       if (!item.productId) continue;
       const { data: productRow } = await supabase
@@ -124,9 +157,7 @@ export async function runIntegrationBridge(
       if (!productRow) continue;
       const currentStock = productRow.stock ?? 0;
       if (currentStock < item.quantity) {
-        throw new Error(
-          `Insufficient stock for "${item.displayName}": requested ${item.quantity}, available ${currentStock}`
-        );
+        throw new Error(`Insufficient stock for "${item.displayName}": requested ${item.quantity}, available ${currentStock}`);
       }
       const { error: stockError } = await supabase
         .from('storeProducts')
@@ -135,6 +166,7 @@ export async function runIntegrationBridge(
       if (stockError) throw stockError;
     }
 
+    // ── Write 3: Upsert customer ───────────────────────────────────────────────
     const { data: existingCustomer } = await supabase
       .from('customers')
       .select('*')
@@ -143,72 +175,89 @@ export async function runIntegrationBridge(
       .limit(1)
       .maybeSingle();
 
-    if (existingCustomer?.id) {
+    if (existingCustomer) {
       const { error: custError } = await supabase
         .from('customers')
         .update({
-          totalOrders: (existingCustomer.totalOrders || 0) + 1,
-          totalSpend: (existingCustomer.totalSpend || 0) + verifiedTotal,
-          updatedAt: timestamp,
+          totalOrders: (existingCustomer.totalOrders ?? 0) + 1,
+          totalSpend:  (existingCustomer.totalSpend ?? 0) + verifiedTotal,
+          updatedAt:   timestamp,
         })
         .eq('id', existingCustomer.id);
       if (custError) throw custError;
     } else {
       const { error: custError } = await supabase.from('customers').insert({
-        name: session.customerName,
-        email: session.customerEmail,
-        phone: session.customerPhone,
+        name:        session.customerName,
+        email:       session.customerEmail,
+        phone:       session.customerPhone,
         totalOrders: 1,
-        totalSpend: verifiedTotal,
+        totalSpend:  verifiedTotal,
         businessId,
-        storeSlug: config?.storeSlug ?? null,
-        source: 'mo_sell',
-        tags: [],
-        createdAt: timestamp,
-        updatedAt: timestamp,
+        storeSlug:   config?.storeSlug ?? null,
+        source:      'mo_sell',
+        tags:        [],
+        createdAt:   timestamp,
+        updatedAt:   timestamp,
       });
       if (custError) throw custError;
     }
 
-    const platformManaged = isPlatformManaged(config);
+    // ── Write 4: Store earnings + commission (managed payments / billing model) ─
+    let commissionRate = 0;
     let commissionAmount = 0;
-    if (platformManaged) {
+    if (isPlatformManaged(config)) {
       const commission = computeOrderCommission(session.lineItems, config, verifiedTotal);
+      commissionRate = commission.effectiveRate;
       commissionAmount = commission.commissionAmount;
-      const netAmount = Math.round((verifiedTotal - commissionAmount) * 100) / 100;
+      const netAmount        = Math.round((verifiedTotal - commissionAmount) * 100) / 100;
+
       const { error: earningError } = await supabase.from('storeEarnings').insert({
-        businessId,
         orderId,
         orderNumber,
-        customerName: session.customerName,
-        grossAmount: verifiedTotal,
-        commissionRate: commission.effectiveRate,
+        businessId,
+        customerName:     session.customerName,
+        grossAmount:      verifiedTotal,
+        commissionRate,
         commissionAmount,
         netAmount,
-        currency: config?.currency ?? 'NGN',
-        status: 'available',
-        payoutRequestId: null,
-        settlementDate: settlementDate ?? null,
-        createdAt: timestamp,
-        updatedAt: timestamp,
+        currency:         config?.currency ?? 'NGN',
+        status:           'available',
+        payoutRequestId:  null,
+        settlementDate:   settlementDate ?? null,
+        createdAt:        timestamp,
+        updatedAt:        timestamp,
       });
       if (earningError) throw earningError;
+
+      const { error: commissionError } = await supabase
+        .from('storeOrders')
+        .update({
+          commissionRate,
+          commissionAmount,
+          netAmount,
+          updatedAt: timestamp,
+        })
+        .eq('id', orderId);
+      if (commissionError) throw commissionError;
     }
 
+    // ── Write 4b: Revenue rollup (feeds conditional monthly billing) ─────────
     const monthKey = currentMonthKey();
-    await supabase.from('businessMonthlyRevenue').upsert(
-      {
+    const { error: rollupError } = await supabase
+      .from('businessMonthlyRevenue')
+      .upsert({
         businessId,
         month: monthKey,
         revenue: verifiedTotal,
         commission: commissionAmount,
         orders: 1,
         updatedAt: timestamp,
-      },
-      { onConflict: 'businessId,month' }
-    );
+      }, { onConflict: 'businessId,month' });
+    if (rollupError) throw rollupError;
 
-    // Sync physical sales back to Busmo when linked
+    // ── Write 5: (removed) Ask Mo e-book royalty commission ──
+
+    // ── Write 6: Sync physical sales back to Busmo when linked ────────────────
     try {
       const { data: bizRow } = await supabase
         .from('businesses')
@@ -216,7 +265,7 @@ export async function runIntegrationBridge(
         .eq('id', businessId)
         .maybeSingle();
       const busmoBusinessId = bizRow?.busmoBusinessId as string | undefined;
-      if (busmoBusinessId) {
+      if (busmoBusinessId && physicalItems.length > 0) {
         const mapped: Array<{
           busmoProductId: string;
           name: string;
@@ -235,9 +284,9 @@ export async function runIntegrationBridge(
           if (!busmoProductId) continue;
           mapped.push({
             busmoProductId,
-            name: item.displayName || sp?.displayName || 'Product',
+            name: item.displayName || (sp?.displayName as string) || 'Product',
             quantity: item.quantity,
-            unitPrice: Number(item.unitPrice ?? item.price ?? sp?.price ?? 0),
+            unitPrice: Number(item.unitPrice ?? (sp as { price?: number } | null)?.price ?? 0),
           });
         }
         if (mapped.length > 0) {
@@ -254,8 +303,11 @@ export async function runIntegrationBridge(
     } catch (busmoErr) {
       console.error('[IntegrationBridge] Busmo sale sync failed (non-fatal):', busmoErr);
     }
+
   } catch (writeErr) {
-    console.error('[IntegrationBridge] Write failed:', { businessId, sessionId, error: writeErr });
+    console.error('[IntegrationBridge] Write failed:', {
+      businessId, sessionId, error: writeErr,
+    });
     try {
       await supabase
         .from('checkoutSessions')
@@ -270,14 +322,15 @@ export async function runIntegrationBridge(
     throw writeErr;
   }
 
+  // ── Fire-and-forget emails (non-blocking) ─────────────────────────────────
   sendOrderConfirmationEmail({
     customerEmail: session.customerEmail,
     orderNumber,
-    lineItems: session.lineItems,
-    total: verifiedTotal,
+    lineItems:     session.lineItems,
+    total:         verifiedTotal,
     storeName,
     orderUrl,
-    storeSlug: config?.storeSlug ?? '',
+    storeSlug:     config?.storeSlug ?? '',
     businessId,
     orderId,
   }).catch(console.error);
@@ -286,11 +339,14 @@ export async function runIntegrationBridge(
     sendNewOrderEmail({
       merchantEmail: config.contactEmail,
       orderNumber,
-      customerName: session.customerName,
-      total: verifiedTotal,
+      customerName:  session.customerName,
+      total:         verifiedTotal,
       storeName,
     }).catch(console.error);
   }
 
   return { orderId };
 }
+
+/** @deprecated use processConfirmedOrder */
+export const runIntegrationBridge = processConfirmedOrder;
