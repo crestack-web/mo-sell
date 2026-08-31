@@ -5,6 +5,7 @@ import {
   isBusmoConfigured,
   findBusmoBusinessesByEmail,
   fetchBusmoPhysicalProducts,
+  getBusmoClient,
 } from '@/lib/busmo-client';
 
 async function requireUser(req: NextRequest) {
@@ -41,6 +42,60 @@ async function getOwnedBusiness(businessId: string, userId: string, email?: stri
     .maybeSingle();
   if (!data) return null;
   return data;
+}
+
+/** Write mo_sell_* columns on the Busmo businesses row so Busmo UI shows linked. */
+async function writeBusmoReverseLink(params: {
+  busmoBusinessId: string;
+  moSellBusinessId: string | null;
+  linkedAt: string | null;
+  storeUrl: string | null;
+}): Promise<{ ok: boolean; error?: string }> {
+  if (!isBusmoConfigured()) {
+    return { ok: false, error: 'Busmo client not configured' };
+  }
+  const busmo = getBusmoClient();
+  const payload =
+    params.moSellBusinessId == null
+      ? {
+          mo_sell_business_id: null,
+          mo_sell_linked_at: null,
+          mo_sell_store_url: null,
+        }
+      : {
+          mo_sell_business_id: params.moSellBusinessId,
+          mo_sell_linked_at: params.linkedAt,
+          mo_sell_store_url: params.storeUrl,
+        };
+
+  const attempt = async () => {
+    const { data, error } = await busmo
+      .from('businesses')
+      .update(payload)
+      .eq('id', params.busmoBusinessId)
+      .select('id, mo_sell_business_id')
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (params.moSellBusinessId && data?.mo_sell_business_id !== params.moSellBusinessId) {
+      throw new Error('Busmo reverse link did not persist (row missing or update ignored)');
+    }
+    return data;
+  };
+
+  try {
+    await attempt();
+    return { ok: true };
+  } catch (e1: any) {
+    console.warn('[integrations/busmo] reverse link attempt 1 failed', e1?.message || e1);
+    try {
+      await new Promise((r) => setTimeout(r, 400));
+      await attempt();
+      return { ok: true };
+    } catch (e2: any) {
+      console.error('[integrations/busmo] reverse link failed', e2?.message || e2);
+      return { ok: false, error: e2?.message || String(e2) };
+    }
+  }
 }
 
 export async function GET(req: NextRequest) {
@@ -111,6 +166,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === 'unlink') {
+      const previousBusmoId = biz.busmoBusinessId ? String(biz.busmoBusinessId) : null;
       const { error } = await supabaseServer
         .from('businesses')
         .update({
@@ -121,6 +177,16 @@ export async function POST(req: NextRequest) {
         })
         .eq('id', businessId);
       if (error) throw error;
+
+      if (previousBusmoId) {
+        await writeBusmoReverseLink({
+          busmoBusinessId: previousBusmoId,
+          moSellBusinessId: null,
+          linkedAt: null,
+          storeUrl: null,
+        });
+      }
+
       return NextResponse.json({ ok: true, linked: null });
     }
 
@@ -148,6 +214,8 @@ export async function POST(req: NextRequest) {
       }
 
       const now = new Date().toISOString();
+      const storeUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://mo-sell.store';
+
       const { error } = await supabaseServer
         .from('businesses')
         .update({
@@ -159,24 +227,31 @@ export async function POST(req: NextRequest) {
         .eq('id', businessId);
       if (error) throw error;
 
-      try {
-        const { getBusmoClient } = await import('@/lib/busmo-client');
-        const busmo = getBusmoClient();
-        await busmo
-          .from('businesses')
-          .update({
-            mo_sell_business_id: businessId,
-            mo_sell_linked_at: now,
-            mo_sell_store_url: process.env.NEXT_PUBLIC_APP_URL || 'https://mo-sell.store',
-          })
-          .eq('id', busmoBusinessId);
-      } catch (e) {
-        console.warn('[integrations/busmo] reverse link failed (non-fatal)', e);
+      const reverse = await writeBusmoReverseLink({
+        busmoBusinessId,
+        moSellBusinessId: businessId,
+        linkedAt: now,
+        storeUrl,
+      });
+
+      if (!reverse.ok) {
+        // Keep Mo-sell link but surface that Busmo UI may still show disconnected
+        // until reverse link succeeds (env / migration).
+        console.error('[integrations/busmo] link succeeded on Mo-sell but Busmo reverse failed:', reverse.error);
+        return NextResponse.json({
+          ok: true,
+          linked: { busmoBusinessId, busmoLinkedAt: now, busmoLinkedEmail: user.email },
+          busmoReverseLinked: false,
+          warning:
+            reverse.error ||
+            'Connected on Mo-sell, but Busmo could not be updated. Check BUSMO_SUPABASE_* env and mo_sell_* columns on Busmo businesses.',
+        });
       }
 
       return NextResponse.json({
         ok: true,
         linked: { busmoBusinessId, busmoLinkedAt: now, busmoLinkedEmail: user.email },
+        busmoReverseLinked: true,
       });
     }
 
