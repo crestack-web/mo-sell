@@ -56,7 +56,14 @@ export function BusmoConnectCard({ businessId, showToast }: Props) {
             const linkJson = await linkRes.json().catch(() => ({}));
             if (linkRes.ok) {
               setLinked(linkJson.linked || { busmoBusinessId: bid });
-              setMsg('Connected to Busmo successfully');
+              if (linkJson.busmoReverseLinked === false) {
+                setMsg(
+                  linkJson.warning ||
+                    'Linked on Mo-sell, but Busmo was not updated. Return to Busmo and click Refresh, or check server Busmo env keys.'
+                );
+              } else {
+                setMsg('Connected to Busmo successfully. You can return to Busmo — activity will update there.');
+              }
               const url = new URL(window.location.href);
               url.searchParams.delete('connectFromBusmo');
               url.searchParams.delete('busmoBusinessId');
@@ -199,8 +206,12 @@ export function BusmoConnectCard({ businessId, showToast }: Props) {
                           const json = await res.json().catch(() => ({}));
                           if (!res.ok) throw new Error(json.error || 'Link failed');
                           setLinked(json.linked || { busmoBusinessId: c.id });
-                          setMsg('Connected to Busmo');
-                          showToast?.('Connected to Busmo');
+                          if (json.busmoReverseLinked === false) {
+                            setMsg(json.warning || 'Connected on Mo-sell; Busmo reverse link incomplete');
+                          } else {
+                            setMsg('Connected to Busmo');
+                            showToast?.('Connected to Busmo');
+                          }
                         } catch (e: any) {
                           setMsg(e?.message || 'Link failed');
                         }
