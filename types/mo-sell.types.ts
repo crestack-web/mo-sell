@@ -60,6 +60,8 @@ export interface FeaturedSectionSettings {
   heading?: string;
   maxItems?: number;
   columns?: 2 | 3 | 4;
+  /** When true, digital products are excluded from storefront product grids. */
+  hideDigitalProducts?: boolean;
 }
 
 export interface ProductsSectionSettings {

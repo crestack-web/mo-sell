@@ -219,6 +219,12 @@ function FeaturedSettings({ s, upd }: { s: FeaturedSectionSettings; upd: (p: Par
       <label className={styles.fLabel}>Max products shown</label>
       <input className={styles.fInput} type="number" value={s.maxItems ?? 4} min={1} max={12} onChange={e => upd({ maxItems: Number(e.target.value) })} style={{ width: 70 }} />
     </div>
+    <Toggle
+      label="Hide digital products"
+      value={s.hideDigitalProducts === true}
+      onChange={v => upd({ hideDigitalProducts: v })}
+      hint="Hide ebooks, courses, and other digital items from this storefront. They stay in your dashboard."
+    />
   </>);
 }
 

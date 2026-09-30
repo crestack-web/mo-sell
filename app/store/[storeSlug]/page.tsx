@@ -172,11 +172,18 @@ export default async function StorefrontHomePage({
   const needFeatured    = sections.some(s => s.type === 'featured'    && s.enabled);
   const needCollections = sections.some(s => s.type === 'collections' && s.enabled);
 
-  const [featured, allProducts, collections] = await Promise.all([
+  const [featuredRaw, allProductsRaw, collections] = await Promise.all([
     needFeatured    ? getProducts(config.businessId, { featured: true }) : Promise.resolve([]),
     getProducts(config.businessId),
     needCollections ? getCollections(config.businessId) : Promise.resolve([]),
   ]);
+
+  const featuredSettings = sections.find(s => s.type === 'featured')?.settings as FeaturedSectionSettings | undefined;
+  const hideDigital = featuredSettings?.hideDigitalProducts === true;
+  const withoutDigital = <T extends { productType?: string }>(list: T[]) =>
+    hideDigital ? list.filter(p => p.productType !== 'digital') : list;
+  const featured = withoutDigital(featuredRaw as ProductCardData[]);
+  const allProducts = withoutDigital(allProductsRaw as ProductCardData[]);
 
   try {
     const supabaseAnalytics = getSupabaseServer();

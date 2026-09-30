@@ -204,7 +204,10 @@ function SfFeatured({ theme, settings, primary, products, storeSlug, width }: {
   const cols = isMobile(width) ? 2 : (settings.columns ?? 4);
   const isLuxe = theme === 'luxe';
   const maxItems = settings.maxItems ?? 4;
-  const visible = products.slice(0, maxItems);
+  const pool = settings.hideDigitalProducts
+    ? products.filter(p => p.productType !== 'digital')
+    : products;
+  const visible = pool.slice(0, maxItems);
 
   if (visible.length === 0) {
     return (
