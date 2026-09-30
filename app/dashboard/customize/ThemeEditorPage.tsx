@@ -47,4 +47,907 @@ const SECTION_META: Record<StoreSectionType, { label: string; movable: boolean }
   footer:       { label: 'Footer',          movable: false },
 };
 
-// FILE CONTINUES - see note: full file will be pushed via alternate method if truncated
+function SGroup({ label }: { label: string }) {
+  return <p className={styles.sGroup}>{label}</p>;
+}
+
+function Advanced({ title, defaultOpen, children }: { title: string; defaultOpen?: boolean; children: React.ReactNode }) {
+  const [open, setOpen] = useState(defaultOpen ?? false);
+  return (
+    <div className={styles.adv}>
+      <button className={styles.advToggle} type="button" onClick={() => setOpen(!open)} aria-expanded={open}>
+        <span>{title}</span>
+        <svg className={[styles.advChevron, open ? styles.advChevronOpen : ''].join(' ')} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      {open && <div className={styles.advBody}>{children}</div>}
+    </div>
+  );
+}
+
+function TF({ label, value, onChange, placeholder, hint }: {
+  label: string; value: string; onChange: (v: string) => void; placeholder?: string; hint?: string;
+}) {
+  return (
+    <div className={styles.field}>
+      <label className={styles.fLabel}>{label}</label>
+      <input className={styles.fInput} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} />
+      {hint && <p className={styles.fHint}>{hint}</p>}
+    </div>
+  );
+}
+
+function Toggle({ label, value, onChange, hint }: {
+  label: string; value: boolean; onChange: (v: boolean) => void; hint?: string;
+}) {
+  return (
+    <div className={styles.fRow}>
+      <div style={{ flex: 1 }}>
+        <span className={styles.fLabel}>{label}</span>
+        {hint && <p className={styles.fHint}>{hint}</p>}
+      </div>
+      <button className={[styles.toggle, value ? styles.toggleOn : ''].join(' ')} onClick={() => onChange(!value)} type="button" aria-pressed={value}>
+        <span className={styles.toggleThumb} />
+      </button>
+    </div>
+  );
+}
+
+function SF({ label, value, onChange, options }: {
+  label: string; value: string; onChange: (v: string) => void; options: { value: string; label: string }[];
+}) {
+  return (
+    <div className={styles.field}>
+      <label className={styles.fLabel}>{label}</label>
+      <select className={styles.fSelect} value={value} onChange={e => onChange(e.target.value)}>
+        {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+      </select>
+    </div>
+  );
+}
+
+function ColorField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <div className={styles.field}>
+      <label className={styles.fLabel}>{label}</label>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <input type="color" value={value} onChange={e => onChange(e.target.value)}
+          style={{ width: 32, height: 32, borderRadius: 7, border: '1.5px solid var(--sell-border)', cursor: 'pointer', padding: 2, background: 'transparent', flexShrink: 0 }} />
+        <input className={styles.fInput} value={value} onChange={e => onChange(e.target.value)} style={{ width: 90 }} />
+      </div>
+    </div>
+  );
+}
+
+function HeroSettings({ s, upd, isLinkStyle, isCreator, isMobile }: { s: HeroSectionSettings; upd: (p: Partial<HeroSectionSettings>) => void; isLinkStyle?: boolean; isCreator?: boolean; isMobile?: boolean }) {
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const handleHeroImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { return; }
+    const reader = new FileReader();
+    reader.onloadend = () => upd({ backgroundImage: reader.result as string });
+    reader.readAsDataURL(file);
+  };
+  return (<>
+    <SGroup label="CONTENT" />
+    {isLinkStyle ? (
+      <>
+        <div className={styles.field}>
+          <label className={styles.fLabel}>Bio</label>
+          <textarea className={styles.fInput} value={s.subheading ?? ''} onChange={e => upd({ subheading: e.target.value })} rows={3} placeholder="Tell visitors about yourself..." style={{ resize: 'vertical', fontSize: '0.82rem' }} />
+          <p className={styles.fHint}>Max 160 characters. Shows below your name.</p>
+        </div>
+        <TF label="Button text" value={s.ctaLabel ?? 'Shop Now'} onChange={v => upd({ ctaLabel: v })} />
+        <TF label="Button link" value={s.ctaUrl ?? '#products'} onChange={v => upd({ ctaUrl: v })} />
+      </>
+    ) : (
+      <>
+        <TF label="Heading" value={s.heading ?? ''} onChange={v => upd({ heading: v })} placeholder="Defaults to store name" />
+        <TF label="Subheading" value={s.subheading ?? ''} onChange={v => upd({ subheading: v })} placeholder="Defaults to tagline" />
+        <Toggle label="Show subheading" value={s.showTagline !== false} onChange={v => upd({ showTagline: v })} />
+        <TF label="Button text" value={s.ctaLabel ?? 'Shop Now'} onChange={v => upd({ ctaLabel: v })} />
+        <TF label="Button link" value={s.ctaUrl ?? '#products'} onChange={v => upd({ ctaUrl: v })} />
+        <SGroup label="STYLE" />
+        <SF label="Text alignment" value={s.textAlign ?? 'left'} onChange={v => upd({ textAlign: v as 'left'|'center'|'right' })}
+          options={[{ value: 'left', label: 'Left' }, { value: 'center', label: 'Center' }, { value: 'right', label: 'Right' }]} />
+        <div className={styles.field}>
+          <label className={styles.fLabel}>Background image</label>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <input className={styles.fInput} value={s.backgroundImage ?? ''} onChange={v => upd({ backgroundImage: (v.target as HTMLInputElement).value || null })} placeholder="https://..." style={{ flex: 1 }} />
+            <button className={styles.iconBtn} onClick={() => fileInputRef.current?.click()} style={{ flexShrink: 0, padding: '6px 10px', fontSize: '0.78rem', fontWeight: 600, color: 'var(--sell-primary)', width: 'auto', gap: 5 }} type="button">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Upload
+            </button>
+          </div>
+          <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleHeroImageUpload} />
+          <p className={styles.fHint}>Paste a URL or upload an image (max 5MB)</p>
+        </div>
+        <Advanced title="Badge" defaultOpen={!isMobile}>
+          <TF label="Badge text" value={s.badgeText ?? ''} onChange={v => upd({ badgeText: v })} placeholder="e.g. New Collection" hint="Small decorative text shown above heading" />
+          <Toggle label="Show badge" value={s.showBadge !== false} onChange={v => upd({ showBadge: v })} hint="Show/hide the badge text above heading" />
+        </Advanced>
+        <Advanced title="Image effects" defaultOpen={!isMobile}>
+          <div className={styles.field}>
+            <label className={styles.fLabel}>Overlay opacity</label>
+            <input className={styles.fInput} type="range" min={0} max={1} step={0.05} value={s.overlayOpacity ?? 1} onChange={e => upd({ overlayOpacity: Number(e.target.value) })} />
+            <p className={styles.fHint}>Darkness of the overlay on background images (0 = none, 1 = black)</p>
+          </div>
+          <div className={styles.field}>
+            <label className={styles.fLabel}>Image blur</label>
+            <input className={styles.fInput} type="range" min={0} max={20} step={1} value={s.backgroundBlur ?? 0} onChange={e => upd({ backgroundBlur: Number(e.target.value) })} />
+            <p className={styles.fHint}>Blur the background image (0 = sharp, 20 = heavy blur)</p>
+          </div>
+          <div className={styles.field}>
+            <label className={styles.fLabel}>Image opacity</label>
+            <input className={styles.fInput} type="range" min={0.1} max={1} step={0.05} value={s.backgroundOpacity ?? 1} onChange={e => upd({ backgroundOpacity: Number(e.target.value) })} />
+            <p className={styles.fHint}>Fade the background image so theme colors show through (1 = fully visible)</p>
+          </div>
+        </Advanced>
+      </>
+    )}
+    {isCreator && (
+      <div style={{ padding: '10px 12px', background: 'var(--sell-primary-lt)', borderRadius: 8, marginTop: 4 }}>
+        <p style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--sell-primary)', margin: 0, lineHeight: 1.5 }}>
+          Creator theme: Your hero uses a centered profile layout. The store logo becomes your profile picture, and social links (edit in the right panel) appear below your bio.
+        </p>
+      </div>
+    )}
+  </>);
+}
+
+function AnnouncementSettings({ s, upd }: { s: AnnouncementSectionSettings; upd: (p: Partial<AnnouncementSectionSettings>) => void }) {
+  return (<>
+    <SGroup label="CONTENT" />
+    <TF label="Text" value={s.text ?? ''} onChange={v => upd({ text: v })} placeholder="Free delivery on orders over &#8358;20,000" />
+    <TF label="Link label" value={s.linkLabel ?? ''} onChange={v => upd({ linkLabel: v })} placeholder="Shop now" />
+    <TF label="Link URL" value={s.linkUrl ?? ''} onChange={v => upd({ linkUrl: v })} placeholder="/collections/all" />
+    <SGroup label="STYLE" />
+    <ColorField label="Background" value={s.backgroundColor ?? '#0F172A'} onChange={v => upd({ backgroundColor: v })} />
+    <ColorField label="Text color" value={s.textColor ?? '#FFFFFF'} onChange={v => upd({ textColor: v })} />
+    <Toggle label="Dismissible" value={s.dismissible ?? false} onChange={v => upd({ dismissible: v })} hint="Let visitors close the announcement bar" />
+  </>);
+}
+
+function FeaturedSettings({ s, upd }: { s: FeaturedSectionSettings; upd: (p: Partial<FeaturedSectionSettings>) => void }) {
+  return (<>
+    <SGroup label="CONTENT" />
+    <TF label="Heading" value={s.heading ?? 'Shop Bestsellers'} onChange={v => upd({ heading: v })} />
+    <SGroup label="LAYOUT" />
+    <SF label="Columns" value={String(s.columns ?? 4)} onChange={v => upd({ columns: Number(v) as 2|3|4 })}
+      options={[{ value: '2', label: '2' }, { value: '3', label: '3' }, { value: '4', label: '4' }]} />
+    <div className={styles.field}>
+      <label className={styles.fLabel}>Max products shown</label>
+      <input className={styles.fInput} type="number" value={s.maxItems ?? 4} min={1} max={12} onChange={e => upd({ maxItems: Number(e.target.value) })} style={{ width: 70 }} />
+    </div>
+  </>);
+}
+
+function CollectionsSettings({ s, upd }: { s: CollectionsSectionSettings; upd: (p: Partial<CollectionsSectionSettings>) => void }) {
+  return (<>
+    <SGroup label="CONTENT" />
+    <TF label="Heading" value={s.heading ?? 'Collections'} onChange={v => upd({ heading: v })} />
+    <SGroup label="LAYOUT" />
+    <SF label="Layout" value={s.layout ?? 'strip'} onChange={v => upd({ layout: v as 'strip'|'grid' })}
+      options={[{ value: 'strip', label: 'Horizontal strip' }, { value: 'grid', label: 'Grid' }]} />
+    <div className={styles.field}>
+      <label className={styles.fLabel}>Max collections</label>
+      <input className={styles.fInput} type="number" value={s.maxItems ?? 6} min={1} max={20} onChange={e => upd({ maxItems: Number(e.target.value) })} style={{ width: 70 }} />
+    </div>
+    <Toggle label="Show cover images" value={s.showCoverImages !== false} onChange={v => upd({ showCoverImages: v })} />
+  </>);
+}
+
+function AboutSettings({ s, upd }: { s: AboutSectionSettings; upd: (p: Partial<AboutSectionSettings>) => void }) {
+  return (<>
+    <SGroup label="CONTENT" />
+    <TF label="Heading" value={s.heading ?? 'Our Story'} onChange={v => upd({ heading: v })} />
+    <div className={styles.field}>
+      <label className={styles.fLabel}>Body text</label>
+      <textarea className={styles.fInput} value={s.body ?? ''} onChange={e => upd({ body: e.target.value })} rows={4} placeholder="Tell customers about your brand..." style={{ resize: 'vertical' }} />
+    </div>
+    <TF label="Image URL" value={s.imageUrl ?? ''} onChange={v => upd({ imageUrl: v || null })} placeholder="https://..." />
+    <SF label="Image position" value={s.imagePosition ?? 'right'} onChange={v => upd({ imagePosition: v as 'left'|'right' })}
+      options={[{ value: 'left', label: 'Left' }, { value: 'right', label: 'Right' }]} />
+  </>);
+}
+
+function TestimonialsSettings({ s, upd }: { s: TestimonialsSectionSettings; upd: (p: Partial<TestimonialsSectionSettings>) => void }) {
+  return (<>
+    <SGroup label="CONTENT" />
+    <TF label="Heading" value={s.heading ?? 'What our customers say'} onChange={v => upd({ heading: v })} />
+    <p className={styles.fHint} style={{ padding: '8px 0' }}>Manage testimonials in your store settings once live.</p>
+  </>);
+}
+
+function InstagramSettings({ s, upd }: { s: InstagramSectionSettings; upd: (p: Partial<InstagramSectionSettings>) => void }) {
+  return (<>
+    <SGroup label="CONTENT" />
+    <TF label="Heading" value={s.heading ?? 'Follow us on Instagram'} onChange={v => upd({ heading: v })} />
+    <TF label="Instagram handle" value={s.handle ?? ''} onChange={v => upd({ handle: v })} placeholder="@yourstore" />
+  </>);
+}
+
+function NewsletterSettings({ s, upd }: { s: NewsletterSectionSettings; upd: (p: Partial<NewsletterSectionSettings>) => void }) {
+  return (<>
+    <SGroup label="CONTENT" />
+    <TF label="Heading" value={s.heading ?? 'Join our community'} onChange={v => upd({ heading: v })} />
+    <TF label="Subheading" value={s.subheading ?? ''} onChange={v => upd({ subheading: v })} placeholder="Get the latest updates and offers." />
+    <TF label="Button text" value={s.buttonLabel ?? 'Subscribe'} onChange={v => upd({ buttonLabel: v })} />
+    <TF label="Input placeholder" value={s.placeholder ?? 'Enter your email'} onChange={v => upd({ placeholder: v })} />
+  </>);
+}
+
+function HeaderSettings({ s, upd }: { s: HeaderSectionSettings; upd: (p: Partial<HeaderSectionSettings>) => void }) {
+  const navLinks = s.navLinks ?? [];
+  return (<>
+    <SGroup label="BEHAVIOR" />
+    <Toggle label="Sticky header" value={s.sticky !== false} onChange={v => upd({ sticky: v })} hint="Stays fixed when scrolling" />
+    <Toggle label="Show search icon" value={s.showSearch ?? false} onChange={v => upd({ showSearch: v })} />
+    <Toggle label="Show cart count" value={s.showCartCount !== false} onChange={v => upd({ showCartCount: v })} />
+    <Toggle label="Hide store name when logo exists" value={s.hideStoreNameWithLogo ?? false} onChange={v => upd({ hideStoreNameWithLogo: v })} hint="Show only the logo in the header" />
+    <SGroup label="NAV LINKS" />
+    {navLinks.map((link, i) => (
+      <div key={i} style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
+        <input className={styles.fInput} value={link.label} onChange={e => {
+          const updated = [...navLinks]; updated[i] = { ...updated[i], label: e.target.value }; upd({ navLinks: updated });
+        }} placeholder="Label" style={{ flex: 1, fontSize: '0.78rem' }} />
+        <input className={styles.fInput} value={link.url} onChange={e => {
+          const updated = [...navLinks]; updated[i] = { ...updated[i], url: e.target.value }; upd({ navLinks: updated });
+        }} placeholder="/..." style={{ flex: 1, fontSize: '0.78rem' }} />
+        <button className={styles.iconBtn} onClick={() => upd({ navLinks: navLinks.filter((_, j) => j !== i) })} aria-label="Remove nav link" style={{ flexShrink: 0 }}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+    ))}
+    <button className={styles.iconBtn} onClick={() => upd({ navLinks: [...navLinks, { label: '', url: '' }] })} style={{ width: 'auto', gap: 5, padding: '6px 10px', fontSize: '0.78rem', fontWeight: 600, color: 'var(--sell-primary)' }} aria-label="Add nav link">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Add link
+    </button>
+  </>);
+}
+
+function SocialField({ platform, value, onChange }: {
+  platform: string; value?: string; onChange: (v: string) => void;
+}) {
+  const def = SOCIAL_DEFS[platform];
+  const [focused, setFocused] = useState(false);
+  const display = value || def?.base || '';
+  const status = socialStatus(platform, display);
+  const handleBlur = () => {
+    setFocused(false);
+    onChange(normalizeSocialValue(platform, display));
+  };
+  return (
+    <div style={{ marginBottom: 7 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+        <span className={styles.socialKey} title={def?.label}>
+          <SocialIcon platform={platform} size={13} />
+        </span>
+        <input
+          className={styles.fInput}
+          value={display}
+          onFocus={() => setFocused(true)}
+          onChange={e => onChange(e.target.value)}
+          onBlur={handleBlur}
+          style={{ fontSize: '0.78rem' }}
+        />
+        {status === 'valid' && (
+          <span style={{ flexShrink: 0, display: 'flex', color: 'var(--sell-green)' }} title="Valid link">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </span>
+        )}
+      </div>
+      {!focused && status === 'needs-handle' && (
+        <p className={styles.fHint} style={{ color: '#B45309', margin: '3px 0 0 33px' }}>{def?.hint}</p>
+      )}
+      {!focused && status === 'invalid' && (
+        <p className={styles.fHint} style={{ color: '#DC2626', margin: '3px 0 0 33px' }}>That doesn't look like a valid link.</p>
+      )}
+    </div>
+  );
+}
+
+function FooterSettings({ s, upd }: { s: FooterSectionSettings; upd: (p: Partial<FooterSectionSettings>) => void }) {
+  const socials = s.socials ?? {};
+  const links = s.links ?? [];
+  const setSocial = (key: string, val: string) => upd({ socials: { ...socials, [key]: val || undefined } });
+  return (<>
+    <SGroup label="CONTENT" />
+    <Toggle label="Show store logo" value={s.showLogo !== false} onChange={v => upd({ showLogo: v })} />
+    <Toggle label="Powered by Busmo" value={s.showPoweredBy !== false} onChange={v => upd({ showPoweredBy: v })} />
+    <TF label="Custom copyright text" value={s.customText ?? ''} onChange={v => upd({ customText: v })} placeholder="&#169; 2025 Your Brand." />
+    <SGroup label="FOOTER LINKS" />
+    {links.map((link, i) => (
+      <div key={i} style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
+        <input className={styles.fInput} value={link.label} onChange={e => {
+          const updated = [...links]; updated[i] = { ...updated[i], label: e.target.value }; upd({ links: updated });
+        }} placeholder="Label" style={{ flex: 1, fontSize: '0.78rem' }} />
+        <input className={styles.fInput} value={link.url} onChange={e => {
+          const updated = [...links]; updated[i] = { ...updated[i], url: e.target.value }; upd({ links: updated });
+        }} placeholder="/..." style={{ flex: 1, fontSize: '0.78rem' }} />
+        <button className={styles.iconBtn} onClick={() => upd({ links: links.filter((_, j) => j !== i) })} aria-label="Remove footer link" style={{ flexShrink: 0 }}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+    ))}
+    <button className={styles.iconBtn} onClick={() => upd({ links: [...links, { label: '', url: '' }] })} style={{ width: 'auto', gap: 5, padding: '6px 10px', fontSize: '0.78rem', fontWeight: 600, color: 'var(--sell-primary)' }} aria-label="Add footer link">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Add link
+    </button>
+    <SGroup label="SOCIAL LINKS" />
+    {SOCIAL_KEYS.map(k => (
+      <SocialField key={k} platform={k} value={(socials as Record<string,string>)[k]} onChange={v => setSocial(k, v)} />
+    ))}
+  </>);
+}
+
+export function ThemeEditorPage() {
+  const router = useRouter();
+  const { user, storeConfig, refreshStoreConfig, showToast } = useSell();
+
+  const [sections,  setSections]  = useState<StoreSection[]>([]);
+  const [theme,     setTheme]     = useState<StorefrontTheme>('luxe');
+  const [primary,   setPrimary]   = useState('#C9A84C');
+  const [secondary, setSecondary] = useState('#8B7355');
+  const [activeId,  setActiveId]  = useState<string | null>(null);
+  const [applying,  setApplying]  = useState(false);
+  const [dirty,     setDirty]     = useState(false);
+  const [device,    setDevice]    = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
+  const [products,  setProducts]  = useState<StorefrontProduct[]>([]);
+  const [collections, setCollections] = useState<StoreCollection[]>([]);
+  const [isMobile, setIsMobile] = useState(false);
+  const [mobileEditorOpen, setMobileEditorOpen] = useState(false);
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [fontFamily, setFontFamily] = useState<string>('');
+  const [buttonStyle, setButtonStyle] = useState<'pill' | 'square' | 'rounded'>('pill');
+  const [bodyTextColor, setBodyTextColor] = useState<string>('');
+  const [bgColor, setBgColor] = useState<string>('');
+  const [socials, setSocials] = useState<Record<string, string>>({});
+  const [showThemePicker, setShowThemePicker] = useState(false);
+  const [themeApplying, setThemeApplying] = useState<string | null>(null);
+
+  const isLinkStyle = getThemeType(theme) === 'link-style';
+  const isCreator = isCreatorTheme(theme);
+  const HIDDEN_FOR_LINK_STYLE: Set<StoreSectionType> = new Set(['header', 'collections', 'about', 'testimonials', 'instagram', 'newsletter', 'footer']);
+
+  const previewWrapRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = typeof window !== 'undefined' && window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (mobile) setDevice('mobile');
+    };
+    checkMobile();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', checkMobile);
+      return () => window.removeEventListener('resize', checkMobile);
+    }
+  }, []);
+
+  useEffect(() => {
+    const el = previewWrapRef.current;
+    if (!el) return;
+    const update = () => setContainerWidth(el.clientWidth);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const DEVICE_WIDTHS = { desktop: 1200, tablet: 768, mobile: 375 } as const;
+  const deviceWidth = DEVICE_WIDTHS[device];
+  const horizontalPadding = 48;
+  const availW = Math.max(0, containerWidth - horizontalPadding);
+  const scale = availW > 0 ? Math.min(1, availW / deviceWidth) : 1;
+
+  const undoStack = useRef<{ sections: StoreSection[]; theme: StorefrontTheme; primary: string; secondary: string; fontFamily: string; buttonStyle: 'pill' | 'square' | 'rounded'; bodyTextColor: string; bgColor: string; socials: Record<string, string> }[]>([]);
+  const redoStack = useRef<{ sections: StoreSection[]; theme: StorefrontTheme; primary: string; secondary: string; fontFamily: string; buttonStyle: 'pill' | 'square' | 'rounded'; bodyTextColor: string; bgColor: string; socials: Record<string, string> }[]>([]);
+
+  const snapshot = useCallback(() => ({ sections: sections.map(s => ({ ...s, settings: { ...s.settings } })), theme, primary, secondary, fontFamily, buttonStyle, bodyTextColor, bgColor, socials }), [sections, theme, primary, secondary, fontFamily, buttonStyle, bodyTextColor, bgColor, socials]);
+
+  const pushUndo = useCallback(() => {
+    undoStack.current = [...undoStack.current.slice(-20), snapshot()];
+    redoStack.current = [];
+  }, [snapshot]);
+
+  const undo = useCallback(() => {
+    const prev = undoStack.current.pop();
+    if (!prev) return;
+    redoStack.current.push(snapshot());
+    setSections(prev.sections); setTheme(prev.theme); setPrimary(prev.primary); setSecondary(prev.secondary);
+    setFontFamily(prev.fontFamily); setButtonStyle(prev.buttonStyle); setBodyTextColor(prev.bodyTextColor);
+    setBgColor(prev.bgColor);
+    setSocials(prev.socials);
+    setDirty(true);
+  }, [snapshot]);
+
+  const redo = useCallback(() => {
+    const next = redoStack.current.pop();
+    if (!next) return;
+    undoStack.current.push(snapshot());
+    setSections(next.sections); setTheme(next.theme); setPrimary(next.primary); setSecondary(next.secondary);
+    setFontFamily(next.fontFamily); setButtonStyle(next.buttonStyle); setBodyTextColor(next.bodyTextColor);
+    setBgColor(next.bgColor);
+    setSocials(next.socials);
+    setDirty(true);
+  }, [snapshot]);
+
+  useEffect(() => {
+    if (!storeConfig) return;
+    const saved = storeConfig.sections as StoreSection[] | undefined;
+    const merged = DEFAULT_SECTIONS.map(def => {
+      const s = saved?.find(x => x.id === def.id);
+      return s ? { ...def, ...s, settings: { ...def.settings, ...s.settings } } : { ...def };
+    }).sort((a, b) => a.order - b.order);
+    setSections(merged);
+    const t = resolveEcommerceTheme(storeConfig.theme);
+    setTheme(t);
+    setPrimary(storeConfig.primaryColor ?? '#C9A84C');
+    setSecondary(storeConfig.secondaryColor ?? '#8B7355');
+    setFontFamily((storeConfig as any).fontFamily ?? '');
+    setButtonStyle((storeConfig as any).buttonStyle ?? 'pill');
+    setBodyTextColor((storeConfig as any).bodyTextColor ?? '');
+    setBgColor((storeConfig as any).bgColor ?? '');
+    const footerSec = merged.find(s => s.type === 'footer');
+    setSocials((footerSec?.settings as FooterSectionSettings)?.socials ?? {});
+    setDirty(false);
+    undoStack.current = []; redoStack.current = [];
+  }, [storeConfig]);
+
+  useEffect(() => {
+    if (!user?.businessId) return;
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? '';
+    fetch(`${baseUrl}/api/store/products?businessId=${user.businessId}&available=true`)
+      .then(r => r.ok ? r.json() : { products: [] })
+      .then(d => setProducts(d.products ?? []))
+      .catch(() => setProducts([]));
+  }, [user?.businessId]);
+
+  useEffect(() => {
+    if (!user?.businessId) return;
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? '';
+    fetch(`${baseUrl}/api/store/collections?businessId=${user.businessId}`)
+      .then(r => r.ok ? r.json() : { collections: [] })
+      .then(d => setCollections(d.collections ?? []))
+      .catch(() => setCollections([]));
+  }, [user?.businessId]);
+
+  const mark = useCallback(() => setDirty(true), []);
+
+  useEffect(() => {
+    if (!dirty) return;
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ''; };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [dirty]);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const mod = e.metaKey || e.ctrlKey;
+      if (mod && e.key === 'z' && !e.shiftKey) { e.preventDefault(); undo(); }
+      if (mod && e.key === 'z' && e.shiftKey)  { e.preventDefault(); redo(); }
+      if (mod && e.key === 'y')                 { e.preventDefault(); redo(); }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [undo, redo]);
+
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pushUndoDebounced = useCallback(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => { pushUndo(); }, 500);
+  }, [pushUndo]);
+
+  const updateSocials = useCallback((key: string, val: string) => {
+    pushUndoDebounced();
+    setSocials(prev => {
+      const next = { ...prev };
+      if (val) next[key] = val;
+      else delete next[key];
+      setSections(prev => prev.map(s => {
+        if (s.type !== 'footer') return s;
+        return { ...s, settings: { ...s.settings, socials: next } };
+      }));
+      return next;
+    });
+    mark();
+  }, [pushUndoDebounced, mark]);
+
+  const handleDragStart = useCallback((id: string) => { setDragId(id); }, []);
+  const handleDragOver = useCallback((e: React.DragEvent) => { e.preventDefault(); }, []);
+  const handleDrop = useCallback((targetId: string) => {
+    if (!dragId || dragId === targetId) return;
+    pushUndo();
+    setSections(prev => {
+      const fromSec = prev.find(s => s.id === dragId);
+      const toSec = prev.find(s => s.id === targetId);
+      if (!fromSec || !toSec) return prev;
+      if (!SECTION_META[fromSec.type]?.movable) return prev;
+      if (!SECTION_META[toSec.type]?.movable) return prev;
+      const arr = [...prev];
+      const from = arr.findIndex(s => s.id === dragId);
+      const to = arr.findIndex(s => s.id === targetId);
+      if (from === -1 || to === -1) return prev;
+      const [moved] = arr.splice(from, 1);
+      arr.splice(to, 0, moved);
+      return arr.map((s, i) => ({ ...s, order: i }));
+    });
+    setDragId(null);
+    mark();
+  }, [dragId, pushUndo, mark]);
+  const handleDragEnd = useCallback(() => { setDragId(null); }, []);
+
+  const toggleSection = useCallback((id: string) => {
+    pushUndo();
+    setSections(prev => prev.map(s => s.id === id ? { ...s, enabled: !s.enabled } : s));
+    mark();
+  }, [pushUndo, mark]);
+
+  const updateSettings = useCallback((id: string, patch: Record<string, unknown>) => {
+    pushUndoDebounced();
+    setSections(prev => prev.map(s => s.id === id ? { ...s, settings: { ...s.settings, ...patch } } : s));
+    mark();
+  }, [pushUndoDebounced, mark]);
+
+  const handleThemeSelect = useCallback(async (themeId: string) => {
+    if (!user?.businessId || themeId === theme) return;
+    setThemeApplying(themeId);
+    try {
+      const db = getDatabase();
+      await db.doc(`businesses/${user.businessId}/store/config`).set(
+        { theme: themeId, updatedAt: new Date().toISOString() },
+        { merge: true }
+      );
+      setTheme(themeId as StorefrontTheme);
+      setShowThemePicker(false);
+      setDirty(true);
+      await refreshStoreConfig();
+      showToast(`Switched to "${THEMES.find(t => t.id === themeId)?.name}"`, 'success');
+    } catch {
+      showToast('Failed to switch theme', 'error');
+    } finally {
+      setThemeApplying(null);
+    }
+  }, [user?.businessId, theme, refreshStoreConfig, showToast]);
+
+  const handleApply = useCallback(async () => {
+    if (!user?.businessId || !storeConfig) return;
+    setApplying(true);
+    try {
+      const db = getDatabase();
+      const slug = storeConfig.storeSlug;
+      await db.doc(`businesses/${user.businessId}/store/config`).set(
+        { ...storeConfig, theme, primaryColor: primary, secondaryColor: secondary, fontFamily: fontFamily || null, buttonStyle, bodyTextColor: bodyTextColor || null, bgColor: bgColor || null, sections: sections.map(s => ({ ...s })), storeSlug: slug, status: 'active', updatedAt: new Date().toISOString() },
+        { merge: true }
+      );
+      if (slug) await db.doc(`storeIndex/${slug}`).set({ businessId: user.businessId, storeName: storeConfig.storeName, updatedAt: new Date().toISOString() });
+      await refreshStoreConfig();
+      setDirty(false);
+      showToast('Theme published to your store!', 'success');
+    } catch (err) {
+      console.error('[ThemeEditor]', err);
+      showToast('Failed to publish. Try again.', 'error');
+    } finally { setApplying(false); }
+  }, [user, storeConfig, theme, primary, secondary, fontFamily, buttonStyle, bodyTextColor, bgColor, sections, refreshStoreConfig, showToast]);
+
+  const storeName = storeConfig?.storeName ?? 'Your Store';
+  const tagline   = storeConfig?.tagline   ?? 'Shop our latest collection';
+  const logoUrl   = storeConfig?.logoUrl   ?? null;
+  const activeSection = sections.find(s => s.id === activeId) ?? null;
+  const headerSection = sections.find(s => s.id === 'header');
+  const hideStoreNameWithLogo = headerSection ? (headerSection.settings as HeaderSectionSettings).hideStoreNameWithLogo : false;
+
+  useEffect(() => {
+    sessionStorage.setItem('mobilePreviewData', JSON.stringify({
+      theme, storeName, tagline, primaryColor: primary, secondaryColor: secondary, logoUrl, sections,
+      storeSlug: storeConfig?.storeSlug, products, collections, fontFamily: fontFamily || null,
+      buttonStyle, bodyTextColor: bodyTextColor || null, hideStoreNameWithLogo,
+      bgColor: bgColor || null,
+    }));
+  }, [theme, storeName, tagline, primary, secondary, logoUrl, sections, storeConfig, products, collections, fontFamily, buttonStyle, bodyTextColor, bgColor, hideStoreNameWithLogo]);
+
+  const canvasProps = {
+    theme, storeName, tagline, primaryColor: primary, secondaryColor: secondary, logoUrl,
+    sections, storeSlug: storeConfig?.storeSlug ?? '', products, collections,
+    fontFamily: fontFamily || null, buttonStyle, bodyTextColor: bodyTextColor || null, hideStoreNameWithLogo,
+    bgColor: bgColor || null,
+    onSectionClick: (id: string) => {
+      setActiveId(id);
+      if (isMobile) setMobileEditorOpen(true);
+    },
+  };
+
+  return (
+    <div className={styles.root}>
+      <div className={styles.topbar}>
+        <div className={styles.topbarLeft}>
+          <button
+            onClick={() => router.push('/dashboard/storefront')}
+            className={styles.iconBtn}
+            title="Switch to a different theme"
+            aria-label="Switch theme"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="9" y1="3" x2="9" y2="21"></line>
+            </svg>
+          </button>
+          <span className={styles.topbarTitle}>Customize</span>
+          {storeConfig?.storeSlug && (
+            <a href={`/${storeConfig.storeSlug}`} target="_blank" rel="noopener noreferrer" className={styles.liveBadge}>
+              <span className={styles.liveDot} />Live
+            </a>
+          )}
+        </div>
+        <div className={styles.topbarCenter}>
+          <button className={styles.iconBtn} onClick={undo} title="Undo (Ctrl+Z)" disabled={undoStack.current.length === 0} aria-label="Undo">
+            <Undo2 size={14} />
+          </button>
+          <button className={styles.iconBtn} onClick={redo} title="Redo (Ctrl+Shift+Z)" disabled={redoStack.current.length === 0} aria-label="Redo">
+            <Redo2 size={14} />
+          </button>
+          <div className={styles.dividerV} />
+          {!isMobile && (['desktop','tablet','mobile'] as const).map(d => (
+            <button
+              key={d}
+              className={[styles.iconBtn, device === d ? styles.iconBtnActive : ''].join(' ')}
+              onClick={() => setDevice(d)}
+              title={d.charAt(0).toUpperCase() + d.slice(1)}
+              aria-label={`Preview in ${d} mode`}
+              aria-pressed={device === d}
+            >
+              {d === 'desktop' && <Monitor size={15} />}
+              {d === 'tablet'  && <Tablet size={15} />}
+              {d === 'mobile'  && <Smartphone size={15} />}
+            </button>
+          ))}
+        </div>
+        <div className={styles.topbarRight}>
+          {dirty && <span className={styles.unsavedDot} />}
+          <button className={styles.publishBtn} onClick={handleApply} disabled={applying || !dirty}>
+            {applying ? <><span className={styles.spinner} />Publishing...</> : 'Publish'}
+          </button>
+        </div>
+      </div>
+
+      <div className={styles.body}>
+        <div className={styles.previewWrap} ref={previewWrapRef}>
+          <div className={styles.previewContainer}>
+            <div
+              className={styles.previewScaler}
+              style={{
+                width: deviceWidth,
+                height: device === 'desktop' ? 800 : device === 'tablet' ? 600 : 750,
+                transform: `scale(${scale})`,
+                transformOrigin: 'top center',
+              }}
+            >
+              <div className={styles.previewInner}>
+                <CartProvider storeSlug={storeConfig?.storeSlug ?? ''}>
+                  <StorefrontCanvas {...canvasProps} width={deviceWidth} />
+                </CartProvider>
+              </div>
+            </div>
+          </div>
+
+          <div className={styles.phoneFrame}>
+            <div className={styles.phoneScreen}>
+              <div className={styles.phoneInner}>
+                <CartProvider storeSlug={storeConfig?.storeSlug ?? ''}>
+                  <StorefrontCanvas {...canvasProps} width={375} />
+                </CartProvider>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className={[styles.settingsPanel, mobileEditorOpen ? styles.settingsPanelOpen : ''].join(' ')}>
+          <div className={styles.panelHeader}>
+            <span className={styles.panelHeaderTitle}>Edit storefront</span>
+            <button
+              className={styles.mobileClose}
+              onClick={() => setMobileEditorOpen(false)}
+              aria-label="Close editor"
+              type="button"
+            >
+              <X size={16} />
+            </button>
+          </div>
+
+          <div className={styles.sectionList}>
+            {sections.map(sec => {
+              const meta = SECTION_META[sec.type];
+              if (isLinkStyle && HIDDEN_FOR_LINK_STYLE.has(sec.type)) return null;
+              const movable = !!meta?.movable;
+              return (
+                <div
+                  key={sec.id}
+                  className={[styles.secRow, movable ? styles.secRowMovable : styles.secRowFixed].join(' ')}
+                  draggable={movable}
+                  onDragStart={movable ? () => handleDragStart(sec.id) : undefined}
+                  onDragOver={movable ? handleDragOver : undefined}
+                  onDrop={movable ? () => handleDrop(sec.id) : undefined}
+                  onDragEnd={movable ? handleDragEnd : undefined}
+                  style={{ opacity: dragId === sec.id ? 0.4 : 1 }}
+                >
+                  <span className={styles.dragHandle} aria-hidden="true" title={movable ? 'Drag to reorder' : 'Fixed position'}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                      <circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/>
+                      <circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/>
+                      <circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/>
+                    </svg>
+                  </span>
+                  <button
+                    className={[styles.secItem, !sec.enabled ? styles.secItemOff : '', activeId === sec.id ? styles.secItemActive : ''].join(' ')}
+                    onClick={() => setActiveId(activeId === sec.id ? null : sec.id)}
+                    type="button"
+                  >
+                    <span className={styles.secIcon}>{SectionIcons[sec.type]}</span>
+                    <span className={styles.secLabel}>{meta.label}</span>
+                  </button>
+                  <button className={[styles.eyeBtn, sec.enabled ? styles.eyeOn : ''].join(' ')} onClick={() => toggleSection(sec.id)} type="button" aria-label={sec.enabled ? `Hide ${meta.label}` : `Show ${meta.label}`} aria-pressed={sec.enabled}>
+                    {sec.enabled
+                      ? <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                      : <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                    }
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className={styles.settingsContent}>
+            {activeSection ? (
+              <>
+                <div className={styles.settingsHeader}>
+                  <button className={styles.settingsBack} onClick={() => setActiveId(null)} aria-label="Back">
+                    <ChevronLeft size={14} />
+                  </button>
+                  <span className={styles.settingsIcon}>{SectionIcons[activeSection.type]}</span>
+                  <span className={styles.settingsTitle}>{SECTION_META[activeSection.type].label}</span>
+                </div>
+                {activeSection.type === 'hero'         && <HeroSettings         s={activeSection.settings as HeroSectionSettings}         upd={p => updateSettings(activeSection.id, p as Record<string,unknown>)} isLinkStyle={isLinkStyle} isCreator={isCreator} isMobile={isMobile} />}
+                {activeSection.type === 'announcement' && <AnnouncementSettings s={activeSection.settings as AnnouncementSectionSettings} upd={p => updateSettings(activeSection.id, p as Record<string,unknown>)} />}
+                {activeSection.type === 'featured'     && <FeaturedSettings     s={activeSection.settings as FeaturedSectionSettings}     upd={p => updateSettings(activeSection.id, p as Record<string,unknown>)} />}
+                {activeSection.type === 'collections'  && <CollectionsSettings  s={activeSection.settings as CollectionsSectionSettings}  upd={p => updateSettings(activeSection.id, p as Record<string,unknown>)} />}
+                {activeSection.type === 'about'        && <AboutSettings        s={activeSection.settings as AboutSectionSettings}        upd={p => updateSettings(activeSection.id, p as Record<string,unknown>)} />}
+                {activeSection.type === 'testimonials' && <TestimonialsSettings s={activeSection.settings as TestimonialsSectionSettings} upd={p => updateSettings(activeSection.id, p as Record<string,unknown>)} />}
+                {activeSection.type === 'instagram'    && <InstagramSettings    s={activeSection.settings as InstagramSectionSettings}    upd={p => updateSettings(activeSection.id, p as Record<string,unknown>)} />}
+                {activeSection.type === 'newsletter'   && <NewsletterSettings   s={activeSection.settings as NewsletterSectionSettings}   upd={p => updateSettings(activeSection.id, p as Record<string,unknown>)} />}
+                {activeSection.type === 'header'       && <HeaderSettings       s={activeSection.settings as HeaderSectionSettings}       upd={p => updateSettings(activeSection.id, p as Record<string,unknown>)} />}
+                {activeSection.type === 'footer'       && <FooterSettings       s={activeSection.settings as FooterSectionSettings}       upd={p => updateSettings(activeSection.id, p as Record<string,unknown>)} />}
+              </>
+            ) : (
+              <>
+                <div className={styles.designGroup}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <p className={styles.designTitle} style={{ margin: 0 }}>Theme</p>
+                    <button className={styles.iconBtn} onClick={() => setShowThemePicker(!showThemePicker)} style={{ fontSize: '0.75rem', fontWeight: 600, gap: 4, width: 'auto', padding: '4px 10px' }} type="button">
+                      {showThemePicker ? 'Cancel' : 'Change'}
+                    </button>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 0' }}>
+                    <div style={{ width: 20, height: 20, borderRadius: 6, background: primary, flexShrink: 0 }} />
+                    <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--sell-text)' }}>
+                      {THEMES.find(t => t.id === theme)?.name || theme}
+                    </span>
+                  </div>
+                  {showThemePicker && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4, maxHeight: 300, overflowY: 'auto' }}>
+                      {THEMES.filter(t => t.type === 'e-commerce').map(t => {
+                        const isActive = theme === t.id;
+                        const isLoading = themeApplying === t.id;
+                        return (
+                          <button
+                            key={t.id}
+                            onClick={() => handleThemeSelect(t.id)}
+                            disabled={isActive || !!themeApplying}
+                            style={{
+                              display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px',
+                              border: `1px solid ${isActive ? 'var(--sell-primary)' : 'var(--sell-border)'}`,
+                              borderRadius: 8, background: isActive ? 'var(--sell-primary-lt, #f0f9ff)' : 'transparent',
+                              cursor: isActive ? 'default' : 'pointer', textAlign: 'left', width: '100%',
+                              opacity: isLoading ? 0.6 : 1,
+                            }}
+                          >
+                            <div style={{ width: 28, height: 28, borderRadius: 6, background: t.previewAccent || primary, flexShrink: 0 }} />
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--sell-text)' }}>{t.name}</div>
+                              <div style={{ fontSize: '0.7rem', color: 'var(--sell-text-2)' }}>{t.description}</div>
+                            </div>
+                            {isActive && <span style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--sell-primary)' }}>Active</span>}
+                            {isLoading && <span style={{ fontSize: '0.68rem' }}>...</span>}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+                <div className={styles.designDivider} />
+                <div className={styles.designGroup}>
+                  <p className={styles.designTitle}>Brand Colors</p>
+                  <label className={styles.cLabel}><input type="color" value={primary} onChange={e => { pushUndo(); setPrimary(e.target.value); mark(); }} className={styles.cPicker} aria-label="Primary color" />Primary</label>
+                  <label className={styles.cLabel}><input type="color" value={secondary} onChange={e => { pushUndo(); setSecondary(e.target.value); mark(); }} className={styles.cPicker} aria-label="Accent color" />Accent</label>
+                </div>
+                <div className={styles.designDivider} />
+                <Advanced title="Advanced store settings" defaultOpen={!isMobile}>
+                  <div className={styles.designGroup}>
+                    <p className={styles.designTitle}>Store Design</p>
+                    <div className={styles.field}>
+                      <label className={styles.fLabel}>Font family</label>
+                      <select className={styles.fSelect} value={fontFamily} onChange={e => { pushUndo(); setFontFamily(e.target.value); mark(); }}>
+                        <option value="">Theme default</option>
+                        <option value="Plus Jakarta Sans">Plus Jakarta Sans</option>
+                        <option value="DM Sans">DM Sans</option>
+                        <option value="Playfair Display">Playfair Display</option>
+                        <option value="Sora">Sora</option>
+                        <option value="Inter">Inter</option>
+                        <option value="Poppins">Poppins</option>
+                        <option value="Montserrat">Montserrat</option>
+                        <option value="Raleway">Raleway</option>
+                        <option value="Cormorant Garamond">Cormorant Garamond</option>
+                        <option value="Lora">Lora</option>
+                        <option value="Space Grotesk">Space Grotesk</option>
+                        <option value="Outfit">Outfit</option>
+                        <option value="Manrope">Manrope</option>
+                      </select>
+                    </div>
+                    <div className={styles.field}>
+                      <label className={styles.fLabel}>Button style</label>
+                      <select className={styles.fSelect} value={buttonStyle} onChange={e => { pushUndo(); setButtonStyle(e.target.value as 'pill' | 'square' | 'rounded'); mark(); }}>
+                        <option value="pill">Pill (rounded full)</option>
+                        <option value="rounded">Rounded</option>
+                        <option value="square">Square</option>
+                      </select>
+                    </div>
+                    <div className={styles.field}>
+                      <label className={styles.fLabel}>Text color override</label>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <input type="color" value={bodyTextColor || '#1a1a1a'} onChange={e => { pushUndo(); setBodyTextColor(e.target.value); mark(); }}
+                          style={{ width: 32, height: 32, borderRadius: 7, border: '1.5px solid var(--sell-border)', cursor: 'pointer', padding: 2, background: 'transparent', flexShrink: 0 }} />
+                        <input className={styles.fInput} value={bodyTextColor} onChange={e => { pushUndo(); setBodyTextColor(e.target.value); mark(); }} placeholder="Theme default" style={{ width: 90 }} />
+                      </div>
+                      <p className={styles.fHint}>Overrides the main text color across the store</p>
+                    </div>
+                    <div className={styles.field}>
+                      <label className={styles.fLabel}>Background color override</label>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <input type="color" value={bgColor || '#ffffff'} onChange={e => { pushUndo(); setBgColor(e.target.value); mark(); }}
+                          style={{ width: 32, height: 32, borderRadius: 7, border: '1.5px solid var(--sell-border)', cursor: 'pointer', padding: 2, background: 'transparent', flexShrink: 0 }} />
+                        <input className={styles.fInput} value={bgColor} onChange={e => { pushUndo(); setBgColor(e.target.value); mark(); }} placeholder="Theme default" style={{ width: 90 }} />
+                      </div>
+                      <p className={styles.fHint}>Overrides the page background</p>
+                    </div>
+                  </div>
+                </Advanced>
+                {isCreator && (
+                  <>
+                    <div className={styles.designDivider} />
+                    <div className={styles.designGroup}>
+                      <p className={styles.designTitle}>Social Links</p>
+                      <p className={styles.fHint} style={{ marginBottom: 6 }}>Appear on your storefront.</p>
+                      {SOCIAL_KEYS.map(k => (
+                        <SocialField key={k} platform={k} value={socials[k]} onChange={v => updateSocials(k, v)} />
+                      ))}
+                    </div>
+                  </>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <button
+        className={styles.mobileFab}
+        onClick={() => setMobileEditorOpen(true)}
+        type="button"
+        style={{ display: mobileEditorOpen ? 'none' : undefined }}
+      >
+        <Pencil size={14} /> Edit
+      </button>
+    </div>
+  );
+}
