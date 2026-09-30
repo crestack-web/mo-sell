@@ -1,6 +1,6 @@
 /**
- * Allowlist of emails that receive a purple verified badge on their
- * link-in-bio page (next to the creator name). Expand this list as more
+ * Allowlist of emails and store slugs that receive a purple verified badge on
+ * their link-in-bio page (next to the creator name). Expand these lists as more
  * creators are approved.
  */
 const VERIFIED_EMAILS = new Set(
@@ -9,7 +9,17 @@ const VERIFIED_EMAILS = new Set(
   ].map((e) => e.trim().toLowerCase()),
 );
 
-export function isVerifiedCreator(email?: string | null): boolean {
-  if (!email) return false;
-  return VERIFIED_EMAILS.has(email.trim().toLowerCase());
+const VERIFIED_SLUGS = new Set(
+  [
+    'majnun',
+  ].map((s) => s.trim().toLowerCase()),
+);
+
+export function isVerifiedCreator(
+  email?: string | null,
+  storeSlug?: string | null,
+): boolean {
+  if (email && VERIFIED_EMAILS.has(email.trim().toLowerCase())) return true;
+  if (storeSlug && VERIFIED_SLUGS.has(storeSlug.trim().toLowerCase())) return true;
+  return false;
 }
