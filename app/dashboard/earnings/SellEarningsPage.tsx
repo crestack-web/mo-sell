@@ -3,7 +3,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { getDatabase } from '@/lib/database/adapter';
 import { useSell } from '@/context/SellContext';
-import { isPlatformManaged, getCommissionRate } from '@/lib/pricing';
+import {
+  isPlatformManaged,
+  getCommissionRate,
+  STANDARD_PLAN_COMMISSION_RATE,
+  STANDARD_PLAN_DIGITAL_COMMISSION_RATE,
+  formatCommissionPct,
+} from '@/lib/pricing';
 import styles from './SellEarningsPage.module.css';
 
 export const dynamic = 'force-dynamic';
@@ -173,7 +179,9 @@ export function SellEarningsPage() {
   const billingPlan = (storeConfig as any)?.billingPlan;
   const currency = storeConfig?.currency ?? 'NGN';
   const isStandardPlan = billingModel === 'monthly' && billingPlan === 'standard';
-  const commissionLabel = isStandardPlan ? '5% \u00B7 10% digital' : pct(commissionRate);
+  const commissionLabel = isStandardPlan
+    ? `${formatCommissionPct(STANDARD_PLAN_COMMISSION_RATE)} · ${formatCommissionPct(STANDARD_PLAN_DIGITAL_COMMISSION_RATE)} digital`
+    : pct(commissionRate);
 
   const promoteEarnings = useCallback(async (biz: string, items: Earning[]) => {
     const db = getDatabase();
@@ -507,7 +515,7 @@ export function SellEarningsPage() {
           {activeTab === 'ugc' ? (
             <p className={styles.sub}>Track payments from your UGC orders and cash out once a purchase is delivered and completed.</p>
           ) : isStandardPlan ? (
-            <p className={styles.sub}>Busmo collects on your behalf and charges 5% commission (10% on digital products). Your monthly fee is only deducted when revenue reaches the plan fee.</p>
+            <p className={styles.sub}>Busmo collects on your behalf and charges {formatCommissionPct(STANDARD_PLAN_COMMISSION_RATE)} commission ({formatCommissionPct(STANDARD_PLAN_DIGITAL_COMMISSION_RATE)} on digital products). Your monthly fee is only deducted when revenue reaches the plan fee.</p>
           ) : commissionRate > 0 ? (
             <p className={styles.sub}>Busmo collects on your behalf and charges {pct(commissionRate)} commission per sale.</p>
           ) : billingModel === 'monthly' ? (

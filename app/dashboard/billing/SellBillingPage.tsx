@@ -2,7 +2,14 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { useSell } from '@/context/SellContext';
-import { MONTHLY_PLANS } from '@/lib/pricing';
+import {
+  MONTHLY_PLANS,
+  PAYG_COMMISSION_RATE,
+  STANDARD_PLAN_COMMISSION_RATE,
+  STANDARD_PLAN_DIGITAL_COMMISSION_RATE,
+  formatCommissionPct,
+  getPlanFeeNgn,
+} from '@/lib/pricing';
 import styles from './SellBillingPage.module.css';
 
 const BILLING_MODEL_PAYG = 'pay_as_you_go';
@@ -40,7 +47,9 @@ interface BillingStatus {
 const fmtNgn = (n: number) => `₦${Math.round(n).toLocaleString('en-NG')}`;
 
 const commissionDesc = (planId: string | null | undefined) =>
-  planId === 'standard' ? '5% commission (10% on digital)' : 'no commission';
+  planId === 'standard'
+    ? `${formatCommissionPct(STANDARD_PLAN_COMMISSION_RATE)} commission (${formatCommissionPct(STANDARD_PLAN_DIGITAL_COMMISSION_RATE)} on digital)`
+    : 'no commission';
 
 export function SellBillingPage() {
   const { user, showToast } = useSell();
@@ -173,12 +182,12 @@ export function SellBillingPage() {
             <div className={styles.planName}>
               {isMonthly
                 ? `${activePlan?.name ?? 'Monthly'} plan — ${fmtNgn(data.feeNgn)}/month`
-                : 'Pay-as-you-go — 20% commission'}
+                : `Pay-as-you-go — ${formatCommissionPct(PAYG_COMMISSION_RATE)} commission`}
             </div>
             <div className={styles.planMeta}>
               {isMonthly
                 ? `Charges ${commissionDesc(activePlan?.id)}. The monthly fee is only deducted from your earnings when your revenue reaches the plan fee.`
-                : 'No monthly fee. MO Sell charges 20% commission on each sale — you keep 80%.'}
+                : `No monthly fee. MO Sell charges ${formatCommissionPct(PAYG_COMMISSION_RATE)} commission on each sale — you keep ${formatCommissionPct(1 - PAYG_COMMISSION_RATE)}.`}
             </div>
           </div>
           {isMonthly && (
@@ -206,7 +215,7 @@ export function SellBillingPage() {
         </h3>
         <p style={{ fontSize: '0.85rem', color: 'var(--sell-text-2)', marginBottom: 14, maxWidth: 620, lineHeight: 1.6 }}>
           Monthly plans charge a flat fee only in months where your revenue reaches the plan fee —
-          otherwise it's waived. The Standard plan charges 5% commission (10% on digital products);
+          otherwise it's waived. The Standard plan charges {formatCommissionPct(STANDARD_PLAN_COMMISSION_RATE)} commission ({formatCommissionPct(STANDARD_PLAN_DIGITAL_COMMISSION_RATE)} on digital products);
           Pro and Enterprise charge no commission. Switch back to pay-as-you-go anytime.
         </p>
         <div className={styles.plansGrid}>
@@ -217,8 +226,8 @@ export function SellBillingPage() {
               onClick={() => setSelectedPlan(plan.id)}
             >
               <div className={styles.planOptionName}>{plan.name}</div>
-              <div className={styles.planOptionPrice}>${plan.priceUsd}<span style={{ fontSize: '0.8rem', color: 'var(--sell-text-3)' }}> /mo</span></div>
-              <div className={styles.planOptionMeta}>{fmtNgn(plan.priceUsd * 1550)} when eligible · {commissionDesc(plan.id)}</div>
+              <div className={styles.planOptionPrice}>{fmtNgn(getPlanFeeNgn(plan.id))}<span style={{ fontSize: '0.8rem', color: 'var(--sell-text-3)' }}> /mo</span></div>
+              <div className={styles.planOptionMeta}>when eligible · {commissionDesc(plan.id)}</div>
             </button>
           ))}
         </div>

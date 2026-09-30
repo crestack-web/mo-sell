@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { supabaseServer } from '@/lib/supabase-server';
+import { PAYG_COMMISSION_RATE } from '@/lib/pricing';
 
 function slugify(s: string) {
   return s
@@ -85,7 +86,7 @@ export async function POST(req: NextRequest) {
       onboardingAnswers: {},
       billingModel: 'pay_as_you_go',
       billingStatus: 'active',
-      commissionRate: 0.2,
+      commissionRate: PAYG_COMMISSION_RATE,
       updatedAt: now,
       createdAt: now,
     };

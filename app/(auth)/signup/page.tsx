@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { supabaseClient } from '@/lib/supabase-client';
 import { getDatabase } from '@/lib/database/adapter';
 import posthog from 'posthog-js';
+import { PAYG_COMMISSION_RATE, formatCommissionPct } from '@/lib/pricing';
 
 const C = {
   primary: '#0EA5E9',
@@ -429,7 +430,7 @@ export default function SellSignupPage() {
                   style={{ width: 48, height: 48, objectFit: 'contain', marginBottom: 12 }}
                 />
                 <h1 style={{ fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 22, color: C.text1, margin: '0 0 4px' }}>Start selling free</h1>
-                <p style={{ fontSize: 14, color: C.text2, margin: 0 }}>Pay 20% only when you sell · No card required</p>
+                <p style={{ fontSize: 14, color: C.text2, margin: 0 }}>Pay {formatCommissionPct(PAYG_COMMISSION_RATE)} only when you sell · No card required</p>
               </div>
               <div style={{ borderRadius: 14, border: `2px solid ${C.primary}`, padding: 16, marginBottom: 16, background: `${C.primary}10` }}>
                 <div style={{ fontWeight: 700, color: C.text1, marginBottom: 8, fontFamily: FONT_DISPLAY }}>{businessName || 'Your store'}</div>
@@ -437,7 +438,7 @@ export default function SellSignupPage() {
                   <li>AI-powered store builder</li>
                   <li>Unlimited products</li>
                   <li>Paystack payments</li>
-                  <li>20% commission · cancel anytime</li>
+                  <li>{formatCommissionPct(PAYG_COMMISSION_RATE)} commission · cancel anytime</li>
                 </ul>
               </div>
               <button

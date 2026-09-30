@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { TOKEN_PACKAGES, MONTHLY_PLANS, PAYG_COMMISSION_RATE, NGN_PER_USD } from '@/lib/pricing';
+import { TOKEN_PACKAGES, MONTHLY_PLANS, PAYG_COMMISSION_RATE, STANDARD_PLAN_COMMISSION_RATE, STANDARD_PLAN_DIGITAL_COMMISSION_RATE, NGN_PER_USD, formatCommissionPct, getPlanFeeNgn } from '@/lib/pricing';
 
 const C = {
   primary:    '#0EA5E9',
@@ -95,7 +95,7 @@ function PricingPage() {
           Start free. Only pay for what you <span style={{ color: C.primary }}>sell.</span>
         </h1>
         <p style={{ color: C.text2, fontSize: 17, maxWidth: 620, margin: '0 auto', lineHeight: 1.7 }}>
-          Two ways to sell with MO Sell. Pay as you go with a 20% commission on sales, or
+          Two ways to sell with MO Sell. Pay as you go with an {formatCommissionPct(PAYG_COMMISSION_RATE)} commission on sales, or
           switch to a monthly plan — the fee only applies when your store actually earns it.
         </p>
 
@@ -152,7 +152,7 @@ function PricingPage() {
                 No monthly fee
               </span>
               <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, marginBottom: 8 }}>
-                <span style={{ fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 44, color: C.primary }}>20%</span>
+                <span style={{ fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 44, color: C.primary }}>{formatCommissionPct(PAYG_COMMISSION_RATE)}</span>
                 <span style={{ color: C.text2, fontSize: 15, fontWeight: 600, paddingBottom: 8 }}>
                   commission per sale
                 </span>
@@ -255,8 +255,8 @@ function PricingPage() {
               <div style={{ fontWeight: 800, color: C.amber, marginBottom: 4 }}>💡 Conditional billing — you only pay when you earn</div>
               <div style={{ fontSize: 14, color: C.text2, lineHeight: 1.6 }}>
                 The monthly fee is deducted from your earnings balance <strong>only in months where your revenue is at least the plan fee</strong>.
-                If you make less, that month&apos;s fee is simply waived. The Standard plan charges a small 5% commission
-                (10% on digital products); Pro and Enterprise charge no commission at all.
+                If you make less, that month&apos;s fee is simply waived. The Standard plan charges a small {formatCommissionPct(STANDARD_PLAN_COMMISSION_RATE)} commission
+                ({formatCommissionPct(STANDARD_PLAN_DIGITAL_COMMISSION_RATE)} on digital products); Pro and Enterprise charge no commission at all.
               </div>
             </div>
 
@@ -283,7 +283,7 @@ function PricingPage() {
                   <div style={{ fontSize: 13, color: C.text3, marginBottom: 16 }}>{plan.tagline}</div>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 20 }}>
                     <span style={{ fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 40, color: plan.popular ? C.accent : C.primary }}>
-                      ${plan.priceUsd}
+                      {fmtNgn(getPlanFeeNgn(plan.id))}
                     </span>
                     <span style={{ color: C.text3, fontSize: 14 }}>/ month</span>
                   </div>
@@ -324,15 +324,15 @@ function PricingPage() {
           <div style={{ background: C.surface, borderRadius: 16, padding: 24, border: `1px solid ${C.border}` }}>
             <div style={{ fontWeight: 800, marginBottom: 6 }}>🪙 Pay-as-you-go</div>
             <div style={{ fontSize: 14, color: C.text2, lineHeight: 1.7 }}>
-              Best for <strong>just starting out</strong> or selling occasionally. Pay 20% per sale,
+              Best for <strong>just starting out</strong> or selling occasionally. Pay {formatCommissionPct(PAYG_COMMISSION_RATE)} per sale,
               nothing when you don&apos;t sell. No commitment, no card.
             </div>
           </div>
           <div style={{ background: C.surface, borderRadius: 16, padding: 24, border: `1px solid ${C.border}` }}>
             <div style={{ fontWeight: 800, marginBottom: 6 }}>📈 Monthly plan</div>
             <div style={{ fontSize: 14, color: C.text2, lineHeight: 1.7 }}>
-              Best for <strong>steady sellers</strong>. Keep more of each sale — pay 5% commission on the
-              Standard plan (10% on digital) or none on Pro/Enterprise, plus a flat fee only in months you hit it.
+              Best for <strong>steady sellers</strong>. Keep more of each sale — pay {formatCommissionPct(STANDARD_PLAN_COMMISSION_RATE)} commission on the
+              Standard plan ({formatCommissionPct(STANDARD_PLAN_DIGITAL_COMMISSION_RATE)} on digital) or none on Pro/Enterprise, plus a flat fee only in months you hit it.
               Switch anytime from your dashboard.
             </div>
           </div>
@@ -357,7 +357,7 @@ function PricingPage() {
           Start selling free →
         </Link>
         <div style={{ marginTop: 14, fontSize: 13, color: C.text3 }}>
-          {selectedPlan ? `${selectedPlan.name} plan · ${fmtNgn(selectedPlan.priceUsd * NGN_PER_USD)}/month when eligible` : 'Pay-as-you-go · free forever'}
+          {selectedPlan ? `${selectedPlan.name} plan · ${fmtNgn(getPlanFeeNgn(selectedPlan.id))}/month when eligible` : 'Pay-as-you-go · free forever'}
         </div>
       </div>
     </div>

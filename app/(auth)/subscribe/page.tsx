@@ -6,6 +6,7 @@ import { supabaseClient } from '@/lib/supabase-client';
 import { getDatabase } from '@/lib/database/adapter';
 import { convertFromUsd } from '@/lib/currency';
 import posthog from 'posthog-js';
+import { PAYG_COMMISSION_RATE, formatCommissionPct } from '@/lib/pricing';
 
 const C = {
   primary: '#0EA5E9', primaryDk: '#0369A1', accent: '#6366F1',
@@ -213,7 +214,7 @@ export default function SellSubscribePage() {
               </div>
               <div className="text-right">
                 <div className="text-3xl font-bold" style={{ color: C.primary, fontFamily: FONT_DISPLAY }}>₦0</div>
-                <div className="text-xs" style={{ color: C.text3 }}>+ 20% per sale</div>
+                <div className="text-xs" style={{ color: C.text3 }}>+ {formatCommissionPct(PAYG_COMMISSION_RATE)} per sale</div>
               </div>
             </div>
             <div className="rounded-xl p-4 mb-4" style={{ background: `${C.primary}15` }}>
@@ -229,7 +230,7 @@ export default function SellSubscribePage() {
               </div>
             </div>
             <div className="text-center text-xs" style={{ color: C.text3 }}>
-              No card required · 20% commission only when you sell
+              No card required · {formatCommissionPct(PAYG_COMMISSION_RATE)} commission only when you sell
             </div>
           </div>
         ) : (

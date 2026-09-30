@@ -1,29 +1,40 @@
 // ─── MO Sell pricing model ────────────────────────────────────────────────────
 //
 // Two models:
-//   1. pay_as_you_go — 20% commission per sale, no monthly fee.
-//   2. monthly       — no per-sale commission; a fixed plan fee that is deducted
-//                      from the earnings balance ONLY when the month's revenue
-//                      is >= the plan fee (conditional billing).
+//   1. pay_as_you_go — 8% commission per sale, no monthly fee.
+//   2. monthly       — plan fee in NGN (from USD list price × NGN_PER_USD); Standard
+//                      keeps a small per-sale commission, Pro/Enterprise are 0%.
+//                      Plan fee is deducted from earnings ONLY when the month's
+//                      revenue is >= the plan fee (conditional billing).
 
 export const BILLING_MODEL_PAYG = 'pay_as_you_go';
 export const BILLING_MODEL_MONTHLY = 'monthly';
 
 /** Commission charged per sale for pay-as-you-go stores. */
-export const PAYG_COMMISSION_RATE = 0.2;
+export const PAYG_COMMISSION_RATE = 0.08;
 
 /** Legacy managed-payments commission (pre-pricing-model stores). */
 export const LEGACY_MANAGED_PAYMENTS_COMMISSION_RATE = 0.05;
 
 /**
  * Monthly Standard ($10) plan per-sale commission by product type:
- * physical/services are charged 5%, digital 10%. Pro/Enterprise charge 0%.
+ * physical/services are charged 3%, digital 5%. Pro/Enterprise charge 0%.
  */
-export const STANDARD_PLAN_COMMISSION_RATE = 0.05;
-export const STANDARD_PLAN_DIGITAL_COMMISSION_RATE = 0.1;
+export const STANDARD_PLAN_COMMISSION_RATE = 0.03;
+export const STANDARD_PLAN_DIGITAL_COMMISSION_RATE = 0.05;
 
-/** Approximate USD → NGN rate used to compare plan fees with NGN revenue. */
+/**
+ * Single source for USD → NGN conversion used by plan fees and pricing UI.
+ * Isolated here so plan pricing does not scatter hardcoded rates.
+ * (Payment FX in lib/currency.ts / lib/paymentService.ts is separate.)
+ */
 export const NGN_PER_USD = 1550;
+
+/** Display helper: 0.08 → "8%". */
+export function formatCommissionPct(rate: number): string {
+  const pct = Math.round(rate * 1000) / 10; // one decimal if needed (e.g. 7.5)
+  return Number.isInteger(pct) ? `${pct}%` : `${pct}%`;
+}
 
 export type MonthlyPlanId = 'standard' | 'pro' | 'enterprise';
 
@@ -43,7 +54,7 @@ export const MONTHLY_PLANS: MonthlyPlan[] = [
     priceUsd: 10,
     tagline: 'For new stores ready to grow',
     features: [
-      '5% commission (10% on digital)',
+      '3% commission (5% on digital)',
       'Unlimited products & orders',
       'Paystack payments',
       '10 premium themes',
