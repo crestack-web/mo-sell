@@ -37,12 +37,11 @@ function slugify(s: string) {
 function BusmoMark() {
   return (
     <img
-      src="https://busmo.app/sidebar-logo.png"
-      alt=""
-      width={18}
-      height={18}
-      style={{ borderRadius: 4, objectFit: 'contain' }}
-      onError={(e) => { e.currentTarget.style.display = 'none'; }}
+      src="/brand/busmo-mark.png"
+      alt="Busmo"
+      width={20}
+      height={20}
+      style={{ objectFit: 'contain', flexShrink: 0 }}
     />
   );
 }
