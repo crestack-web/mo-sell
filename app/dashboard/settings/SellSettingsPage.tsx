@@ -7,6 +7,8 @@ import { supabaseClient } from '@/lib/supabase-client';
 import { BusmoConnectCard } from './BusmoConnectCard';
 import { useSell } from '@/context/SellContext';
 import styles from './SellSettingsPage.module.css';
+import { normalizeDomain } from '@/lib/domain';
+import { getStorePublicUrl } from '@/lib/store-url';
 
 const CURRENCIES = ['NGN', 'USD', 'GBP', 'EUR', 'GHS', 'KES', 'ZAR'];
 
@@ -106,13 +108,20 @@ export function SellSettingsPage() {
         finalLogoUrl = await storage.upload(imageFile, path);
       }
       const finalSlug = slugify(storeSlug || storeName);
+      const prevDomain = normalizeDomain(storeConfig?.customDomain ?? '');
+      const nextDomain = normalizeDomain(customDomain);
+      const domainChanged = nextDomain !== prevDomain;
       await db.doc(`businesses/${user.businessId}/store/config`).set({
         storeName: storeName.trim(), storeSlug: finalSlug, primaryColor, secondaryColor,
         currency, contactEmail, contactPhone, paystackPublicKey, managedPayments: true,
         payoutBankName: payoutBankName.trim(), payoutBankCode: payoutBankCode.trim(),
         payoutAccountNumber: payoutAccountNumber.trim(), payoutAccountName: payoutAccountName.trim(),
         useOwnPaystack, paystackSecretKey: useOwnPaystack ? paystackSecretKey.trim() : null,
-        logoUrl: finalLogoUrl, customDomain: customDomain.trim() || null,
+        logoUrl: finalLogoUrl,
+        customDomain: nextDomain || null,
+        ...(domainChanged
+          ? { customDomainStatus: 'pending', customDomainVerifiedAt: null }
+          : {}),
         updatedAt: new Date().toISOString(),
       }, { merge: true });
       if (finalSlug) {
@@ -127,10 +136,12 @@ export function SellSettingsPage() {
       console.error(err);
       showToast('Failed to save settings', 'error');
     } finally { setSaving(false); }
-  }, [user, storeName, storeSlug, primaryColor, secondaryColor, currency, contactEmail, contactPhone, paystackPublicKey, customDomain, logoUrl, imageFile, refreshStoreConfig, showToast, payoutBankName, payoutBankCode, payoutAccountNumber, payoutAccountName, useOwnPaystack, paystackSecretKey]);
+  }, [user, storeName, storeSlug, primaryColor, secondaryColor, currency, contactEmail, contactPhone, paystackPublicKey, customDomain, logoUrl, imageFile, refreshStoreConfig, showToast, payoutBankName, payoutBankCode, payoutAccountNumber, payoutAccountName, useOwnPaystack, paystackSecretKey, storeConfig]);
 
   const status = (storeConfig as any)?.status ?? 'draft';
-  const liveUrl = storeConfig?.storeSlug ? `${process.env.NEXT_PUBLIC_APP_URL}/store/${storeConfig.storeSlug}` : null;
+  const liveUrl = storeConfig?.storeSlug
+    ? getStorePublicUrl(storeConfig.storeSlug, storeConfig.customDomain, (storeConfig as any).customDomainStatus === 'verified')
+    : null;
 
   return (
     <div className={styles.page}>

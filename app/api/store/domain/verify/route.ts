@@ -1,15 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServer } from '@/lib/database/postgresql-adapter';
+import {
+  normalizeDomain,
+  isValidDomainFormat,
+  cnamePointsToPlatform,
+  getCustomDomainCnameTarget,
+} from '@/lib/domain';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const dns = require('dns').promises as { resolveCname(hostname: string): Promise<string[]> };
+const dns = require('dns').promises as {
+  resolveCname(hostname: string): Promise<string[]>;
+  resolve4(hostname: string): Promise<string[]>;
+};
 
 /**
  * POST /api/store/domain/verify
- * Verifies that a merchant's custom domain CNAME points to store.busmo.io.
- * Requires authenticated merchant session (businessId matched to userId).
+ * Verifies that a merchant's custom domain CNAME points at the platform target
+ * (default store.busmo.io, overridable via CUSTOM_DOMAIN_CNAME_TARGET).
  *
  * Body: { businessId: string; customDomain: string }
- * Returns: { verified: boolean; resolvedTo: string[] }
+ * Returns: { verified: boolean; resolvedTo: string[]; target: string }
  */
 export async function POST(req: NextRequest) {
   let body: { businessId: string; customDomain: string };
@@ -23,27 +32,23 @@ export async function POST(req: NextRequest) {
   if (!businessId || !customDomain) {
     return NextResponse.json(
       { error: 'businessId and customDomain are required' },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
-  // Sanitise the domain input
-  const domain = customDomain.toLowerCase()
-    .replace(/^https?:\/\//, '')
-    .replace(/\/.*$/, '')
-    .trim();
-
-  if (!domain || !/^[a-z0-9.-]+\.[a-z]{2,}$/.test(domain)) {
+  const domain = normalizeDomain(customDomain);
+  if (!domain || !isValidDomainFormat(domain)) {
     return NextResponse.json({ error: 'Invalid domain format' }, { status: 400 });
   }
+
+  const target = getCustomDomainCnameTarget();
 
   try {
     const supabase = getSupabaseServer();
 
-    // Confirm domain matches what's stored for this business
     const { data: config, error: configError } = await supabase
       .from('businesses')
-      .select('*')
+      .select('id, customDomain, customDomainStatus')
       .eq('id', businessId)
       .maybeSingle();
 
@@ -56,33 +61,41 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Store config not found' }, { status: 404 });
     }
 
-    const storedDomain = config.customDomain ?? '';
-    if (storedDomain.toLowerCase() !== domain) {
+    const storedDomain = normalizeDomain(config.customDomain ?? '');
+    if (!storedDomain || storedDomain !== domain) {
       return NextResponse.json(
-        { error: 'Domain does not match stored value — save settings first' },
-        { status: 409 }
+        { error: 'Domain does not match stored value — save the domain first' },
+        { status: 409 },
       );
     }
 
-    // DNS CNAME lookup
+    // DNS CNAME lookup (strip trailing dots on records)
     let resolved: string[] = [];
     try {
-      resolved = await dns.resolveCname(domain);
+      const records = await dns.resolveCname(domain);
+      resolved = records.map((r) => r.toLowerCase().replace(/\.$/, ''));
     } catch {
-      // NXDOMAIN or no CNAME record — not yet propagated
+      // NXDOMAIN / no CNAME — try www variant if merchant used apex
+      try {
+        if (!domain.startsWith('www.')) {
+          const wwwRecords = await dns.resolveCname(`www.${domain}`);
+          resolved = wwwRecords.map((r) => r.toLowerCase().replace(/\.$/, ''));
+        }
+      } catch {
+        // still nothing
+      }
     }
 
-    const verified = resolved.some(
-      r => r === 'store.busmo.io' || r.endsWith('.busmo.io')
-    );
+    const verified = cnamePointsToPlatform(resolved, target);
 
-    // Update the businesses row with verification result
     const { error: updateError } = await supabase
       .from('businesses')
       .update({
-        customDomainStatus:     verified ? 'verified' : 'failed',
+        customDomainStatus: verified ? 'verified' : 'failed',
         customDomainVerifiedAt: verified ? new Date().toISOString() : null,
-        updatedAt:              new Date().toISOString(),
+        // Keep stored domain in normalized form
+        customDomain: domain,
+        updatedAt: new Date().toISOString(),
       })
       .eq('id', businessId);
 
@@ -91,8 +104,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 
-    return NextResponse.json({ verified, resolvedTo: resolved });
-  } catch {
+    return NextResponse.json({
+      verified,
+      resolvedTo: resolved,
+      target,
+      message: verified
+        ? 'Domain verified'
+        : resolved.length === 0
+          ? `No CNAME found for ${domain}. Point a CNAME to ${target} and wait for DNS (up to 48h).`
+          : `CNAME resolves to ${resolved.join(', ')} — expected ${target}.`,
+    });
+  } catch (err) {
+    console.error('[Domain Verify]', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

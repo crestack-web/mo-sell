@@ -1,15 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServer } from '@/lib/database/postgresql-adapter';
+import { normalizeDomain } from '@/lib/domain';
 
 /**
  * GET /api/store/domain/lookup?domain=shop.mybrand.com
  *
- * Used by src/middleware.ts to resolve a custom domain to a storeSlug.
+ * Used by middleware to resolve a custom domain to a storeSlug.
  * Returns { storeSlug, businessId } or 404.
  * Cached 5 minutes at the edge.
  */
 export async function GET(req: NextRequest) {
-  const domain = req.nextUrl.searchParams.get('domain')?.toLowerCase().trim();
+  const domain = normalizeDomain(req.nextUrl.searchParams.get('domain'));
 
   if (!domain) {
     return NextResponse.json({ error: 'domain is required' }, { status: 400 });
@@ -18,12 +19,17 @@ export async function GET(req: NextRequest) {
   try {
     const supabase = getSupabaseServer();
 
-    // Store config lives on the businesses row: find a business whose custom
-    // domain is set to `domain` and has been verified.
+    const candidates = [domain];
+    if (domain.startsWith('www.')) {
+      candidates.push(domain.slice(4));
+    } else {
+      candidates.push(`www.${domain}`);
+    }
+
     const { data, error } = await supabase
       .from('businesses')
-      .select('id, storeSlug')
-      .eq('customDomain', domain)
+      .select('id, storeSlug, customDomain')
+      .in('customDomain', candidates)
       .eq('customDomainStatus', 'verified')
       .limit(1)
       .maybeSingle();
@@ -33,7 +39,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 
-    if (!data) {
+    if (!data?.storeSlug) {
       return NextResponse.json({ error: 'Domain not found or not verified' }, { status: 404 });
     }
 
@@ -43,9 +49,10 @@ export async function GET(req: NextRequest) {
         headers: {
           'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=60',
         },
-      }
+      },
     );
-  } catch {
+  } catch (err) {
+    console.error('[Domain Lookup]', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

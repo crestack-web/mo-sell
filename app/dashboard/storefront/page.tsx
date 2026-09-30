@@ -5,6 +5,7 @@ import { THEMES } from '@/themes/registry';
 import { useSell } from '@/context/SellContext';
 import type { SellPageId } from '@/context/SellContext';
 import { getDatabase } from '@/lib/database/adapter';
+import { normalizeDomain, getCustomDomainCnameTarget } from '@/lib/domain';
 
 export const dynamic = 'force-dynamic';
 
@@ -154,8 +155,8 @@ export default function StorefrontPage() {
     setSavingDomain(true);
     try {
       const db = getDatabase();
-      const savedDomain = (storeConfig as any)?.customDomain ?? '';
-      const newDomain = customDomain.trim();
+      const savedDomain = normalizeDomain((storeConfig as any)?.customDomain ?? '');
+      const newDomain = normalizeDomain(customDomain);
       await db.doc(`businesses/${user.businessId}/store/config`).set({
         customDomain: newDomain || null,
         customDomainStatus: !newDomain || newDomain !== savedDomain ? 'pending' : ((storeConfig as any)?.customDomainStatus ?? 'pending'),
@@ -176,7 +177,7 @@ export default function StorefrontPage() {
     if (!customDomain.trim() || !user?.businessId) return;
 
     // Guard: domain in the input must match what's saved in database
-    if (customDomain.trim() !== (storeConfig as any)?.customDomain) {
+    if (normalizeDomain(customDomain) !== normalizeDomain((storeConfig as any)?.customDomain)) {
       showToast('Save your domain first before verifying', 'error');
       return;
     }
@@ -352,7 +353,7 @@ export default function StorefrontPage() {
               {[
                 ['Type', 'CNAME'],
                 ['Host', customDomain.split('.').slice(0, -2).join('.') || '@'],
-                ['Value', 'store.busmo.io'],
+                ['Value', getCustomDomainCnameTarget()],
                 ['TTL', '3600'],
               ].map(([k, v]) => (
                 <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.82rem' }}>

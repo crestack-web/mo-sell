@@ -140,3 +140,13 @@ Add these environment variables in your Vercel project settings:
 3. Go to Settings > Environment Variables
 4. Add all the required variables above
 5. Redeploy the project
+
+## Custom domains
+
+| Variable | Purpose | Default |
+|----------|---------|---------|
+| `CUSTOM_DOMAIN_CNAME_TARGET` | CNAME value merchants must point at | `store.busmo.io` |
+| `NEXT_PUBLIC_CUSTOM_DOMAIN_CNAME` | Same target, safe for client UI | `store.busmo.io` |
+| `NEXT_PUBLIC_APP_URL` | Main app origin (not treated as a merchant domain) | `https://mo-sell.store` |
+
+Merchants CNAME their domain to the target. That host must be attached to this Vercel project (or the project that serves storefront traffic). Middleware rewrites `Host: merchant.domain` → `/store/{storeSlug}/…` after DNS verification.
