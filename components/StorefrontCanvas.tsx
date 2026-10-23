@@ -200,7 +200,7 @@ function SfHero({ theme, storeName, tagline, settings, primary, secondary, butto
 function SfFeatured({ theme, settings, primary, products, storeSlug, width }: {
   theme: StorefrontTheme; settings: FeaturedSectionSettings; primary: string; products: StorefrontProduct[]; storeSlug?: string; width?: number;
 }) {
-  const heading = settings.heading || 'Featured Products';
+  const heading = settings.heading || 'Shop Bestsellers';
   const cols = isMobile(width) ? 2 : (settings.columns ?? 4);
   const isLuxe = theme === 'luxe';
   const maxItems = settings.maxItems ?? 4;
@@ -217,7 +217,8 @@ function SfFeatured({ theme, settings, primary, products, storeSlug, width }: {
         </h2>
         <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--sf-text-3)' }}>
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ marginBottom: 12, opacity: 0.4 }}><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-          <p style={{ fontSize: '0.85rem', margin: 0 }}>Add your first product to feature it here</p>
+          <p style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--sf-text-2)', margin: '0 0 6px' }}>No products yet</p>
+          <p style={{ fontSize: '0.8rem', margin: 0, maxWidth: 280, marginInline: 'auto', lineHeight: 1.5 }}>Add products in your dashboard and they will appear here automatically.</p>
         </div>
       </section>
     );
@@ -259,7 +260,17 @@ function SfCollections({ collections, settings, primary, secondary, width }: {
   const isGrid = settings.layout === 'grid';
   const visible = collections.slice(0, settings.maxItems ?? 6);
 
-  if (visible.length === 0) return null;
+  if (visible.length === 0) {
+    return (
+      <section style={{ padding: isMobile(width) ? '32px 16px' : '40px 32px', background: 'var(--sf-surface)', borderTop: '1px solid var(--sf-border)' }}>
+        <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--sf-text-1)', marginBottom: 16 }}>{heading}</h2>
+        <div style={{ padding: '36px 0', textAlign: 'center', color: 'var(--sf-text-3)' }}>
+          <p style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--sf-text-2)', margin: '0 0 6px' }}>No collections yet</p>
+          <p style={{ fontSize: '0.8rem', margin: 0, maxWidth: 280, marginInline: 'auto', lineHeight: 1.5 }}>Create collections in your dashboard to group products for shoppers.</p>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section style={{ padding: isMobile(width) ? '32px 16px' : '40px 32px', background: 'var(--sf-surface)', borderTop: '1px solid var(--sf-border)' }}>
@@ -291,24 +302,27 @@ function SfAnnouncement({ settings }: { settings: AnnouncementSectionSettings })
 
 function SfAbout({ settings, theme, width }: { settings: AboutSectionSettings; theme: StorefrontTheme; width?: number }) {
   const imgLeft = settings.imagePosition === 'left';
+  const body = (settings.body || '').trim();
+  const hasImage = Boolean(settings.imageUrl);
   return (
     <section style={{ padding: isMobile(width) ? '36px 16px' : '48px 32px', background: 'var(--sf-bg)', borderTop: '1px solid var(--sf-border)' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: settings.imageUrl ? (isMobile(width) ? '1fr' : '1fr 1fr') : '1fr', gap: isMobile(width) ? 20 : 40, alignItems: 'center' }}>
-        {settings.imageUrl && imgLeft && (
-          <img src={settings.imageUrl} alt="" style={{ width: '100%', aspectRatio: '4/3', objectFit: 'cover', borderRadius: 'var(--sf-radius-lg)' }} />
+      <div style={{ display: 'grid', gridTemplateColumns: hasImage ? (isMobile(width) ? '1fr' : '1fr 1fr') : '1fr', gap: isMobile(width) ? 20 : 40, alignItems: 'center' }}>
+        {hasImage && imgLeft && (
+          <img src={settings.imageUrl!} alt="" style={{ width: '100%', aspectRatio: '4/3', objectFit: 'cover', borderRadius: 'var(--sf-radius-lg)' }} />
         )}
         <div>
           <h2 style={{ fontSize: '1.6rem', fontWeight: 700, color: 'var(--sf-text-1)', marginBottom: 16, lineHeight: 1.2 }}>
             {settings.heading ?? 'Our Story'}
           </h2>
-          <p style={{ color: 'var(--sf-text-2)', lineHeight: 1.75, fontSize: '1rem' }}>
-            {settings.body ?? 'Tell customers what makes your brand special.'}
-          </p>
+          {body
+            ? <p style={{ color: 'var(--sf-text-2)', lineHeight: 1.75, fontSize: '1rem', margin: 0 }}>{body}</p>
+            : <p style={{ color: 'var(--sf-text-3)', lineHeight: 1.65, fontSize: '0.9rem', margin: 0, fontStyle: 'italic' }}>Add your brand story in the editor.</p>
+          }
         </div>
-        {settings.imageUrl && !imgLeft && (
-          <img src={settings.imageUrl} alt="" style={{ width: '100%', aspectRatio: '4/3', objectFit: 'cover', borderRadius: 'var(--sf-radius-lg)' }} />
+        {hasImage && !imgLeft && (
+          <img src={settings.imageUrl!} alt="" style={{ width: '100%', aspectRatio: '4/3', objectFit: 'cover', borderRadius: 'var(--sf-radius-lg)' }} />
         )}
-        {!settings.imageUrl && (
+        {!hasImage && (
           <div style={{ height: 220, background: 'var(--sf-surface)', borderRadius: 'var(--sf-radius-lg)', border: '1px solid var(--sf-border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--sf-text-3)" strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
           </div>
@@ -319,12 +333,23 @@ function SfAbout({ settings, theme, width }: { settings: AboutSectionSettings; t
 }
 
 function SfTestimonials({ settings, primary, width }: { settings: TestimonialsSectionSettings; primary: string; width?: number }) {
-  const items = settings.testimonials ?? [];
-  if (items.length === 0) return null;
+  const items = (settings.testimonials ?? []).filter(t => (t.text || '').trim());
+  const heading = settings.heading ?? 'What our customers say';
+  if (items.length === 0) {
+    return (
+      <section style={{ padding: isMobile(width) ? '36px 16px' : '48px 32px', background: 'var(--sf-surface)', borderTop: '1px solid var(--sf-border)' }}>
+        <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--sf-text-1)', marginBottom: 16, textAlign: 'center' }}>{heading}</h2>
+        <div style={{ padding: '28px 0', textAlign: 'center', color: 'var(--sf-text-3)' }}>
+          <p style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--sf-text-2)', margin: '0 0 6px' }}>No reviews yet</p>
+          <p style={{ fontSize: '0.8rem', margin: 0, maxWidth: 280, marginInline: 'auto', lineHeight: 1.5 }}>Add customer reviews in the editor to build trust on your storefront.</p>
+        </div>
+      </section>
+    );
+  }
   return (
     <section style={{ padding: isMobile(width) ? '36px 16px' : '48px 32px', background: 'var(--sf-surface)', borderTop: '1px solid var(--sf-border)' }}>
       <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--sf-text-1)', marginBottom: 24, textAlign: 'center' }}>
-        {settings.heading ?? 'What our customers say'}
+        {heading}
       </h2>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(260px,1fr))', gap: 16 }}>
         {items.map((t, i) => (
@@ -360,12 +385,16 @@ function SfNewsletter({ settings, primary, width }: { settings: NewsletterSectio
 }
 
 function SfInstagram({ settings, width }: { settings: InstagramSectionSettings; width?: number }) {
+  const handle = (settings.handle || '').trim();
   return (
     <section style={{ padding: isMobile(width) ? '36px 16px' : '48px 32px', background: 'var(--sf-surface)', borderTop: '1px solid var(--sf-border)' }}>
       <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--sf-text-1)', marginBottom: 16, textAlign: 'center' }}>
         {settings.heading ?? 'Follow us on Instagram'}
       </h2>
-      {settings.handle && <p style={{ textAlign: 'center', color: 'var(--sf-text-3)', marginBottom: 16, fontSize: '0.9rem' }}>{settings.handle}</p>}
+      {handle
+        ? <p style={{ textAlign: 'center', color: 'var(--sf-text-3)', marginBottom: 16, fontSize: '0.9rem' }}>{handle.startsWith('@') ? handle : `@${handle}`}</p>
+        : <p style={{ textAlign: 'center', color: 'var(--sf-text-3)', marginBottom: 16, fontSize: '0.82rem' }}>Add your Instagram handle in the editor</p>
+      }
       <div style={{ display: 'grid', gridTemplateColumns: `repeat(${isMobile(width) ? 3 : 6},1fr)`, gap: 6 }}>
         {Array.from({ length: 6 }).map((_, i) => (
           <div key={i} style={{ aspectRatio: '1/1', background: 'var(--sf-bg)', border: '1px solid var(--sf-border)', borderRadius: 'var(--sf-radius-sm)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -414,17 +443,22 @@ function SfFooter({ settings, storeName, logoUrl, theme, width }: {
 
 // ─── Link theme — standalone creator page components ─────────────────────────
 
-function SfLinkProfile({ storeName, tagline, logoUrl, primary, secondary }: {
+function SfLinkProfile({ storeName, tagline, logoUrl, primary, secondary, socials }: {
   storeName: string; tagline: string; logoUrl?: string | null;
   primary: string; secondary: string;
+  socials?: Record<string, string | undefined>;
 }) {
+  const labels: Record<string, string> = {
+    instagram: 'Instagram', twitter: 'X', facebook: 'Facebook',
+    tiktok: 'TikTok', youtube: 'YouTube', whatsapp: 'WhatsApp',
+  };
+  const active = Object.entries(socials ?? {}).filter(([, v]) => Boolean(v && String(v).trim()));
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '48px 24px 28px', gap: 14, background: 'var(--sf-bg)' }}>
       {/* Avatar with gradient ring */}
       <div style={{
         padding: 3, borderRadius: '50%',
-        background: `linear-gradient(135deg, ${primary}, ${secondary})`,
-        flexShrink: 0,
+        background: `linear-gradient(135deg,${primary},${secondary})`,
       }}>
         <div style={{
           width: 86, height: 86, borderRadius: '50%', overflow: 'hidden',
@@ -446,18 +480,19 @@ function SfLinkProfile({ storeName, tagline, logoUrl, primary, secondary }: {
       <p style={{ fontSize: '0.92rem', color: 'var(--sf-text-2)', margin: 0, maxWidth: 440, lineHeight: 1.65 }}>
         {tagline}
       </p>
-      {/* Social pills */}
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center', marginTop: 4 }}>
-        {['Instagram', 'Twitter', 'YouTube', 'TikTok'].map(s => (
-          <span key={s} style={{
-            padding: '5px 14px', borderRadius: 100,
-            border: '1px solid var(--sf-border)',
-            fontSize: '0.72rem', fontWeight: 600, color: 'var(--sf-text-2)',
-            cursor: 'pointer', background: 'var(--sf-surface)',
-            transition: 'border-color 0.18s, color 0.18s',
-          }}>{s}</span>
-        ))}
-      </div>
+      {/* Social pills — only real links when provided */}
+      {active.length > 0 ? (
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center', marginTop: 4 }}>
+          {active.map(([key, url]) => (
+            <a key={key} href={String(url)} target="_blank" rel="noopener noreferrer" style={{
+              padding: '5px 14px', borderRadius: 100,
+              border: '1px solid var(--sf-border)',
+              fontSize: '0.72rem', fontWeight: 600, color: 'var(--sf-text-2)',
+              background: 'var(--sf-surface)', textDecoration: 'none',
+            }}>{labels[key] || key}</a>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -597,13 +632,14 @@ export function StorefrontCanvas({
   if (isLink) {
     const linkProducts = products.slice(0, 6).map(p => ({ name: p.displayName, price: `₦${p.price.toLocaleString()}`, tag: p.compareAtPrice && p.compareAtPrice > p.price ? 'Sale' : undefined }));
     const linkTestimonials = (sections?.find(s => s.type === 'testimonials')?.settings as TestimonialsSectionSettings | undefined)?.testimonials ?? [];
+    const linkSocials = (sections?.find(s => s.type === 'footer')?.settings as FooterSectionSettings | undefined)?.socials ?? {};
     return (
       <div style={{
         width, background: 'var(--sf-bg)', fontFamily: 'var(--sf-font)',
         color: 'var(--sf-text-1)', display: 'flex', flexDirection: 'column',
         overflow: 'hidden', userSelect: 'none', WebkitUserSelect: 'none', ...themeVars, ...customVars,
       }}>
-        <SfLinkProfile storeName={storeName} tagline={tagline} logoUrl={logoUrl} primary={primary} secondary={secondary} />
+        <SfLinkProfile storeName={storeName} tagline={tagline} logoUrl={logoUrl} primary={primary} secondary={secondary} socials={linkSocials} />
         {linkProducts.length > 0 && <SfLinkProducts products={linkProducts} primary={primary} secondary={secondary} />}
         {linkTestimonials.length > 0 && <SfLinkTestimonials testimonials={linkTestimonials} primary={primary} />}
         <SfLinkFooter storeName={storeName} primary={primary} />

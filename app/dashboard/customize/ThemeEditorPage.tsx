@@ -38,11 +38,11 @@ const SECTION_META: Record<StoreSectionType, { label: string; movable: boolean }
   header:       { label: 'Header',           movable: true },
   announcement: { label: 'Announcement bar', movable: true },
   hero:         { label: 'Hero / Banner',    movable: true },
-  featured:     { label: 'Featured Products',movable: true },
+  featured:     { label: 'Featured products', movable: true },
   collections:  { label: 'Collections',     movable: true },
   about:        { label: 'About / Story',    movable: true },
   testimonials: { label: 'Testimonials',    movable: true },
-  instagram:    { label: 'Instagram Feed',  movable: true },
+  instagram:    { label: 'Instagram',       movable: true },
   newsletter:   { label: 'Newsletter',      movable: true },
   footer:       { label: 'Footer',          movable: true },
 };
@@ -198,7 +198,7 @@ function HeroSettings({ s, upd, isLinkStyle, isCreator, isMobile }: { s: HeroSec
 function AnnouncementSettings({ s, upd }: { s: AnnouncementSectionSettings; upd: (p: Partial<AnnouncementSectionSettings>) => void }) {
   return (<>
     <SGroup label="CONTENT" />
-    <TF label="Text" value={s.text ?? ''} onChange={v => upd({ text: v })} placeholder="Free delivery on orders over &#8358;20,000" />
+    <TF label="Text" value={s.text ?? ''} onChange={v => upd({ text: v })} placeholder="Free delivery on orders over ₦20,000" />
     <TF label="Link label" value={s.linkLabel ?? ''} onChange={v => upd({ linkLabel: v })} placeholder="Shop now" />
     <TF label="Link URL" value={s.linkUrl ?? ''} onChange={v => upd({ linkUrl: v })} placeholder="/collections/all" />
     <SGroup label="STYLE" />
@@ -211,19 +211,20 @@ function AnnouncementSettings({ s, upd }: { s: AnnouncementSectionSettings; upd:
 function FeaturedSettings({ s, upd }: { s: FeaturedSectionSettings; upd: (p: Partial<FeaturedSectionSettings>) => void }) {
   return (<>
     <SGroup label="CONTENT" />
-    <TF label="Heading" value={s.heading ?? 'Shop Bestsellers'} onChange={v => upd({ heading: v })} />
+    <TF label="Heading" value={s.heading ?? 'Shop Bestsellers'} onChange={v => upd({ heading: v })} placeholder="Shop Bestsellers" />
     <SGroup label="LAYOUT" />
-    <SF label="Columns" value={String(s.columns ?? 4)} onChange={v => upd({ columns: Number(v) as 2|3|4 })}
-      options={[{ value: '2', label: '2' }, { value: '3', label: '3' }, { value: '4', label: '4' }]} />
+    <SF label="Columns (desktop)" value={String(s.columns ?? 4)} onChange={v => upd({ columns: Number(v) as 2|3|4 })}
+      options={[{ value: '2', label: '2 columns' }, { value: '3', label: '3 columns' }, { value: '4', label: '4 columns' }]} />
     <div className={styles.field}>
       <label className={styles.fLabel}>Max products shown</label>
       <input className={styles.fInput} type="number" value={s.maxItems ?? 4} min={1} max={12} onChange={e => upd({ maxItems: Number(e.target.value) })} style={{ width: 70 }} />
+      <p className={styles.fHint}>Mobile always shows 2 columns for readability.</p>
     </div>
     <Toggle
       label="Hide digital products"
       value={s.hideDigitalProducts === true}
       onChange={v => upd({ hideDigitalProducts: v })}
-      hint="Hide ebooks, courses, and other digital items from this storefront. They stay in your dashboard."
+      hint="Hide ebooks, courses, and other digital items from this section. They remain available in your dashboard."
     />
   </>);
 }
@@ -231,55 +232,81 @@ function FeaturedSettings({ s, upd }: { s: FeaturedSectionSettings; upd: (p: Par
 function CollectionsSettings({ s, upd }: { s: CollectionsSectionSettings; upd: (p: Partial<CollectionsSectionSettings>) => void }) {
   return (<>
     <SGroup label="CONTENT" />
-    <TF label="Heading" value={s.heading ?? 'Collections'} onChange={v => upd({ heading: v })} />
+    <TF label="Heading" value={s.heading ?? 'Collections'} onChange={v => upd({ heading: v })} placeholder="Collections" />
     <SGroup label="LAYOUT" />
     <SF label="Layout" value={s.layout ?? 'strip'} onChange={v => upd({ layout: v as 'strip'|'grid' })}
       options={[{ value: 'strip', label: 'Horizontal strip' }, { value: 'grid', label: 'Grid' }]} />
     <div className={styles.field}>
-      <label className={styles.fLabel}>Max collections</label>
+      <label className={styles.fLabel}>Max collections shown</label>
       <input className={styles.fInput} type="number" value={s.maxItems ?? 6} min={1} max={20} onChange={e => upd({ maxItems: Number(e.target.value) })} style={{ width: 70 }} />
     </div>
-    <Toggle label="Show cover images" value={s.showCoverImages !== false} onChange={v => upd({ showCoverImages: v })} />
+    <Toggle label="Show cover images" value={s.showCoverImages !== false} onChange={v => upd({ showCoverImages: v })} hint="Uses each collection’s cover image when available." />
   </>);
 }
 
 function AboutSettings({ s, upd }: { s: AboutSectionSettings; upd: (p: Partial<AboutSectionSettings>) => void }) {
   return (<>
     <SGroup label="CONTENT" />
-    <TF label="Heading" value={s.heading ?? 'Our Story'} onChange={v => upd({ heading: v })} />
+    <TF label="Heading" value={s.heading ?? 'Our Story'} onChange={v => upd({ heading: v })} placeholder="Our Story" />
     <div className={styles.field}>
       <label className={styles.fLabel}>Body text</label>
-      <textarea className={styles.fInput} value={s.body ?? ''} onChange={e => upd({ body: e.target.value })} rows={4} placeholder="Tell customers about your brand..." style={{ resize: 'vertical' }} />
+      <textarea className={styles.fInput} value={s.body ?? ''} onChange={e => upd({ body: e.target.value })} rows={4} placeholder="Share your brand story, values, or what makes you different…" style={{ resize: 'vertical' }} />
+      <p className={styles.fHint}>This appears on your storefront. Leave blank to hide the text block.</p>
     </div>
-    <TF label="Image URL" value={s.imageUrl ?? ''} onChange={v => upd({ imageUrl: v || null })} placeholder="https://..." />
+    <TF label="Image URL" value={s.imageUrl ?? ''} onChange={v => upd({ imageUrl: v || null })} placeholder="https://…" hint="Optional. Paste a URL or leave blank." />
     <SF label="Image position" value={s.imagePosition ?? 'right'} onChange={v => upd({ imagePosition: v as 'left'|'right' })}
-      options={[{ value: 'left', label: 'Left' }, { value: 'right', label: 'Right' }]} />
+      options={[{ value: 'left', label: 'Left of text' }, { value: 'right', label: 'Right of text' }]} />
   </>);
 }
 
 function TestimonialsSettings({ s, upd }: { s: TestimonialsSectionSettings; upd: (p: Partial<TestimonialsSectionSettings>) => void }) {
+  const items = s.testimonials ?? [];
+  const setItem = (i: number, patch: Partial<{ name: string; text: string; rating?: number }>) => {
+    const next = items.map((t, idx) => idx === i ? { ...t, ...patch } : t);
+    upd({ testimonials: next });
+  };
+  const removeItem = (i: number) => upd({ testimonials: items.filter((_, idx) => idx !== i) });
+  const addItem = () => upd({ testimonials: [...items, { name: '', text: '', rating: 5 }] });
   return (<>
     <SGroup label="CONTENT" />
-    <TF label="Heading" value={s.heading ?? 'What our customers say'} onChange={v => upd({ heading: v })} />
-    <p className={styles.fHint} style={{ padding: '8px 0' }}>Manage testimonials in your store settings once live.</p>
+    <TF label="Heading" value={s.heading ?? 'What our customers say'} onChange={v => upd({ heading: v })} placeholder="What our customers say" />
+    <SGroup label="REVIEWS" />
+    {items.length === 0 && (
+      <p className={styles.fHint} style={{ margin: '0 0 8px' }}>Add customer reviews to build trust. They appear in this section on your storefront.</p>
+    )}
+    {items.map((t, i) => (
+      <div key={i} style={{ border: '1px solid var(--sell-border)', borderRadius: 10, padding: 10, marginBottom: 8, background: 'var(--sell-bg)' }}>
+        <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
+          <input className={styles.fInput} value={t.name} onChange={e => setItem(i, { name: e.target.value })} placeholder="Customer name" style={{ flex: 1, fontSize: '0.78rem' }} />
+          <button className={styles.iconBtn} onClick={() => removeItem(i)} aria-label="Remove review" type="button" style={{ flexShrink: 0 }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <textarea className={styles.fInput} value={t.text} onChange={e => setItem(i, { text: e.target.value })} rows={2} placeholder="What they said…" style={{ resize: 'vertical', fontSize: '0.78rem' }} />
+      </div>
+    ))}
+    <button className={styles.iconBtn} onClick={addItem} type="button" style={{ width: 'auto', gap: 5, padding: '6px 10px', fontSize: '0.78rem', fontWeight: 600, color: 'var(--sell-primary)' }} aria-label="Add review">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Add review
+    </button>
   </>);
 }
 
 function InstagramSettings({ s, upd }: { s: InstagramSectionSettings; upd: (p: Partial<InstagramSectionSettings>) => void }) {
   return (<>
     <SGroup label="CONTENT" />
-    <TF label="Heading" value={s.heading ?? 'Follow us on Instagram'} onChange={v => upd({ heading: v })} />
-    <TF label="Instagram handle" value={s.handle ?? ''} onChange={v => upd({ handle: v })} placeholder="@yourstore" />
+    <TF label="Heading" value={s.heading ?? 'Follow us on Instagram'} onChange={v => upd({ heading: v })} placeholder="Follow us on Instagram" />
+    <TF label="Instagram handle" value={s.handle ?? ''} onChange={v => upd({ handle: v })} placeholder="@yourstore" hint="Shown under the heading. Live photo feed connects when your store is published." />
   </>);
 }
 
 function NewsletterSettings({ s, upd }: { s: NewsletterSectionSettings; upd: (p: Partial<NewsletterSectionSettings>) => void }) {
   return (<>
     <SGroup label="CONTENT" />
-    <TF label="Heading" value={s.heading ?? 'Join our community'} onChange={v => upd({ heading: v })} />
-    <TF label="Subheading" value={s.subheading ?? ''} onChange={v => upd({ subheading: v })} placeholder="Get the latest updates and offers." />
-    <TF label="Button text" value={s.buttonLabel ?? 'Subscribe'} onChange={v => upd({ buttonLabel: v })} />
-    <TF label="Input placeholder" value={s.placeholder ?? 'Enter your email'} onChange={v => upd({ placeholder: v })} />
+    <TF label="Heading" value={s.heading ?? 'Join our community'} onChange={v => upd({ heading: v })} placeholder="Join our community" />
+    <TF label="Subheading" value={s.subheading ?? ''} onChange={v => upd({ subheading: v })} placeholder="Get the latest updates, offers and more." />
+    <TF label="Button text" value={s.buttonLabel ?? 'Subscribe'} onChange={v => upd({ buttonLabel: v })} placeholder="Subscribe" />
+    <TF label="Email field placeholder" value={s.placeholder ?? 'Enter your email'} onChange={v => upd({ placeholder: v })} placeholder="Enter your email" />
   </>);
 }
 
@@ -945,18 +972,16 @@ export function ThemeEditorPage() {
                     </div>
                   </div>
                 </Advanced>
-                {isCreator && (
-                  <>
-                    <div className={styles.designDivider} />
-                    <div className={styles.designGroup}>
-                      <p className={styles.designTitle}>Social Links</p>
-                      <p className={styles.fHint} style={{ marginBottom: 6 }}>Appear on your storefront.</p>
-                      {SOCIAL_KEYS.map(k => (
-                        <SocialField key={k} platform={k} value={socials[k]} onChange={v => updateSocials(k, v)} />
-                      ))}
-                    </div>
-                  </>
-                )}
+                <>
+                  <div className={styles.designDivider} />
+                  <div className={styles.designGroup}>
+                    <p className={styles.designTitle}>Social Links</p>
+                    <p className={styles.fHint} style={{ marginBottom: 6 }}>Shown in the footer and on link-style themes. Use full URLs or @handles.</p>
+                    {SOCIAL_KEYS.map(k => (
+                      <SocialField key={k} platform={k} value={socials[k]} onChange={v => updateSocials(k, v)} />
+                    ))}
+                  </div>
+                </>
               </>
             )}
           </div>

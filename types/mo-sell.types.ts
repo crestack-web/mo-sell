@@ -154,7 +154,7 @@ export const DEFAULT_SECTIONS: StoreSection[] = [
   { id: 'hero',         type: 'hero',         enabled: true,  order: 2,  settings: { ctaLabel: 'Shop Now', ctaUrl: '#products', textAlign: 'left', showTagline: true, badgeText: '', showBadge: false } },
   { id: 'featured',     type: 'featured',     enabled: true,  order: 3,  settings: { heading: 'Shop Bestsellers', maxItems: 4, columns: 4 } },
   { id: 'collections',  type: 'collections',  enabled: true,  order: 4,  settings: { heading: 'Collections', layout: 'strip', maxItems: 6, showCoverImages: true } },
-  { id: 'about',        type: 'about',        enabled: false, order: 5,  settings: { heading: 'Our Story', body: 'Tell customers about your brand and what makes you special.', imagePosition: 'right' } },
+  { id: 'about',        type: 'about',        enabled: false, order: 5,  settings: { heading: 'Our Story', body: '', imagePosition: 'right' } },
   { id: 'testimonials', type: 'testimonials', enabled: false, order: 6,  settings: { heading: 'What our customers say', testimonials: [] } },
   { id: 'instagram',    type: 'instagram',    enabled: false, order: 7,  settings: { heading: 'Follow us on Instagram', handle: '' } },
   { id: 'newsletter',   type: 'newsletter',   enabled: false, order: 8,  settings: { heading: 'Join our community', subheading: 'Get the latest updates, offers and more.', buttonLabel: 'Subscribe', placeholder: 'Enter your email' } },
