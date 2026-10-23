@@ -98,33 +98,37 @@
 .previewInner::-webkit-scrollbar { width: 3px; }
 .previewInner::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 3px; }
 
-/* Phone frame used on mobile — matches link-in-bio */
+/* Phone frame — real mobile aspect; 390px canvas scales into the frame */
 .phoneFrame {
   display: none;
-  width: 280px;
-  height: 560px;
-  border-radius: 36px;
+  width: min(92vw, 360px);
+  aspect-ratio: 390 / 844;
+  max-height: min(78vh, 720px);
+  border-radius: 40px;
   background: #1a1a1a;
-  padding: 10px;
+  padding: 12px;
   box-shadow: 0 20px 60px rgba(0,0,0,0.35);
   margin: 0 auto;
   flex-shrink: 0;
+  box-sizing: border-box;
 }
 
 .phoneScreen {
   width: 100%;
   height: 100%;
-  border-radius: 28px;
+  border-radius: 32px;
   overflow: hidden;
   background: #fff;
   position: relative;
 }
 
 .phoneInner {
-  width: 100%;
-  height: 100%;
+  width: 390px;
+  height: 844px;
   overflow-y: auto;
   overflow-x: hidden;
+  transform-origin: top left;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* ── Settings panel ── */
@@ -210,7 +214,6 @@
 .eyeBtn:hover { background: var(--sell-bg); color: var(--sell-text-1); }
 .eyeOn { color: var(--sell-primary); }
 
-/* ── Settings content area ── */
 .settingsContent {
   flex: 1 1 0;
   min-height: 0;
@@ -224,7 +227,6 @@
 .settingsContent::-webkit-scrollbar { width: 3px; }
 .settingsContent::-webkit-scrollbar-thumb { background: var(--sell-border); border-radius: 3px; }
 
-/* ── Section settings header ── */
 .settingsHeader {
   display: flex; align-items: center; gap: 10px;
   padding-bottom: 12px; border-bottom: 1px solid var(--sell-border-subtle);
@@ -241,7 +243,6 @@
 .settingsIcon svg { width: 13px; height: 13px; }
 .settingsTitle { font-size: 0.875rem; font-weight: 700; color: var(--sell-text-1); font-family: var(--sell-font-display); }
 
-/* ── Design controls (no section selected) ── */
 .designGroup {
   display: flex; flex-direction: column; gap: 10px;
 }
@@ -253,7 +254,6 @@
   height: 1px; background: var(--sell-border-subtle); margin: 4px 0;
 }
 
-/* ── Field components ── */
 .field { display: flex; flex-direction: column; gap: 4px; }
 .fLabel{ font-size: 0.75rem; font-weight: 600; color: var(--sell-text-2); }
 .fHint { font-size: 0.69rem; color: var(--sell-text-3); line-height: 1.4; margin: 0; }
@@ -307,7 +307,6 @@
   padding-top: 6px; border-top: 1px solid var(--sell-border-subtle);
 }
 
-/* ── Advanced collapsible ── */
 .adv {
   border: 1px solid var(--sell-border-subtle);
   border-radius: 10px; overflow: hidden;
@@ -331,7 +330,6 @@
   padding: 4px 12px 12px; border-top: 1px solid var(--sell-border-subtle);
 }
 
-/* ── Color grid ── */
 .colorGrid {
   display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
 }
@@ -343,7 +341,6 @@
 .colorSwatch:hover { transform: scale(1.1); }
 .colorSwatchActive { border-color: var(--sell-primary); box-shadow: 0 0 0 2px var(--sell-primary); }
 
-/* Mobile FAB + close — same pattern as link-in-bio */
 .mobileFab {
   display: none;
   position: fixed;
@@ -401,7 +398,6 @@
   font-family: var(--sell-font-display);
 }
 
-/* ── Responsive ── */
 @media (max-width: 1100px) {
   .body {
     grid-template-columns: 1fr 280px;
@@ -417,8 +413,11 @@
 
   .previewWrap {
     display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
     background: var(--sell-bg);
-    padding: 16px 12px 100px;
+    padding: 12px 12px 110px;
     overflow: visible;
     min-height: auto;
   }
@@ -486,13 +485,14 @@
 
 @media (max-width: 500px) {
   .phoneFrame {
-    width: 240px;
-    height: 480px;
-    border-radius: 30px;
-    padding: 8px;
+    width: min(94vw, 340px);
+    aspect-ratio: 390 / 844;
+    max-height: min(72vh, 680px);
+    border-radius: 34px;
+    padding: 10px;
   }
 
   .phoneScreen {
-    border-radius: 24px;
+    border-radius: 26px;
   }
 }
