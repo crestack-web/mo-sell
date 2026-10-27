@@ -107,6 +107,11 @@ export interface ThemeProductPageProps {
     deliveryNote: string | null;
     digitalFileUrl: string | null;
     customerInfoFields?: string[];
+    digitalSubtype?: string | null;
+    bpm?: number | null;
+    musicalKey?: string | null;
+    genre?: string | null;
+    trackDuration?: string | null;
   };
   storeSlug: string;
   currency: string;
