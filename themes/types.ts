@@ -107,6 +107,17 @@ export interface ThemeProductPageProps {
     deliveryNote: string | null;
     digitalFileUrl: string | null;
     customerInfoFields?: string[];
+    digitalSubtype?: string | null;
+    bpm?: number | null;
+    musicalKey?: string | null;
+    genre?: string | null;
+    trackDuration?: string | null;
+    videoDuration?: string | null;
+    resolution?: string | null;
+    fileFormat?: string | null;
+    licenseType?: string | null;
+    author?: string | null;
+    pageCount?: number | null;
   };
   storeSlug: string;
   currency: string;
