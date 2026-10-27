@@ -19,7 +19,7 @@ interface Product {
   tags: string[];
   deliveryNote: string | null;
   digitalFileUrl: string | null;
-  digitalSubtype?: 'ebook' | 'course' | 'template' | 'ticket' | 'coaching' | 'audio' | 'video';
+  digitalSubtype?: 'ebook' | 'course' | 'template' | 'ticket' | 'coaching';
   eventDate?: string | null;
   eventTime?: string | null;
   venue?: string | null;
