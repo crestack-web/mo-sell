@@ -16,7 +16,7 @@ export interface DomainPurchaseRecord {
 export type StorefrontTheme =
   | 'luxe'
   | 'atelier' | 'citrus' | 'nordly' | 'neotech'
-  | 'terra' | 'volt' | 'botanica' | 'prism'
+  | 'terra' | 'volt' | 'botanica' | 'prism' | 'wave'
   | 'ankara' | 'midnight' | 'harmattan' | 'neon' | 'sunset' | 'mono'
   | 'blush' | 'rose' | 'pearl' | 'cherry' | 'quiet' | 'concrete' | 'chrome';
 

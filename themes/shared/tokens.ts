@@ -73,10 +73,18 @@ export const THEME_TOKENS: Record<string, ThemeTokens> = {
     fontDisplay: "'Arial Rounded MT Bold', 'Helvetica Neue', sans-serif", fontBody: 'system-ui, sans-serif',
     radius: 999, deco: 'holo',
   },
+  wave: {
+    id: 'wave', name: 'Wave Studio', brand: 'WAVE',
+    bg: '#0A0A0F', surface: '#12121A', text: '#F4F4F8', subtext: '#9B9BB0',
+    accent: '#A78BFA', accent2: '#22D3EE', border: '#1E1E2A',
+    fontDisplay: "'Space Grotesk', 'Segoe UI', system-ui, sans-serif",
+    fontBody: 'system-ui, sans-serif',
+    radius: 12, deco: 'waveform',
+  },
 };
 
 export function isDarkBg(t: ThemeTokens): boolean {
-  return t.bg === '#000000' || t.bg.indexOf('#0') === 0 || t.id === 'prism';
+  return t.bg === '#000000' || t.bg.indexOf('#0') === 0 || t.id === 'prism' || t.id === 'wave';
 }
 
 export function accentText(t: ThemeTokens): string {

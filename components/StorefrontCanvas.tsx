@@ -595,6 +595,7 @@ export function StorefrontCanvas({
     volt:    ['#E9FF3D', '#FF3D3D'],
     botanica: ['#D8A667', '#E8C9D0'],
     prism:   ['#FFFFFF', '#FFE066'],
+    wave:    ['#A78BFA', '#22D3EE'],
     ankara:  ['#FF3E7F', '#00A896'],
     midnight: ['#C9A227', '#7A6A2E'],
     harmattan: ['#4C6B8A', '#8A7A62'],

@@ -168,6 +168,13 @@ export function getThemeCssVars(theme: StorefrontTheme, primary: string, seconda
         '--sf-accent': '#00E5FF', '--sf-accent-2': '#FFFFFF', '--sf-nav-h': '0px',
         '--sf-font': "Arial, 'Helvetica Neue', sans-serif",
       };
+      case 'wave': return {
+        '--sf-bg': '#0A0A0F', '--sf-surface': '#12121A', '--sf-border': '#1E1E2A',
+        '--sf-text-1': '#F4F4F8', '--sf-text-2': '#9B9BB0', '--sf-text-3': '#6B6B80',
+        '--sf-radius': '12px', '--sf-radius-sm': '8px', '--sf-radius-lg': '16px',
+        '--sf-accent': '#A78BFA', '--sf-accent-2': '#22D3EE', '--sf-nav-h': '64px',
+        '--sf-font': "'Space Grotesk',system-ui,sans-serif",
+      };
       default: return {
         '--sf-bg': '#FFC93C', '--sf-surface': '#FFFFFF', '--sf-border': '#1A1A1A',
         '--sf-text-1': '#1A1A1A', '--sf-text-2': '#4A4A4A', '--sf-text-3': '#6B6B6B',

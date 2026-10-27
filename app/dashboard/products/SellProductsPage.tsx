@@ -13,7 +13,7 @@ import { RichDescription } from './RichDescription';
 
 type ProductType = 'physical' | 'digital' | 'service';
 
-type DigitalSubtype = 'ebook' | 'course' | 'template' | 'ticket' | 'coaching';
+type DigitalSubtype = 'ebook' | 'course' | 'template' | 'ticket' | 'coaching' | 'audio' | 'video';
 
 interface ProductVariant {
   name: string;
@@ -65,6 +65,14 @@ interface StoreProduct {
   sessionFormat: string | null;
   numberOfSessions: number | null;
   coachingDeliverable: string | null;
+  // Audio / music
+  bpm: number | null;
+  musicalKey: string | null;
+  genre: string | null;
+  trackDuration: string | null;
+  // Video
+  videoDuration: string | null;
+  resolution: string | null;
   // Service slot config
   slotDuration: number | null;
   bufferTime: number | null;
@@ -130,6 +138,12 @@ type FormData = {
   sessionFormat: string;
   numberOfSessions: string;
   coachingDeliverable: string;
+  bpm: string;
+  musicalKey: string;
+  genre: string;
+  trackDuration: string;
+  videoDuration: string;
+  resolution: string;
   // Service slot config
   slotDuration: string;
   bufferTime: string;
@@ -149,6 +163,8 @@ const EMPTY_FORM: FormData = {
   fileFormat: '', compatibleSoftware: '', licenseType: '',
   eventDate: '', eventTime: '', venue: '', ticketType: 'general', capacity: '',
   sessionType: '', sessionDuration: '', sessionFormat: '', numberOfSessions: '', coachingDeliverable: '',
+  bpm: '', musicalKey: '', genre: '', trackDuration: '',
+  videoDuration: '', resolution: '',
   slotDuration: '60', bufferTime: '15',
   callToAction: '',
   customerInfoFields: ['name', 'email', 'phone', 'address'],
@@ -158,13 +174,13 @@ const EMPTY_FORM: FormData = {
 const CATEGORIES = [
   'Fashion & Clothing','Beauty & Personal Care','Food & Groceries',
   'Electronics','Home & Kitchen','Health & Wellness',
-  'Sports & Fitness','Art & Crafts','Services','Other',
+  'Sports & Fitness','Art & Crafts','Music & Audio','Services','Other',
 ];
 
 function emoji(cat: string) {
   const m: Record<string, string> = {
     fashion:'👗', beauty:'💄', food:'🍔', electronics:'📱',
-    home:'🏠', health:'💊', services:'⚙️',
+    home:'🏠', health:'💊', music:'🎵', services:'⚙️',
   };
   return m[cat?.toLowerCase().split(' ')[0]] ?? '📦';
 }
@@ -293,6 +309,12 @@ function ProductSlideOver({ product, onClose, onSaved, businessId, currency, sto
       sessionFormat: product.sessionFormat ?? '',
       numberOfSessions: product.numberOfSessions ? String(product.numberOfSessions) : '',
       coachingDeliverable: product.coachingDeliverable ?? '',
+      bpm: product.bpm != null ? String(product.bpm) : '',
+      musicalKey: product.musicalKey ?? '',
+      genre: product.genre ?? '',
+      trackDuration: product.trackDuration ?? '',
+      videoDuration: product.videoDuration ?? '',
+      resolution: product.resolution ?? '',
       slotDuration: product.slotDuration ? String(product.slotDuration) : '60',
       bufferTime: product.bufferTime != null ? String(product.bufferTime) : '15',
       callToAction: product.callToAction ?? '',
@@ -405,7 +427,7 @@ function ProductSlideOver({ product, onClose, onSaved, businessId, currency, sto
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message: `Generate product details. ${instruction}\n\nReturn ONLY a JSON object (no markdown, no code fences, no other text) with these fields:\n{"displayName":"...","description":"2-3 sentence compelling product description","price":number,"category":"one of: Fashion & Clothing, Beauty & Personal Care, Food & Groceries, Electronics, Home & Kitchen, Health & Wellness, Sports & Fitness, Art & Crafts, Services, Other, digital","tags":["tag1","tag2","tag3"]}${form.productType === 'digital' && form.digitalSubtype === 'ebook' ? '\nAlso include "author":"..." and "pageCount":number if relevant.' : ''}${form.productType === 'digital' && form.digitalSubtype === 'course' ? '\nAlso include "courseDuration":"...","lessonCount":number,"difficultyLevel":"..." if relevant.' : ''}${form.productType === 'digital' && form.digitalSubtype === 'template' ? '\nAlso include "fileFormat":"...","compatibleSoftware":"..." if relevant.' : ''}${form.productType === 'digital' && form.digitalSubtype === 'ticket' ? '\nAlso include "eventDate":"...","venue":"..." if relevant.' : ''}${form.productType === 'digital' && form.digitalSubtype === 'coaching' ? '\nAlso include "sessionType":"one-on-one/group","sessionDuration":number,"sessionFormat":"video/phone/in-person","numberOfSessions":number if relevant.' : ''}\n\nContext: ${contextParts.length > 0 ? contextParts.join('. ') : 'New product, no details yet.'}`,
+          message: `Generate product details. ${instruction}\n\nReturn ONLY a JSON object (no markdown, no code fences, no other text) with these fields:\n{"displayName":"...","description":"2-3 sentence compelling product description","price":number,"category":"one of: Fashion & Clothing, Beauty & Personal Care, Food & Groceries, Electronics, Home & Kitchen, Health & Wellness, Sports & Fitness, Art & Crafts, Services, Other, digital","tags":["tag1","tag2","tag3"]}${form.productType === 'digital' && form.digitalSubtype === 'ebook' ? '\nAlso include "author":"..." and "pageCount":number if relevant.' : ''}${form.productType === 'digital' && form.digitalSubtype === 'course' ? '\nAlso include "courseDuration":"...","lessonCount":number,"difficultyLevel":"..." if relevant.' : ''}${form.productType === 'digital' && form.digitalSubtype === 'template' ? '\nAlso include "fileFormat":"...","compatibleSoftware":"..." if relevant.' : ''}${form.productType === 'digital' && form.digitalSubtype === 'ticket' ? '\nAlso include "eventDate":"...","venue":"..." if relevant.' : ''}${form.productType === 'digital' && form.digitalSubtype === 'coaching' ? '\nAlso include "sessionType":"one-on-one/group","sessionDuration":number,"sessionFormat":"video/phone/in-person","numberOfSessions":number if relevant.' : ''}${form.productType === 'digital' && form.digitalSubtype === 'audio' ? '\nAlso include "bpm":number,"musicalKey":"...","genre":"...","trackDuration":"m:ss" if relevant.' : ''}${form.productType === 'digital' && form.digitalSubtype === 'video' ? '\nAlso include "videoDuration":"m:ss","resolution":"1080p" if relevant.' : ''}\n\nContext: ${contextParts.length > 0 ? contextParts.join('. ') : 'New product, no details yet.'}`,
           businessId,
           conversationHistory: [],
         }),
@@ -584,6 +606,22 @@ function ProductSlideOver({ product, onClose, onSaved, businessId, currency, sto
           payload.sessionFormat = form.sessionFormat.trim() || null;
           payload.numberOfSessions = form.numberOfSessions ? parseInt(form.numberOfSessions) : null;
           payload.coachingDeliverable = form.coachingDeliverable.trim() || null;
+        }
+
+        if (form.digitalSubtype === 'audio') {
+          payload.bpm = form.bpm ? parseInt(form.bpm) : null;
+          payload.musicalKey = form.musicalKey.trim() || null;
+          payload.genre = form.genre.trim() || null;
+          payload.trackDuration = form.trackDuration.trim() || null;
+          payload.fileFormat = form.fileFormat.trim() || null;
+          payload.licenseType = form.licenseType.trim() || null;
+        }
+
+        if (form.digitalSubtype === 'video') {
+          payload.videoDuration = form.videoDuration.trim() || null;
+          payload.resolution = form.resolution.trim() || null;
+          payload.fileFormat = form.fileFormat.trim() || null;
+          payload.licenseType = form.licenseType.trim() || null;
         }
       }
       
@@ -851,7 +889,9 @@ function ProductSlideOver({ product, onClose, onSaved, businessId, currency, sto
                 <select className={styles.formSelect} value={form.digitalSubtype} onChange={e => set('digitalSubtype', e.target.value as DigitalSubtype)}>
                   <option value="ebook">📚 E-book / PDF</option>
                   <option value="course">🎓 Online Course</option>
-                  <option value="template">📄 Template</option>
+                  <option value="audio">🎵 Beat / Music / Audio</option>
+                  <option value="video">🎬 Video</option>
+                  <option value="template">📄 Template / Preset</option>
                   <option value="ticket">🎫 Event Ticket</option>
                   <option value="coaching">🎯 Coaching / Consultation</option>
                 </select>
@@ -915,7 +955,7 @@ function ProductSlideOver({ product, onClose, onSaved, businessId, currency, sto
                         <span style={{ fontSize: '0.72rem', color: 'var(--sell-text-3)' }}>PDF, ZIP, MP4, MP3, etc. · max 50MB each</span>
                       </label>
                     </div>
-                    <input ref={digitalFileInputRef} type="file" accept=".pdf,.zip,.mp4,.mp3,.wav,.flac,.m4a,.doc,.docx,.ppt,.pptx" multiple style={{ display: 'none' }} onChange={handleDigitalFileChange} />
+                    <input ref={digitalFileInputRef} type="file" accept=".pdf,.zip,.epub,.mp3,.wav,.flac,.m4a,.aac,.ogg,.aiff,.mp4,.mov,.webm,.mkv,.doc,.docx,.ppt,.pptx,.als,.flp,.logicx" multiple style={{ display: 'none' }} onChange={handleDigitalFileChange} />
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
                       <span style={{ fontSize: '0.8rem', color: 'var(--sell-text-3)' }}>or</span>
                       <input className={styles.formInput} placeholder="Paste download URL" value={form.digitalFileUrl} onChange={e => set('digitalFileUrl', e.target.value)} style={{ flex: 1 }} />
@@ -1013,6 +1053,79 @@ function ProductSlideOver({ product, onClose, onSaved, businessId, currency, sto
                       <option value="commercial">Commercial use</option>
                       <option value="resell">Resell rights</option>
                     </select>
+                  </div>
+                </>
+              )}
+
+              {/* Audio / music specific fields */}
+              {form.digitalSubtype === 'audio' && (
+                <>
+                  <p className={styles.formHint} style={{ marginTop: 4 }}>
+                    Upload WAV, MP3, FLAC, stems ZIP, or project files (ALS, FLP). Buyers get instant download after payment.
+                  </p>
+                  <div className={styles.formRow}>
+                    <div className={styles.formGroup}>
+                      <label className={styles.formLabel}>BPM</label>
+                      <input className={styles.formInput} type="number" min="1" max="300" placeholder="e.g. 140" value={form.bpm} onChange={e => set('bpm', e.target.value)} />
+                    </div>
+                    <div className={styles.formGroup}>
+                      <label className={styles.formLabel}>Key</label>
+                      <input className={styles.formInput} placeholder="e.g. Am, F# minor" value={form.musicalKey} onChange={e => set('musicalKey', e.target.value)} />
+                    </div>
+                  </div>
+                  <div className={styles.formRow}>
+                    <div className={styles.formGroup}>
+                      <label className={styles.formLabel}>Genre</label>
+                      <input className={styles.formInput} placeholder="e.g. Afrobeats, Drill, Amapiano" value={form.genre} onChange={e => set('genre', e.target.value)} />
+                    </div>
+                    <div className={styles.formGroup}>
+                      <label className={styles.formLabel}>Duration</label>
+                      <input className={styles.formInput} placeholder="e.g. 3:24" value={form.trackDuration} onChange={e => set('trackDuration', e.target.value)} />
+                    </div>
+                  </div>
+                  <div className={styles.formRow}>
+                    <div className={styles.formGroup}>
+                      <label className={styles.formLabel}>File format</label>
+                      <input className={styles.formInput} placeholder="e.g. WAV + MP3, Stem pack" value={form.fileFormat} onChange={e => set('fileFormat', e.target.value)} />
+                    </div>
+                    <div className={styles.formGroup}>
+                      <label className={styles.formLabel}>License</label>
+                      <select className={styles.formSelect} value={form.licenseType} onChange={e => set('licenseType', e.target.value)}>
+                        <option value="">Select license</option>
+                        <option value="lease">Lease</option>
+                        <option value="exclusive">Exclusive</option>
+                        <option value="unlimited">Unlimited / commercial</option>
+                        <option value="free">Free download</option>
+                      </select>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Video specific fields */}
+              {form.digitalSubtype === 'video' && (
+                <>
+                  <p className={styles.formHint} style={{ marginTop: 4 }}>
+                    Upload MP4, MOV, or WebM. Great for tutorials, sample packs with video, and presets with demos.
+                  </p>
+                  <div className={styles.formRow}>
+                    <div className={styles.formGroup}>
+                      <label className={styles.formLabel}>Duration</label>
+                      <input className={styles.formInput} placeholder="e.g. 12:30" value={form.videoDuration} onChange={e => set('videoDuration', e.target.value)} />
+                    </div>
+                    <div className={styles.formGroup}>
+                      <label className={styles.formLabel}>Resolution</label>
+                      <select className={styles.formSelect} value={form.resolution} onChange={e => set('resolution', e.target.value)}>
+                        <option value="">Select</option>
+                        <option value="720p">720p</option>
+                        <option value="1080p">1080p</option>
+                        <option value="4k">4K</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>File format</label>
+                    <input className={styles.formInput} placeholder="e.g. MP4, MOV" value={form.fileFormat} onChange={e => set('fileFormat', e.target.value)} />
                   </div>
                 </>
               )}

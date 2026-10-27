@@ -419,6 +419,52 @@ function PrismHero(p: H) {
 // Dispatcher
 // ══════════════════════════════════════════════════════════════════════════════
 
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Wave Studio — producer / beats hero with waveform motif
+// ══════════════════════════════════════════════════════════════════════════════
+
+function WaveHero(p: H) {
+  const t = THEME_TOKENS.wave as ThemeTokens;
+  const hasBg = Boolean(p.backgroundImage);
+  return (
+    <section style={{ position: 'relative', padding: '96px 5% 88px', overflow: 'hidden', background: hasBg ? undefined : t.bg, color: t.text }}>
+      <HeroImageLayer image={p.backgroundImage} blur={p.backgroundBlur} opacity={p.backgroundOpacity} />
+      {!hasBg && (
+        <div aria-hidden style={{ position: 'absolute', inset: 0, opacity: 0.35, pointerEvents: 'none',
+          background: 'radial-gradient(ellipse 80% 60% at 70% 20%, rgba(167,139,250,0.25), transparent 55%), radial-gradient(ellipse 60% 50% at 20% 80%, rgba(34,211,238,0.12), transparent 50%)' }} />
+      )}
+      {/* waveform decoration */}
+      <svg aria-hidden viewBox="0 0 400 60" preserveAspectRatio="none" style={{ position: 'absolute', left: 0, right: 0, bottom: 0, width: '100%', height: 72, opacity: 0.35 }}>
+        <path d="M0 30 Q20 5 40 30 T80 30 T120 30 T160 30 T200 30 T240 30 T280 30 T320 30 T360 30 T400 30" fill="none" stroke={t.accent} strokeWidth="2" />
+        <path d="M0 30 Q20 50 40 30 T80 30 T120 30 T160 30 T200 30 T240 30 T280 30 T320 30 T360 30 T400 30" fill="none" stroke={t.accent2} strokeWidth="1.5" opacity="0.7" />
+      </svg>
+      <div style={{ position: 'relative', zIndex: 1, maxWidth: 720 }}>
+        {(p.showBadge !== false && (p.badgeText || p.businessCategory)) && (
+          <p style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.22em', textTransform: 'uppercase', color: t.accent2, margin: '0 0 16px' }}>
+            {p.badgeText || p.businessCategory || 'New drops'}
+          </p>
+        )}
+        <h1 style={{ fontFamily: t.fontDisplay, fontWeight: 700, fontSize: 'clamp(2.4rem, 6vw, 3.8rem)', color: t.text, margin: '0 0 16px', lineHeight: 1.05, letterSpacing: '-0.03em' }}>
+          {p.storeName}
+        </h1>
+        {p.tagline && (
+          <p style={{ fontSize: '1.05rem', color: t.subtext, lineHeight: 1.65, maxWidth: 480, margin: '0 0 28px' }}>{p.tagline}</p>
+        )}
+        <a href={p.ctaUrl || '#products'} style={{
+          display: 'inline-flex', alignItems: 'center', gap: 10,
+          padding: '14px 28px', borderRadius: t.radius,
+          background: `linear-gradient(135deg, ${t.accent}, ${t.accent2})`,
+          color: '#0A0A0F', fontWeight: 700, fontSize: '0.85rem', textDecoration: 'none',
+          letterSpacing: '0.04em',
+        }}>
+          {p.ctaLabel || 'Browse beats'}
+        </a>
+      </div>
+    </section>
+  );
+}
+
 export function HeroWithTheme(p: H) {
   switch (p.themeId) {
     case 'atelier': return <AtelierHero {...p} />;
@@ -429,6 +475,7 @@ export function HeroWithTheme(p: H) {
     case 'volt': return <VoltHero {...p} />;
     case 'botanica': return <BotanicaHero {...p} />;
     case 'prism': return <PrismHero {...p} />;
+    case 'wave': return <WaveHero {...p} />;
     default: return <AtelierHero {...p} />;
   }
 }

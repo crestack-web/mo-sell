@@ -63,5 +63,5 @@ export function CollectionCardWithTheme({ themeId, collection, storeSlug, index 
 }
 
 function isDarkOverlay(themeId: string): boolean {
-  return themeId === 'atelier' || themeId === 'neotech' || themeId === 'volt' || themeId === 'botanica' || themeId === 'prism';
+  return themeId === 'atelier' || themeId === 'neotech' || themeId === 'volt' || themeId === 'botanica' || themeId === 'prism' || themeId === 'wave';
 }

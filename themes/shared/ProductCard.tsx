@@ -36,6 +36,55 @@ export function ProductCardWithTheme({ themeId, product, storeSlug, currency }: 
 
   const imgSrc = product.images[hovered && product.images[1] ? 1 : 0];
 
+  if (themeId === 'wave') {
+    return (
+      <Link href={`/store/${storeSlug}/product/${product.id}`}
+        style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+      >
+        <div style={{
+          borderRadius: t.radius, overflow: 'hidden', background: t.surface,
+          border: `1px solid ${hovered ? t.accent : t.border}`,
+          transition: 'border-color 0.2s, transform 0.2s',
+          transform: hovered ? 'translateY(-2px)' : 'none',
+        }}>
+          <div style={{ position: 'relative', aspectRatio: '1/1', background: c }}>
+            {imgSrc ? (
+              <img src={imgSrc} alt={product.displayName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : (
+              <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: `linear-gradient(145deg, ${t.surface}, ${t.border})` }}>
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke={t.accent} strokeWidth="1.5" opacity="0.7">
+                  <path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" />
+                </svg>
+              </div>
+            )}
+            {discount && (
+              <span style={{ position: 'absolute', top: 10, left: 10, fontSize: '0.65rem', fontWeight: 700, padding: '3px 8px', borderRadius: 999, background: t.accent, color: '#0A0A0F' }}>-{discount}%</span>
+            )}
+            <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 28,
+              background: 'linear-gradient(transparent, rgba(10,10,15,0.85))', display: 'flex', alignItems: 'flex-end', padding: '0 10px 6px', gap: 2 }}>
+              {[4,8,12,7,14,9,5,11,6,13,8,4].map((h, i) => (
+                <span key={i} style={{ flex: 1, height: h, borderRadius: 1, background: i % 3 === 0 ? t.accent2 : t.accent, opacity: 0.85 }} />
+              ))}
+            </div>
+          </div>
+          <div style={{ padding: '12px 14px 14px' }}>
+            <p style={{ fontFamily: t.fontDisplay, fontWeight: 650, fontSize: '0.92rem', color: t.text, margin: '0 0 4px', lineHeight: 1.3,
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{product.displayName}</p>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+              <p style={{ fontSize: '0.88rem', fontWeight: 700, color: t.accent, margin: 0 }}>{fmt(product.price, currency)}</p>
+              <span style={{ fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: t.subtext }}>
+                {isOutOfStock ? 'Sold out' : 'Play pack'}
+              </span>
+            </div>
+          </div>
+        </div>
+      </Link>
+    );
+  }
+
   if (themeId === 'atelier') {
     return (
       <Link href={`/store/${storeSlug}/product/${product.id}`}
