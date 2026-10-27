@@ -103,9 +103,9 @@ export interface ThemeProductPageProps {
     category: string;
     stock: number;
     productType: 'physical' | 'digital' | 'service';
-    tags: string[];
-    deliveryNote: string | null;
-    digitalFileUrl: string | null;
+    tags?: string[];
+    deliveryNote?: string | null;
+    digitalFileUrl?: string | null;
     customerInfoFields?: string[];
     digitalSubtype?: string | null;
     bpm?: number | null;
