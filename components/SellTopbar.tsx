@@ -148,7 +148,13 @@ export function SellTopbar() {
 
         {/* User chip */}
         {user && (
-          <button className={styles.userChip}>
+          <button
+            type="button"
+            className={styles.userChip}
+            onClick={() => navigateTo('settings')}
+            title="Profile & settings"
+            aria-label="Open profile and settings"
+          >
             <MoSellAvatar
               className={styles.avatar}
               photoURL={user.photoURL}

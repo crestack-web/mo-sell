@@ -293,7 +293,21 @@ export function SellSidebar() {
         {/* ── User footer ── */}
         {user && (
           <div className={styles.userArea}>
-            <div className={styles.userInner}>
+            <div
+              className={styles.userInner}
+              role="button"
+              tabIndex={0}
+              onClick={() => navigateTo('settings')}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  navigateTo('settings');
+                }
+              }}
+              title="Profile & settings"
+              aria-label="Open profile and settings"
+              style={{ cursor: 'pointer' }}
+            >
               <MoSellAvatar
                 className={styles.avatar}
                 photoURL={user.photoURL}
@@ -305,7 +319,10 @@ export function SellSidebar() {
                 <div className={styles.userRole}>{user.plan}</div>
               </div>
               <button
-                onClick={handleLogout}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleLogout();
+                }}
                 title="Logout"
                 style={{
                   marginLeft: 'auto', background: 'none', border: 'none',

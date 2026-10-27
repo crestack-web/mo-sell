@@ -256,7 +256,7 @@ export function SellMorePage() {
 
       {/* User + logout */}
       {user && (
-        <div className={styles.userCard}>
+        <div className={styles.userCard} role="button" tabIndex={0} onClick={() => navigateTo('settings')} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigateTo('settings'); } }} style={{ cursor: 'pointer' }} title="Profile & settings">
           <MoSellAvatar
             className={styles.avatar}
             photoURL={user.photoURL}
@@ -267,7 +267,7 @@ export function SellMorePage() {
             <div className={styles.userName}>{user.shortName}</div>
             <div className={styles.userRole}>{user.plan}</div>
           </div>
-          <button type="button" className={styles.logoutBtn} onClick={handleLogout} title="Logout">
+          <button type="button" className={styles.logoutBtn} onClick={(e) => { e.stopPropagation(); handleLogout(); }} title="Logout">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
               <polyline points="16 17 21 12 16 7"/>
