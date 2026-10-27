@@ -609,19 +609,19 @@ function ProductSlideOver({ product, onClose, onSaved, businessId, currency, sto
         }
 
         if (form.digitalSubtype === 'audio') {
-          payload.bpm = form.bpm ? parseInt(form.bpm) : null;
-          payload.musicalKey = form.musicalKey.trim() || null;
-          payload.genre = form.genre.trim() || null;
-          payload.trackDuration = form.trackDuration.trim() || null;
-          payload.fileFormat = form.fileFormat.trim() || null;
-          payload.licenseType = form.licenseType.trim() || null;
+          payload.bpm = form.bpm ? parseInt(form.bpm, 10) : null;
+          payload.musicalKey = (form.musicalKey || '').trim() || null;
+          payload.genre = (form.genre || '').trim() || null;
+          payload.trackDuration = (form.trackDuration || '').trim() || null;
+          payload.fileFormat = (form.fileFormat || '').trim() || null;
+          payload.licenseType = (form.licenseType || '').trim() || null;
         }
 
         if (form.digitalSubtype === 'video') {
-          payload.videoDuration = form.videoDuration.trim() || null;
-          payload.resolution = form.resolution.trim() || null;
-          payload.fileFormat = form.fileFormat.trim() || null;
-          payload.licenseType = form.licenseType.trim() || null;
+          payload.videoDuration = (form.videoDuration || '').trim() || null;
+          payload.resolution = (form.resolution || '').trim() || null;
+          payload.fileFormat = (form.fileFormat || '').trim() || null;
+          payload.licenseType = (form.licenseType || '').trim() || null;
         }
       }
       
@@ -647,7 +647,13 @@ function ProductSlideOver({ product, onClose, onSaved, businessId, currency, sto
       onSaved();
     } catch (err) {
       console.error('[ProductSlideOver] Save error:', err);
-      showToast('Failed to save product. Please try again.', 'error');
+      const msg = err instanceof Error ? err.message : typeof err === 'object' && err && 'message' in err ? String((err as { message: unknown }).message) : '';
+      const friendly = msg.includes('column') || msg.includes('schema cache')
+        ? 'Database is missing audio/video fields. Run migration 028, then try again.'
+        : msg && msg.length < 140
+          ? `Failed to save: ${msg}`
+          : 'Failed to save product. Please try again.';
+      showToast(friendly, 'error');
     } finally {
       setSaving(false);
       setUploadingDigital(false);
