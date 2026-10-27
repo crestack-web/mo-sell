@@ -4,6 +4,7 @@ import React from 'react';
 import { supabaseClient } from '@/lib/supabase-client';
 import { useSell } from '@/context/SellContext';
 import type { SellPageId } from '@/context/SellContext';
+import { MoSellAvatar } from '@/components/MoSellAvatar';
 import styles from './SellMorePage.module.css';
 
 interface NavItem {
@@ -256,17 +257,12 @@ export function SellMorePage() {
       {/* User + logout */}
       {user && (
         <div className={styles.userCard}>
-          <div
+          <MoSellAvatar
             className={styles.avatar}
-            style={{
-              background: user.photoURL
-                ? `url(${user.photoURL}) center/cover`
-                : user.avatarStyle.background,
-              color: user.photoURL ? 'transparent' : user.avatarStyle.color,
-            }}
-          >
-            {!user.photoURL && user.avatarContent}
-          </div>
+            photoURL={user.photoURL}
+            label={user.shortName || 'Profile'}
+            iconSize={18}
+          />
           <div className={styles.userInfo}>
             <div className={styles.userName}>{user.shortName}</div>
             <div className={styles.userRole}>{user.plan}</div>

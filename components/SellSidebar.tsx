@@ -6,6 +6,7 @@ import { supabaseClient } from '@/lib/supabase-client';
 import { useSell } from '../context/SellContext';
 import type { SellPageId } from '../context/SellContext';
 import styles from './SellSidebar.module.css';
+import { MoSellAvatar } from './MoSellAvatar';
 
 // ─── Nav Config ───────────────────────────────────────────────────────────────
 
@@ -293,17 +294,12 @@ export function SellSidebar() {
         {user && (
           <div className={styles.userArea}>
             <div className={styles.userInner}>
-              <div
+              <MoSellAvatar
                 className={styles.avatar}
-                style={{
-                  background: user.photoURL
-                    ? `url(${user.photoURL}) center/cover`
-                    : user.avatarStyle.background,
-                  color: user.photoURL ? 'transparent' : user.avatarStyle.color,
-                }}
-              >
-                {!user.photoURL && user.avatarContent}
-              </div>
+                photoURL={user.photoURL}
+                label={user.shortName || 'Profile'}
+                iconSize={15}
+              />
               <div className={styles.userInfo}>
                 <div className={styles.userName}>{user.shortName}</div>
                 <div className={styles.userRole}>{user.plan}</div>

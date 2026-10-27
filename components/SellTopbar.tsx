@@ -3,6 +3,7 @@
 import React, { useCallback } from 'react';
 import { useSell } from '../context/SellContext';
 import styles from './SellTopbar.module.css';
+import { MoSellAvatar } from './MoSellAvatar';
 
 const LOGO_URL = 'https://res.cloudinary.com/dzjoqbg2u/image/upload/v1785078071/mosell_gpzl2q.png';
 
@@ -128,17 +129,12 @@ export function SellTopbar() {
         {/* User chip */}
         {user && (
           <button className={styles.userChip}>
-            <div
+            <MoSellAvatar
               className={styles.avatar}
-              style={{
-                background: user.photoURL
-                  ? `url(${user.photoURL}) center/cover`
-                  : user.avatarStyle.background,
-                color: user.photoURL ? 'transparent' : user.avatarStyle.color,
-              }}
-            >
-              {!user.photoURL && user.avatarContent}
-            </div>
+              photoURL={user.photoURL}
+              label={user.shortName || 'Profile'}
+              iconSize={14}
+            />
             <span className={styles.userName}>{user.shortName}</span>
           </button>
         )}

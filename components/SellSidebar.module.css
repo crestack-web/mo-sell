@@ -287,7 +287,7 @@
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: var(--sell-primary);
+  background: linear-gradient(135deg, #0EA5E9 0%, #6366F1 100%);
   color: #fff;
   display: flex;
   align-items: center;
