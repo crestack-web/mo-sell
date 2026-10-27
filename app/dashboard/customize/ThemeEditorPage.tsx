@@ -433,6 +433,8 @@ export function ThemeEditorPage() {
   const phoneFrameRef = useRef<HTMLDivElement>(null);
   const [mobileEditorOpen, setMobileEditorOpen] = useState(false);
   const [dragId, setDragId] = useState<string | null>(null);
+  const dragIdRef = useRef<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
   const [fontFamily, setFontFamily] = useState<string>('');
   const [buttonStyle, setButtonStyle] = useState<'pill' | 'square' | 'rounded'>('pill');
   const [bodyTextColor, setBodyTextColor] = useState<string>('');
@@ -605,19 +607,39 @@ export function ThemeEditorPage() {
     mark();
   }, [pushUndoDebounced, mark]);
 
-  const handleDragStart = useCallback((id: string) => { setDragId(id); }, []);
-  const handleDragOver = useCallback((e: React.DragEvent) => { e.preventDefault(); }, []);
+  const handleDragStart = useCallback((e: React.DragEvent, id: string) => {
+    dragIdRef.current = id;
+    setDragId(id);
+    try {
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', id);
+    } catch { /* safari */ }
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent, targetId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try { e.dataTransfer.dropEffect = 'move'; } catch { /* */ }
+    if (dragOverId !== targetId) setDragOverId(targetId);
+  }, [dragOverId]);
+
   const handleDrop = useCallback((targetId: string) => {
-    if (!dragId || dragId === targetId) return;
+    const fromId = dragIdRef.current;
+    if (!fromId || fromId === targetId) {
+      setDragId(null);
+      setDragOverId(null);
+      dragIdRef.current = null;
+      return;
+    }
     pushUndo();
     setSections(prev => {
-      const fromSec = prev.find(s => s.id === dragId);
+      const fromSec = prev.find(s => s.id === fromId);
       const toSec = prev.find(s => s.id === targetId);
       if (!fromSec || !toSec) return prev;
       if (!SECTION_META[fromSec.type]?.movable) return prev;
       if (!SECTION_META[toSec.type]?.movable) return prev;
-      const arr = [...prev];
-      const from = arr.findIndex(s => s.id === dragId);
+      const arr = [...prev].sort((a, b) => a.order - b.order);
+      const from = arr.findIndex(s => s.id === fromId);
       const to = arr.findIndex(s => s.id === targetId);
       if (from === -1 || to === -1) return prev;
       const [moved] = arr.splice(from, 1);
@@ -625,9 +647,37 @@ export function ThemeEditorPage() {
       return arr.map((s, i) => ({ ...s, order: i }));
     });
     setDragId(null);
+    setDragOverId(null);
+    dragIdRef.current = null;
     mark();
-  }, [dragId, pushUndo, mark]);
-  const handleDragEnd = useCallback(() => { setDragId(null); }, []);
+  }, [pushUndo, mark]);
+
+  const handleDragEnd = useCallback(() => {
+    setDragId(null);
+    setDragOverId(null);
+    dragIdRef.current = null;
+  }, []);
+
+  const moveSection = useCallback((id: string, direction: -1 | 1) => {
+    pushUndo();
+    setSections(prev => {
+      const arr = [...prev].sort((a, b) => a.order - b.order);
+      const idx = arr.findIndex(s => s.id === id);
+      if (idx < 0) return prev;
+      const sec = arr[idx];
+      if (!SECTION_META[sec.type]?.movable) return prev;
+      let target = idx + direction;
+      while (target >= 0 && target < arr.length && !SECTION_META[arr[target].type]?.movable) {
+        target += direction;
+      }
+      if (target < 0 || target >= arr.length) return prev;
+      const next = [...arr];
+      const [moved] = next.splice(idx, 1);
+      next.splice(target, 0, moved);
+      return next.map((s, i) => ({ ...s, order: i }));
+    });
+    mark();
+  }, [pushUndo, mark]);
 
   const toggleSection = useCallback((id: string) => {
     pushUndo();
@@ -807,22 +857,40 @@ export function ThemeEditorPage() {
           </div>
 
           <div className={styles.sectionList}>
-            {sections.map(sec => {
+            {sections
+              .slice()
+              .sort((a, b) => a.order - b.order)
+              .map((sec, index, arr) => {
               const meta = SECTION_META[sec.type];
+              if (!meta) return null;
               if (isLinkStyle && HIDDEN_FOR_LINK_STYLE.has(sec.type)) return null;
-              const movable = !!meta?.movable;
+              const movable = !!meta.movable;
+              const isDragging = dragId === sec.id;
+              const isOver = dragOverId === sec.id && dragId && dragId !== sec.id;
               return (
                 <div
                   key={sec.id}
-                  className={[styles.secRow, movable ? styles.secRowMovable : styles.secRowFixed].join(' ')}
-                  draggable={movable}
-                  onDragStart={movable ? () => handleDragStart(sec.id) : undefined}
-                  onDragOver={movable ? handleDragOver : undefined}
-                  onDrop={movable ? () => handleDrop(sec.id) : undefined}
-                  onDragEnd={movable ? handleDragEnd : undefined}
-                  style={{ opacity: dragId === sec.id ? 0.4 : 1 }}
+                  className={[
+                    styles.secRow,
+                    movable ? styles.secRowMovable : styles.secRowFixed,
+                    isOver ? styles.secRowDropTarget : '',
+                  ].filter(Boolean).join(' ')}
+                  onDragOver={movable ? (e) => handleDragOver(e, sec.id) : undefined}
+                  onDrop={movable ? (e) => { e.preventDefault(); handleDrop(sec.id); } : undefined}
+                  onDragEnd={handleDragEnd}
+                  style={{
+                    opacity: isDragging ? 0.35 : 1,
+                    outline: isOver ? '2px solid var(--sell-primary)' : undefined,
+                    outlineOffset: isOver ? -2 : undefined,
+                  }}
                 >
-                  <span className={styles.dragHandle} aria-hidden="true" title={movable ? 'Drag to reorder' : 'Fixed position'}>
+                  <span
+                    className={styles.dragHandle}
+                    draggable={movable}
+                    onDragStart={movable ? (e) => handleDragStart(e, sec.id) : undefined}
+                    title={movable ? 'Drag to reorder' : 'Fixed position'}
+                    aria-label={movable ? `Drag to reorder ${meta.label}` : undefined}
+                  >
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                       <circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/>
                       <circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/>
@@ -837,6 +905,30 @@ export function ThemeEditorPage() {
                     <span className={styles.secIcon}>{SectionIcons[sec.type]}</span>
                     <span className={styles.secLabel}>{meta.label}</span>
                   </button>
+                  {movable && (
+                    <div className={styles.secMoveBtns}>
+                      <button
+                        type="button"
+                        className={styles.secMoveBtn}
+                        disabled={index === 0}
+                        onClick={() => moveSection(sec.id, -1)}
+                        aria-label={`Move ${meta.label} up`}
+                        title="Move up"
+                      >
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.secMoveBtn}
+                        disabled={index === arr.length - 1}
+                        onClick={() => moveSection(sec.id, 1)}
+                        aria-label={`Move ${meta.label} down`}
+                        title="Move down"
+                      >
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                      </button>
+                    </div>
+                  )}
                   <button className={[styles.eyeBtn, sec.enabled ? styles.eyeOn : ''].join(' ')} onClick={() => toggleSection(sec.id)} type="button" aria-label={sec.enabled ? `Hide ${meta.label}` : `Show ${meta.label}`} aria-pressed={sec.enabled}>
                     {sec.enabled
                       ? <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
