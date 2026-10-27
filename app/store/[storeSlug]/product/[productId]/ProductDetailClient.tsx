@@ -19,21 +19,13 @@ interface Product {
   tags: string[];
   deliveryNote: string | null;
   digitalFileUrl: string | null;
-  digitalSubtype?: 'ebook' | 'course' | 'template' | 'ticket' | 'coaching' | 'audio' | 'video';
+  digitalSubtype?: 'ebook' | 'course' | 'template' | 'ticket' | 'coaching';
   eventDate?: string | null;
   eventTime?: string | null;
   venue?: string | null;
   capacity?: number | string | null;
   callToAction?: string | null;
   customerInfoFields?: string[];
-  bpm?: number | null;
-  musicalKey?: string | null;
-  genre?: string | null;
-  trackDuration?: string | null;
-  videoDuration?: string | null;
-  resolution?: string | null;
-  fileFormat?: string | null;
-  licenseType?: string | null;
 }
 
 interface Props {

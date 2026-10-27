@@ -629,22 +629,6 @@ export function ThemeEditorPage() {
   }, [dragId, pushUndo, mark]);
   const handleDragEnd = useCallback(() => { setDragId(null); }, []);
 
-  const moveSection = useCallback((id: string, direction: -1 | 1) => {
-    pushUndo();
-    setSections(prev => {
-      const arr = [...prev].sort((a, b) => a.order - b.order);
-      const idx = arr.findIndex(s => s.id === id);
-      if (idx < 0) return prev;
-      const target = idx + direction;
-      if (target < 0 || target >= arr.length) return prev;
-      const next = [...arr];
-      const [moved] = next.splice(idx, 1);
-      next.splice(target, 0, moved);
-      return next.map((s, i) => ({ ...s, order: i }));
-    });
-    mark();
-  }, [pushUndo, mark]);
-
   const toggleSection = useCallback((id: string) => {
     pushUndo();
     setSections(prev => prev.map(s => s.id === id ? { ...s, enabled: !s.enabled } : s));
@@ -823,7 +807,7 @@ export function ThemeEditorPage() {
           </div>
 
           <div className={styles.sectionList}>
-            {sections.slice().sort((a, b) => a.order - b.order).map(sec => {
+            {sections.map(sec => {
               const meta = SECTION_META[sec.type];
               if (isLinkStyle && HIDDEN_FOR_LINK_STYLE.has(sec.type)) return null;
               const movable = !!meta?.movable;
@@ -853,10 +837,6 @@ export function ThemeEditorPage() {
                     <span className={styles.secIcon}>{SectionIcons[sec.type]}</span>
                     <span className={styles.secLabel}>{meta.label}</span>
                   </button>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 1, flexShrink: 0 }}>
-                    <button type="button" onClick={() => moveSection(sec.id, -1)} title="Move up" aria-label="Move up" style={{ width: 22, height: 16, border: 'none', background: 'transparent', color: 'var(--sell-text-3)', cursor: 'pointer', padding: 0, lineHeight: 1 }}>▲</button>
-                    <button type="button" onClick={() => moveSection(sec.id, 1)} title="Move down" aria-label="Move down" style={{ width: 22, height: 16, border: 'none', background: 'transparent', color: 'var(--sell-text-3)', cursor: 'pointer', padding: 0, lineHeight: 1 }}>▼</button>
-                  </div>
                   <button className={[styles.eyeBtn, sec.enabled ? styles.eyeOn : ''].join(' ')} onClick={() => toggleSection(sec.id)} type="button" aria-label={sec.enabled ? `Hide ${meta.label}` : `Show ${meta.label}`} aria-pressed={sec.enabled}>
                     {sec.enabled
                       ? <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
