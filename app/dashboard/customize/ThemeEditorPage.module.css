@@ -182,40 +182,6 @@
   opacity: 0.85;
   cursor: grab;
 }
-.secRowMovable .dragHandle:active {
-  cursor: grabbing;
-}
-.secRowDropTarget {
-  background: var(--sell-primary-lt, rgba(14,165,233,0.08));
-}
-.secMoveBtns {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  flex-shrink: 0;
-  margin-right: 2px;
-}
-.secMoveBtn {
-  width: 22px;
-  height: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  background: transparent;
-  color: var(--sell-text-3);
-  cursor: pointer;
-  border-radius: 4px;
-  padding: 0;
-}
-.secMoveBtn:hover:not(:disabled) {
-  background: var(--sell-bg);
-  color: var(--sell-text-1);
-}
-.secMoveBtn:disabled {
-  opacity: 0.25;
-  cursor: default;
-}
 .secRowFixed .dragHandle {
   opacity: 0.35;
   cursor: default;
