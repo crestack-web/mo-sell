@@ -169,6 +169,98 @@
 
 @media (max-width: 640px) { .shareBtn span { display: none; } }
 
+
+/* ── Store link pill (gradient border, glass fill) ── */
+.storeLinkPill {
+  display: flex;
+  align-items: stretch;
+  max-width: min(220px, 42vw);
+  padding: 1.5px;
+  border-radius: 100px;
+  background: linear-gradient(135deg, #0EA5E9 0%, #6366F1 55%, #22D3EE 100%);
+  box-shadow:
+    0 0 0 1px rgba(14, 165, 233, 0.08),
+    0 4px 14px rgba(99, 102, 241, 0.18);
+  flex-shrink: 1;
+  min-width: 0;
+  transition: box-shadow 0.2s ease, transform 0.15s ease;
+}
+
+.storeLinkPill:hover {
+  box-shadow:
+    0 0 0 1px rgba(14, 165, 233, 0.14),
+    0 6px 18px rgba(99, 102, 241, 0.28);
+  transform: translateY(-0.5px);
+}
+
+.storeLinkMain {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  flex: 1;
+  padding: 6px 4px 6px 11px;
+  border-radius: 100px 0 0 100px;
+  background: color-mix(in srgb, var(--sell-surface) 88%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  text-decoration: none;
+  color: var(--sell-text-1);
+  cursor: pointer;
+}
+
+.storeLinkDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, #0EA5E9, #6366F1);
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.18);
+}
+
+.storeLinkName {
+  font-size: 0.78rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.storeLinkCopy {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: 0 100px 100px 0;
+  background: color-mix(in srgb, var(--sell-surface) 72%, transparent);
+  color: var(--sell-primary, #0EA5E9);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+  padding: 0;
+}
+
+.storeLinkCopy:hover {
+  background: color-mix(in srgb, var(--sell-primary, #0EA5E9) 14%, var(--sell-surface));
+  color: var(--sell-text-1);
+}
+
+.storeLinkCopy svg {
+  width: 14px;
+  height: 14px;
+}
+
+@media (max-width: 400px) {
+  .storeLinkPill { max-width: 132px; }
+}
+
+/* legacy (unused) kept harmless */
+.viewStoreBtn { display: none; }
+.shareBtn { display: none; }
+
 /* ── Icon buttons ── */
 .iconBtn {
   width: 36px;

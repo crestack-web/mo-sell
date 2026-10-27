@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useSell } from '../context/SellContext';
 import styles from './SellTopbar.module.css';
 import { MoSellAvatar } from './MoSellAvatar';
@@ -16,10 +16,24 @@ export function SellTopbar() {
   const storeSlug   = storeConfig?.storeSlug;
   const storeStatus = storeConfig?.status ?? null;
 
-  const copyStoreLink = useCallback(() => {
-    const url = `${window.location.origin}/${storeSlug}`;
+  const [linkCopied, setLinkCopied] = useState(false);
+
+
+  const displayHost = storeSlug
+    ? (storeConfig?.customDomain && storeConfig?.customDomainStatus === 'verified'
+        ? storeConfig.customDomain
+        : storeSlug)
+    : '';
+
+  const copyStoreLink = useCallback((e?: React.MouseEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
+    if (!storeSlug) return;
+    const url = `${window.location.origin}/store/${storeSlug}`;
     navigator.clipboard.writeText(url).then(() => {
+      setLinkCopied(true);
       showToast('Store link copied!', 'success');
+      window.setTimeout(() => setLinkCopied(false), 1800);
     }).catch(() => {
       showToast('Failed to copy link', 'error');
     });
@@ -80,31 +94,37 @@ export function SellTopbar() {
           </button>
         )}
 
-        {/* View live store */}
-        {storeStatus === 'active' && storeSlug && (
-          <a
-            href={`/store/${storeSlug}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.viewStoreBtn}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
-              <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
-            </svg>
-            <span>View Store</span>
-          </a>
-        )}
-
-        {/* Share / Copy link */}
+        {/* Store link — open site + copy */}
         {storeSlug && (
-          <button className={styles.shareBtn} onClick={copyStoreLink} title="Copy store link">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
-              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
-            </svg>
-            <span>Share</span>
-          </button>
+          <div className={styles.storeLinkPill} title="Open your store">
+            <a
+              href={`/store/${storeSlug}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.storeLinkMain}
+            >
+              <span className={styles.storeLinkDot} aria-hidden />
+              <span className={styles.storeLinkName}>{displayHost}</span>
+            </a>
+            <button
+              type="button"
+              className={styles.storeLinkCopy}
+              onClick={copyStoreLink}
+              aria-label="Copy store link"
+              title="Copy link"
+            >
+              {linkCopied ? (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              ) : (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+                </svg>
+              )}
+            </button>
+          </div>
         )}
 
         {/* Theme toggle */}
