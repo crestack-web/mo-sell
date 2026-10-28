@@ -3,7 +3,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Monitor, Tablet, Smartphone, Undo2, Redo2, ChevronLeft, Pencil, X } from 'lucide-react';
 import { SocialIcon, SOCIAL_DEFS, SOCIAL_KEYS, normalizeSocialValue, socialStatus } from '@/components/SocialBrand';
-import { getDatabase } from '@/lib/database/adapter';
+import { getDatabase } from '@/lib/database/adapter'
+import { getStorageAdapter } from '@/lib/storage/adapter';
 import { useSell } from '@/context/SellContext';
 import { useRouter } from 'next/navigation';
 import { isCreatorTheme, getThemeType, resolveEcommerceTheme, THEMES } from '@/themes/registry';
@@ -310,9 +311,65 @@ function NewsletterSettings({ s, upd }: { s: NewsletterSectionSettings; upd: (p:
   </>);
 }
 
-function HeaderSettings({ s, upd }: { s: HeaderSectionSettings; upd: (p: Partial<HeaderSectionSettings>) => void }) {
+function HeaderSettings({
+  s, upd, logoUrl, logoUploading, onLogoFile, onLogoRemove,
+}: {
+  s: HeaderSectionSettings;
+  upd: (p: Partial<HeaderSectionSettings>) => void;
+  logoUrl?: string | null;
+  logoUploading?: boolean;
+  onLogoFile?: (file: File) => void;
+  onLogoRemove?: () => void;
+}) {
   const navLinks = s.navLinks ?? [];
+  const fileRef = React.useRef<HTMLInputElement>(null);
   return (<>
+    <SGroup label="STORE LOGO" />
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+      <div style={{
+        width: 56, height: 56, borderRadius: 12, border: '1.5px solid var(--sell-border)',
+        background: 'var(--sell-bg)', overflow: 'hidden', display: 'flex', alignItems: 'center',
+        justifyContent: 'center', flexShrink: 0,
+      }}>
+        {logoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={logoUrl} alt="Store logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+        ) : (
+          <span style={{ fontSize: '0.65rem', color: 'var(--sell-text-3)', fontWeight: 600 }}>Logo</span>
+        )}
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1 }}>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/png,image/jpeg,image/webp,image/svg+xml,image/gif"
+          style={{ display: 'none' }}
+          onChange={e => {
+            const f = e.target.files?.[0];
+            if (f && onLogoFile) onLogoFile(f);
+            e.target.value = '';
+          }}
+        />
+        <button
+          type="button"
+          className={styles.fInput}
+          style={{ cursor: logoUploading ? 'wait' : 'pointer', textAlign: 'left', fontWeight: 650 }}
+          disabled={!!logoUploading}
+          onClick={() => fileRef.current?.click()}
+        >
+          {logoUploading ? 'Uploading…' : logoUrl ? 'Replace logo' : 'Upload logo'}
+        </button>
+        {logoUrl && onLogoRemove && (
+          <button type="button" onClick={onLogoRemove} style={{
+            border: 'none', background: 'none', color: 'var(--sell-text-3)', fontSize: '0.75rem',
+            cursor: 'pointer', textAlign: 'left', padding: 0, fontWeight: 600,
+          }}>
+            Remove logo
+          </button>
+        )}
+        <p className={styles.fHint} style={{ margin: 0 }}>PNG, JPG, WebP or SVG. Square works best.</p>
+      </div>
+    </div>
     <SGroup label="BEHAVIOR" />
     <Toggle label="Sticky header" value={s.sticky !== false} onChange={v => upd({ sticky: v })} hint="Stays fixed when scrolling" />
     <Toggle label="Show search icon" value={s.showSearch ?? false} onChange={v => upd({ showSearch: v })} />
@@ -534,6 +591,7 @@ export function ThemeEditorPage() {
     setSections(merged);
     const t = resolveEcommerceTheme(storeConfig.theme);
     setTheme(t);
+    setLogoUrl(storeConfig.logoUrl ?? null);
     setPrimary(storeConfig.primaryColor ?? '#C9A84C');
     setSecondary(storeConfig.secondaryColor ?? '#8B7355');
     setFontFamily((storeConfig as any).fontFamily ?? '');
@@ -678,6 +736,57 @@ export function ThemeEditorPage() {
     }
   }, [user?.businessId, theme, refreshStoreConfig, showToast]);
 
+  const handleLogoFile = useCallback(async (file: File) => {
+    if (!user?.businessId) return;
+    if (!file.type.startsWith('image/')) {
+      showToast('Please choose an image file', 'error');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('Logo must be under 5MB', 'error');
+      return;
+    }
+    setLogoUploading(true);
+    try {
+      const storage = getStorageAdapter();
+      const safe = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const path = `stores/${user.businessId}/logo_${Date.now()}_${safe}`;
+      const url = await storage.upload(file, path);
+      const db = getDatabase();
+      await db.doc(`businesses/${user.businessId}/store/config`).set(
+        { logoUrl: url, updatedAt: new Date().toISOString() },
+        { merge: true },
+      );
+      setLogoUrl(url);
+      await refreshStoreConfig();
+      showToast('Logo uploaded', 'success');
+    } catch (err) {
+      console.error('[ThemeEditor] logo upload', err);
+      showToast('Logo upload failed', 'error');
+    } finally {
+      setLogoUploading(false);
+    }
+  }, [user?.businessId, refreshStoreConfig, showToast]);
+
+  const handleLogoRemove = useCallback(async () => {
+    if (!user?.businessId) return;
+    setLogoUploading(true);
+    try {
+      const db = getDatabase();
+      await db.doc(`businesses/${user.businessId}/store/config`).set(
+        { logoUrl: null, updatedAt: new Date().toISOString() },
+        { merge: true },
+      );
+      setLogoUrl(null);
+      await refreshStoreConfig();
+      showToast('Logo removed', 'success');
+    } catch {
+      showToast('Could not remove logo', 'error');
+    } finally {
+      setLogoUploading(false);
+    }
+  }, [user?.businessId, refreshStoreConfig, showToast]);
+
   const handleApply = useCallback(async () => {
     if (!user?.businessId || !storeConfig) return;
     setApplying(true);
@@ -685,7 +794,7 @@ export function ThemeEditorPage() {
       const db = getDatabase();
       const slug = storeConfig.storeSlug;
       await db.doc(`businesses/${user.businessId}/store/config`).set(
-        { ...storeConfig, theme, primaryColor: primary, secondaryColor: secondary, fontFamily: fontFamily || null, buttonStyle, bodyTextColor: bodyTextColor || null, bgColor: bgColor || null, sections: sections.map(s => ({ ...s })), storeSlug: slug, status: 'active', updatedAt: new Date().toISOString() },
+        { ...storeConfig, theme, primaryColor: primary, secondaryColor: secondary, fontFamily: fontFamily || null, buttonStyle, bodyTextColor: bodyTextColor || null, bgColor: bgColor || null, logoUrl: logoUrl ?? null, sections: sections.map(s => ({ ...s })), storeSlug: slug, status: 'active', updatedAt: new Date().toISOString() },
         { merge: true }
       );
       if (slug) await db.doc(`storeIndex/${slug}`).set({ businessId: user.businessId, storeName: storeConfig.storeName, updatedAt: new Date().toISOString() });
@@ -696,11 +805,12 @@ export function ThemeEditorPage() {
       console.error('[ThemeEditor]', err);
       showToast('Failed to publish. Try again.', 'error');
     } finally { setApplying(false); }
-  }, [user, storeConfig, theme, primary, secondary, fontFamily, buttonStyle, bodyTextColor, bgColor, sections, refreshStoreConfig, showToast]);
+  }, [user, storeConfig, theme, primary, secondary, fontFamily, buttonStyle, bodyTextColor, bgColor, sections, refreshStoreConfig, showToast, logoUrl]);
 
   const storeName = storeConfig?.storeName ?? 'Your Store';
   const tagline   = storeConfig?.tagline   ?? 'Shop our latest collection';
-  const logoUrl   = storeConfig?.logoUrl   ?? null;
+  const [logoUrl, setLogoUrl] = useState<string | null>(storeConfig?.logoUrl ?? null);
+  const [logoUploading, setLogoUploading] = useState(false);
   const activeSection = sections.find(s => s.id === activeId) ?? null;
   const headerSection = sections.find(s => s.id === 'header');
   const hideStoreNameWithLogo = headerSection ? (headerSection.settings as HeaderSectionSettings).hideStoreNameWithLogo : false;
@@ -886,7 +996,7 @@ export function ThemeEditorPage() {
                 {activeSection.type === 'testimonials' && <TestimonialsSettings s={activeSection.settings as TestimonialsSectionSettings} upd={p => updateSettings(activeSection.id, p as Record<string,unknown>)} />}
                 {activeSection.type === 'instagram'    && <InstagramSettings    s={activeSection.settings as InstagramSectionSettings}    upd={p => updateSettings(activeSection.id, p as Record<string,unknown>)} />}
                 {activeSection.type === 'newsletter'   && <NewsletterSettings   s={activeSection.settings as NewsletterSectionSettings}   upd={p => updateSettings(activeSection.id, p as Record<string,unknown>)} />}
-                {activeSection.type === 'header'       && <HeaderSettings       s={activeSection.settings as HeaderSectionSettings}       upd={p => updateSettings(activeSection.id, p as Record<string,unknown>)} />}
+                {activeSection.type === 'header' && <HeaderSettings s={activeSection.settings as HeaderSectionSettings} upd={p => updateSettings(activeSection.id, p as Record<string,unknown>)} logoUrl={logoUrl} logoUploading={logoUploading} onLogoFile={handleLogoFile} onLogoRemove={handleLogoRemove} />}
                 {activeSection.type === 'footer'       && <FooterSettings       s={activeSection.settings as FooterSectionSettings}       upd={p => updateSettings(activeSection.id, p as Record<string,unknown>)} />}
               </>
             ) : (
