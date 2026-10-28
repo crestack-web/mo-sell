@@ -4,6 +4,7 @@ import { generateDesignedPdf } from '@/lib/ask-mo-pdf';
 import { extractFencedJson } from '@/lib/ask-mo-extract';
 import { createProductInFirestore, updateProductInFirestore } from '@/lib/ask-mo-products';
 import { SELL_MO_SYSTEM_PROMPT } from '@/lib/ask-mo-system';
+import { STORE_SETUP_SYSTEM_PROMPT } from '@/lib/store-setup-prompt';
 import { buildStoreContext, buildCatalogContext, callGrok } from '@/lib/ask-mo-runtime';
 
 export async function POST(req: NextRequest) {
@@ -78,9 +79,11 @@ export async function POST(req: NextRequest) {
     const storeContext = buildStoreContext(storeConfig);
     const catalogContext = await buildCatalogContext(businessId);
     const combinedContext = [storeContext, catalogContext].filter(Boolean).join('\n\n');
+    const mode = typeof body?.mode === 'string' ? body.mode : 'chat';
+    const basePrompt = mode === 'store_setup' ? STORE_SETUP_SYSTEM_PROMPT : SELL_MO_SYSTEM_PROMPT;
     const systemPrompt = combinedContext
-      ? `${SELL_MO_SYSTEM_PROMPT}\n\n=== CURRENT STATE OF THE MERCHANT'S STORE (use this context when the user asks to change things) ===\n${combinedContext}\n\nWhen proposing store_update or bio_update, only include the fields being changed — leave everything else null. When editing an existing product, always include the exact productId from the CURRENT PRODUCTS list.`
-      : SELL_MO_SYSTEM_PROMPT;
+      ? `${basePrompt}\n\n=== CURRENT STATE OF THE MERCHANT'S STORE (use this context when the user asks to change things) ===\n${combinedContext}\n\nWhen proposing store_update or bio_update, only include the fields being changed — leave everything else null. When editing an existing product, always include the exact productId from the CURRENT PRODUCTS list.`
+      : basePrompt;
 
     const { text: responseText, provider } = await callGrok(systemPrompt, grokHistory, message, attachments);
 

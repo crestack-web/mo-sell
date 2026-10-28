@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { useSell } from '@/context/SellContext';
+import { useSell } from '@/context/SellContext'
+import { StoreSetupChat, isAiSetupDone } from '@/components/StoreSetupChat';
 import { restartSellTour } from '@/components/SellTour';
 import { getStorePublicUrl } from '@/lib/store-url';
 import styles from './SellOverview.module.css';
@@ -113,6 +114,7 @@ function SetupStep({ number, label, done, onClick }: SetupStepProps) {
 export function SellOverview() {
   const { storeConfig, quickStats, navigateTo, user, showToast } = useSell();
   const [welcomeOpen, setWelcomeOpen] = useState(false);
+  const [setupChatOpen, setSetupChatOpen] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
 
   const currency = storeConfig?.currency ?? 'NGN';
@@ -192,12 +194,12 @@ export function SellOverview() {
             <div className={styles.welcomeEmoji}>🎉</div>
             <h2 id="welcome-title" className={styles.welcomeTitle}>Your store is live</h2>
             <p className={styles.welcomeBody}>
-              Three quick steps and you can start selling. No tech setup — just add something to sell and share your link.
+              Tell MO what you sell — it picks the theme, branding, and a starter product in a short chat. No template browsing.
             </p>
             <ol className={styles.welcomeList}>
-              <li><strong>Add your first product</strong> — photo, name, and price</li>
-              <li><strong>Preview your store</strong> — see what customers see</li>
-              <li><strong>Share your link</strong> — Instagram, WhatsApp, TikTok…</li>
+              <li><strong>Chat with MO</strong> — what you sell and the vibe you want</li>
+              <li><strong>MO builds the store</strong> — theme, colors, tagline, product</li>
+              <li><strong>Preview & share</strong> — go live when it looks right</li>
             </ol>
             <button
               type="button"
@@ -205,10 +207,10 @@ export function SellOverview() {
               style={{ width: '100%', justifyContent: 'center', padding: '14px 20px' }}
               onClick={() => {
                 dismissWelcome();
-                navigateTo('products');
+                setSetupChatOpen(true);
               }}
             >
-              Add my first product →
+              Build my store with MO →
             </button>
             <button
               type="button"
@@ -267,6 +269,14 @@ export function SellOverview() {
           </div>
         )}
       </div>
+
+      {/* ── Conversational AI store setup ── */}
+      {!setupDone && (
+        <StoreSetupChat
+          defaultOpen={setupChatOpen || !isAiSetupDone()}
+          onComplete={() => setSetupChatOpen(false)}
+        />
+      )}
 
       {/* ── First-session activation checklist ── */}
       {!setupDone && (
