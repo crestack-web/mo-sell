@@ -86,6 +86,10 @@ export default function SellSignupPage() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+    const ref = params.get('ref') || params.get('referral');
+    if (ref) {
+      try { localStorage.setItem('mo_sell_ref', ref.trim().toUpperCase()); } catch { /* */ }
+    }
     if (params.get('onboarding') !== '1') return;
     (async () => {
       const { data: { session } } = await supabaseClient.auth.getSession();
@@ -208,6 +212,23 @@ export default function SellSignupPage() {
         );
       }
       posthog.capture('sell_signup_completed', { step: 2 });
+      // Attach referral if present
+      try {
+        const refCode = localStorage.getItem('mo_sell_ref');
+        if (refCode && businessId) {
+          await fetch('/api/referrals', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'attach',
+              referralCode: refCode,
+              referredBusinessId: businessId,
+              referredUserId: userId || undefined,
+            }),
+          });
+          localStorage.removeItem('mo_sell_ref');
+        }
+      } catch { /* non-blocking */ }
       setStep(3);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to save');
@@ -239,6 +260,22 @@ export default function SellSignupPage() {
         throw new Error(data.error || 'Something went wrong. Please try again.');
       }
       posthog.capture('sell_payg_store_created', { businessId: data.businessId || bid });
+      try {
+        const refCode = localStorage.getItem('mo_sell_ref');
+        if (refCode) {
+          await fetch('/api/referrals', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'attach',
+              referralCode: refCode,
+              referredBusinessId: bid,
+              referredUserId: session.user.id,
+            }),
+          });
+          localStorage.removeItem('mo_sell_ref');
+        }
+      } catch { /* non-blocking */ }
       router.push('/dashboard/overview?welcome=1');
     } catch (err: unknown) {
       console.error('[Signup] store creation error:', err);

@@ -166,6 +166,13 @@ export async function POST(req: NextRequest) {
       .update({ status: 'completed', updatedAt: new Date().toISOString() })
       .eq('id', sessionId);
 
+    try {
+      const { maybeRewardFirstSale } = await import('@/lib/referrals');
+      await maybeRewardFirstSale(businessId);
+    } catch (e) {
+      console.warn('[orders/confirm] referral reward skipped', e);
+    }
+
     return NextResponse.json({ orderId: bridgeResult.orderId });
   } catch {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

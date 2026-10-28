@@ -26,6 +26,7 @@ const PATH_TO_PAGE: Record<string, SellPageId> = {
   '/dashboard/analytics':  'analytics',
   '/dashboard/earnings':   'earnings',
   '/dashboard/billing':    'billing',
+  '/dashboard/referrals':  'referrals',
   '/dashboard/settings':   'settings',
   '/dashboard/storefront': 'storefront',
   '/dashboard/customize':  'theme-editor',
@@ -48,6 +49,7 @@ const PAGE_TO_PATH: Record<SellPageId, string> = {
   'analytics':     '/dashboard/analytics',
   'earnings':      '/dashboard/earnings',
   'billing':       '/dashboard/billing',
+  'referrals':     '/dashboard/referrals',
   'settings':      '/dashboard/settings',
   'storefront':    '/dashboard/storefront',
   'theme-editor':  '/dashboard/customize',
@@ -73,6 +75,7 @@ export type SellPageId =
   | 'analytics'
   | 'earnings'
   | 'billing'
+  | 'referrals'
   | 'settings'
   | 'storefront'
   | 'theme-editor'

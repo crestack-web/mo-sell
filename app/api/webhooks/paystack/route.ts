@@ -71,7 +71,21 @@ async function handlePaymentSuccess(data: any) {
     if (error) {
       console.error('[Paystack Webhook] Failed to create order:', error);
     }
-  } catch (error) {
+  
+    // Referral: reward referrer on first paid sale for this business
+    try {
+      const businessId =
+        data?.metadata?.businessId ||
+        data?.metadata?.business_id ||
+        null;
+      if (businessId) {
+        const { maybeRewardFirstSale } = await import('@/lib/referrals');
+        await maybeRewardFirstSale(String(businessId));
+      }
+    } catch (refErr) {
+      console.warn('[Paystack Webhook] Referral reward skipped:', refErr);
+    }
+} catch (error) {
     console.error('[Paystack Webhook] Error handling payment success:', error);
   }
 }
