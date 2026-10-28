@@ -130,6 +130,9 @@ export function WaveAudioPlayer({
         padding: '14px 16px',
         position: 'relative',
         overflow: 'hidden',
+        width: '100%',
+        maxWidth: '100%',
+        boxSizing: 'border-box',
       }}
     >
       {/* ambient glow */}
@@ -145,7 +148,7 @@ export function WaveAudioPlayer({
 
       <audio ref={audioRef} src={src} preload="metadata" playsInline />
 
-      <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 14 }}>
+      <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 12, width: '100%', minWidth: 0 }}>
         {/* Play button */}
         <button
           type="button"
@@ -182,7 +185,7 @@ export function WaveAudioPlayer({
           )}
         </button>
 
-        <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
             <span
               style={{
@@ -224,6 +227,9 @@ export function WaveAudioPlayer({
               alignItems: 'flex-end',
               gap: 2,
               height: 40,
+              width: '100%',
+              maxWidth: '100%',
+              overflow: 'hidden',
               cursor: duration ? 'pointer' : 'default',
               userSelect: 'none',
             }}
