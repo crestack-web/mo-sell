@@ -166,7 +166,7 @@ export function ContentHubProvider({ children }: { children: React.ReactNode }) 
   const { user, storeConfig, showToast } = useSell();
   const currency = storeConfig?.currency ?? 'NGN';
 
-  const [activeTab, setActiveTab] = useState('studio');
+  const [activeTab, setActiveTab] = useState('ideas');
   const [products, setProducts] = useState<Product[]>([]);
   const [productsLoading, setProductsLoading] = useState(true);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);

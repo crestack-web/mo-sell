@@ -22,8 +22,8 @@ export function IdeasTab() {
     <div>
       <div style={s.cardHeader}>
         <div>
-          <p style={s.cardTitle}>Product content</p>
-          <p style={s.cardSub}>Pick a product — get hooks, scripts, and post angles made to drive store visits and sales</p>
+          <p style={s.cardTitle}>Content Ideas</p>
+          <p style={s.cardSub}>Turn your products into content that sells</p>
         </div>
       </div>
       <div style={s.cardBody}>
