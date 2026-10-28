@@ -421,11 +421,11 @@ function PrismHero(p: H) {
 
 
 // ══════════════════════════════════════════════════════════════════════════════
-// Wave Studio — producer / beats hero with waveform motif
+// Raman — producer / beats hero with waveform motif
 // ══════════════════════════════════════════════════════════════════════════════
 
-function WaveHero(p: H) {
-  const t = THEME_TOKENS.wave as ThemeTokens;
+function RamanHero(p: H) {
+  const t = (THEME_TOKENS.raman || THEME_TOKENS.wave) as ThemeTokens;
   const hasBg = Boolean(p.backgroundImage);
   return (
     <section style={{ position: 'relative', padding: '96px 5% 88px', overflow: 'hidden', background: hasBg ? undefined : t.bg, color: t.text }}>
@@ -475,7 +475,8 @@ export function HeroWithTheme(p: H) {
     case 'volt': return <VoltHero {...p} />;
     case 'botanica': return <BotanicaHero {...p} />;
     case 'prism': return <PrismHero {...p} />;
-    case 'wave': return <WaveHero {...p} />;
+    case 'raman':
+    case 'wave': return <RamanHero {...p} />;
     default: return <AtelierHero {...p} />;
   }
 }

@@ -92,12 +92,12 @@ export const THEMES: ThemeMeta[] = [
     dataAttr: 'prism', type: 'e-commerce',
   },
   {
-    id: 'wave', name: 'Wave Studio',
+    id: 'raman', name: 'Raman',
     description: 'Built for producers. Dark studio canvas, violet–cyan energy, track-style product cards for beats and sample packs.',
     previewBg: '#0A0A0F', previewAccent: '#A78BFA', previewFont: 'Space Grotesk',
     bestFor: ['Producers', 'Beats', 'Sample packs', 'Music'],
     badge: { label: 'Music', color: '#0A0A0F', bg: '#A78BFA' },
-    dataAttr: 'wave', type: 'e-commerce',
+    dataAttr: 'raman', type: 'e-commerce',
   },
   {
     id: 'ankara', name: 'Ankara Pop',
@@ -218,7 +218,7 @@ export function suggestTheme(category: string): StorefrontTheme {
   if (['handmade', 'artisan', 'organic', 'craft', 'ceramic', 'plant'].some(k => c.includes(k))) return 'terra';
   if (['streetwear', 'sneaker', 'urban', 'drop', 'skate'].some(k => c.includes(k))) return 'volt';
   if (['beauty', 'cosmetics', 'skincare', 'makeup', 'botanical', 'spa', 'candle', 'fitness'].some(k => c.includes(k))) return 'botanica';
-  if (['music', 'producer', 'beat', 'afrobeats', 'amapiano', 'drill', 'sample', 'audio', 'dj'].some(k => c.includes(k))) return 'wave';
+  if (['music', 'producer', 'beat', 'afrobeats', 'amapiano', 'drill', 'sample', 'audio', 'dj'].some(k => c.includes(k))) return 'raman';
   if (['gen-z', 'holographic', 'trend', 'studio'].some(k => c.includes(k))) return 'prism';
   if (['premium', 'vintage', 'jewellery', 'nightlife', 'bar', 'quiet', 'elegant', 'gold'].some(k => c.includes(k))) return 'midnight';
   if (['editorial', 'art', 'minimal', 'neutral', 'fashion', 'photography'].some(k => c.includes(k))) return 'harmattan';
@@ -248,7 +248,8 @@ const themeLoader: Record<string, () => Promise<ThemeComponents>> = {
   volt: () => import('./shared/factory').then(m => m.makeTheme('volt')),
   botanica: () => import('./shared/factory').then(m => m.makeTheme('botanica')),
   prism: () => import('./shared/factory').then(m => m.makeTheme('prism')),
-  wave: () => import('./shared/factory').then(m => m.makeTheme('wave')),
+  raman: () => import('./shared/factory').then(m => m.makeTheme('raman')),
+  wave: () => import('./shared/factory').then(m => m.makeTheme('raman')),
 };
 
 export type ThemeId = keyof typeof themeLoader;
@@ -295,6 +296,7 @@ export function getThemeType(themeId: string): ThemeLayoutType {
  * renders with an e-commerce theme (defaulting to luxe).
  */
 export function resolveEcommerceTheme(theme?: string | null): StorefrontTheme {
+  if (theme === 'wave' || theme === 'Wave Studio') return 'raman';
   const t = theme ?? null;
   if (t && getThemeType(t) === 'e-commerce') return t as StorefrontTheme;
   return 'luxe';

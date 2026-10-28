@@ -36,7 +36,7 @@ export function ProductCardWithTheme({ themeId, product, storeSlug, currency }: 
 
   const imgSrc = product.images[hovered && product.images[1] ? 1 : 0];
 
-  if (themeId === 'wave') {
+  if (themeId === 'raman' || themeId === 'wave') {
     return (
       <Link href={`/store/${storeSlug}/product/${product.id}`}
         style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}

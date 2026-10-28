@@ -36,7 +36,7 @@ Pick exactly one:
 - volt — streetwear / drops
 - botanica — beauty / skincare
 - prism — creative / studio brands
-- wave — music producers, beats, audio
+- raman — music producers, beats, audio
 - market — general marketplace / mixed retail
 
 COLORS
@@ -50,7 +50,7 @@ Append these fenced blocks at the end of your message (use only fields you know)
   "storeName": "Brand name",
   "tagline": "One-line promise",
   "businessCategory": "Fashion|Food|Beauty|Electronics|Music|Services|General",
-  "theme": "wave",
+  "theme": "raman",
   "primaryColor": "#0EA5E9",
   "secondaryColor": "#6366F1",
   "status": "active"
@@ -78,7 +78,7 @@ RULES
 - Do not ask them to pick a template manually.
 - Do not dump long forms. Chat only.
 - Prefer NGN prices unless they specify otherwise.
-- If they sell beats/music, theme MUST be wave and productType digital with digitalSubtype audio when creating a sample product.
+- If they sell beats/music, theme MUST be raman and productType digital with digitalSubtype audio when creating a sample product.
 - If info is still missing, ask — do not invent a random unrelated business.
 - After emitting store_update, tell them their store is ready to preview and they can keep chatting to refine it.
 `;

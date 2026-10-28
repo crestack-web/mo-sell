@@ -168,6 +168,7 @@ export function getThemeCssVars(theme: StorefrontTheme, primary: string, seconda
         '--sf-accent': '#00E5FF', '--sf-accent-2': '#FFFFFF', '--sf-nav-h': '0px',
         '--sf-font': "Arial, 'Helvetica Neue', sans-serif",
       };
+      case 'raman':
       case 'wave': return {
         '--sf-bg': '#0A0A0F', '--sf-surface': '#12121A', '--sf-border': '#1E1E2A',
         '--sf-text-1': '#F4F4F8', '--sf-text-2': '#9B9BB0', '--sf-text-3': '#6B6B80',

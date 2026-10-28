@@ -326,7 +326,7 @@ export function ProductPageWithTheme({ product, storeSlug, currency, themeId }: 
                 src={product.digitalFileUrl}
                 title={product.displayName}
                 t={t}
-                accentLabel={themeId === 'wave' ? 'Beat preview' : 'Audio preview'}
+                accentLabel={themeId === 'raman' || themeId === 'wave' ? 'Beat preview' : 'Audio preview'}
               />
             </div>
           ) : isAudio ? (
