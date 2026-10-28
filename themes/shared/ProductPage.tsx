@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useCart } from '@/app/store/[storeSlug]/context/CartContext';
 import type { ThemeProductPageProps } from '../types';
 import { THEME_TOKENS, accentText, type ThemeTokens } from './tokens';
+import { WaveAudioPlayer } from './WaveAudioPlayer';
 
 function fmt(n: number, currency: string) {
   const sym = currency === 'NGN' ? '₦' : currency === 'USD' ? '$' : currency + ' ';
@@ -119,10 +120,18 @@ export function ProductPageWithTheme({ product, storeSlug, currency, themeId }: 
           )}
 
           {isAudio && product.digitalFileUrl ? (
-            <div style={{ marginBottom: 16, padding: 12, borderRadius: t.radius, border: `1px solid ${t.border}`, background: t.surface }}>
-              <p style={{ margin: '0 0 8px', fontSize: '0.8rem', fontWeight: 700 }}>Preview</p>
-              <audio controls preload="metadata" src={product.digitalFileUrl} style={{ width: '100%' }} />
+            <div style={{ marginBottom: 16 }}>
+              <WaveAudioPlayer
+                src={product.digitalFileUrl}
+                title={product.displayName}
+                t={t}
+                accentLabel={themeId === 'wave' ? 'Beat preview' : 'Audio preview'}
+              />
             </div>
+          ) : isAudio ? (
+            <p style={{ margin: '0 0 16px', fontSize: '0.85rem', color: t.subtext }}>
+              Preview file not attached yet.
+            </p>
           ) : null}
 
           {product.description ? (
