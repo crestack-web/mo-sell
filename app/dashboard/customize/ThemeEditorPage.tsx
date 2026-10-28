@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Monitor, Tablet, Smartphone, Undo2, Redo2, ChevronLeft, Pencil, X } from 'lucide-react';
 import { SocialIcon, SOCIAL_DEFS, SOCIAL_KEYS, normalizeSocialValue, socialStatus } from '@/components/SocialBrand';
 import { getDatabase } from '@/lib/database/adapter'
-import { getStorageAdapter } from '@/lib/storage/adapter';
+import { getStorage } from '@/lib/storage/adapter';
 import { useSell } from '@/context/SellContext';
 import { useRouter } from 'next/navigation';
 import { isCreatorTheme, getThemeType, resolveEcommerceTheme, THEMES } from '@/themes/registry';
@@ -748,7 +748,7 @@ export function ThemeEditorPage() {
     }
     setLogoUploading(true);
     try {
-      const storage = getStorageAdapter();
+      const storage = getStorage();
       const safe = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
       const path = `stores/${user.businessId}/logo_${Date.now()}_${safe}`;
       const url = await storage.upload(file, path);
