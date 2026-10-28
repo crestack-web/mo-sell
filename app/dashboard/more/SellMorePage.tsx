@@ -122,7 +122,7 @@ const NAV_SECTIONS: { section: string; items: NavItem[] }[] = [
             <polygon points="12 2 15.09 8.26 22 9.27 17 14.18 18.18 21.14 12 17.77 5.82 21.14 7 14.18 2 9.27 8.91 8.26 12 2"/>
           </svg>
         ),
-      },,
+      },
       {
         id: 'ugc',
         label: 'UGC Creator',
