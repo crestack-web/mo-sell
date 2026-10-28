@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Monitor, Tablet, Smartphone, Undo2, Redo2, ChevronLeft, Pencil, X } from 'lucide-react';
 import { SocialIcon, SOCIAL_DEFS, SOCIAL_KEYS, normalizeSocialValue, socialStatus } from '@/components/SocialBrand';
-import { getDatabase } from '@/lib/database/adapter'
+import { getDatabase } from '@/lib/database/adapter';
 import { getStorage } from '@/lib/storage/adapter';
 import { useSell } from '@/context/SellContext';
 import { useRouter } from 'next/navigation';
@@ -322,7 +322,7 @@ function HeaderSettings({
   onLogoRemove?: () => void;
 }) {
   const navLinks = s.navLinks ?? [];
-  const fileRef = React.useRef<HTMLInputElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
   return (<>
     <SGroup label="STORE LOGO" />
     <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
@@ -359,14 +359,14 @@ function HeaderSettings({
         >
           {logoUploading ? 'Uploading…' : logoUrl ? 'Replace logo' : 'Upload logo'}
         </button>
-        {logoUrl && onLogoRemove && (
+        {logoUrl && onLogoRemove ? (
           <button type="button" onClick={onLogoRemove} style={{
             border: 'none', background: 'none', color: 'var(--sell-text-3)', fontSize: '0.75rem',
             cursor: 'pointer', textAlign: 'left', padding: 0, fontWeight: 600,
           }}>
             Remove logo
           </button>
-        )}
+        ) : null}
         <p className={styles.fHint} style={{ margin: 0 }}>PNG, JPG, WebP or SVG. Square works best.</p>
       </div>
     </div>
@@ -738,6 +738,7 @@ export function ThemeEditorPage() {
     }
   }, [user?.businessId, theme, refreshStoreConfig, showToast]);
 
+
   const handleLogoFile = useCallback(async (file: File) => {
     if (!user?.businessId) return;
     if (!file.type.startsWith('image/')) {
@@ -811,7 +812,7 @@ export function ThemeEditorPage() {
 
   const storeName = storeConfig?.storeName ?? 'Your Store';
   const tagline   = storeConfig?.tagline   ?? 'Shop our latest collection';
-  const activeSection = sections.find(s => s.id === activeId) ?? null;
+    const activeSection = sections.find(s => s.id === activeId) ?? null;
   const headerSection = sections.find(s => s.id === 'header');
   const hideStoreNameWithLogo = headerSection ? (headerSection.settings as HeaderSectionSettings).hideStoreNameWithLogo : false;
 
