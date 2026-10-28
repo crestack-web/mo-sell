@@ -36,6 +36,7 @@ const PATH_TO_PAGE: Record<string, SellPageId> = {
   '/dashboard/bookings':   'bookings',
   '/dashboard/customers':  'customers',
   '/dashboard/content-hub':   'content-hub',
+  '/dashboard/ugc':           'ugc',
   '/dashboard/admin/ugc-disputes': 'admin-ugc-disputes',
   '/dashboard/more':       'more',
 };
@@ -60,6 +61,7 @@ const PAGE_TO_PATH: Record<SellPageId, string> = {
   'bookings':      '/dashboard/bookings',
   'customers':     '/dashboard/customers',
   'content-hub':          '/dashboard/content-hub',
+  'ugc':                  '/dashboard/ugc',
   'admin-ugc-disputes':   '/dashboard/admin/ugc-disputes',
   'more':          '/dashboard/more',
 };
@@ -85,6 +87,7 @@ export type SellPageId =
   | 'bookings'
   | 'customers'
   | 'content-hub'
+  | 'ugc'
   | 'admin-ugc-disputes'
   | 'more';
 
