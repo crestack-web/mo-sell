@@ -491,6 +491,8 @@ export function ThemeEditorPage() {
   const [mobileEditorOpen, setMobileEditorOpen] = useState(false);
   const [dragId, setDragId] = useState<string | null>(null);
   const [fontFamily, setFontFamily] = useState<string>('');
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [logoUploading, setLogoUploading] = useState(false);
   const [buttonStyle, setButtonStyle] = useState<'pill' | 'square' | 'rounded'>('pill');
   const [bodyTextColor, setBodyTextColor] = useState<string>('');
   const [bgColor, setBgColor] = useState<string>('');
@@ -809,8 +811,6 @@ export function ThemeEditorPage() {
 
   const storeName = storeConfig?.storeName ?? 'Your Store';
   const tagline   = storeConfig?.tagline   ?? 'Shop our latest collection';
-  const [logoUrl, setLogoUrl] = useState<string | null>(storeConfig?.logoUrl ?? null);
-  const [logoUploading, setLogoUploading] = useState(false);
   const activeSection = sections.find(s => s.id === activeId) ?? null;
   const headerSection = sections.find(s => s.id === 'header');
   const hideStoreNameWithLogo = headerSection ? (headerSection.settings as HeaderSectionSettings).hideStoreNameWithLogo : false;
