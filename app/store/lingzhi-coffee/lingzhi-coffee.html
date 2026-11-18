@@ -193,7 +193,7 @@ function money(n){return "₦"+n.toLocaleString("en-NG")}
 function find(id){return P.filter(function(p){return p.id===id})[0]}
 function total(){var t=0;for(var k in cart)t+=find(k).price*cart[k];return t}
 function cnt(){var c=0;for(var k in cart)c+=cart[k];return c}
-function toast(m){var t=$("toast");t.textContent=m;t.className="toast on";setTimeout(function(){t.className="toast"},1800)}
+var toastTimer;function toast(m){var t=$("toast");if(!t)return;clearTimeout(toastTimer);t.textContent=m;t.className="toast on";toastTimer=setTimeout(function(){t.className="toast"},1800)}
 
 function add(id){cart[id]=(cart[id]||0)+1;save();draw();toast("Added to your bag")}
 function chg(id,d){cart[id]=(cart[id]||0)+d;if(cart[id]<=0)delete cart[id];save();draw()}
