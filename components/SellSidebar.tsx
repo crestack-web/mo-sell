@@ -254,10 +254,15 @@ export function SellSidebar() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1785078071/mosell_gpzl2q.png"
-              alt="Mo-sell"
+              alt=""
               className={styles.logoImg}
             />
-            <span className={styles.appName}>MO-SELL</span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/mo-sell-wordmark.png"
+              alt="Mo-sell"
+              className={styles.wordmark}
+            />
           </div>
         </div>
 

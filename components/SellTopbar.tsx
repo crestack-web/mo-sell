@@ -71,9 +71,14 @@ export function SellTopbar() {
         />
       </button>
 
-      {/* App name (not page title) */}
+      {/* Transparent wordmark (not page title) */}
       <div className={styles.titleBlock}>
-        <h1 className={styles.title}>Mo-sell</h1>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/mo-sell-wordmark.png"
+          alt=""
+          className={styles.wordmark}
+        />
         {storeConfig?.storeName && (
           <p className={styles.subtitle}>{storeConfig.storeName}</p>
         )}

@@ -221,8 +221,9 @@ function TopNav() {
     }}>
       <a href="/welcome" style={{ display:'flex', alignItems:'center', gap:10, textDecoration:'none' }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1785078071/mosell_gpzl2q.png" alt="MO Sell" style={{ height: 36, width: 'auto', objectFit: 'contain' }} />
-        <span className="sw-nav-brand" style={{ fontSize: 16, fontWeight: 800, letterSpacing: '0.06em', color: C.text1, fontFamily: FONT_DISPLAY }}>MO-SELL</span>
+        <img src="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1785078071/mosell_gpzl2q.png" alt="" style={{ height: 36, width: 'auto', objectFit: 'contain' }} />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/mo-sell-wordmark.png" alt="MO Sell" style={{ height: 24, width: 'auto', objectFit: 'contain' }} />
       </a>
       
       {/* Desktop nav */}
