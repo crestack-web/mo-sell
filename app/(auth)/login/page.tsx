@@ -2,6 +2,8 @@
 
 import React, { useState } from 'react';
 import { supabaseClient } from '@/lib/supabase-client';
+import { getDatabase } from '@/lib/database/adapter';
+import { resolveModuleAuthEmails } from '@/lib/account-identity';
 
 export const dynamic = 'force-dynamic';
 
@@ -105,12 +107,32 @@ export default function SellLoginPage() {
     setLoading(true); setError('');
     try {
       await ensureCleanSession();
-      const { data, error } = await supabaseClient.auth.signInWithPassword({
-        email,
-        password,
-      });
-      if (error) throw error;
-      goToDashboard();
+      const authEmails = await resolveModuleAuthEmails(email, 'creator');
+      const db = getDatabase();
+      let lastError: any = null;
+
+      for (const authEmail of authEmails) {
+        const { data, error } = await supabaseClient.auth.signInWithPassword({
+          email: authEmail,
+          password,
+        });
+        if (error || !data?.user) {
+          lastError = error;
+          continue;
+        }
+
+        // The same real email can also own brand accounts. Only accept the
+        // auth identity that actually has a creator profile.
+        const profile = await db.doc(`users/${data.user.id}`).get();
+        if (profile.exists) {
+          goToDashboard();
+          return;
+        }
+        await supabaseClient.auth.signOut();
+      }
+
+      if (lastError) throw lastError;
+      setError('No creator account found for this email. Please sign up first.');
     } catch (err: any) {
       const code = err?.code ?? '';
       const message = err?.message ?? '';
@@ -149,7 +171,8 @@ export default function SellLoginPage() {
   async function handleForgotPassword() {
     if (!email) { setError('Enter your email first, then click forgot password.'); return; }
     try {
-      const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+      const [authEmail = email] = await resolveModuleAuthEmails(email, 'creator');
+      const { error } = await supabaseClient.auth.resetPasswordForEmail(authEmail, {
         redirectTo: `${window.location.origin}/auth/reset-password`,
       });
       if (error) throw error;

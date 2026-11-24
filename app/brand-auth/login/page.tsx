@@ -4,39 +4,36 @@ import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabaseClient } from '@/lib/supabase-client';
 import { getDatabase } from '@/lib/database/adapter';
-import { ArrowRight, Mail, Lock, Loader2, AlertCircle } from 'lucide-react';
+import { resolveModuleAuthEmails } from '@/lib/account-identity';
+import { AuthShell } from '../_components/AuthShell';
+import { AlertCircle, ArrowRight, CheckCircle2, Loader2, Lock, Mail } from 'lucide-react';
+import styles from '../brand-auth.module.css';
 
 export const dynamic = 'force-dynamic';
 
-// ── Theme ────────────────────────────────────────────────────────────────────
-const THEME = {
-  bg: '#0A0A0B',
-  surface: '#141416',
-  surfaceHover: '#1A1A1D',
-  border: '#2A2A2E',
-  primary: '#6366F1',
-  primaryHover: '#4F46E5',
-  text1: '#FFFFFF',
-  text2: '#A1A1AA',
-  text3: '#71717A',
-  success: '#10B981',
-  error: '#EF4444',
-};
+type FormData = { email: string; password: string };
 
-const FONTS = {
-  display: "'Inter', system-ui, sans-serif",
-  body: "'Inter', system-ui, sans-serif",
-};
-
-interface FormData {
-  email: string;
-  password: string;
+function GoogleMark() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+      <path d="M17.64 9.205c0-.639-.057-1.252-.164-1.841H9v3.481h4.844a4.14 4.14 0 01-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4" />
+      <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z" fill="#34A853" />
+      <path d="M3.964 10.71A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05" />
+      <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335" />
+    </svg>
+  );
 }
 
 function BrandLoginPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get('redirect') || '/brand/dashboard';
+  const registerHref = `/brand-auth/register?redirect=${encodeURIComponent(redirectTo)}`;
+
+  const [formData, setFormData] = useState<FormData>({ email: '', password: '' });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [resetSent, setResetSent] = useState(false);
 
   useEffect(() => {
     const err = searchParams.get('error');
@@ -44,20 +41,14 @@ function BrandLoginPageContent() {
     else if (err === 'inactive') setError('Your account is not active. Please contact support.');
   }, [searchParams]);
 
-  const [formData, setFormData] = useState<FormData>({
-    email: '',
-    password: '',
-  });
-
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
     setError('');
+    setResetSent(false);
   };
 
-  const handleLogin = async () => {
+  const handleLogin = async (e?: React.FormEvent) => {
+    e?.preventDefault();
     if (!formData.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       setError('Valid email is required');
       return;
@@ -71,50 +62,76 @@ function BrandLoginPageContent() {
     setError('');
 
     try {
-      // Sign in with Supabase
-      const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({
-        email: formData.email,
-        password: formData.password,
-      });
-
-      if (authError) throw authError;
-
-      if (!authData.user) {
-        throw new Error('Login failed');
-      }
-
-      // Check if brand profile exists
+      // A real email may have several module accounts. Only brand identities
+      // are tried, so a creator account never opens the brand dashboard.
+      await supabaseClient.auth.signOut();
+      const authEmails = await resolveModuleAuthEmails(formData.email, 'brand');
       const db = getDatabase();
-      const brandDoc = await db.doc(`brands/${authData.user.id}`).get();
-      
-      if (!brandDoc.exists) {
-        await supabaseClient.auth.signOut();
-        setError('No brand account found. Please register first.');
-        setLoading(false);
+      let lastError: any = null;
+
+      for (const authEmail of authEmails) {
+        const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({
+          email: authEmail,
+          password: formData.password,
+        });
+
+        if (authError || !authData?.user) {
+          lastError = authError;
+          continue;
+        }
+
+        const brandDoc = await db.doc(`brands/${authData.user.id}`).get();
+        if (!brandDoc.exists) {
+          await supabaseClient.auth.signOut();
+          continue;
+        }
+
+        if (brandDoc.data()?.status !== 'active') {
+          await supabaseClient.auth.signOut();
+          setError('Your account is not active. Please contact support.');
+          return;
+        }
+
+        router.push(redirectTo);
         return;
       }
 
-      const brandData = brandDoc.data();
-      if (brandData.status !== 'active') {
-        await supabaseClient.auth.signOut();
-        setError('Your account is not active. Please contact support.');
-        setLoading(false);
+      if (lastError) {
+        const message = String(lastError.message || '').toLowerCase();
+        setError(
+          message.includes('invalid login') || message.includes('invalid credentials')
+            ? 'Invalid email or password.'
+            : lastError.message || 'Login failed. Please check your credentials.'
+        );
         return;
       }
-
-      // Redirect to dashboard
-      router.push(redirectTo);
+      setError('No brand account found for this email. Please register first.');
     } catch (err: any) {
-      console.error('Login error:', err);
+      console.error('Brand login error:', err);
       setError(err.message || 'Login failed. Please check your credentials.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleLogin();
+  const handleForgotPassword = async () => {
+    if (!formData.email.trim()) {
+      setError('Enter your email first, then choose reset password.');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    try {
+      const [authEmail = formData.email] = await resolveModuleAuthEmails(formData.email, 'brand');
+      const { error: resetError } = await supabaseClient.auth.resetPasswordForEmail(authEmail, {
+        redirectTo: `${window.location.origin}/auth/reset-password`,
+      });
+      if (resetError) throw resetError;
+      setResetSent(true);
+    } catch (err: any) {
+      setError(err.message || 'Could not send reset email. Check the address and try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -122,13 +139,11 @@ function BrandLoginPageContent() {
     setLoading(true);
     setError('');
     try {
-      const { error } = await supabaseClient.auth.signInWithOAuth({
+      const { error: oauthError } = await supabaseClient.auth.signInWithOAuth({
         provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/brand-auth/callback${redirectTo && redirectTo !== '/brand/dashboard' ? `?redirect=${encodeURIComponent(redirectTo)}` : ''}`,
-        },
+        options: { redirectTo: `${window.location.origin}/brand-auth/callback?redirect=${encodeURIComponent(redirectTo)}` },
       });
-      if (error) throw error;
+      if (oauthError) throw oauthError;
     } catch (err: any) {
       console.error('Google auth error:', err);
       setError('Google sign-in failed. Please try again.');
@@ -137,262 +152,89 @@ function BrandLoginPageContent() {
     }
   };
 
-  const GoogleMark = () => (
-    <svg width="18" height="18" viewBox="0 0 18 18">
-      <path d="M17.64 9.205c0-.639-.057-1.252-.164-1.841H9v3.481h4.844a4.14 4.14 0 01-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4" />
-      <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z" fill="#34A853" />
-      <path d="M3.964 10.71A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05" />
-      <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335" />
-    </svg>
-  );
-
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', background: THEME.bg, fontFamily: FONTS.body }}>
-      {/* Left Side - Form */}
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40 }}>
-        <div style={{ width: '100%', maxWidth: 480 }}>
-          {/* Logo */}
-          <div style={{ marginBottom: 40, display: 'flex', alignItems: 'center', gap: 12 }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1785078071/mosell_gpzl2q.png" alt="MO Sell" style={{ height: 40, width: 'auto', objectFit: 'contain' }} />
-            <span style={{ fontSize: 24, fontWeight: 700, color: THEME.text1, fontFamily: FONTS.display }}>
-              MO Sell
-            </span>
+    <AuthShell
+      eyebrow="Welcome back"
+      title="Sign in to Brand Studio"
+      description="Manage briefs, creator videos and payouts from one workspace."
+      footer={
+        <p className={styles.footerText}>
+          New to MO Sell? <button type="button" onClick={() => router.push(registerHref)}>Create a brand account</button>
+        </p>
+      }
+    >
+      {error && (
+        <div className={`${styles.alert} ${styles.alertError}`} role="alert">
+          <AlertCircle size={16} /> <span>{error}</span>
+        </div>
+      )}
+      {resetSent && (
+        <div className={`${styles.alert} ${styles.alertSuccess}`}>
+          <CheckCircle2 size={16} /> <span>Password reset link sent. Check your inbox.</span>
+        </div>
+      )}
+
+      <button className={styles.socialButton} onClick={handleGoogleAuth} disabled={loading} type="button">
+        <GoogleMark /> Continue with Google
+      </button>
+
+      <div className={styles.divider}>
+        <span className={styles.dividerLine} /> or <span className={styles.dividerLine} />
+      </div>
+
+      <form onSubmit={handleLogin} className={styles.fields}>
+        <div className={styles.field}>
+          <label className={styles.label} htmlFor="brand-email">Email address</label>
+          <div className={styles.inputWrap}>
+            <Mail size={17} className={styles.inputIcon} />
+            <input
+              id="brand-email"
+              className={styles.input}
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              placeholder="brand@company.com"
+              autoComplete="email"
+              autoFocus
+            />
           </div>
+        </div>
 
-          <h1 style={{ fontSize: 32, fontWeight: 700, color: THEME.text1, marginBottom: 8, fontFamily: FONTS.display }}>
-            Brand Sign In
-          </h1>
-          <p style={{ fontSize: 16, color: THEME.text2, marginBottom: 32 }}>
-            Access your dashboard to manage UGC purchases and analytics
-          </p>
+        <div className={styles.field}>
+          <label className={styles.label} htmlFor="brand-password">Password</label>
+          <div className={styles.inputWrap}>
+            <Lock size={17} className={styles.inputIcon} />
+            <input
+              id="brand-password"
+              className={styles.input}
+              type="password"
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
+              placeholder="••••••••"
+              autoComplete="current-password"
+            />
+          </div>
+        </div>
 
-          {error && (
-            <div style={{ padding: 12, borderRadius: 8, background: `${THEME.error}15`, border: `1px solid ${THEME.error}30`, color: THEME.error, fontSize: 14, marginBottom: 24, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <AlertCircle size={16} />
-              {error}
-            </div>
-          )}
-
-          <button
-            onClick={handleGoogleAuth}
-            disabled={loading}
-            style={{
-              width: '100%',
-              padding: 14,
-              background: THEME.surface,
-              border: `1px solid ${THEME.border}`,
-              borderRadius: 8,
-              color: THEME.text1,
-              fontSize: 16,
-              fontWeight: 600,
-              cursor: loading ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 10,
-              transition: 'all 0.2s',
-              marginBottom: 20,
-            }}
-            onMouseEnter={(e) => !loading && (e.currentTarget.style.background = THEME.surfaceHover)}
-            onMouseLeave={(e) => !loading && (e.currentTarget.style.background = THEME.surface)}
-          >
-            <GoogleMark />
-            Continue with Google
+        <div className={styles.fieldMeta}>
+          <button className={styles.linkButton} type="button" onClick={handleForgotPassword} disabled={loading}>
+            Forgot password?
           </button>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-            <div style={{ flex: 1, height: 1, background: THEME.border }} />
-            <span style={{ fontSize: 12, color: THEME.text3 }}>or</span>
-            <div style={{ flex: 1, height: 1, background: THEME.border }} />
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-            <div>
-              <label style={{ display: 'block', fontSize: 14, fontWeight: 500, color: THEME.text2, marginBottom: 8 }}>
-                Email Address
-              </label>
-              <div style={{ position: 'relative' }}>
-                <Mail size={20} color={THEME.text3} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  onKeyPress={handleKeyPress}
-                  placeholder="brand@company.com"
-                  autoFocus
-                  style={{
-                    width: '100%',
-                    padding: '12px 12px 12px 44px',
-                    background: THEME.surface,
-                    border: `1px solid ${THEME.border}`,
-                    borderRadius: 8,
-                    color: THEME.text1,
-                    fontSize: 15,
-                    outline: 'none',
-                    transition: 'border-color 0.2s',
-                  }}
-                  onFocus={(e) => e.target.style.borderColor = THEME.primary}
-                  onBlur={(e) => e.target.style.borderColor = THEME.border}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: 14, fontWeight: 500, color: THEME.text2, marginBottom: 8 }}>
-                Password
-              </label>
-              <div style={{ position: 'relative' }}>
-                <Lock size={20} color={THEME.text3} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
-                <input
-                  type="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  onKeyPress={handleKeyPress}
-                  placeholder="••••••••"
-                  style={{
-                    width: '100%',
-                    padding: '12px 12px 12px 44px',
-                    background: THEME.surface,
-                    border: `1px solid ${THEME.border}`,
-                    borderRadius: 8,
-                    color: THEME.text1,
-                    fontSize: 15,
-                    outline: 'none',
-                    transition: 'border-color 0.2s',
-                  }}
-                  onFocus={(e) => e.target.style.borderColor = THEME.primary}
-                  onBlur={(e) => e.target.style.borderColor = THEME.border}
-                />
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <button
-                onClick={() => {/* TODO: Implement password reset */}}
-                style={{ background: 'none', border: 'none', color: THEME.primary, fontSize: 13, cursor: 'pointer' }}
-              >
-                Forgot password?
-              </button>
-            </div>
-
-            <button
-              onClick={handleLogin}
-              disabled={loading}
-              style={{
-                width: '100%',
-                padding: 14,
-                background: loading ? THEME.surfaceHover : THEME.primary,
-                border: 'none',
-                borderRadius: 8,
-                color: 'white',
-                fontSize: 16,
-                fontWeight: 600,
-                cursor: loading ? 'not-allowed' : 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 8,
-                transition: 'background 0.2s',
-              }}
-              onMouseEnter={(e) => !loading && (e.currentTarget.style.background = THEME.primaryHover)}
-              onMouseLeave={(e) => !loading && (e.currentTarget.style.background = THEME.primary)}
-            >
-              {loading ? (
-                <>
-                  <Loader2 size={20} style={{ animation: 'spin 1s linear infinite' }} />
-                  Signing In...
-                </>
-              ) : (
-                <>
-                  Sign In
-                  <ArrowRight size={20} />
-                </>
-              )}
-            </button>
-          </div>
-
-          <p style={{ fontSize: 14, color: THEME.text3, textAlign: 'center', marginTop: 24 }}>
-            Don't have a brand account?{' '}
-            <button
-              onClick={() => router.push('/brand-auth/register' + (redirectTo ? `?redirect=${encodeURIComponent(redirectTo)}` : ''))}
-              style={{ background: 'none', border: 'none', color: THEME.primary, fontSize: 14, fontWeight: 500, cursor: 'pointer' }}
-            >
-              Register as Brand
-            </button>
-          </p>
         </div>
-      </div>
 
-      {/* Right Side - Hero */}
-      <div style={{ 
-        flex: 1, 
-        display: 'none', 
-        alignItems: 'center', 
-        justifyContent: 'center', 
-        padding: 40,
-        background: `linear-gradient(135deg, ${THEME.primary} 0%, #8B5CF6 100%)`,
-      }} className="hero-section">
-        <div style={{ maxWidth: 480 }}>
-          <h1 style={{ fontSize: 48, fontWeight: 700, color: 'white', marginBottom: 24, fontFamily: FONTS.display, lineHeight: 1.2 }}>
-            Welcome Back
-          </h1>
-          <p style={{ fontSize: 18, color: 'rgba(255,255,255,0.9)', marginBottom: 32, lineHeight: 1.6 }}>
-            Access your dashboard to manage your UGC video library, track performance, and handle payments seamlessly.
-          </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ width: 40, height: 40, borderRadius: 8, background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                📊
-              </div>
-              <span style={{ fontSize: 16, color: 'white' }}>View your purchased videos</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ width: 40, height: 40, borderRadius: 8, background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                💳
-              </div>
-              <span style={{ fontSize: 16, color: 'white' }}>Manage wallet balance</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ width: 40, height: 40, borderRadius: 8, background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                📈
-              </div>
-              <span style={{ fontSize: 16, color: 'white' }}>Track video performance</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ width: 40, height: 40, borderRadius: 8, background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                📋
-              </div>
-              <span style={{ fontSize: 16, color: 'white' }}>View transaction history</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <style jsx global>{`
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        @media (min-width: 1024px) {
-          .hero-section {
-            display: flex !important;
-          }
-        }
-      `}</style>
-    </div>
+        <button className={styles.primaryButton} type="submit" disabled={loading}>
+          {loading ? <><Loader2 size={17} className={styles.spinner} /> Signing in…</> : <>Sign in <ArrowRight size={17} /></>}
+        </button>
+      </form>
+    </AuthShell>
   );
 }
 
 export default function BrandLoginPage() {
   return (
-    <Suspense fallback={
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: THEME.bg }}>
-        <Loader2 size={40} style={{ animation: 'spin 1s linear infinite', color: THEME.primary }} />
-      </div>
-    }>
+    <Suspense fallback={<div className={styles.page} />}>
       <BrandLoginPageContent />
     </Suspense>
   );

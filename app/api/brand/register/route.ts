@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServer } from '@/lib/database/postgresql-adapter';
+import { createModuleUser } from '@/lib/account-identity';
 
 export async function POST(req: NextRequest) {
   try {
@@ -13,6 +14,7 @@ export async function POST(req: NextRequest) {
     const supabase = getSupabaseServer();
 
     let userId: string;
+    let authEmail: string;
     let accountCreated = false;
 
     if (accessToken) {
@@ -22,6 +24,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Invalid session. Please sign in again.' }, { status: 401 });
       }
       userId = user.id;
+      authEmail = user.email || String(email || '').toLowerCase();
     } else {
       // Email + password path — require OTP verification
       if (!email || !password || !code) {
@@ -60,35 +63,24 @@ export async function POST(req: NextRequest) {
 
       await supabase.from('email_otps').delete().eq('email', normalizedEmail);
 
-      // Create the auth user (auto-confirmed)
-      const { data: created, error: createError } = await supabase.auth.admin.createUser({
-        email: normalizedEmail,
-        password,
-        email_confirm: true,
-      });
-
-      if (createError) {
-        const message = String(createError.message || '').toLowerCase();
-        if (message.includes('already') || message.includes('registered')) {
-          // A previous failed attempt left an auth user without a brand row.
-          // Recover by linking this registration to the existing account.
-          const { data: listData, error: listError } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 });
-          if (listError) {
-            console.error('[Brand Register] listUsers error:', listError);
-            return NextResponse.json({ error: 'Failed to link existing account' }, { status: 500 });
-          }
-          const existing = (listData?.users || []).find(u => (u.email || '').toLowerCase() === normalizedEmail);
-          if (!existing) {
-            return NextResponse.json({ error: 'An account with this email already exists. Please sign in.' }, { status: 400 });
-          }
-          userId = existing.id;
-        } else {
-          console.error('[Brand Register] createUser error:', createError);
-          return NextResponse.json({ error: 'Failed to create account' }, { status: 500 });
-        }
-      } else {
-        userId = created.user.id;
+      // Create the next available brand identity for this email. The real
+      // address stays on the brand profile; only auth uses the alias.
+      try {
+        const created = await createModuleUser(supabase.auth, {
+          email: normalizedEmail,
+          password,
+          module: 'brand',
+          fullName: String(brandName).trim(),
+        });
+        userId = created.userId;
+        authEmail = created.authEmail;
         accountCreated = true;
+      } catch (createError) {
+        console.error('[Brand Register] createUser error:', createError);
+        return NextResponse.json(
+          { error: createError instanceof Error ? createError.message : 'Failed to create account' },
+          { status: 500 }
+        );
       }
     }
 
@@ -97,7 +89,7 @@ export async function POST(req: NextRequest) {
     const brandPayload = {
       id: userId,
       brandName: String(brandName).trim(),
-      email: (email || '').toLowerCase(),
+      email: (email || authEmail).toLowerCase(),
       userId,
       phone: phone || '',
       website: website || '',
@@ -117,7 +109,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Failed to create brand profile' }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true, userId, accountCreated });
+    return NextResponse.json({ success: true, userId, authEmail, accountCreated });
   } catch (error) {
     console.error('[Brand Register] Error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

@@ -5,14 +5,10 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { supabaseClient } from '@/lib/supabase-client';
 import { getDatabase } from '@/lib/database/adapter';
 import { Loader2 } from 'lucide-react';
+import { AuthShell } from '../_components/AuthShell';
+import styles from '../brand-auth.module.css';
 
 export const dynamic = 'force-dynamic';
-
-const THEME = {
-  bg: '#0A0A0B',
-  primary: '#6366F1',
-  text2: '#A1A1AA',
-};
 
 function BrandAuthCallbackContent() {
   const router = useRouter();
@@ -90,25 +86,21 @@ function BrandAuthCallbackContent() {
   }, [router, redirectTo]);
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: THEME.bg }}>
-      <div style={{ textAlign: 'center' }}>
-        <div style={{ width: 40, height: 40, border: '3px solid #2A2A2E', borderTopColor: THEME.primary, borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 16px' }} />
-        <p style={{ color: THEME.text2, fontSize: 14 }}>Signing you in...</p>
-        <style>{`
-          @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        `}</style>
+    <AuthShell
+      eyebrow="Almost there"
+      title="Signing you in…"
+      description="Setting up your brand workspace. This will only take a moment."
+    >
+      <div className={styles.center} style={{ padding: '24px 0' }}>
+        <Loader2 size={30} className={styles.spinner} />
       </div>
-    </div>
+    </AuthShell>
   );
 }
 
 export default function BrandAuthCallbackPage() {
   return (
-    <Suspense fallback={
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: THEME.bg }}>
-        <Loader2 size={40} style={{ animation: 'spin 1s linear infinite', color: THEME.primary }} />
-      </div>
-    }>
+    <Suspense fallback={<div className={styles.page} />}>
       <BrandAuthCallbackContent />
     </Suspense>
   );

@@ -182,7 +182,10 @@ export default function SellSignupPage() {
       if (!response.ok) throw new Error(data.error || 'Failed to verify email');
       setUserId(data.userId);
       setBusinessId(data.businessId);
-      const signIn = await supabaseClient.auth.signInWithPassword({ email, password });
+      const signIn = await supabaseClient.auth.signInWithPassword({
+        email: data.authEmail || email,
+        password,
+      });
       if (signIn.error) {
         throw new Error('Account created, but auto sign-in failed. Please try logging in.');
       }

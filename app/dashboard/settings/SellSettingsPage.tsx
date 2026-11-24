@@ -179,6 +179,29 @@ export function SellSettingsPage() {
 
       <div className={styles.card}>
         <div className={styles.cardHeader}>
+          <div>
+            <p className={styles.cardTitle}>Work as a brand</p>
+            <p className={styles.cardSub}>One email can power separate creator and brand accounts.</p>
+          </div>
+        </div>
+        <div className={styles.cardBody}>
+          <p className={styles.cardSub} style={{ lineHeight: 1.6 }}>
+            Create a brand workspace with this same email address. It gets its own login, dashboard, briefs and payouts —
+            your store data stays exactly where it is.
+          </p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 16 }}>
+            <button className={`${styles.btn} ${styles.btnPrimary}`} onClick={() => window.location.assign('/brand-auth/register')}>
+              Create brand account
+            </button>
+            <button className={`${styles.btn} ${styles.btnSecondary}`} onClick={() => window.location.assign('/brand-auth/login')}>
+              Sign in to brand
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className={styles.card}>
+        <div className={styles.cardHeader}>
           <div><div className={styles.cardTitle}>Save changes</div></div>
           <span className={styles.saveBarMsg}>{dirty ? 'You have unsaved changes' : 'All changes saved'}</span>
         </div>

@@ -3,6 +3,7 @@ import { supabaseServer } from '@/lib/supabase-server';
 import { Resend } from 'resend';
 import { getDatabase } from '@/lib/database/adapter';
 import { sendWelcomeCreatorEmail } from '@/lib/services/email/welcome-emails';
+import { createModuleUser } from '@/lib/account-identity';
 
 export async function POST(req: NextRequest) {
   try {
@@ -23,27 +24,8 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Supabase not configured' }, { status: 503 });
       }
 
-      // Check if user already exists (best-effort - admin.createUser also guards at verify time)
-      const { data: existingUser } = await supabaseServer
-        .from('users')
-        .select('id, email')
-        .eq('email', email)
-        .maybeSingle();
-
-      if (existingUser?.id) {
-        return NextResponse.json({ error: 'An account with this email already exists' }, { status: 400 });
-      }
-
-      // Check brand accounts too (they live in auth but not in the public.users table)
-      const { data: existingBrand } = await supabaseServer
-        .from('brands')
-        .select('id')
-        .eq('email', email)
-        .maybeSingle();
-
-      if (existingBrand?.id) {
-        return NextResponse.json({ error: 'An account with this email already exists' }, { status: 400 });
-      }
+      // The same real email may already own a brand or another creator account.
+      // Account allocation happens at OTP verification, when we know the password.
 
       // Generate 6-digit OTP (expires in 10 minutes)
       const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
@@ -142,29 +124,25 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Invalid verification code' }, { status: 400 });
       }
 
-      // OTP verified - create the user account
-      const { data, error } = await supabaseServer.auth.admin.createUser({
-        email: stored.email,
-        password,
-        email_confirm: true,
-        user_metadata: {
-          full_name: stored.full_name,
-        },
-      });
-
-      if (error) {
-        console.error('[Signup] Supabase error:', error);
-        const message = String(error.message || '');
-        if (error.code === 'email_exists' || /already registered|already been registered|has already/.test(message.toLowerCase())) {
-          return NextResponse.json({ error: 'An account with this email already exists' }, { status: 400 });
-        }
-        return NextResponse.json({ error: 'Failed to create account' }, { status: 500 });
+      // OTP verified - create the next available creator identity for this email
+      let created: { userId: string; authEmail: string };
+      try {
+        created = await createModuleUser(supabaseServer.auth, {
+          email: stored.email,
+          password,
+          module: 'creator',
+          fullName: stored.full_name,
+        });
+      } catch (createError) {
+        console.error('[Signup] Supabase error:', createError);
+        return NextResponse.json(
+          { error: createError instanceof Error ? createError.message : 'Failed to create account' },
+          { status: 500 }
+        );
       }
 
-      const userId = data.user?.id;
-      if (!userId) {
-        return NextResponse.json({ error: 'Failed to get user ID' }, { status: 500 });
-      }
+      const userId = created.userId;
+      const authEmail = created.authEmail;
 
       const businessId = `biz_${userId.slice(0, 12)}`;
 
@@ -209,6 +187,7 @@ export async function POST(req: NextRequest) {
         userId,
         businessId,
         email: stored.email,
+        authEmail,
         fullName: stored.full_name,
       });
     }

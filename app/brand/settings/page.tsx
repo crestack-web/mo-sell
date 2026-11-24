@@ -127,6 +127,26 @@ export default function BrandSettingsPage() {
           </div>
 
           <div className={styles.card}>
+            <div className={styles.cardHead}>
+              <p className={styles.cardTitle}>Work as a creator</p>
+            </div>
+            <div className={styles.cardBody}>
+              <p className={styles.cardSub} style={{ lineHeight: 1.7, margin: 0 }}>
+                Use the same email to create a separate creator account for your store or UGC profile. Each dashboard has
+                its own login and data.
+              </p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 14 }}>
+                <button className={styles.softButton} onClick={() => router.push('/signup')}>
+                  Create creator account
+                </button>
+                <button className={styles.ghostButton} onClick={() => router.push('/login')}>
+                  Sign in to creator
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className={styles.card}>
             <div className={styles.cardBody}>
               <p className={styles.cardTitle} style={{ marginBottom: 8 }}>How payments work</p>
               <p className={styles.cardSub} style={{ lineHeight: 1.7, margin: 0 }}>

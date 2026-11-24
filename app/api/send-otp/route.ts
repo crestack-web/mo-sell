@@ -18,15 +18,8 @@ export async function POST(req: NextRequest) {
 
     const supabase = getSupabaseServer();
 
-    // Reject emails that already belong to a brand
-    const { data: existingBrand } = await supabase
-      .from('brands')
-      .select('id')
-      .eq('email', email.toLowerCase())
-      .maybeSingle();
-    if (existingBrand) {
-      return NextResponse.json({ error: 'An account with this email already exists' }, { status: 409 });
-    }
+    // One real email can register several module accounts (creator and/or
+    // brand), so duplicates are resolved by aliasing at account creation.
 
     const otp = String(Math.floor(100000 + Math.random() * 900000));
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();

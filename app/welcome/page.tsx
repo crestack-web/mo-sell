@@ -581,11 +581,91 @@ function LessonCard({
   );
 }
 
+// ── Solution tabs ────────────────────────────────────────────────────────────
+const SOLUTIONS = [
+  {
+    label: 'Storefront',
+    icon: '🏪',
+    title: 'A store built around what you sell.',
+    description: 'Tell MO what you offer — physical products, digital downloads, bookings or memberships — and it builds the pages, prices and Paystack checkout. You get a hosted mo-sell.store link, ready to share.',
+    points: [
+      'Hosted storefront with no technical setup',
+      'Products, collections, bookings and digital goods',
+      'Paystack payments and naira payouts built in',
+    ],
+    cta: 'Create my store',
+    href: '/signup',
+    motion: '/motion/mo-sell-brand-storefront.html',
+    motionTitle: 'MO setting up a hosted ecommerce storefront',
+  },
+  {
+    label: 'Link in bio',
+    icon: '🔗',
+    title: 'One link for everything you do.',
+    description: 'Turn your MO Sell page into a home base for your products, socials, bookings and featured clips. Share a single link everywhere and let people explore everything without a middleman.',
+    points: [
+      'Header, featured product and link blocks',
+      'Instagram feed and video embeds',
+      'A personal page that updates with your store',
+    ],
+    cta: 'Build my link page',
+    href: '/signup',
+    motion: '/motion/mo-sell-link-in-bio.html',
+    motionTitle: 'MO building a link-in-bio page with products and socials',
+  },
+  {
+    label: 'Creator marketplace',
+    icon: '🎬',
+    title: 'Briefs in. Scroll-stopping videos out.',
+    description: 'Brands publish briefs with budgets and deadlines. Creators discover the work, upload their clips and iterate until every video is right — with approvals and payments kept in one place.',
+    points: [
+      'Niche, price and rating filters for discovery',
+      'Video previews, briefs and request flow',
+      'Deposits, approvals and payouts in one workspace',
+    ],
+    cta: 'Explore creators',
+    href: '/ugc-creators',
+    motion: '/motion/mo-sell-ugc-offers-briefs.html',
+    motionTitle: 'MO Sell UGC offers, briefs and creator videos',
+  },
+  {
+    label: 'Brand workspace',
+    icon: '🏷️',
+    title: 'Run the brand side from one desk.',
+    description: 'Manage creators, fund requests, track videos and keep your hosted store in sync with the content driving sales. The whole brief-to-sale loop stays connected inside MO Sell.',
+    points: [
+      'Creator campaigns, wallet and transactions',
+      'Hosted brand storefront and product catalogue',
+      'Every video, order and customer in one view',
+    ],
+    cta: 'See it for brands',
+    href: '/brands',
+    motion: '/motion/mo-sell-hero.html',
+    motionTitle: 'MO Sell store, link in bio and earnings working together',
+  },
+  {
+    label: 'Store showcase',
+    icon: '✨',
+    title: 'Any business can look like a big brand.',
+    description: 'Fashion, food, beauty, services or digital goods — MO shapes each store around the business instead of dropping it into a generic template. Every example is ready to sell from day one.',
+    points: [
+      'Industry-aware layouts and product pages',
+      'Mobile-first shopping experience',
+      'Built to grow from one product to a full catalogue',
+    ],
+    cta: 'Start my store',
+    href: '/signup',
+    motion: '/motion/mo-sell-hero-2.html',
+    motionTitle: 'MO Sell store examples for fashion, food and beauty',
+  },
+];
+
 // ── Main page ────────────────────────────────────────────────────────────────
 export default function WelcomePage() {
   const router = useRouter();
   const [lessons, setLessons] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeSolution, setActiveSolution] = useState(0);
 
   useEffect(() => {
     async function fetchLessons() {
@@ -1170,28 +1250,127 @@ export default function WelcomePage() {
       </section>
 
       {/* ════════════════════════════════════════════════════════════════════════
-          STORE SHOWCASE — Examples of stores MO creates
+          SOLUTIONS TABS — Every MO Sell product, with motion and details
       ════════════════════════════════════════════════════════════════════════ */}
-      <section style={{ padding: '60px 5%', background: C.bg }}>
+      <section
+        id="solutions"
+        className="sw-solutions"
+        style={{
+          padding: '84px 5%',
+          background: `radial-gradient(circle at 88% 12%, ${C.bg} 0%, transparent 34%), ${C.surface}`,
+          borderTop: `1px solid ${C.border}`,
+          borderBottom: `1px solid ${C.border}`,
+        }}
+      >
+        <style>{`
+          .sw-solution-tabs { display:flex; gap:10px; overflow-x:auto; padding:4px 2px 14px; scrollbar-width:none; }
+          .sw-solution-tabs::-webkit-scrollbar { display:none; }
+          .sw-solution-tab { flex:none; display:inline-flex; align-items:center; gap:8px; padding:12px 18px; border-radius:999px; border:1px solid ${C.border}; background:${C.surface}; color:${C.text2}; font-family:${FONT_BODY}; font-size:13px; font-weight:700; cursor:pointer; transition:all .2s ease; }
+          .sw-solution-tab:hover { border-color:${C.primary}; color:${C.primaryDk}; }
+          .sw-solution-tab[data-active="true"] { background:linear-gradient(135deg, ${C.primary} 0%, ${C.accent} 100%); border-color:transparent; color:#fff; box-shadow:0 10px 24px rgba(14,165,233,.28); }
+          .sw-solution-grid { display:grid; grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr); gap:46px; align-items:center; margin-top:18px; }
+          .sw-solution-copy { min-width:0; }
+          .sw-solution-now { display:inline-flex; align-items:center; gap:8px; font-size:11px; font-weight:800; letter-spacing:.11em; text-transform:uppercase; color:${C.primaryDk}; margin-bottom:14px; }
+          .sw-solution-now i { width:8px; height:8px; border-radius:999px; background:${C.green}; box-shadow:0 0 0 4px rgba(22,163,74,.14); }
+          .sw-solution-points { display:grid; gap:11px; margin:24px 0 28px; }
+          .sw-solution-point { display:flex; gap:11px; align-items:flex-start; font-size:13px; color:${C.text2}; line-height:1.55; }
+          .sw-solution-point svg { flex:none; margin-top:2px; color:${C.green}; }
+          .sw-solution-cta { display:inline-flex; align-items:center; gap:9px; padding:14px 25px; border-radius:12px; background:linear-gradient(135deg, ${C.primary} 0%, ${C.accent} 100%); color:#fff; font-family:${FONT_DISPLAY}; font-weight:700; font-size:14px; text-decoration:none; box-shadow:0 10px 26px rgba(14,165,233,.28); transition:transform .2s ease, box-shadow .2s ease; }
+          .sw-solution-cta:hover { transform:translateY(-2px); box-shadow:0 14px 32px rgba(14,165,233,.36); }
+          .sw-solution-stage { position:relative; min-width:0; }
+          .sw-solution-note { text-align:center; font-size:11px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:${C.text3}; margin-top:4px; }
+          @media(max-width:900px){
+            .sw-solution-grid { grid-template-columns:1fr; gap:26px; }
+            .sw-solution-copy { text-align:center; }
+            .sw-solution-points { max-width:520px; margin-left:auto; margin-right:auto; text-align:left; }
+          }
+        `}</style>
         <div style={{ maxWidth: 1160, margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: 40 }}>
+          <div style={{ textAlign: 'center', marginBottom: 30 }}>
             <div style={{
-              fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 'clamp(1.5rem, 3vw, 2rem)',
-              color: C.text1, letterSpacing: '-0.025em', marginBottom: 12,
+              display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 15px',
+              borderRadius: 999, background: 'rgba(14,165,233,.10)', color: C.primaryDk,
+              fontSize: 12, fontWeight: 800, letterSpacing: '.07em', textTransform: 'uppercase',
+              marginBottom: 16,
             }}>
-              See what MO can build for you
+              <span style={{ width: 8, height: 8, borderRadius: 999, background: C.primary, boxShadow: '0 0 0 4px rgba(14,165,233,.15)' }} />
+              One platform, every solution
             </div>
-            <p style={{ fontSize: 14, color: C.text2, maxWidth: 420, margin: '0 auto' }}>
-              Beautiful stores, ready to sell. Here are examples of what MO creates.
+            <div style={{
+              fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 'clamp(1.7rem, 3.4vw, 2.5rem)',
+              color: C.text1, letterSpacing: '-.03em', marginBottom: 12,
+            }}>
+              Everything you need to sell, create and grow.
+            </div>
+            <p style={{ fontSize: 15, color: C.text2, maxWidth: 650, margin: '0 auto', lineHeight: 1.7 }}>
+              Pick a solution to see how MO Sell handles it — from the first storefront to the final sale, with the motion and the details behind each one.
             </p>
           </div>
-          
-          <MotionFrame
-            src="/motion/mo-sell-hero-2.html"
-            title="MO Sell store types motion — fashion, food and beauty stores"
-            ratio="900 / 640"
-            style={{ maxWidth: 900, margin: '0 auto' }}
-          />
+
+          <div className="sw-solution-tabs" role="tablist" aria-label="MO Sell solutions">
+            {SOLUTIONS.map((solution, index) => (
+              <button
+                key={solution.label}
+                type="button"
+                role="tab"
+                aria-selected={activeSolution === index}
+                className="sw-solution-tab"
+                data-active={activeSolution === index}
+                onClick={() => setActiveSolution(index)}
+              >
+                <span style={{ fontSize: 15 }}>{solution.icon}</span>
+                {solution.label}
+              </button>
+            ))}
+          </div>
+
+          {(() => {
+            const solution = SOLUTIONS[activeSolution];
+            return (
+              <div className="sw-solution-grid" role="tabpanel">
+                <div className="sw-solution-copy">
+                  <div className="sw-solution-now"><i />Now showing: {solution.label}</div>
+                  <h3 style={{
+                    fontFamily: FONT_DISPLAY, fontWeight: 800,
+                    fontSize: 'clamp(1.6rem, 3.2vw, 2.3rem)',
+                    color: C.text1, letterSpacing: '-.03em', lineHeight: 1.15, marginBottom: 14,
+                  }}>
+                    {solution.title}
+                  </h3>
+                  <p style={{ fontSize: 15, color: C.text2, lineHeight: 1.7, maxWidth: 520 }}>
+                    {solution.description}
+                  </p>
+                  <div className="sw-solution-points">
+                    {solution.points.map((point) => (
+                      <div className="sw-solution-point" key={point}>
+                        <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M4 10.5l4 4 8-9"/>
+                        </svg>
+                        <span>{point}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <a href={solution.href} className="sw-solution-cta">
+                    {solution.cta}
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M5 12h14M12 5l7 7-7 7"/>
+                    </svg>
+                  </a>
+                </div>
+                <div className="sw-solution-stage">
+                  <MotionFrame
+                    key={solution.motion}
+                    src={solution.motion}
+                    title={solution.motionTitle}
+                    ratio="900 / 640"
+                    loading="lazy"
+                    style={{ maxWidth: 760, margin: '0 auto' }}
+                  />
+                  <div className="sw-solution-note">Live walkthrough · {solution.label}</div>
+                </div>
+              </div>
+            );
+          })()}
         </div>
       </section>
 
