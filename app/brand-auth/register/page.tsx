@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabaseClient } from '@/lib/supabase-client';
 import { AuthShell } from '../_components/AuthShell';
@@ -39,7 +39,7 @@ function GoogleMark() {
   );
 }
 
-export default function BrandRegisterPage() {
+function BrandRegisterPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get('redirect') || '/brand/dashboard';
@@ -331,5 +331,13 @@ export default function BrandRegisterPage() {
         </div>
       )}
     </AuthShell>
+  );
+}
+
+export default function BrandRegisterPage() {
+  return (
+    <Suspense fallback={<div className={styles.page} />}>
+      <BrandRegisterPageContent />
+    </Suspense>
   );
 }
