@@ -304,7 +304,7 @@ export function UGCMarketplacePage() {
           .ugc-hero-art{min-height:auto;max-width:520px;margin:0 auto;width:100%}
           .ugc-steps{grid-template-columns:repeat(2,1fr)}
           .ugc-nav-links{display:none !important}
-          .ugc-nav-actions .ugc-desktop-actions{display:none !important}
+          .ugc-desktop-actions{display:none !important}
           .ugc-menu-btn{display:inline-flex !important}
           .ugc-dropdown{display:flex !important}
         }
