@@ -42,11 +42,39 @@ export interface UGCRequest {
 
 export interface UGCOrder {
   id: string;
-  brand: string;
-  product: string;
-  status: string;
-  amount: number;
-  dueDate: string;
+  brand?: string;
+  product?: string;
+  status?: string;
+  amount?: number;
+  dueDate?: string;
+  // Shared brand ↔ creator collaboration fields (ugcOrders)
+  type?: string;
+  brandId?: string;
+  productName?: string;
+  productUrl?: string;
+  brief?: string;
+  deliverables?: string;
+  deadline?: string | null;
+  videoLength?: string;
+  agreedPrice?: number;
+  platformFee?: number;
+  creatorPayout?: number;
+  depositAmount?: number;
+  balanceAmount?: number;
+  paymentStatus?: string;
+  draftVideoUrl?: string | null;
+  finalVideoUrl?: string | null;
+  review?: string | null;
+  rejectionReason?: string | null;
+  disputeReason?: string | null;
+  disputeDescription?: string | null;
+  requestedAt?: string | null;
+  acceptedAt?: string | null;
+  draftSubmittedAt?: string | null;
+  completedAt?: string | null;
+  paidOutAt?: string | null;
+  paystackTransferCode?: string | null;
+  [key: string]: any;
 }
 
 export interface CalendarPost {

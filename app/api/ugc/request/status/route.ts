@@ -33,10 +33,10 @@ export async function GET(req: NextRequest) {
     if (!error && orders && orders.length > 0) {
       const order = orders[0];
       if (order.paymentStatus !== 'DEPOSIT_HELD') {
+        const isBrandBrief = order.type === 'brand_brief';
         await supabase.from('ugcOrders').update({
           paymentStatus: 'DEPOSIT_HELD',
-          status: 'IN_PROGRESS',
-          acceptedAt: new Date().toISOString(),
+          ...(isBrandBrief ? {} : { status: 'IN_PROGRESS', acceptedAt: new Date().toISOString() }),
           updatedAt: new Date().toISOString(),
         }).eq('id', order.id);
       }

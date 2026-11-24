@@ -4,9 +4,12 @@ import React from 'react';
 import {
   Users, Plus, X, Star, Camera, Instagram, Music2, Youtube, Twitter,
   Trash2, Upload, Check, Copy, Eye, EyeOff, Lightbulb, BadgeCheck,
+  Video, Clock, Wallet, Banknote, AlertCircle, MessageSquare, ExternalLink, Send,
 } from 'lucide-react';
 import { s, Spinner, Md, formatCount } from './shared';
 import { useContentHub } from './ContentHubContext';
+import { getStorage } from '@/lib/storage/adapter';
+import { useSell } from '@/context/SellContext';
 
 /* ─── Collapsible section ───────────────────────────────── */
 
@@ -424,6 +427,220 @@ function GeneratingLoader() {
   );
 }
 
+/* ─── Shared brand collaboration card ───────────────────── */
+
+const ORDER_STATUS_META: Record<string, { label: string; color: string; bg: string }> = {
+  IN_PROGRESS: { label: 'In progress', color: 'var(--sell-primary)', bg: 'var(--sell-primary-lt)' },
+  DRAFT_SUBMITTED: { label: 'Draft for review', color: 'var(--sell-amber)', bg: 'var(--sell-amber-bg)' },
+  APPROVED: { label: 'Draft approved', color: 'var(--sell-green)', bg: 'var(--sell-green-bg)' },
+  COMPLETED: { label: 'Final delivered', color: 'var(--sell-green)', bg: 'var(--sell-green-bg)' },
+  DISPUTED: { label: 'Issue raised', color: 'var(--sell-red)', bg: 'var(--sell-red-bg)' },
+  REJECTED: { label: 'Declined', color: 'var(--sell-red)', bg: 'var(--sell-red-bg)' },
+  CANCELLED: { label: 'Cancelled', color: 'var(--sell-text-3)', bg: 'var(--sell-surface-2)' },
+};
+
+function StatusPill({ status }: { status?: string }) {
+  const meta = ORDER_STATUS_META[status ?? ''] ?? {
+    label: status ?? 'Active', color: 'var(--sell-primary)', bg: 'var(--sell-primary-lt)',
+  };
+  return (
+    <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '3px 9px', borderRadius: 99, background: meta.bg, color: meta.color, whiteSpace: 'nowrap' as const }}>
+      {meta.label}
+    </span>
+  );
+}
+
+function CollaborationCard({ order }: { order: any }) {
+  const { user, currency, UGC } = useContentHub();
+  const { showToast } = useSell();
+  const { handleSubmitVideo, actionLoading } = UGC;
+  const [draftUrl, setDraftUrl] = React.useState('');
+  const [finalUrl, setFinalUrl] = React.useState('');
+  const [uploading, setUploading] = React.useState<string | null>(null);
+
+  const status = order.status as string;
+  const paymentStatus = order.paymentStatus as string | undefined;
+  const canSubmitDraft = status === 'IN_PROGRESS' && paymentStatus === 'DEPOSIT_HELD';
+  const canSubmitFinal = status === 'DRAFT_SUBMITTED' || status === 'APPROVED';
+  const isApproval = typeof order.review === 'string' && (order.review.startsWith('approved') || order.review.startsWith('draft approved'));
+  const feedback = order.rejectionReason || order.disputeDescription || (!isApproval && order.review ? order.review : null);
+
+  async function submit(type: 'draft' | 'final', url: string, setter: (v: string) => void) {
+    const trimmed = url.trim();
+    if (!trimmed) return;
+    try {
+      await handleSubmitVideo(order.id, type, trimmed);
+      setter('');
+    } catch { /* toast handled in context */ }
+  }
+
+  async function submitFile(type: 'draft' | 'final', file: File) {
+    setUploading(type);
+    try {
+      const path = `ugc-videos/${user?.id || 'me'}/${order.id}/${type}-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+      const url = await getStorage().upload(file, path);
+      await handleSubmitVideo(order.id, type, url);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Video upload failed', 'error');
+      console.error('[UGC] video upload failed:', err);
+    } finally {
+      setUploading(null);
+    }
+  }
+
+  return (
+    <div style={{ border: '1px solid var(--sell-border)', borderRadius: 'var(--sell-radius-lg)', background: 'var(--sell-surface)', overflow: 'hidden' }}>
+      <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--sell-border-subtle)', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+        <div style={{ minWidth: 0 }}>
+          <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 700, color: 'var(--sell-text-1)' }}>{order.productName || order.product || 'Brand brief'}</p>
+          <p style={{ margin: '3px 0 0', fontSize: '0.74rem', color: 'var(--sell-text-3)' }}>
+            {order.brand || order.brandName || 'Brand'} · {order.videoLength || '30s'} video
+            {order.deadline ? ` · due ${new Date(order.deadline).toLocaleDateString()}` : ''}
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          <StatusPill status={status} />
+          <StatusPill status={paymentStatus} />
+        </div>
+      </div>
+
+      <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div>
+          <p style={{ margin: '0 0 3px', fontSize: '0.7rem', fontWeight: 700, color: 'var(--sell-text-3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Brief</p>
+          <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--sell-text-2)', lineHeight: 1.55 }}>{order.brief || '—'}</p>
+        </div>
+        <div>
+          <p style={{ margin: '0 0 3px', fontSize: '0.7rem', fontWeight: 700, color: 'var(--sell-text-3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Deliverables</p>
+          <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--sell-text-2)', lineHeight: 1.55 }}>{order.deliverables || '—'}</p>
+        </div>
+
+        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', fontSize: '0.76rem', color: 'var(--sell-text-3)' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><Wallet size={12} /> Deposit {currency} {((order.depositAmount ?? 0) / 100).toLocaleString()}</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><Banknote size={12} /> Balance {currency} {((order.balanceAmount ?? 0) / 100).toLocaleString()}</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: 'var(--sell-green)', fontWeight: 700 }}>Your payout {currency} {((order.creatorPayout ?? 0) / 100).toLocaleString()}</span>
+        </div>
+
+        {feedback && (
+          <div style={{ padding: '10px 12px', border: '1px solid var(--sell-amber)', borderRadius: 'var(--sell-radius-sm)', background: 'var(--sell-amber-bg)', fontSize: '0.76rem', color: 'var(--sell-amber)', display: 'flex', gap: 8 }}>
+            <MessageSquare size={13} style={{ flexShrink: 0, marginTop: 2 }} />
+            <span><strong>Brand feedback:</strong> {feedback}</span>
+          </div>
+        )}
+
+        {isApproval && !feedback && (
+          <div style={{ padding: '10px 12px', border: '1px solid var(--sell-green)', borderRadius: 'var(--sell-radius-sm)', background: 'var(--sell-green-bg)', fontSize: '0.76rem', color: 'var(--sell-green)', display: 'flex', gap: 8 }}>
+            <Check size={13} style={{ flexShrink: 0, marginTop: 2 }} />
+            <span>{order.review}</span>
+          </div>
+        )}
+
+        {order.draftVideoUrl && (
+          <a href={order.draftVideoUrl} target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.76rem', color: 'var(--sell-primary)', width: 'fit-content' }}>
+            <Video size={13} /> View submitted draft <ExternalLink size={11} />
+          </a>
+        )}
+        {order.finalVideoUrl && (
+          <a href={order.finalVideoUrl} target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.76rem', color: 'var(--sell-green)', width: 'fit-content' }}>
+            <Video size={13} /> View delivered final video <ExternalLink size={11} />
+          </a>
+        )}
+
+        {canSubmitDraft && (
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            <input
+              style={{ ...s.formInput, flex: 1, minWidth: 200 }}
+              value={draftUrl}
+              onChange={(e) => setDraftUrl(e.target.value)}
+              placeholder="Paste your draft video link (Drive / YouTube / upload URL)"
+            />
+            <button
+              style={{ ...s.btnPrimary, fontSize: '0.76rem', padding: '8px 12px' }}
+              disabled={actionLoading === `draft-${order.id}`}
+              onClick={() => submit('draft', draftUrl, setDraftUrl)}
+            >
+              {actionLoading === `draft-${order.id}` ? <Spinner size={12} /> : <Send size={12} />}
+              Submit draft
+            </button>
+          </div>
+        )}
+        {canSubmitDraft && (
+          <label style={{ ...s.btnGhost, fontSize: '0.74rem', padding: '7px 12px', width: 'fit-content', cursor: 'pointer' }}>
+            {uploading === 'draft' ? <Spinner size={12} /> : <Upload size={12} />}
+            {uploading === 'draft' ? 'Uploading…' : 'Or upload a video file'}
+            <input
+              type="file"
+              accept="video/*"
+              style={{ display: 'none' }}
+              disabled={uploading !== null}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) submitFile('draft', file);
+                e.target.value = '';
+              }}
+            />
+          </label>
+        )}
+
+        {canSubmitFinal && (
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            <input
+              style={{ ...s.formInput, flex: 1, minWidth: 200 }}
+              value={finalUrl}
+              onChange={(e) => setFinalUrl(e.target.value)}
+              placeholder="Paste the final video link for the brand"
+            />
+            <button
+              style={{ ...s.btnPrimary, fontSize: '0.76rem', padding: '8px 12px' }}
+              disabled={
+                actionLoading === `final-${order.id}` ||
+                (paymentStatus !== 'PENDING_BALANCE' && paymentStatus !== 'PAID_OUT')
+              }
+              title={paymentStatus !== 'PENDING_BALANCE' && paymentStatus !== 'PAID_OUT' ? 'Waiting for the brand to pay the balance' : undefined}
+              onClick={() => submit('final', finalUrl, setFinalUrl)}
+            >
+              {actionLoading === `final-${order.id}` ? <Spinner size={12} /> : <Send size={12} />}
+              Submit final
+            </button>
+          </div>
+        )}
+        {canSubmitFinal && (paymentStatus === 'PENDING_BALANCE' || paymentStatus === 'PAID_OUT') && (
+          <label style={{ ...s.btnGhost, fontSize: '0.74rem', padding: '7px 12px', width: 'fit-content', cursor: 'pointer' }}>
+            {uploading === 'final' ? <Spinner size={12} /> : <Upload size={12} />}
+            {uploading === 'final' ? 'Uploading…' : 'Or upload the final file'}
+            <input
+              type="file"
+              accept="video/*"
+              style={{ display: 'none' }}
+              disabled={uploading !== null}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) submitFile('final', file);
+                e.target.value = '';
+              }}
+            />
+          </label>
+        )}
+        {canSubmitFinal && paymentStatus !== 'PENDING_BALANCE' && paymentStatus !== 'PAID_OUT' && (
+          <p style={{ margin: '-4px 0 0', fontSize: '0.72rem', color: 'var(--sell-text-3)', display: 'flex', alignItems: 'center', gap: 5 }}>
+            <Clock size={11} /> Final delivery unlocks once the brand pays the balance.
+          </p>
+        )}
+
+        {order.paymentStatus === 'PAID_OUT' && (
+          <p style={{ margin: 0, fontSize: '0.76rem', color: 'var(--sell-green)', display: 'flex', alignItems: 'center', gap: 5 }}>
+            <Banknote size={13} /> Payout released{order.paystackTransferCode ? ` · ${order.paystackTransferCode}` : ''}
+          </p>
+        )}
+        {order.status === 'DISPUTED' && (
+          <p style={{ margin: 0, fontSize: '0.76rem', color: 'var(--sell-red)', display: 'flex', alignItems: 'center', gap: 5 }}>
+            <AlertCircle size={13} /> An issue was raised — check the brand feedback above.
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /* ─── Dashboard ─────────────────────────────────────────── */
 
 function UgcDashboard() {
@@ -506,7 +723,7 @@ function UgcDashboard() {
       )}
 
       {/* Earnings Summary */}
-      {ugcOrders.length > 0 && (
+      {(ugcOrders.length > 0 || ugcRequests.length > 0) && (
         <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
           <div style={{ flex: 1, minWidth: 150, padding: '14px 16px', border: '1px solid var(--sell-border)', borderRadius: 'var(--sell-radius-sm)', background: 'var(--sell-bg)', textAlign: 'center' }}>
             <p style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--sell-text-3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Requests</p>
@@ -514,11 +731,11 @@ function UgcDashboard() {
           </div>
           <div style={{ flex: 1, minWidth: 150, padding: '14px 16px', border: '1px solid var(--sell-border)', borderRadius: 'var(--sell-radius-sm)', background: 'var(--sell-bg)', textAlign: 'center' }}>
             <p style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--sell-text-3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Active Orders</p>
-            <p style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--sell-accent)' }}>{ugcOrders.filter(o => o.status === 'active').length}</p>
+            <p style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--sell-accent)' }}>{ugcOrders.filter(o => ['IN_PROGRESS', 'DRAFT_SUBMITTED', 'APPROVED'].includes(o.status || '')).length}</p>
           </div>
           <div style={{ flex: 1, minWidth: 150, padding: '14px 16px', border: '1px solid var(--sell-border)', borderRadius: 'var(--sell-radius-sm)', background: 'var(--sell-bg)', textAlign: 'center' }}>
             <p style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--sell-text-3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Total Earnings</p>
-            <p style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--sell-green)' }}>{currency} {ugcOrders.reduce((sum, o) => sum + (o.status === 'completed' ? o.amount : 0), 0).toLocaleString()}</p>
+            <p style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--sell-green)' }}>{currency} {ugcOrders.reduce((sum, o) => sum + ((o.creatorPayout ?? 0) / 100), 0).toLocaleString()}</p>
           </div>
         </div>
       )}
@@ -605,45 +822,16 @@ function UgcDashboard() {
         </div>
       )}
 
-      {/* Active Orders Table */}
-      {ugcOrders.filter(o => o.status === 'active' || o.status === 'completed').length > 0 && (
-        <div>
-          <p style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--sell-text-2)', marginBottom: 8 }}>Active Orders</p>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid var(--sell-border)' }}>
-                  <th style={{ textAlign: 'left', padding: '8px 10px', fontWeight: 700, color: 'var(--sell-text-3)', fontSize: '0.72rem', textTransform: 'uppercase' }}>Brand</th>
-                  <th style={{ textAlign: 'left', padding: '8px 10px', fontWeight: 700, color: 'var(--sell-text-3)', fontSize: '0.72rem', textTransform: 'uppercase' }}>Product</th>
-                  <th style={{ textAlign: 'left', padding: '8px 10px', fontWeight: 700, color: 'var(--sell-text-3)', fontSize: '0.72rem', textTransform: 'uppercase' }}>Amount</th>
-                  <th style={{ textAlign: 'left', padding: '8px 10px', fontWeight: 700, color: 'var(--sell-text-3)', fontSize: '0.72rem', textTransform: 'uppercase' }}>Status</th>
-                  <th style={{ textAlign: 'left', padding: '8px 10px', fontWeight: 700, color: 'var(--sell-text-3)', fontSize: '0.72rem', textTransform: 'uppercase' }}>Due</th>
-                </tr>
-              </thead>
-              <tbody>
-                {ugcOrders.filter(o => o.status === 'active' || o.status === 'completed').map(order => (
-                  <tr key={order.id} style={{ borderBottom: '1px solid var(--sell-border-subtle)' }}>
-                    <td style={{ padding: '8px 10px', fontWeight: 600, color: 'var(--sell-text-1)' }}>{order.brand}</td>
-                    <td style={{ padding: '8px 10px', color: 'var(--sell-text-2)' }}>{order.product}</td>
-                    <td style={{ padding: '8px 10px', fontWeight: 700, color: 'var(--sell-green)' }}>{currency} {order.amount?.toLocaleString()}</td>
-                    <td style={{ padding: '8px 10px' }}>
-                      <span style={{
-                        fontSize: '0.72rem', fontWeight: 700, padding: '2px 8px', borderRadius: 99, textTransform: 'capitalize',
-                        background: order.status === 'completed' ? 'var(--sell-green-bg)' : 'var(--sell-primary-lt)',
-                        color: order.status === 'completed' ? 'var(--sell-green)' : 'var(--sell-primary)',
-                      }}>{order.status}</span>
-                    </td>
-                    <td style={{ padding: '8px 10px', color: 'var(--sell-text-3)', fontSize: '0.78rem' }}>{order.dueDate || '-'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+      {/* Shared collaborations with brands */}
+      {ugcOrders.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <p style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--sell-text-2)', marginBottom: 0 }}>Collaborations</p>
+          {ugcOrders.map(order => <CollaborationCard key={order.id} order={order} />)}
         </div>
       )}
 
       {/* Empty state */}
-      {ugcRequests.length === 0 && ugcOrders.filter(o => o.status === 'active' || o.status === 'completed').length === 0 && (
+      {ugcRequests.length === 0 && ugcOrders.length === 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, padding: '40px 20px', color: 'var(--sell-text-3)', textAlign: 'center' }}>
           <Users size={40} style={{ opacity: 0.3 }} />
           <p style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--sell-text-2)' }}>No activity yet</p>

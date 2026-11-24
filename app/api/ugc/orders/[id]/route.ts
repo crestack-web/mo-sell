@@ -22,7 +22,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       return NextResponse.json({ error: 'Order not found' }, { status: 404 });
     }
 
-    if (order.status !== 'REQUESTED') {
+    // Some payment webhooks move older orders to IN_PROGRESS as soon as the
+    // deposit lands. Treat that as still-acceptable so creators never lose
+    // the ability to respond to a brief.
+    if (!['REQUESTED', 'IN_PROGRESS'].includes(order.status)) {
       return NextResponse.json({ error: `Order is already ${order.status}` }, { status: 400 });
     }
 

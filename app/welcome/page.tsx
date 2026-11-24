@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { SupportChatWidget } from '@/components/SupportChatWidget';
+import { MotionFrame } from '@/components/MotionFrame';
 
 // ── Design tokens (MO Sell kite identity palette) ──────────────────────────
 const C = {
@@ -237,6 +238,24 @@ function TopNav() {
         }}>
           🎬 Discover Creators
         </a>
+        <a href="/creators" style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          padding: '9px 18px', borderRadius: 10,
+          border: `1.5px solid ${C.border}`,
+          color: C.text2, fontFamily: FONT_BODY, fontWeight: 600, fontSize: 14,
+          textDecoration: 'none',
+        }}>
+          ✨ For Creators
+        </a>
+        <a href="/brands" style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          padding: '9px 18px', borderRadius: 10,
+          border: `1.5px solid ${C.border}`,
+          color: C.text2, fontFamily: FONT_BODY, fontWeight: 600, fontSize: 14,
+          textDecoration: 'none',
+        }}>
+          For Brands
+        </a>
         <a href="/pricing" style={{
           display: 'inline-flex', alignItems: 'center', gap: 6,
           padding: '9px 18px', borderRadius: 10,
@@ -303,7 +322,7 @@ function TopNav() {
           gap: 16,
           boxShadow: '0 4px 20px rgba(14,88,140,0.1)',
         }}>
-          <a 
+          <a
             href="/ugc-creators"
             onClick={() => setMobileMenuOpen(false)}
             style={{
@@ -321,7 +340,43 @@ function TopNav() {
           >
             🎬 Discover Creators
           </a>
-          <a 
+          <a
+            href="/creators"
+            onClick={() => setMobileMenuOpen(false)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '12px 16px',
+              borderRadius: 10,
+              color: C.text2,
+              fontFamily: FONT_BODY,
+              fontWeight: 600,
+              fontSize: 15,
+              textDecoration: 'none',
+            }}
+          >
+            ✨ For Creators
+          </a>
+          <a
+            href="/brands"
+            onClick={() => setMobileMenuOpen(false)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '12px 16px',
+              borderRadius: 10,
+              color: C.text2,
+              fontFamily: FONT_BODY,
+              fontWeight: 600,
+              fontSize: 15,
+              textDecoration: 'none',
+            }}
+          >
+            For Brands
+          </a>
+          <a
             href="/pricing"
             onClick={() => setMobileMenuOpen(false)}
             style={{
@@ -339,7 +394,7 @@ function TopNav() {
           >
             💰 Pricing
           </a>
-          <a 
+          <a
             href="/login"
             onClick={() => setMobileMenuOpen(false)}
             style={{
@@ -526,111 +581,6 @@ function LessonCard({
   );
 }
 
-// ── Creators & Sellers auto image slider ───────────────────────────────────
-const CREATOR_SLIDES = [
-  {
-    src: 'https://res.cloudinary.com/dzjoqbg2u/image/upload/v1787412934/Life_of_majnun_-_1_s4qbgs.png',
-    alt: 'Creator and seller on MO Sell',
-  },
-  {
-    src: 'https://res.cloudinary.com/dzjoqbg2u/image/upload/v1787412931/Life_of_majnun_-_2_aenzh3.png',
-    alt: 'Creator and seller on MO Sell',
-  },
-  {
-    src: 'https://res.cloudinary.com/dzjoqbg2u/image/upload/v1787412933/Life_of_majnun_-_3_rlt0dp.png',
-    alt: 'Creator and seller on MO Sell',
-  },
-  {
-    src: 'https://res.cloudinary.com/dzjoqbg2u/image/upload/v1787641326/Life_of_majnun_-_4_vqmwmf.png',
-    alt: 'Creator and seller on MO Sell',
-  },
-];
-
-function CreatorsSlider() {
-  // Two identical sequences side-by-side for a seamless infinite loop
-  const track = [...CREATOR_SLIDES, ...CREATOR_SLIDES];
-
-  return (
-    <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-      <div
-        className="creators-slider-frame"
-        style={{
-          borderRadius: 24,
-          overflow: 'hidden',
-          border: `1px solid ${C.border}`,
-          boxShadow: '0 8px 32px rgba(14,88,140,0.12)',
-          background: C.surface,
-          padding: '24px 0',
-        }}
-      >
-        <div className="creators-slider-viewport" style={{ overflow: 'hidden', width: '100%' }}>
-          <div className="creators-slider-track">
-            {track.map((slide, i) => (
-              <div key={`${slide.src}-${i}`} className="creators-slider-item">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={slide.src}
-                  alt={slide.alt}
-                  style={{
-                    maxWidth: '100%',
-                    maxHeight: '100%',
-                    width: 'auto',
-                    height: 'auto',
-                    objectFit: 'contain',
-                    display: 'block',
-                    borderRadius: 10,
-                  }}
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <style>{`
-        .creators-slider-track {
-          display: flex;
-          gap: 3px;
-          width: max-content;
-          animation: creators-slide 18s linear infinite;
-          padding: 0 4px;
-        }
-        .creators-slider-item {
-          flex: 0 0 auto;
-          width: min(440px, 78vw);
-          height: clamp(280px, 40vw, 400px);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: transparent;
-          border-radius: 12px;
-          border: none;
-          padding: 2px;
-          box-sizing: border-box;
-        }
-        @keyframes creators-slide {
-          0%   { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
-        }
-        .creators-slider-frame:hover .creators-slider-track {
-          animation-play-state: paused;
-        }
-        @media (max-width: 640px) {
-          .creators-slider-item {
-            width: min(320px, 84vw);
-            height: clamp(230px, 60vw, 320px);
-            padding: 1px;
-          }
-          .creators-slider-track {
-            gap: 2px;
-            animation-duration: 14s;
-          }
-        }
-      `}</style>
-    </div>
-  );
-}
-
 // ── Main page ────────────────────────────────────────────────────────────────
 export default function WelcomePage() {
   const router = useRouter();
@@ -678,19 +628,13 @@ export default function WelcomePage() {
         
         <div style={{ maxWidth: 1000, margin: '0 auto', position: 'relative', zIndex: 1 }}>
           <div style={{ textAlign: 'center', marginBottom: 32 }}>
-            {/* Hero image from cloudinary */}
-            <div style={{ marginBottom: 32, display: 'flex', justifyContent: 'center' }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1785152790/Untitled_-_July_27_2026_at_08.12.54_womtaf.png"
-                alt="MO Sell — AI-powered store builder"
-                style={{
-                  width: '100%',
-                  maxWidth: 750,
-                  height: 'auto',
-                }}
-              />
-            </div>
+            <MotionFrame
+              src="/motion/mo-sell-hero.html"
+              title="MO Sell hero motion — storefront, link in bio and earnings"
+              ratio="900 / 640"
+              loading="eager"
+              style={{ maxWidth: 750, margin: '0 auto 32px' }}
+            />
             <h1 style={{
               fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 'clamp(1.4rem, 2.5vw, 1.8rem)',
               color: C.text1, letterSpacing: '-0.03em', lineHeight: 1.1, marginBottom: 12,
@@ -701,21 +645,12 @@ export default function WelcomePage() {
                 Let's get it flying.
               </span>
             </h1>
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
-              <div style={{
-                fontSize: 'clamp(0.9rem, 1.3vw, 1.05rem)',
-                color: C.text2, maxWidth: 560,
-                lineHeight: 1.55, textAlign: 'center',
-              }}>
-                Tell MO what you sell. In minutes you get a store with products, prices, and payments ready. Share the link on WhatsApp or Instagram and get paid in naira.
-              </div>
-            </div>
             <p style={{
-              fontSize: 'clamp(0.8rem, 1.1vw, 0.9rem)',
-              color: C.text3, maxWidth: 480, margin: '0 auto 28px',
-              lineHeight: 1.5, textAlign: 'center',
+              fontSize: 'clamp(0.9rem, 1.3vw, 1.05rem)',
+              color: C.text2, maxWidth: 560, margin: '0 auto 28px',
+              lineHeight: 1.55, textAlign: 'center',
             }}>
-              Stores, digital products, bookings, and memberships. One place, built for African sellers.
+              Tell MO what you offer — products, digital goods, bookings, or memberships. In minutes, your storefront is ready with prices and payments, so you can share the link and get paid in naira.
             </p>
             <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap', paddingTop: 8 }}>
               <a href="/signup" style={{
@@ -762,6 +697,97 @@ export default function WelcomePage() {
             </div>
           </div>
         </div>
+      </section>
+
+      {/* ════════════════════════════════════════════════════════════════════════
+          CONNECTED ECOSYSTEM — stores + creators + brands in one loop
+      ════════════════════════════════════════════════════════════════════════ */}
+      <section style={{
+        padding: '72px 5%',
+        background: `radial-gradient(circle at 12% 20%, ${C.purpleBg} 0%, transparent 32%), radial-gradient(circle at 88% 80%, ${C.greenBg} 0%, transparent 32%), ${C.surface}`,
+        borderTop: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}`,
+      }}>
+        <div style={{ maxWidth: 1160, margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: 44 }}>
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 15px',
+              borderRadius: 999, background: 'rgba(99,102,241,.10)', color: C.accent,
+              fontSize: 12, fontWeight: 800, letterSpacing: '.07em', textTransform: 'uppercase',
+              marginBottom: 16,
+            }}>
+              <span style={{ width: 8, height: 8, borderRadius: 999, background: C.accent, boxShadow: '0 0 0 4px rgba(99,102,241,.15)' }} />
+              One platform, one loop
+            </div>
+            <div style={{
+              fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 'clamp(1.7rem, 3.4vw, 2.5rem)',
+              color: C.text1, letterSpacing: '-.03em', marginBottom: 12,
+            }}>
+              Everything connects. Everyone wins.
+            </div>
+            <p style={{ fontSize: 15, color: C.text2, maxWidth: 640, margin: '0 auto', lineHeight: 1.7 }}>
+              MO Sell isn't just a store builder. We host the store, connect brands with creators, and keep the whole journey — brief, video, approval, payment, sale — in one place.
+            </p>
+          </div>
+
+          <MotionFrame
+            src="/motion/mo-sell-ugc-offers-briefs.html"
+            title="MO Sell UGC offers and briefs motion"
+            ratio="900 / 640"
+            style={{ maxWidth: 900, margin: '0 auto 34px' }}
+          />
+
+          {/* The loop */}
+          <div className="sw-loop" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 34 }}>
+            {[
+              { icon: '🏪', n: '01', t: 'Brand launches a store', d: 'MO builds and hosts ecommerce for any online business — products, digital goods, bookings or memberships.', color: C.greenBg, href: '/brands' },
+              { icon: '📥', n: '02', t: 'Briefs go out', d: 'The brand sends a clear brief to UGC creators with budget, deliverables and deadline attached.', color: C.bg, href: '/ugc-creators' },
+              { icon: '🎬', n: '03', t: 'Creators make magic', d: 'Creators accept briefs, upload videos, and work with the brand until the clip is right.', color: C.purpleBg, href: '/creators' },
+              { icon: '💸', n: '04', t: 'Everyone grows', d: 'Creators get paid. The content sends customers to the hosted store. The brand gets sales.', color: C.amberBg, href: '/pricing' },
+            ].map((step) => (
+              <a key={step.n} href={step.href} style={{
+                background: C.surface, border: `1px solid ${C.border}`, borderRadius: 20,
+                padding: 22, textDecoration: 'none', display: 'block',
+                transition: 'transform .2s ease, box-shadow .2s ease, border-color .2s ease',
+              }}
+                onMouseEnter={e => {
+                  (e.currentTarget as HTMLAnchorElement).style.transform = 'translateY(-5px)';
+                  (e.currentTarget as HTMLAnchorElement).style.boxShadow = '0 16px 36px rgba(14,88,140,.12)';
+                  (e.currentTarget as HTMLAnchorElement).style.borderColor = C.primary;
+                }}
+                onMouseLeave={e => {
+                  (e.currentTarget as HTMLAnchorElement).style.transform = 'none';
+                  (e.currentTarget as HTMLAnchorElement).style.boxShadow = 'none';
+                  (e.currentTarget as HTMLAnchorElement).style.borderColor = C.border;
+                }}
+              >
+                <div style={{
+                  width: 42, height: 42, borderRadius: 13, background: step.color,
+                  display: 'grid', placeItems: 'center', fontSize: 20, marginBottom: 14,
+                }}>{step.icon}</div>
+                <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.1em', color: C.text3, marginBottom: 6 }}>STEP {step.n}</div>
+                <div style={{ fontFamily: FONT_DISPLAY, fontSize: 17, fontWeight: 700, color: C.text1, marginBottom: 8, lineHeight: 1.25 }}>{step.t}</div>
+                <div style={{ fontSize: 13, color: C.text2, lineHeight: 1.6 }}>{step.d}</div>
+              </a>
+            ))}
+          </div>
+
+          {/* Three ways in */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(250px,1fr))', gap: 16 }}>
+            {[
+              { icon: '🛍️', t: 'Selling something?', d: 'Get a free store hosted by MO and start selling in minutes.', cta: 'Create a store', href: '/signup', bg: C.greenBg },
+              { icon: '🎥', t: 'Make videos?', d: 'Build a UGC profile, receive briefs, upload clips and get paid.', cta: 'Become a creator', href: '/creators', bg: C.purpleBg },
+              { icon: '🏷️', t: 'Running a brand?', d: 'Manage creators, campaigns and your own ecommerce in one workspace.', cta: 'Explore for brands', href: '/brands', bg: C.bg },
+            ].map((x) => (
+              <div key={x.t} style={{ background: x.bg, borderRadius: 18, padding: 22 }}>
+                <div style={{ fontSize: 24, marginBottom: 10 }}>{x.icon}</div>
+                <div style={{ fontFamily: FONT_DISPLAY, fontSize: 18, fontWeight: 700, color: C.text1, marginBottom: 7 }}>{x.t}</div>
+                <div style={{ fontSize: 13, color: C.text2, lineHeight: 1.6, marginBottom: 14 }}>{x.d}</div>
+                <a href={x.href} style={{ fontSize: 13, fontWeight: 800, color: C.primaryDk, textDecoration: 'none' }}>{x.cta} →</a>
+              </div>
+            ))}
+          </div>
+        </div>
+        <style>{`@media(max-width:900px){.sw-loop{grid-template-columns:repeat(2,1fr)!important}}@media(max-width:560px){.sw-loop{grid-template-columns:1fr!important}}`}</style>
       </section>
 
       {/* ════════════════════════════════════════════════════════════════════════
@@ -1156,27 +1182,6 @@ export default function WelcomePage() {
       </section>
 
       {/* ════════════════════════════════════════════════════════════════════════
-          CREATORS & SELLERS — Auto image slider
-      ════════════════════════════════════════════════════════════════════════ */}
-      <section style={{ padding: '60px 5%', background: C.surface }}>
-        <div style={{ maxWidth: 1160, margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: 40 }}>
-            <div style={{
-              fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 'clamp(1.5rem, 3vw, 2rem)',
-              color: C.text1, letterSpacing: '-0.025em', marginBottom: 12,
-            }}>
-              Creators & sellers already on MO Sell
-            </div>
-            <p style={{ fontSize: 14, color: C.text2, maxWidth: 480, margin: '0 auto' }}>
-              Join the community of creators and sellers building and growing their businesses with MO.
-            </p>
-          </div>
-
-          <CreatorsSlider />
-        </div>
-      </section>
-
-      {/* ════════════════════════════════════════════════════════════════════════
           STORE SHOWCASE — Examples of stores MO creates
       ════════════════════════════════════════════════════════════════════════ */}
       <section style={{ padding: '60px 5%', background: C.bg }}>
@@ -1193,44 +1198,12 @@ export default function WelcomePage() {
             </p>
           </div>
           
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
-            gap: 24 
-          }}>
-            <div style={{ textAlign: 'center' }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1785152790/Untitled_-_July_27_2026_at_08.12.54-2_vdjaxz.png"
-                alt="MO Sell — store showcase"
-                style={{
-                  width: '100%',
-                  height: 'auto',
-                  maxHeight: 200,
-                  objectFit: 'contain',
-                }}
-              />
-              <p style={{ fontSize: 13, color: C.text2, marginTop: 12, fontWeight: 600 }}>
-                Fashion & Apparel Store
-              </p>
-            </div>
-            <div style={{ textAlign: 'center' }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1785151499/wlcm_1_ybgv8m.png"
-                alt="MO Sell — store in action"
-                style={{
-                  width: '100%',
-                  height: 'auto',
-                  maxHeight: 200,
-                  objectFit: 'contain',
-                }}
-              />
-              <p style={{ fontSize: 13, color: C.text2, marginTop: 12, fontWeight: 600 }}>
-                Digital Products Store
-              </p>
-            </div>
-          </div>
+          <MotionFrame
+            src="/motion/mo-sell-hero-2.html"
+            title="MO Sell store types motion — fashion, food and beauty stores"
+            ratio="900 / 640"
+            style={{ maxWidth: 900, margin: '0 auto' }}
+          />
         </div>
       </section>
 
@@ -1315,6 +1288,8 @@ export default function WelcomePage() {
           }}>
             <a href="/login" style={{ color: C.text2, textDecoration: 'none' }}>Log in</a>
             <a href="/signup" style={{ color: C.text2, textDecoration: 'none' }}>Sign up</a>
+            <a href="/creators" style={{ color: C.text2, textDecoration: 'none' }}>For Creators</a>
+            <a href="/brands" style={{ color: C.text2, textDecoration: 'none' }}>For Brands</a>
             <a href="/ugc-creators" style={{ color: C.text2, textDecoration: 'none' }}>Discover Creators</a>
           </div>
           <div style={{

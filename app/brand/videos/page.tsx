@@ -1,453 +1,196 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { getDatabase } from '@/lib/database/adapter';
-import { supabaseClient } from '@/lib/supabase-client';
-import { 
-  Video, 
-  Download, 
-  Eye, 
-  TrendingUp, 
-  Search, 
-  Filter,
-  Calendar,
-  DollarSign,
-  Tag,
-  ExternalLink,
-  MoreVertical,
-  Loader2
+import React, { useMemo, useState } from 'react';
+import { motion } from 'framer-motion';
+import { useRouter } from 'next/navigation';
+import {
+  Film, Search, Download, ExternalLink, CheckCircle2, Clock3, Video as VideoIcon,
+  Megaphone, Wallet, Tag, CalendarDays,
 } from 'lucide-react';
+import { useBrandWorkspace } from '../_components/BrandWorkspaceProvider';
+import { CampaignDetailDrawer } from '../_components/CampaignDetailDrawer';
+import {
+  EmptyState, SectionHead, StatusBadge, VideoThumb, creatorInitial, formatKobo, relativeDate,
+} from '../_components/shared';
+import styles from '../brand-studio.module.css';
 
-// ── Theme ────────────────────────────────────────────────────────────────────
-const THEME = {
-  bg: '#0A0A0B',
-  surface: '#141416',
-  surfaceHover: '#1A1A1D',
-  border: '#2A2A2E',
-  primary: '#6366F1',
-  primaryHover: '#4F46E5',
-  text1: '#FFFFFF',
-  text2: '#A1A1AA',
-  text3: '#71717A',
-  success: '#10B981',
-};
-
-const FONTS = {
-  display: "'Inter', system-ui, sans-serif",
-  body: "'Inter', system-ui, sans-serif",
-};
-
-interface PurchasedVideo {
+interface LibraryVideo {
   id: string;
-  videoTitle: string;
+  title: string;
   creatorName: string;
-  creatorUsername: string;
-  creatorAvatar?: string;
-  videoThumbnail: string;
-  videoUrl: string;
-  platform: string;
-  price: number;
-  paymentMethod: string;
-  licenseType: string;
-  purchaseDate: string;
-  platformViews?: number;
-  platformLikes?: number;
-  platformComments?: number;
-  status: string;
+  creatorUsername?: string;
+  thumbnail?: string;
+  url: string;
+  platform?: string;
+  price?: number;
+  paymentMethod?: string;
+  licenseType?: string;
+  purchaseDate?: string;
   tags?: string[];
+  source: 'marketplace' | 'brief';
+  status?: string;
+  paidOut?: boolean;
+  orderId?: string;
 }
 
 export default function BrandVideosPage() {
-  const [videos, setVideos] = useState<PurchasedVideo[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [platformFilter, setPlatformFilter] = useState('all');
+  const router = useRouter();
+  const { purchases, orders, setBriefModalOpen } = useBrandWorkspace();
+  const [query, setQuery] = useState('');
+  const [source, setSource] = useState<'all' | 'marketplace' | 'brief'>('all');
   const [sortBy, setSortBy] = useState('date');
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadVideos();
-  }, []);
+  const videos = useMemo<LibraryVideo[]>(() => {
+    const marketplace: LibraryVideo[] = (purchases ?? []).map((p: any) => ({
+      id: p.id,
+      title: p.videoTitle || p.title || 'Purchased video',
+      creatorName: p.creatorName || 'Creator',
+      creatorUsername: p.creatorUsername,
+      thumbnail: p.videoThumbnail || p.thumbnail,
+      url: p.videoUrl || p.url || '',
+      platform: p.platform,
+      price: p.price,
+      paymentMethod: p.paymentMethod,
+      licenseType: p.licenseType,
+      purchaseDate: p.purchaseDate,
+      tags: p.tags,
+      source: 'marketplace',
+    }));
+    const delivered: LibraryVideo[] = (orders ?? [])
+      .filter((o) => !!o.finalVideoUrl)
+      .map((o) => ({
+        id: `delivery-${o.id}`,
+        title: `${o.productName || 'Creative brief'} — final video`,
+        creatorName: o.creator?.displayName || o.creator?.name || o.creator?.username || 'Creator',
+        creatorUsername: o.creator?.username,
+        url: o.finalVideoUrl!,
+        thumbnail: undefined,
+        purchaseDate: o.completedAt || o.updatedAt,
+        price: (o.agreedPrice ?? 0) / 100,
+        source: 'brief',
+        status: o.status,
+        paidOut: o.paymentStatus === 'PAID_OUT',
+        orderId: o.id,
+      }));
+    return [...delivered, ...marketplace];
+  }, [purchases, orders]);
 
-  const loadVideos = async () => {
-    try {
-      const { data: { user } } = await supabaseClient.auth.getUser();
-      if (!user) return;
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return videos
+      .filter((v) => {
+        if (source !== 'all' && v.source !== source) return false;
+        if (!q) return true;
+        return [v.title, v.creatorName, v.creatorUsername, ...(v.tags ?? [])]
+          .filter(Boolean)
+          .some((value) => String(value).toLowerCase().includes(q));
+      })
+      .sort((a, b) => {
+        if (sortBy === 'creator') return a.creatorName.localeCompare(b.creatorName);
+        return new Date(b.purchaseDate ?? 0).getTime() - new Date(a.purchaseDate ?? 0).getTime();
+      });
+  }, [videos, query, source, sortBy]);
 
-      const db = getDatabase();
-      
-      // Get brand ID
-      const brandQuery = await db.collection('brands').where('userId', '==', user.id).limit(1).get();
-      if (brandQuery.docs.length === 0) return;
-      
-      const brandId = brandQuery.docs[0].id;
-
-      // Get purchased videos
-      const videosQuery = await db.collection('purchased_videos')
-        .where('brandId', '==', brandId)
-        .get();
-      
-      const purchasedVideos = videosQuery.docs.map(doc => doc.data() as PurchasedVideo);
-      setVideos(purchasedVideos);
-    } catch (error) {
-      console.error('Error loading videos:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const filteredVideos = videos.filter(video => {
-    const matchesSearch = video.videoTitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         video.creatorName.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesPlatform = platformFilter === 'all' || video.platform === platformFilter;
-    return matchesSearch && matchesPlatform;
-  }).sort((a, b) => {
-    if (sortBy === 'date') return new Date(b.purchaseDate).getTime() - new Date(a.purchaseDate).getTime();
-    if (sortBy === 'price') return b.price - a.price;
-    if (sortBy === 'views') return (b.platformViews || 0) - (a.platformViews || 0);
-    return 0;
-  });
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
-  };
-
-  const getPlatformIcon = (platform: string) => {
-    switch (platform.toLowerCase()) {
-      case 'tiktok': return '🎵';
-      case 'instagram': return '📸';
-      case 'youtube': return '▶️';
-      default: return '🎬';
-    }
-  };
-
-  if (loading) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 400 }}>
-        <Loader2 size={40} style={{ animation: 'spin 1s linear infinite', color: THEME.primary }} />
-      </div>
-    );
-  }
+  const selected = orders.find((o) => o.id === selectedId) ?? null;
+  const deliveredCount = videos.filter((v) => v.source === 'brief').length;
 
   return (
-    <div>
-      {/* Header */}
-      <div style={{ marginBottom: 32 }}>
-        <h1 style={{ fontSize: 32, fontWeight: 700, color: THEME.text1, fontFamily: FONTS.display, marginBottom: 8 }}>
-          My Videos
-        </h1>
-        <p style={{ fontSize: 16, color: THEME.text2 }}>
-          Manage your purchased UGC content library
-        </p>
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
+      <div className={styles.pageHead}>
+        <div>
+          <div className={styles.pageEyebrow}><Film size={12} /> Content library</div>
+          <h1 className={styles.pageTitle}>My videos</h1>
+          <p className={styles.pageSubtitle}>
+            Every video your brand owns — purchased from the marketplace and delivered through your briefs.
+          </p>
+        </div>
+        <button className={styles.primaryButton} onClick={() => setBriefModalOpen(true)}>New brief</button>
       </div>
 
-      {/* Filters */}
-      <div style={{ 
-        padding: 20, 
-        borderRadius: 12, 
-        background: THEME.surface, 
-        border: `1px solid ${THEME.border}`,
-        marginBottom: 24,
-        display: 'flex',
-        gap: 16,
-        flexWrap: 'wrap',
-        alignItems: 'center',
-      }}>
-        <div style={{ flex: 1, minWidth: 200, position: 'relative' }}>
-          <Search size={18} color={THEME.text3} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
-          <input
-            type="text"
-            placeholder="Search videos or creators..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '10px 12px 10px 40px',
-              background: THEME.bg,
-              border: `1px solid ${THEME.border}`,
-              borderRadius: 8,
-              color: THEME.text1,
-              fontSize: 14,
-              outline: 'none',
-            }}
-            onFocus={(e) => e.target.style.borderColor = THEME.primary}
-            onBlur={(e) => e.target.style.borderColor = THEME.border}
+      <div className={styles.toolbar}>
+        <div className={styles.tabs}>
+          {([
+            ['all', 'All videos', videos.length],
+            ['brief', 'From briefs', deliveredCount],
+            ['marketplace', 'Marketplace', videos.length - deliveredCount],
+          ] as const).map(([id, label, count]) => (
+            <button key={id} className={`${styles.tab} ${source === id ? styles.tabActive : ''}`} onClick={() => setSource(id)}>
+              {label}<span className={styles.tabCount}>{count}</span>
+            </button>
+          ))}
+        </div>
+        <div className={styles.topSearch} style={{ marginLeft: 'auto', width: 260 }}>
+          <Search size={14} />
+          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search videos or creators" />
+        </div>
+        <select className={styles.selectInput} value={sortBy} onChange={(e) => setSortBy(e.target.value)} aria-label="Sort videos">
+          <option value="date">Newest first</option>
+          <option value="creator">Creator A–Z</option>
+        </select>
+      </div>
+
+      {filtered.length === 0 ? (
+        <div className={styles.card}>
+          <EmptyState
+            icon={<Film size={22} />}
+            title={videos.length === 0 ? 'Your library is empty' : 'No videos match this view'}
+            text={videos.length === 0
+              ? 'Discover ready-made UGC or brief a creator to produce something just for your brand.'
+              : 'Try another filter or clear your search.'}
+            action={
+              videos.length === 0 ? (
+                <button className={styles.primaryButton} onClick={() => router.push('/brand/discover')}>Discover creators</button>
+              ) : undefined
+            }
           />
         </div>
-
-        <select
-          value={platformFilter}
-          onChange={(e) => setPlatformFilter(e.target.value)}
-          style={{
-            padding: '10px 16px',
-            background: THEME.bg,
-            border: `1px solid ${THEME.border}`,
-            borderRadius: 8,
-            color: THEME.text1,
-            fontSize: 14,
-            cursor: 'pointer',
-          }}
-        >
-          <option value="all">All Platforms</option>
-          <option value="tiktok">TikTok</option>
-          <option value="instagram">Instagram</option>
-          <option value="youtube">YouTube</option>
-        </select>
-
-        <select
-          value={sortBy}
-          onChange={(e) => setSortBy(e.target.value)}
-          style={{
-            padding: '10px 16px',
-            background: THEME.bg,
-            border: `1px solid ${THEME.border}`,
-            borderRadius: 8,
-            color: THEME.text1,
-            fontSize: 14,
-            cursor: 'pointer',
-          }}
-        >
-          <option value="date">Sort by Date</option>
-          <option value="price">Sort by Price</option>
-          <option value="views">Sort by Views</option>
-        </select>
-      </div>
-
-      {/* Videos Grid */}
-      {filteredVideos.length === 0 ? (
-        <div style={{ 
-          textAlign: 'center', 
-          padding: 80, 
-          borderRadius: 16, 
-          background: THEME.surface, 
-          border: `1px solid ${THEME.border}`,
-        }}>
-          <Video size={64} color={THEME.text3} style={{ margin: '0 auto 16px', opacity: 0.5 }} />
-          <h3 style={{ fontSize: 20, fontWeight: 600, color: THEME.text1, marginBottom: 8 }}>
-            No videos yet
-          </h3>
-          <p style={{ fontSize: 14, color: THEME.text2, marginBottom: 24 }}>
-            Start discovering and purchasing UGC content from creators
-          </p>
-          <button
-            onClick={() => window.location.href = '/brand/discover'}
-            style={{
-              padding: '12px 24px',
-              background: THEME.primary,
-              border: 'none',
-              borderRadius: 8,
-              color: 'white',
-              fontSize: 14,
-              fontWeight: 600,
-              cursor: 'pointer',
-              transition: 'background 0.2s',
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.background = THEME.primaryHover}
-            onMouseLeave={(e) => e.currentTarget.style.background = THEME.primary}
-          >
-            Discover Videos
-          </button>
-        </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(300px, 100%), 1fr))', gap: 24 }}>
-          {filteredVideos.map((video) => (
-            <div
-              key={video.id}
-              style={{
-                borderRadius: 16,
-                background: THEME.surface,
-                border: `1px solid ${THEME.border}`,
-                overflow: 'hidden',
-                transition: 'transform 0.2s, box-shadow 0.2s',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-4px)';
-                e.currentTarget.style.boxShadow = '0 12px 24px rgba(0,0,0,0.3)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = 'none';
-              }}
-            >
-              {/* Thumbnail */}
-              <div style={{ position: 'relative', aspectRatio: '9/16', background: THEME.bg }}>
-                <img
-                  src={video.videoThumbnail}
-                  alt={video.videoTitle}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />
-                <div style={{ 
-                  position: 'absolute', 
-                  top: 12, 
-                  right: 12, 
-                  padding: '4px 8px', 
-                  borderRadius: 6, 
-                  background: 'rgba(0,0,0,0.7)',
-                  fontSize: 12,
-                  color: 'white',
-                  fontWeight: 500,
-                }}>
-                  {getPlatformIcon(video.platform)} {video.platform}
+        <div className={`${styles.grid} ${styles.videoGrid}`}>
+          {filtered.map((video) => (
+            <div className={styles.videoCard} key={video.id}>
+              <VideoThumb url={video.url} poster={video.thumbnail} type={video.source === 'brief' ? 'final' : 'video'} />
+              <div className={styles.videoCardBody}>
+                <div className={styles.videoCardTitle} title={video.title}>{video.title}</div>
+                <div className={styles.videoCardSub} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span className={styles.avatarCell} style={{ width: 20, height: 20, fontSize: 9 }}>
+                    {creatorInitial(video.creatorName)}
+                  </span>
+                  {video.creatorName}
+                  {video.creatorUsername ? ` · @${video.creatorUsername}` : ''}
                 </div>
-                <div style={{ 
-                  position: 'absolute', 
-                  bottom: 12, 
-                  left: 12, 
-                  padding: '4px 8px', 
-                  borderRadius: 6, 
-                  background: `${THEME.primary}90`,
-                  fontSize: 12,
-                  color: 'white',
-                  fontWeight: 600,
-                }}>
-                  ${video.price}
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+                  {video.source === 'brief' ? (
+                    <span className={`${styles.chip} ${styles.chipAccent}`}><Megaphone size={11} /> From brief</span>
+                  ) : (
+                    <span className={styles.chip}><Tag size={11} /> Marketplace</span>
+                  )}
+                  {video.platform && <span className={styles.chip}>{video.platform}</span>}
+                  {video.source === 'brief' && <StatusBadge status={video.status} />}
                 </div>
-              </div>
-
-              {/* Content */}
-              <div style={{ padding: 16 }}>
-                <h3 style={{ 
-                  fontSize: 16, 
-                  fontWeight: 600, 
-                  color: THEME.text1, 
-                  marginBottom: 8,
-                  fontFamily: FONTS.display,
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                }}>
-                  {video.videoTitle}
-                </h3>
-
-                {/* Creator */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                  <div style={{ 
-                    width: 28, 
-                    height: 28, 
-                    borderRadius: '50%', 
-                    background: THEME.surfaceHover,
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center',
-                    fontSize: 12,
-                    fontWeight: 600,
-                    color: THEME.text2,
-                  }}>
-                    {video.creatorName.charAt(0)}
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 500, color: THEME.text1 }}>
-                      {video.creatorName}
-                    </div>
-                    <div style={{ fontSize: 11, color: THEME.text3 }}>
-                      @{video.creatorUsername}
-                    </div>
-                  </div>
+                <div className={styles.videoCardSub} style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 10 }}>
+                  <CalendarDays size={11} /> {relativeDate(video.purchaseDate)}
+                  {video.price ? ` · ${video.source === 'brief' ? formatKobo(Math.round(video.price * 100)) : `$${video.price.toFixed(2)}`}` : ''}
                 </div>
-
-                {/* Stats */}
-                <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: THEME.text3 }}>
-                    <Eye size={14} />
-                    {video.platformViews?.toLocaleString() || 'N/A'}
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: THEME.text3 }}>
-                    <TrendingUp size={14} />
-                    {video.platformLikes?.toLocaleString() || 'N/A'}
-                  </div>
-                </div>
-
-                {/* Tags */}
-                {video.tags && video.tags.length > 0 && (
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
-                    {video.tags.slice(0, 3).map((tag, idx) => (
-                      <span
-                        key={idx}
-                        style={{
-                          padding: '4px 8px',
-                          borderRadius: 4,
-                          background: `${THEME.primary}15`,
-                          color: THEME.primary,
-                          fontSize: 11,
-                          fontWeight: 500,
-                        }}
-                      >
-                        #{tag}
-                      </span>
-                    ))}
+                {video.source === 'brief' && (
+                  <div className={styles.videoCardSub} style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 6, color: video.paidOut ? 'var(--bs-success)' : 'var(--bs-warning)' }}>
+                    {video.paidOut ? <CheckCircle2 size={11} /> : <Clock3 size={11} />}
+                    {video.paidOut ? 'Creator paid' : 'Payout pending'}
                   </div>
                 )}
-
-                {/* Meta */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 11, color: THEME.text3, marginBottom: 12 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <Calendar size={12} />
-                    {formatDate(video.purchaseDate)}
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <DollarSign size={12} />
-                    {video.paymentMethod === 'wallet' ? 'Wallet' : 'Direct'}
-                  </div>
-                </div>
-
-                {/* Actions */}
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button
-                    onClick={() => window.open(video.videoUrl, '_blank')}
-                    style={{
-                      flex: 1,
-                      padding: 10,
-                      background: THEME.bg,
-                      border: `1px solid ${THEME.border}`,
-                      borderRadius: 6,
-                      color: THEME.text2,
-                      fontSize: 13,
-                      fontWeight: 500,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 6,
-                      transition: 'all 0.2s',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = THEME.primary;
-                      e.currentTarget.style.color = THEME.primary;
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = THEME.border;
-                      e.currentTarget.style.color = THEME.text2;
-                    }}
-                  >
-                    <ExternalLink size={14} />
-                    View
-                  </button>
-                  <button
-                    style={{
-                      flex: 1,
-                      padding: 10,
-                      background: THEME.primary,
-                      border: 'none',
-                      borderRadius: 6,
-                      color: 'white',
-                      fontSize: 13,
-                      fontWeight: 500,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 6,
-                      transition: 'background 0.2s',
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.background = THEME.primaryHover}
-                    onMouseLeave={(e) => e.currentTarget.style.background = THEME.primary}
-                  >
-                    <Download size={14} />
-                    Download
-                  </button>
+                <div className={styles.videoCardFoot}>
+                  <a className={styles.ghostButton} href={video.url} target="_blank" rel="noreferrer">
+                    <ExternalLink size={13} /> View
+                  </a>
+                  {video.source === 'brief' ? (
+                    <button className={styles.softButton} onClick={() => setSelectedId(video.orderId!)}>
+                      <Wallet size={13} /> Details
+                    </button>
+                  ) : (
+                    <a className={styles.softButton} href={video.url} download>
+                      <Download size={13} /> Download
+                    </a>
+                  )}
                 </div>
               </div>
             </div>
@@ -455,12 +198,30 @@ export default function BrandVideosPage() {
         </div>
       )}
 
-      <style jsx global>{`
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
-    </div>
+      {deliveredCount > 0 && (
+        <>
+          <SectionHead title="From your briefs" hint="Final videos approved and delivered by creators" />
+          <div className={styles.card}>
+            {orders.filter((o) => o.finalVideoUrl).map((order) => (
+              <div className={styles.campaignRow} key={order.id} onClick={() => setSelectedId(order.id)}>
+                <div className={styles.campaignIcon}><VideoIcon size={17} /></div>
+                <div className={styles.campaignMain}>
+                  <div className={styles.campaignName}>{order.productName || 'Creative brief'}</div>
+                  <div className={styles.campaignDesc}>
+                    with {order.creator?.displayName || order.creator?.name || 'Creator'} · delivered {relativeDate(order.completedAt)}
+                  </div>
+                </div>
+                <div className={styles.campaignSide}>
+                  <StatusBadge status={order.paymentStatus} />
+                  <div className={styles.campaignAmount} style={{ marginTop: 6 }}>{formatKobo(order.creatorPayout)}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      <CampaignDetailDrawer order={selected} onClose={() => setSelectedId(null)} />
+    </motion.div>
   );
 }

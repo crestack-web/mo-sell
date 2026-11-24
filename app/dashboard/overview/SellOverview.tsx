@@ -1,7 +1,16 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { useSell } from '@/context/SellContext'
+import {
+  BarChart3,
+  ClipboardList,
+  HelpCircle,
+  Plus,
+  Settings2,
+  ShoppingBag,
+  Truck,
+} from 'lucide-react';
+import { useSell } from '@/context/SellContext';
 import { StoreSetupChat, isAiSetupDone } from '@/components/StoreSetupChat';
 import { restartSellTour } from '@/components/SellTour';
 import { getStorePublicUrl } from '@/lib/store-url';
@@ -247,23 +256,17 @@ export function SellOverview() {
             <QuickAction
               label="Add Product"
               variant="primary"
-              icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>}
+              icon={<Plus size={15} strokeWidth={2.4} />}
               onClick={() => navigateTo('products')}
             />
             <QuickAction
               label="View Orders"
-              icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>}
+              icon={<ClipboardList size={15} strokeWidth={2.2} />}
               onClick={() => navigateTo('orders')}
             />
             <QuickAction
               label="Tour"
-              icon={
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10"/>
-                  <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/>
-                  <line x1="12" y1="17" x2="12.01" y2="17"/>
-                </svg>
-              }
+              icon={<HelpCircle size={15} strokeWidth={2.2} />}
               onClick={() => restartSellTour()}
             />
           </div>
@@ -405,19 +408,35 @@ export function SellOverview() {
       {/* ── Quick actions strip ── */}
       {storeConfig && (
         <div className={styles.actionsRow}>
-          <p className={styles.actionsLabel}>Quick actions</p>
+          <div className={styles.actionsHeader}>
+            <p className={styles.actionsLabel}>Quick actions</p>
+            <span className={styles.actionsHint}>Everything you need, one tap away</span>
+          </div>
           <div className={styles.actionsGrid}>
             {[
-              { label: 'Add product',     img: 'https://res.cloudinary.com/dzjoqbg2u/image/upload/v1786280719/Untitled_-_August_08_2026_at_11.22.19_g5daal.png', page: 'products' as const },
-              { label: 'View orders',     img: 'https://res.cloudinary.com/dzjoqbg2u/image/upload/v1786280713/Untitled_-_August_08_2026_at_11.22.19_cw6drr.png', page: 'orders' as const },
-              { label: 'Manage shipping', img: 'https://res.cloudinary.com/dzjoqbg2u/image/upload/v1786280714/Untitled_-_August_08_2026_at_11.22.19_grw18t.png', page: 'shipping' as const },
-              { label: 'See analytics',   img: 'https://res.cloudinary.com/dzjoqbg2u/image/upload/v1786280714/Untitled_-_August_08_2026_at_11.22.19_geseuq.png', page: 'analytics' as const },
-              { label: 'Store settings',  img: 'https://res.cloudinary.com/dzjoqbg2u/image/upload/v1786280708/Untitled_-_August_08_2026_at_11.22.19_mats40.png', page: 'settings' as const },
-            ].map(a => (
-              <button key={a.page} className={styles.actionTile} onClick={() => navigateTo(a.page)}>
-                <img className={styles.actionImg} src={a.img} alt={a.label} />
-              </button>
-            ))}
+              { label: 'Add product', icon: Plus, page: 'products' as const, color: 'var(--sell-primary)', bg: 'var(--sell-primary-lt)' },
+              { label: 'View orders', icon: ShoppingBag, page: 'orders' as const, color: 'var(--sell-amber)', bg: 'var(--sell-amber-bg)' },
+              { label: 'Manage shipping', icon: Truck, page: 'shipping' as const, color: 'var(--sell-teal)', bg: 'var(--sell-teal-bg)' },
+              { label: 'See analytics', icon: BarChart3, page: 'analytics' as const, color: 'var(--sell-accent)', bg: 'var(--sell-accent-lt)' },
+              { label: 'Store settings', icon: Settings2, page: 'settings' as const, color: 'var(--sell-purple)', bg: 'var(--sell-purple-bg)' },
+            ].map(a => {
+              const ActionIcon = a.icon;
+              return (
+                <button
+                  key={a.page}
+                  type="button"
+                  className={styles.actionTile}
+                  style={{ '--action-color': a.color, '--action-bg': a.bg } as React.CSSProperties}
+                  onClick={() => navigateTo(a.page)}
+                >
+                  <span className={styles.actionIcon}>
+                    <ActionIcon size={18} strokeWidth={2.1} />
+                  </span>
+                  <span className={styles.actionLabel}>{a.label}</span>
+                  <span className={styles.actionArrow} aria-hidden="true">↗</span>
+                </button>
+              );
+            })}
           </div>
         </div>
       )}

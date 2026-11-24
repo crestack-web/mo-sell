@@ -116,13 +116,16 @@ export async function POST(req: NextRequest) {
     if (!order) return NextResponse.json({ received: true });
 
     if (metadata.type === 'deposit') {
+      // Brand briefs stay at REQUESTED until the creator explicitly accepts.
+      // Guest portfolio orders have no accept screen, so keep their old flow.
+      const isBrandBrief = order.type === 'brand_brief';
+      const now = new Date().toISOString();
       const { error: updateError } = await supabase
         .from('ugcOrders')
         .update({
           paymentStatus: 'DEPOSIT_HELD',
-          status: 'IN_PROGRESS',
-          acceptedAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
+          ...(isBrandBrief ? {} : { status: 'IN_PROGRESS', acceptedAt: now }),
+          updatedAt: now,
         })
         .eq('id', orderId);
       if (updateError) {

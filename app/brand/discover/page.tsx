@@ -7,6 +7,7 @@ import type { User } from 'firebase/auth';
 import { initializeFirebase } from '@/lib/firebase';
 import { supabaseClient } from '@/lib/supabase-client';
 import { ToastProvider, useToast } from '@/components/brand/ToastProvider';
+import { useBrandWorkspace } from '../_components/BrandWorkspaceProvider';
 import { Star, Clock, Play, Search, X, Loader2, User as UserIcon, ChevronRight, ShoppingBag, Wallet, CreditCard, Sparkles } from 'lucide-react';
 
 // ── Theme ────────────────────────────────────────────────────────────────────
@@ -121,6 +122,7 @@ function RatingStars({ rating }: { rating: number }) {
 function BrandDiscoverPageContent() {
   const router = useRouter();
   const { showSuccess, showError, showInfo } = useToast();
+  const { setBriefPrefill, setBriefModalOpen } = useBrandWorkspace();
   const [user, setUser] = useState<User | null>(null);
   const [brand, setBrand] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
@@ -749,6 +751,35 @@ function BrandDiscoverPageContent() {
                 >
                   <ShoppingBag size={17} />
                   Buy Video {currencySymbol(creator.currency)}{creator.price30sDisplay ?? 0}
+                </button>
+                <button
+                  onClick={() => {
+                    if (!brand) {
+                      setShowAuthModal(true);
+                      return;
+                    }
+                    setBriefPrefill(creator);
+                    setBriefModalOpen(true);
+                  }}
+                  style={{
+                    width: '100%',
+                    marginTop: 8,
+                    padding: 11,
+                    background: 'transparent',
+                    border: `1px solid ${THEME.primary}`,
+                    borderRadius: 8,
+                    color: THEME.primary,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 7,
+                  }}
+                >
+                  <Sparkles size={15} />
+                  Brief this creator
                 </button>
               </div>
             </div>

@@ -1,395 +1,252 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { getDatabase } from '@/lib/database/adapter';
-import { supabaseClient } from '@/lib/supabase-client';
-import { 
-  Wallet, 
-  Video, 
-  TrendingUp, 
-  Activity, 
-  ArrowUpRight, 
-  Clock,
-  CheckCircle,
-  XCircle
+import React, { useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
+import {
+  Megaphone, Clock3, Users, Sparkles, ArrowUpRight, Wallet, Video,
+  Plus, Compass, Banknote, MoreHorizontal, CheckCircle2, CircleDollarSign,
+  Play, ArrowRight,
 } from 'lucide-react';
+import { useBrandWorkspace } from '../_components/BrandWorkspaceProvider';
+import { CampaignDetailDrawer } from '../_components/CampaignDetailDrawer';
+import {
+  EmptyState, SectionHead, StatCard, StatusBadge, VideoThumb,
+  creatorInitial, formatKobo, formatMoney, relativeDate,
+} from '../_components/shared';
+import styles from '../brand-studio.module.css';
 
-// ── Theme ────────────────────────────────────────────────────────────────────
-const THEME = {
-  bg: '#0A0A0B',
-  surface: '#141416',
-  surfaceHover: '#1A1A1D',
-  border: '#2A2A2E',
-  primary: '#6366F1',
-  primaryHover: '#4F46E5',
-  text1: '#FFFFFF',
-  text2: '#A1A1AA',
-  text3: '#71717A',
-  success: '#10B981',
-  error: '#EF4444',
-};
-
-const FONTS = {
-  display: "'Inter', system-ui, sans-serif",
-  body: "'Inter', system-ui, sans-serif",
-};
-
-interface DashboardStats {
-  walletBalance: number;
-  videosPurchased: number;
-  totalSpendThisMonth: number;
-  recentActivity: ActivityItem[];
-}
-
-interface ActivityItem {
-  id: string;
-  type: 'purchase' | 'topup' | 'refund';
-  description: string;
-  amount: number;
-  status: 'completed' | 'pending' | 'failed';
-  createdAt: string;
-}
+const ACTIVE_STATUSES = ['REQUESTED', 'IN_PROGRESS', 'DRAFT_SUBMITTED', 'APPROVED', 'COMPLETED'];
 
 export default function BrandDashboardPage() {
-  const [stats, setStats] = useState<DashboardStats>({
-    walletBalance: 0,
-    videosPurchased: 0,
-    totalSpendThisMonth: 0,
-    recentActivity: [],
-  });
-  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+  const { brand, orders, purchases, transactions, setBriefModalOpen } = useBrandWorkspace();
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadDashboardData();
-  }, []);
+  const selected = orders.find((o) => o.id === selectedId) ?? null;
+  const awaiting = useMemo(
+    () => orders.filter((o) =>
+      o.status === 'DRAFT_SUBMITTED' ||
+      (o.finalVideoUrl && !(typeof o.review === 'string' && o.review.startsWith('approved')) && o.paymentStatus !== 'PAID_OUT')
+    ),
+    [orders]
+  );
+  const active = useMemo(() => orders.filter((o) => ACTIVE_STATUSES.includes(o.status ?? '')), [orders]);
+  const creators = useMemo(() => new Set(active.map((o) => o.creatorId).filter(Boolean)).size, [active]);
+  const spend = useMemo(() => orders.reduce((sum, o) => sum + (o.paymentStatus === 'PENDING_DEPOSIT' ? 0 : o.agreedPrice ?? 0), 0), [orders]);
+  const readyToPay = orders.filter((o) => ['DRAFT_SUBMITTED', 'APPROVED'].includes(o.status ?? '') && o.paymentStatus !== 'PENDING_BALANCE' && o.paymentStatus !== 'PAID_OUT');
 
-  const loadDashboardData = async () => {
-    try {
-      const { data: { user } } = await supabaseClient.auth.getUser();
-      if (!user) return;
-
-      const db = getDatabase();
-      
-      // Get brand data
-      const brandQuery = await db.collection('brands').where('userId', '==', user.id).limit(1).get();
-      if (brandQuery.docs.length === 0) return;
-      
-      const brand = brandQuery.docs[0].data();
-      const brandId = brandQuery.docs[0].id;
-
-      // Get purchased videos count
-      const videosQuery = await db.collection('purchased_videos')
-        .where('brandId', '==', brandId)
-        .get();
-      
-      const videosPurchased = videosQuery.docs.length;
-
-      // Calculate total spend this month
-      const now = new Date();
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      
-      const transactionsQuery = await db.collection('wallet_transactions')
-        .where('brandId', '==', brandId)
-        .where('type', '==', 'purchase')
-        .get();
-      
-      let totalSpendThisMonth = 0;
-      transactionsQuery.docs.forEach(doc => {
-        const transaction = doc.data();
-        const transactionDate = new Date(transaction.createdAt);
-        if (transactionDate >= startOfMonth && transaction.status === 'completed') {
-          totalSpendThisMonth += Math.abs(transaction.amount);
-        }
+  const activity = useMemo(() => {
+    type Item = { id: string; title: string; time?: string | null; amount?: number; icon: React.ReactNode; kind: string };
+    const items: Item[] = [];
+    orders.forEach((o) => {
+      const stamp = o.paidOutAt || o.completedAt || o.draftSubmittedAt || o.acceptedAt || o.requestedAt;
+      items.push({
+        id: `order-${o.id}`,
+        title: `${o.productName || 'Brief'} · ${o.creator?.displayName || o.creator?.name || 'Creator'}`,
+        time: stamp,
+        icon: <Megaphone size={14} />,
+        kind: 'brief',
       });
-
-      // Get recent activity
-      const activityQuery = await db.collection('wallet_transactions')
-        .where('brandId', '==', brandId)
-        .get();
-      
-      const recentActivity = activityQuery.docs
-        .map(doc => ({
-          id: doc.id,
-          type: doc.data().type,
-          description: doc.data().description,
-          amount: doc.data().amount,
-          status: doc.data().status,
-          createdAt: doc.data().createdAt,
-        }))
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-        .slice(0, 10);
-
-      setStats({
-        walletBalance: brand.walletBalance || 0,
-        videosPurchased,
-        totalSpendThisMonth,
-        recentActivity,
+    });
+    transactions.slice(0, 20).forEach((t) => {
+      items.push({
+        id: `tx-${t.id}`,
+        title: t.description || t.type || 'Wallet activity',
+        time: t.createdAt,
+        amount: Number(t.amount ?? 0),
+        icon: t.type === 'topup' ? <Wallet size={14} /> : <Video size={14} />,
+        kind: 'wallet',
       });
-    } catch (error) {
-      console.error('Error loading dashboard data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    });
+    return items.sort((a, b) => new Date(b.time ?? 0).getTime() - new Date(a.time ?? 0).getTime()).slice(0, 6);
+  }, [orders, transactions]);
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
-    return date.toLocaleDateString();
-  };
-
-  const formatAmount = (amount: number) => {
-    return amount >= 0 ? `+$${amount.toFixed(2)}` : `-$${Math.abs(amount).toFixed(2)}`;
-  };
-
-  if (loading) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 400 }}>
-        <div style={{ width: 40, height: 40, border: '3px solid #2A2A2E', borderTopColor: THEME.primary, borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-      </div>
-    );
-  }
+  const spendSeries = useMemo(() => {
+    const months = Array.from({ length: 6 }, (_, i) => {
+      const d = new Date();
+      d.setMonth(d.getMonth() - (5 - i), 1);
+      return { key: d.toISOString().slice(0, 7), label: d.toLocaleDateString(undefined, { month: 'short' }) };
+    });
+    return months.map((m) => ({
+      ...m,
+      value: orders
+        .filter((o) => (o.createdAt || '').startsWith(m.key) && o.paymentStatus !== 'PENDING_DEPOSIT')
+        .reduce((sum, o) => sum + (o.agreedPrice ?? 0), 0),
+    }));
+  }, [orders]);
+  const maxSpend = Math.max(...spendSeries.map((m) => m.value), 1);
 
   return (
-    <div>
-      {/* Header */}
-      <div style={{ marginBottom: 20 }}>
-        <h1 style={{ fontSize: 24, fontWeight: 700, color: THEME.text1, fontFamily: FONTS.display, marginBottom: 4 }}>
-          Dashboard
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
+      <section className={styles.hero}>
+        <span className={styles.heroBadge}><Sparkles size={12} /> Your creative studio</span>
+        <h1 className={styles.heroTitle}>
+          Good to see you, <em>{brand?.brandName || 'creator'}</em>.
         </h1>
-        <p style={{ fontSize: 13.5, color: THEME.text2 }}>
-          Welcome back! Here's an overview of your UGC marketplace activity.
+        <p className={styles.heroText}>
+          Brief creators, review their work, and release payments — all in one shared space. Right now,
+          {' '}{awaiting.length === 0 ? 'nothing needs your attention.' : `${awaiting.length} ${awaiting.length === 1 ? 'video is' : 'videos are'} waiting for your review.`}
         </p>
+        <div className={styles.heroActions}>
+          <button className={styles.primaryButton} onClick={() => setBriefModalOpen(true)}><Plus size={15} /> Send a new brief</button>
+          <button className={styles.ghostButton} onClick={() => router.push('/brand/discover')}><Compass size={15} /> Discover creators</button>
+          {readyToPay.length > 0 && (
+            <button className={styles.softButton} onClick={() => router.push('/brand/payouts')}><Banknote size={15} /> {readyToPay.length} payout{readyToPay.length > 1 ? 's' : ''} ready</button>
+          )}
+        </div>
+        <div className={styles.heroArt} aria-hidden>
+          <div className={styles.heroArtCard} style={{ width: 150, height: 112, right: 72, top: 12, transform: 'rotate(-7deg)' }}>
+            <div style={{ padding: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span className={styles.thumbPlay} style={{ position: 'static', width: 26, height: 26 }}><Play size={11} fill="currentColor" /></span>
+              <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--bs-muted)' }}>DRAFT READY</span>
+            </div>
+          </div>
+          <div className={styles.heroArtCard} style={{ width: 168, height: 118, left: 8, bottom: 6, transform: 'rotate(6deg)' }}>
+            <div style={{ padding: 12 }}>
+              <div style={{ fontSize: 9, color: 'var(--bs-subtle)' }}>CREATIVE SPEND</div>
+              <div style={{ fontSize: 19, fontWeight: 800, marginTop: 5 }}>{formatKobo(spend)}</div>
+              <div style={{ marginTop: 10, height: 5, borderRadius: 99, background: 'rgba(255,255,255,.08)' }}>
+                <div style={{ width: '68%', height: '100%', borderRadius: 99, background: 'linear-gradient(90deg,var(--bs-accent),var(--bs-pink))' }} />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div className={`${styles.grid} ${styles.statsGrid}`}>
+        <StatCard icon={<Megaphone size={17} />} label="Briefs in flight" value={active.length} foot="Across your creative campaigns" onClick={() => router.push('/brand/campaigns')} />
+        <StatCard icon={<Clock3 size={17} />} label="Awaiting review" value={awaiting.length} tone="warning" foot={awaiting.length ? 'Videos ready for a decision' : 'You’re all caught up'} onClick={() => router.push('/brand/campaigns')} />
+        <StatCard icon={<Users size={17} />} label="Creators collaborating" value={creators} tone="pink" foot="Active partnerships" />
+        <StatCard icon={<CircleDollarSign size={17} />} label="Creative spend" value={formatKobo(spend)} tone="success" foot={`Wallet: ${formatMoney(brand?.walletBalance, brand?.currency)}`} onClick={() => router.push('/brand/wallet')} />
       </div>
 
-      {/* Stats Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(220px, 100%), 1fr))', gap: 12, marginBottom: 20 }}>
-        {/* Wallet Balance Card */}
-        <div style={{ 
-          padding: 14, 
-          borderRadius: 12, 
-          background: `linear-gradient(135deg, ${THEME.primary} 0%, #8B5CF6 100%)`,
-          position: 'relative',
-          overflow: 'hidden',
-        }}>
-          <div style={{ position: 'absolute', top: -20, right: -20, width: 80, height: 80, borderRadius: '50%', background: 'rgba(255,255,255,0.1)' }} />
-          <div style={{ position: 'relative', zIndex: 1 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-              <Wallet size={16} color="white" />
-              <span style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.8)', fontWeight: 500 }}>
-                Wallet Balance
-              </span>
-            </div>
-            <div style={{ fontSize: 22, fontWeight: 700, color: 'white', fontFamily: FONTS.display, marginBottom: 10 }}>
-              ${stats.walletBalance.toFixed(2)}
-            </div>
-            <button
-              onClick={() => window.location.href = '/brand/wallet'}
-              style={{
-                padding: '6px 12px',
-                background: 'rgba(255,255,255,0.2)',
-                border: 'none',
-                borderRadius: 6,
-                color: 'white',
-                fontSize: 12,
-                fontWeight: 600,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                transition: 'background 0.2s',
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.3)'}
-              onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
-            >
-              Top Up
-              <ArrowUpRight size={13} />
-            </button>
-          </div>
+      <SectionHead
+        title="Needs your attention"
+        hint="Drafts and final videos waiting on your decision"
+        action={<button className={styles.linkButton} onClick={() => router.push('/brand/campaigns')}>View all briefs <ArrowRight size={13} /></button>}
+      />
+      {awaiting.length === 0 ? (
+        <div className={styles.card}>
+          <EmptyState
+            icon={<CheckCircle2 size={22} />}
+            title="Nothing waiting on you"
+            text="When a creator submits a draft or final video, it lands here for review."
+            action={<button className={styles.softButton} onClick={() => setBriefModalOpen(true)}><Plus size={14} /> Start a collaboration</button>}
+          />
         </div>
-
-        {/* Videos Purchased Card */}
-        <div style={{ 
-          padding: 14, 
-          borderRadius: 12, 
-          background: THEME.surface, 
-          border: `1px solid ${THEME.border}`,
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-            <Video size={16} color={THEME.primary} />
-            <span style={{ fontSize: 12.5, color: THEME.text2, fontWeight: 500 }}>
-              Videos Purchased
-            </span>
-          </div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: THEME.text1, fontFamily: FONTS.display, marginBottom: 4 }}>
-            {stats.videosPurchased}
-          </div>
-          <div style={{ fontSize: 11.5, color: THEME.text3 }}>
-            Total videos in your library
-          </div>
-        </div>
-
-        {/* Total Spend Card */}
-        <div style={{ 
-          padding: 14, 
-          borderRadius: 12, 
-          background: THEME.surface, 
-          border: `1px solid ${THEME.border}`,
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-            <TrendingUp size={16} color={THEME.success} />
-            <span style={{ fontSize: 12.5, color: THEME.text2, fontWeight: 500 }}>
-              Total Spend This Month
-            </span>
-          </div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: THEME.text1, fontFamily: FONTS.display, marginBottom: 4 }}>
-            ${stats.totalSpendThisMonth.toFixed(2)}
-          </div>
-          <div style={{ fontSize: 11.5, color: THEME.text3 }}>
-            UGC purchases this month
-          </div>
-        </div>
-      </div>
-
-      {/* Recent Activity */}
-      <div style={{ 
-        padding: 16, 
-        borderRadius: 12, 
-        background: THEME.surface, 
-        border: `1px solid ${THEME.border}`,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Activity size={18} color={THEME.primary} />
-            <h2 style={{ fontSize: 16, fontWeight: 600, color: THEME.text1, fontFamily: FONTS.display }}>
-              Recent Activity
-            </h2>
-          </div>
-          <button
-            onClick={() => window.location.href = '/brand/transactions'}
-            style={{
-              padding: '6px 12px',
-              background: 'transparent',
-              border: `1px solid ${THEME.border}`,
-              borderRadius: 6,
-              color: THEME.text2,
-              fontSize: 12,
-              fontWeight: 500,
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = THEME.primary;
-              e.currentTarget.style.color = THEME.primary;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = THEME.border;
-              e.currentTarget.style.color = THEME.text2;
-            }}
-          >
-            View All
-          </button>
-        </div>
-
-        {stats.recentActivity.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: 32, color: THEME.text3 }}>
-            <Activity size={40} style={{ margin: '0 auto 12px', opacity: 0.5 }} />
-            <p style={{ fontSize: 13 }}>No recent activity</p>
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {stats.recentActivity.map((activity) => (
-              <div
-                key={activity.id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: 12,
-                  borderRadius: 8,
-                  background: THEME.bg,
-                  border: `1px solid ${THEME.border}`,
-                  flexWrap: 'wrap',
-                  gap: 8,
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 }}>
-                  <div style={{ 
-                    width: 34, 
-                    height: 34, 
-                    borderRadius: 8, 
-                    background: activity.type === 'topup' ? `${THEME.success}15` : `${THEME.primary}15`,
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center',
-                  }}>
-                    {activity.type === 'topup' ? (
-                      <Wallet size={18} color={THEME.success} />
-                    ) : activity.type === 'purchase' ? (
-                      <Video size={18} color={THEME.primary} />
-                    ) : (
-                      <Activity size={18} color={THEME.error} />
-                    )}
-                  </div>
+      ) : (
+        <div className={`${styles.grid} ${styles.twoCol}`}>
+          {awaiting.slice(0, 4).map((order) => (
+            <div className={styles.reviewCard} key={order.id}>
+              <VideoThumb url={order.finalVideoUrl || order.draftVideoUrl} type={order.finalVideoUrl ? 'final' : 'draft'} />
+              <div className={styles.reviewBody}>
+                <div className={styles.reviewTop}>
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 500, color: THEME.text1, marginBottom: 2 }}>
-                      {activity.description}
-                    </div>
-                    <div style={{ fontSize: 11.5, color: THEME.text3, display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <Clock size={11} />
-                      {formatDate(activity.createdAt)}
+                    <div className={styles.reviewName}>{order.productName || 'Creative brief'}</div>
+                    <div className={styles.reviewMeta}>
+                      <span className={styles.avatarCell} style={{ width: 20, height: 20, fontSize: 9 }}>{creatorInitial(order.creator?.displayName || order.creator?.name)}</span>
+                      {order.creator?.displayName || order.creator?.name || 'Creator'}
+                      <span>·</span>
+                      {relativeDate(order.draftSubmittedAt || order.completedAt)}
                     </div>
                   </div>
+                  <StatusBadge status={order.status} />
                 </div>
-                <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                  <div style={{ 
-                    fontSize: 14, 
-                    fontWeight: 600, 
-                    color: activity.amount >= 0 ? THEME.success : THEME.error,
-                    fontFamily: FONTS.display,
-                  }}>
-                    {formatAmount(activity.amount)}
-                  </div>
-                  <div style={{ fontSize: 11.5, color: THEME.text3, display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'flex-end' }}>
-                    {activity.status === 'completed' ? (
-                      <>
-                        <CheckCircle size={11} color={THEME.success} />
-                        Completed
-                      </>
-                    ) : activity.status === 'pending' ? (
-                      <>
-                        <Clock size={11} color={THEME.text3} />
-                        Pending
-                      </>
-                    ) : (
-                      <>
-                        <XCircle size={11} color={THEME.error} />
-                        Failed
-                      </>
-                    )}
-                  </div>
+                <p className={styles.reviewBrief}>{order.brief}</p>
+                <div className={styles.reviewActions}>
+                  <button className={styles.primaryButton} onClick={() => setSelectedId(order.id)}>Review video <ArrowUpRight size={13} /></button>
+                  <button className={styles.ghostButton} onClick={() => setSelectedId(order.id)}>View brief</button>
                 </div>
               </div>
-            ))}
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className={`${styles.grid} ${styles.twoCol}`} style={{ marginTop: 24 }}>
+        <div className={styles.card}>
+          <div className={styles.cardHead}>
+            <div>
+              <p className={styles.cardTitle}>Active collaborations</p>
+              <p className={styles.cardSub}>Every brief, draft and payment in one timeline</p>
+            </div>
+            <button className={styles.linkButton} onClick={() => router.push('/brand/campaigns')}>Open workspace <ArrowUpRight size={13} /></button>
           </div>
-        )}
+          {active.length === 0 ? (
+            <EmptyState icon={<Megaphone size={22} />} title="No active briefs" text="Send your first brief to start collaborating with a creator." />
+          ) : (
+            active.slice(0, 5).map((order) => (
+              <div className={styles.campaignRow} key={order.id} onClick={() => setSelectedId(order.id)}>
+                <div className={styles.campaignIcon}><Megaphone size={17} /></div>
+                <div className={styles.campaignMain}>
+                  <div className={styles.campaignName}>{order.productName || 'Creative brief'}</div>
+                  <div className={styles.campaignDesc}>with {order.creator?.displayName || order.creator?.name || 'Creator'} · {order.brief}</div>
+                </div>
+                <div className={styles.campaignSide}>
+                  <StatusBadge status={order.status} />
+                  <div className={styles.campaignAmount} style={{ marginTop: 6 }}>{formatKobo(order.agreedPrice)}</div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div className={styles.card}>
+            <div className={styles.cardHead}>
+              <div>
+                <p className={styles.cardTitle}>Creative spend</p>
+                <p className={styles.cardSub}>Last 6 months</p>
+              </div>
+              <MoreHorizontal size={16} color="var(--bs-subtle)" />
+            </div>
+            <div className={styles.cardBody}>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, height: 150 }}>
+                {spendSeries.map((month) => (
+                  <div key={month.key} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                    <div
+                      title={formatKobo(month.value)}
+                      style={{
+                        width: '100%',
+                        maxWidth: 34,
+                        height: `${Math.max(6, (month.value / maxSpend) * 110)}px`,
+                        borderRadius: '8px 8px 3px 3px',
+                        background: month.value > 0 ? 'linear-gradient(180deg,var(--bs-accent),rgba(109,77,255,.25))' : 'rgba(255,255,255,.06)',
+                        transition: 'height .4s ease',
+                      }}
+                    />
+                    <span style={{ fontSize: 9.5, color: 'var(--bs-subtle)' }}>{month.label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className={styles.card}>
+            <div className={styles.cardHead}><p className={styles.cardTitle}>Recent activity</p></div>
+            <div className={styles.cardBodyTight} style={{ padding: '6px 20px 14px' }}>
+              {activity.length === 0 && <p className={styles.cardSub}>Your studio activity will show up here.</p>}
+              {activity.map((item) => (
+                <div className={styles.activityRow} key={item.id}>
+                  <div className={styles.activityIcon}>{item.icon}</div>
+                  <div className={styles.activityMain}>
+                    <div className={styles.activityTitle}>{item.title}</div>
+                    <div className={styles.activityTime}>{relativeDate(item.time)}</div>
+                  </div>
+                  {item.kind === 'wallet' && item.amount !== undefined && (
+                    <div className={`${styles.activityAmount} ${item.amount >= 0 ? styles.positive : styles.negative}`}>
+                      {item.amount >= 0 ? '+' : '-'}${Math.abs(item.amount).toFixed(2)}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
 
-      <style jsx global>{`
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
-    </div>
+      <CampaignDetailDrawer order={selected} onClose={() => setSelectedId(null)} />
+    </motion.div>
   );
 }

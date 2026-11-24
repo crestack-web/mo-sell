@@ -150,6 +150,7 @@ interface UgcState {
   handleGenerateIdeas: (req: any) => void;
   handleAcceptRequest: (orderId: string) => void;
   handleRejectRequest: (orderId: string) => void;
+  handleSubmitVideo: (orderId: string, type: 'draft' | 'final', videoUrl: string) => Promise<void>;
 }
 
 const ContentHubContext = createContext<ContentHubContextValue | null>(null);
@@ -362,9 +363,29 @@ export function ContentHubProvider({ children }: { children: React.ReactNode }) 
         setContactEmail(data.contactEmail || '');
       }
       const ordersSnap = await db.collection('ugcOrders').where('creatorId', '==', user.id).get();
-      const allOrders = ordersSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
-      setUgcRequests(allOrders.filter(o => o.type === 'request' || o.status === 'pending'));
-      setUgcOrders(allOrders.filter(o => o.type !== 'request' && o.status !== 'pending'));
+      let brandNames = new Map<string, string>();
+      try {
+        const brandsSnap = await db.collection('brands').get();
+        brandNames = new Map(
+          brandsSnap.docs.map((d: any) => [d.id, (d.data() as any)?.brandName || 'Brand'])
+        );
+      } catch { /* brand names are cosmetic; keep going */ }
+      const allOrders = ordersSnap.docs.map(d => {
+        const data = d.data() as any;
+        return {
+          id: d.id,
+          ...data,
+          brand: brandNames.get(data.brandId) || data.brandName || 'Brand',
+        } as any;
+      });
+      // Briefs awaiting a creator decision are requests; everything else is an
+      // active collaboration with the shared brand workspace.
+      setUgcRequests(allOrders.filter(o =>
+        o.status === 'REQUESTED' || o.status === 'pending' || o.type === 'request'
+      ));
+      setUgcOrders(allOrders.filter(o =>
+        o.status !== 'REQUESTED' && o.status !== 'pending' && o.type !== 'request'
+      ));
       const videosSnap = await db.collection('ugcVideos').where('creatorId', '==', user.id).get();
       const vids = videosSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
       const urls = vids.map((v: any) => v.url);
@@ -413,6 +434,31 @@ export function ContentHubProvider({ children }: { children: React.ReactNode }) 
       loadUgcData();
     } catch {
       showToast('Failed to reject request', 'error');
+    } finally {
+      setActionLoading(null);
+    }
+  }, [showToast, loadUgcData]);
+
+  /** Creator submits a draft or final video into the shared brand workspace. */
+  const handleSubmitVideo = useCallback(async (
+    orderId: string,
+    type: 'draft' | 'final',
+    videoUrl: string
+  ) => {
+    setActionLoading(`${type}-${orderId}`);
+    try {
+      const res = await fetch(`/api/ugc/${orderId}/upload`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ videoUrl, type }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error || 'Upload failed');
+      showToast(type === 'draft' ? 'Draft sent to the brand for review' : 'Final video delivered', 'success');
+      await loadUgcData();
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Could not submit video', 'error');
+      throw err;
     } finally {
       setActionLoading(null);
     }
@@ -985,7 +1031,7 @@ export function ContentHubProvider({ children }: { children: React.ReactNode }) 
       handleToggleUgcVisibility, handleDeleteUgcProfile, ugcActionLoading,
       ideasRequestId, setIdeasRequestId, generatedIdeas, setGeneratedIdeas,
       generatingIdeas, actionLoading,
-      handleGenerateIdeas, handleAcceptRequest, handleRejectRequest,
+      handleGenerateIdeas, handleAcceptRequest, handleRejectRequest, handleSubmitVideo,
     },
   };
 
