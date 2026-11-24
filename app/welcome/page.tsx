@@ -627,17 +627,10 @@ export default function WelcomePage() {
         }} />
         
         <div style={{ maxWidth: 1000, margin: '0 auto', position: 'relative', zIndex: 1 }}>
-          <div style={{ textAlign: 'center', marginBottom: 32 }}>
-            <MotionFrame
-              src="/motion/mo-sell-hero.html"
-              title="MO Sell hero motion — storefront, link in bio and earnings"
-              ratio="900 / 640"
-              loading="eager"
-              style={{ maxWidth: 750, margin: '0 auto 32px' }}
-            />
+          <div style={{ textAlign: 'center' }}>
             <h1 style={{
-              fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 'clamp(1.4rem, 2.5vw, 1.8rem)',
-              color: C.text1, letterSpacing: '-0.03em', lineHeight: 1.1, marginBottom: 12,
+              fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 'clamp(2rem, 5vw, 3.4rem)',
+              color: C.text1, letterSpacing: '-0.04em', lineHeight: 1.05, marginBottom: 16,
               textAlign: 'center',
             }}>
               You have something to sell.<br/>
@@ -646,9 +639,9 @@ export default function WelcomePage() {
               </span>
             </h1>
             <p style={{
-              fontSize: 'clamp(0.9rem, 1.3vw, 1.05rem)',
-              color: C.text2, maxWidth: 560, margin: '0 auto 28px',
-              lineHeight: 1.55, textAlign: 'center',
+              fontSize: 'clamp(1rem, 1.6vw, 1.15rem)',
+              color: C.text2, maxWidth: 720, margin: '0 auto 30px',
+              lineHeight: 1.6, textAlign: 'center',
             }}>
               Tell MO what you offer — products, digital goods, bookings, or memberships. In minutes, your storefront is ready with prices and payments, so you can share the link and get paid in naira.
             </p>
@@ -675,7 +668,7 @@ export default function WelcomePage() {
                   <path d="M5 12h14M12 5l7 7-7 7"/>
                 </svg>
               </a>
-              <a href="#how-it-works" style={{
+              <a href="#meet-mo" style={{
                 display: 'inline-flex', alignItems: 'center', gap: 8,
                 padding: '16px 32px', borderRadius: 12,
                 border: `2px solid ${C.border}`,
@@ -692,9 +685,17 @@ export default function WelcomePage() {
                   (e.currentTarget as HTMLAnchorElement).style.borderColor = C.border;
                 }}
               >
-                Watch MO build one in 60 seconds
+                Watch MO build one
               </a>
             </div>
+
+            <MotionFrame
+              src="/motion/mo-sell-hero.html"
+              title="MO Sell hero motion — storefront, link in bio and earnings"
+              ratio="900 / 640"
+              loading="eager"
+              style={{ maxWidth: 820, margin: '40px auto 0' }}
+            />
           </div>
         </div>
       </section>
@@ -849,119 +850,106 @@ export default function WelcomePage() {
       </section>
 
       {/* ════════════════════════════════════════════════════════════════════════
-          MEET MO — "Your business sidekick"
+          MEET MO — "You describe it. MO builds the store."
       ════════════════════════════════════════════════════════════════════════ */}
-      <section style={{ padding: '60px 5%', background: C.bg }}>
-        <div style={{ maxWidth: 1160, margin: '0 auto' }}>
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
-            gap: 32, 
-            alignItems: 'center' 
-          }}>
-            <div>
-              {/* MO character image from cloudinary */}
-              <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'center' }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1786184878/Untitled_-_August_08_2026_at_11.22.19_chyoum.png"
-                  alt="MO — Your business sidekick"
-                  style={{
-                    width: '100%',
-                    maxWidth: 200,
-                    height: 'auto',
-                  }}
-                />
-              </div>
-              {/* MO AI image from cloudinary */}
-              <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'center' }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1785152788/Untitled_-_July_27_2026_at_08.12.54-4_v2ly3f.png"
-                  alt="MO AI — builds your store for you"
-                  style={{
-                    width: '100%',
-                    maxWidth: 350,
-                    height: 'auto',
-                  }}
-                />
+      <section
+        id="meet-mo"
+        className="sw-meet"
+        style={{
+          padding: '84px 5%',
+          background: `radial-gradient(circle at 8% 20%, ${C.greenBg} 0%, transparent 30%), radial-gradient(circle at 92% 78%, ${C.purpleBg} 0%, transparent 34%), ${C.surface}`,
+          borderTop: `1px solid ${C.border}`,
+          borderBottom: `1px solid ${C.border}`,
+          position: 'relative',
+          overflow: 'hidden',
+        }}
+      >
+        <style>{`
+          .sw-meet-grid { display:grid; grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr); gap:48px; align-items:center; }
+          .sw-meet-copy { position:relative; z-index:1; }
+          .sw-meet-badge { display:inline-flex; align-items:center; gap:12px; padding:7px 17px 7px 7px; border-radius:999px; background:rgba(255,255,255,.8); border:1px solid ${C.border}; box-shadow:0 8px 24px rgba(14,88,140,.08); margin-bottom:22px; }
+          .sw-meet-badge-label { font-size:11px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:${C.primaryDk}; }
+          .sw-meet-points { display:grid; gap:14px; margin:28px 0 30px; }
+          .sw-meet-point { display:flex; gap:13px; align-items:flex-start; }
+          .sw-meet-dot { width:34px; height:34px; flex:none; border-radius:11px; display:grid; place-items:center; font-size:15px; }
+          .sw-meet-point b { display:block; font-family:${FONT_DISPLAY}; font-size:14px; color:${C.text1}; margin-bottom:2px; }
+          .sw-meet-point p { margin:0; font-size:13px; line-height:1.55; color:${C.text2}; }
+          .sw-meet-cta { display:inline-flex; align-items:center; gap:9px; padding:14px 25px; border-radius:12px; background:linear-gradient(135deg, ${C.primary} 0%, ${C.accent} 100%); color:#fff; font-family:${FONT_DISPLAY}; font-weight:700; font-size:14px; text-decoration:none; box-shadow:0 10px 26px rgba(14,165,233,.28); transition:transform .2s ease, box-shadow .2s ease; }
+          .sw-meet-cta:hover { transform:translateY(-2px); box-shadow:0 14px 32px rgba(14,165,233,.36); }
+          .sw-meet-stage { position:relative; min-width:0; }
+          .sw-meet-halo { position:absolute; inset:-7% -5%; border-radius:48px; background:radial-gradient(circle, rgba(14,165,233,.2) 0%, rgba(99,102,241,.13) 46%, transparent 72%); filter:blur(26px); pointer-events:none; }
+          .sw-meet-frame { position:relative; z-index:1; }
+          @media(max-width:900px){
+            .sw-meet-grid { grid-template-columns:1fr; gap:26px; }
+            .sw-meet-copy { text-align:center; }
+            .sw-meet-badge { margin-left:auto; margin-right:auto; }
+            .sw-meet-points { max-width:520px; margin-left:auto; margin-right:auto; text-align:left; }
+          }
+          @media(max-width:560px){
+            .sw-meet-badge-label { font-size:10px; }
+            .sw-meet-point b { font-size:13px; }
+          }
+        `}</style>
+        <div style={{ maxWidth: 1160, margin: '0 auto', position: 'relative', zIndex: 1 }}>
+          <div className="sw-meet-grid">
+            <div className="sw-meet-copy">
+              <div className="sw-meet-badge">
+                <MOCharacter size={48} />
+                <span className="sw-meet-badge-label">Meet MO · your AI store builder</span>
               </div>
               <h2 style={{
-                fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 'clamp(1.8rem, 3.5vw, 2.4rem)',
-                color: C.text1, letterSpacing: '-0.025em', marginBottom: 16,
+                fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 'clamp(1.9rem, 4vw, 3rem)',
+                color: C.text1, letterSpacing: '-0.035em', lineHeight: 1.1, marginBottom: 16,
               }}>
-                Meet MO.
+                You describe it.<br/>
+                <span style={{ background: `linear-gradient(135deg, ${C.primary} 0%, ${C.accent} 100%)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                  MO builds the store.
+                </span>
               </h2>
-              <p style={{ fontSize: 16, color: C.text2, lineHeight: 1.6, marginBottom: 12 }}>
-                Your business sidekick. MO doesn't just build stores — MO understands what you're selling and makes it look good.
+              <p style={{ fontSize: 16, color: C.text2, lineHeight: 1.7, maxWidth: 520 }}>
+                MO is the business sidekick inside MO Sell. Tell it what you sell in plain language and it shapes the storefront, adds your products, sets up payments and hands you a link you can share.
               </p>
-              <p style={{ fontSize: 15, color: C.text2, lineHeight: 1.6 }}>
-                Tell MO about your business in plain language. MO handles the technical stuff so you can focus on what you do best.
-              </p>
-            </div>
-            
-            <div style={{ 
-              background: C.surface, borderRadius: 20, padding: '24px 20px',
-              border: `1px solid ${C.border}`,
-              boxShadow: '0 4px 24px rgba(14,88,140,0.08)',
-            }}>
-              <div style={{ fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 13, color: C.text3, marginBottom: 20, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-                How MO works
+              <div className="sw-meet-points">
+                <div className="sw-meet-point">
+                  <div className="sw-meet-dot" style={{ background: C.greenBg, color: C.green }}>✦</div>
+                  <div>
+                    <b>Understands your business</b>
+                    <p>Products, digital downloads, bookings or memberships — MO knows what fits.</p>
+                  </div>
+                </div>
+                <div className="sw-meet-point">
+                  <div className="sw-meet-dot" style={{ background: C.purpleBg, color: C.purple }}>◈</div>
+                  <div>
+                    <b>Builds the whole storefront</b>
+                    <p>Pages, collections, prices and payment setup come together automatically.</p>
+                  </div>
+                </div>
+                <div className="sw-meet-point">
+                  <div className="sw-meet-dot" style={{ background: C.amberBg, color: C.amber }}>↗</div>
+                  <div>
+                    <b>Launches you with a link</b>
+                    <p>No technical headache. Share your store and start getting paid in naira.</p>
+                  </div>
+                </div>
               </div>
-              
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
-                  <div style={{
-                    width: 40, height: 40, borderRadius: 12, flexShrink: 0,
-                    background: C.greenBg, color: C.green,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 18,
-                  }}>1</div>
-                  <div>
-                    <div style={{ fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 15, color: C.text1, marginBottom: 4 }}>You describe what you sell</div>
-                    <div style={{ fontSize: 13, color: C.text2, lineHeight: 1.5 }}>In plain language — "I sell handmade jewelry" or "I offer photography services"</div>
-                  </div>
-                </div>
-                
-                <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
-                  <div style={{
-                    width: 40, height: 40, borderRadius: 12, flexShrink: 0,
-                    background: C.purpleBg, color: C.purple,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 18,
-                  }}>2</div>
-                  <div>
-                    <div style={{ fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 15, color: C.text1, marginBottom: 4 }}>MO understands</div>
-                    <div style={{ fontSize: 13, color: C.text2, lineHeight: 1.5 }}>MO figures out the best way to present your products, set prices, and organize your store</div>
-                  </div>
-                </div>
-                
-                <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
-                  <div style={{
-                    width: 40, height: 40, borderRadius: 12, flexShrink: 0,
-                    background: C.redBg, color: C.red,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 18,
-                  }}>3</div>
-                  <div>
-                    <div style={{ fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 15, color: C.text1, marginBottom: 4 }}>MO builds your storefront</div>
-                    <div style={{ fontSize: 13, color: C.text2, lineHeight: 1.5 }}>Product pages, collections, payment setup — everything happens automatically</div>
-                  </div>
-                </div>
-                
-                <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
-                  <div style={{
-                    width: 40, height: 40, borderRadius: 12, flexShrink: 0,
-                    background: `linear-gradient(135deg, ${C.primary}, ${C.accent})`,
-                    color: 'white',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 18,
-                  }}>4</div>
-                  <div>
-                    <div style={{ fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 15, color: C.text1, marginBottom: 4 }}>Your store goes live</div>
-                    <div style={{ fontSize: 13, color: C.text2, lineHeight: 1.5 }}>Share the link and start selling. No technical headache required.</div>
-                  </div>
-                </div>
+              <a href="/signup" className="sw-meet-cta">
+                Build my store with MO
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M5 12h14M12 5l7 7-7 7"/>
+                </svg>
+              </a>
+            </div>
+
+            <div className="sw-meet-stage">
+              <div className="sw-meet-halo" />
+              <div className="sw-meet-frame">
+                <MotionFrame
+                  src="/motion/mo-sell-brand-storefront.html"
+                  title="MO building an ecommerce storefront from a plain-language brief"
+                  ratio="900 / 640"
+                  loading="lazy"
+                  style={{ maxWidth: 760, margin: '0 auto' }}
+                />
               </div>
             </div>
           </div>
