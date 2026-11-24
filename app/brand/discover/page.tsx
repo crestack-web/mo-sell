@@ -132,7 +132,7 @@ function BrandDiscoverPageContent() {
   const [priceMax, setPriceMax] = useState('');
   const [sort, setSort] = useState<SortOption>('rating');
   const [selectedCreator, setSelectedCreator] = useState<Creator | null>(null);
-  const [selectedVideo, setSelectedVideo] = useState<{ url: string; price: number; title: string; currency?: string } | null>(null);
+  const [selectedVideo, setSelectedVideo] = useState<{ id?: string; url: string; price: number; title: string; currency?: string } | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'wallet' | 'direct'>('wallet');
@@ -243,7 +243,7 @@ function BrandDiscoverPageContent() {
     }
   };
 
-  const handleBuyVideo = (video: { url: string; price: number; title: string; currency?: string }) => {
+  const handleBuyVideo = (video: { id?: string; url: string; price: number; title: string; currency?: string }) => {
     if (!brand) {
       setSelectedVideo(video);
       setShowAuthModal(true);
@@ -265,7 +265,7 @@ function BrandDiscoverPageContent() {
           ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
         },
         body: JSON.stringify({
-          videoId: selectedVideo.url,
+          videoId: selectedVideo.id || selectedVideo.url,
           creatorId: selectedCreator?.id,
           paymentMethod,
           brandId: brand.id,
@@ -685,6 +685,7 @@ function BrandDiscoverPageContent() {
                       onClick={() => {
                         setSelectedCreator(creator);
                         handleBuyVideo({
+                          id: video.id,
                           url: video.url,
                           price: creator.price30sDisplay,
                           currency: creator.currency,
@@ -723,6 +724,7 @@ function BrandDiscoverPageContent() {
                     setSelectedCreator(creator);
                     if (creator.sampleVideos?.[0]) {
                       handleBuyVideo({
+                        id: creator.sampleVideos[0].id,
                         url: creator.sampleVideos[0].url,
                         price: creator.price30sDisplay,
                         currency: creator.currency,

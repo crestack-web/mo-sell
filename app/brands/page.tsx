@@ -129,6 +129,16 @@ function Hero() {
       background: "radial-gradient(circle at 12% 20%, rgba(99,102,241,.14), transparent 34%), radial-gradient(circle at 88% 18%, rgba(14,165,233,.16), transparent 34%), linear-gradient(180deg, #F5FBFF 0%, #FFFFFF 100%)",
     }}>
       <div style={{ position: "absolute", inset: 0, opacity: .035, pointerEvents: "none", backgroundImage: "radial-gradient(circle at 20% 30%, #16A34A 2px, transparent 2px), radial-gradient(circle at 80% 70%, #7C3AED 2px, transparent 2px)", backgroundSize: "62px 62px" }} />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/floating/brand-float-warm.jpg" alt="" aria-hidden="true" className="bf-float bf-float--one" />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/floating/brand-float-cream.jpg" alt="" aria-hidden="true" className="bf-float bf-float--two" />
+      <style>{`
+        .bf-float{position:absolute;z-index:0;pointer-events:none;object-fit:cover;opacity:.88;border:1px solid rgba(255,255,255,.8);box-shadow:0 24px 60px -24px rgba(15,23,42,.3)}
+        .bf-float--one{width:172px;height:166px;left:1.5%;top:112px;border-radius:32px;transform:rotate(-9deg)}
+        .bf-float--two{width:148px;height:148px;right:1.5%;bottom:74px;border-radius:46% 32% 42% 28%;transform:rotate(8deg)}
+        @media(max-width:1100px){.bf-float{display:none!important}}
+      `}</style>
       <Container style={{ position: "relative", zIndex: 1 }}>
         <div style={{ textAlign: "center", maxWidth: 920, margin: "0 auto" }}>
           <Pill>MO Sell for brands</Pill>

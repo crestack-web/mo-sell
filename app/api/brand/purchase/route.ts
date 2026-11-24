@@ -8,7 +8,8 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { videoId, creatorId, paymentMethod, brandId } = body;
+    let videoId: string = body.videoId;
+    const { creatorId, paymentMethod, brandId } = body;
 
     if (!videoId || !creatorId || !paymentMethod || !brandId) {
       return NextResponse.json(
@@ -68,16 +69,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get video details
-    const videoDoc = await db.doc(`ugc_videos/${videoId}`).get();
-    if (!videoDoc.exists) {
+    // Get video details. Older marketplace cards send the video URL instead
+    // of the document id, so support both without breaking existing purchases.
+    let videoData: any = (await db.doc(`ugc_videos/${videoId}`).get()).data();
+    if (!videoData) {
+      const byUrl = await db.collection('ugc_videos').where('url', '==', videoId).limit(1).get();
+      if (byUrl.docs.length > 0) {
+        videoData = byUrl.docs[0].data();
+        videoId = byUrl.docs[0].id;
+      }
+    }
+    if (!videoData) {
       return NextResponse.json(
         { success: false, error: 'Video not found' },
         { status: 404 }
       );
     }
 
-    const videoData = videoDoc.data();
     const price = videoData.price || 20; // Default $20
 
     // Check if already purchased

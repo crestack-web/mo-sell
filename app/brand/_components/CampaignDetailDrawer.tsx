@@ -19,7 +19,7 @@ export function CampaignDetailDrawer({
   order: WorkspaceOrder | null;
   onClose: () => void;
 }) {
-  const { reviewVideo, payBalance, releasePayout, openDispute } = useBrandWorkspace();
+  const { reviewVideo, payBalance, fundDeposit, releasePayout, openDispute } = useBrandWorkspace();
   const { showSuccess, showError, showInfo } = useToast();
   const [busy, setBusy] = useState<string | null>(null);
   const [note, setNote] = useState('');
@@ -81,6 +81,35 @@ export function CampaignDetailDrawer({
             <StatusBadge status={order.paymentStatus} />
             {order.videoLength && <span className={styles.chip}>{order.videoLength}</span>}
           </div>
+
+          {order.paymentStatus === 'PENDING_DEPOSIT' && (
+            <div className={styles.card} style={{ marginBottom: 18 }}>
+              <div className={styles.cardBody}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 11 }}>
+                  <div className={`${styles.statIcon} ${styles.statIconWarning}`}><Wallet size={17} /></div>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ margin: '0 0 4px', fontSize: 12.5, fontWeight: 750 }}>Fund the deposit to start work</p>
+                    <p className={styles.cardSub} style={{ margin: 0 }}>
+                      {formatKobo(order.depositAmount)} holds the brief for the creator. The remaining {formatKobo(order.balanceAmount)} is paid after draft approval.
+                    </p>
+                    <button
+                      className={styles.primaryButton}
+                      style={{ marginTop: 12 }}
+                      disabled={busy !== null}
+                      onClick={() => run('deposit', async () => {
+                        const result = await fundDeposit(order.id);
+                        if (result.paystackUrl) openPayment(result.paystackUrl);
+                        return { message: 'Deposit checkout opened in a new tab.' };
+                      }, 'Deposit checkout opened.')}
+                    >
+                      {busy === 'deposit' ? <Loader2 size={14} className={styles.spinner} /> : <Wallet size={14} />}
+                      Pay {formatKobo(order.depositAmount)} deposit
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className={styles.infoStrip} style={{ marginBottom: 20 }}>
             <FileText size={15} />

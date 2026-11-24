@@ -365,7 +365,7 @@ export function ContentHubProvider({ children }: { children: React.ReactNode }) 
       const ordersSnap = await db.collection('ugcOrders').where('creatorId', '==', user.id).get();
       let brandNames = new Map<string, string>();
       try {
-        const brandsSnap = await db.collection('brands').get();
+        const brandsSnap = await db.collection('brands').limit(500).get();
         brandNames = new Map(
           brandsSnap.docs.map((d: any) => [d.id, (d.data() as any)?.brandName || 'Brand'])
         );

@@ -235,7 +235,10 @@ export function CreateBriefModal() {
 
             <div className={styles.infoStrip} style={{ marginTop: 16 }}>
               <Info size={15} />
-              <span>Your brief appears instantly in the creator’s dashboard. They accept or decline it, then submit a draft for your review. = {selected ? `Sending to @${selected.username || 'creator'}.` : 'Choose a creator to continue.'}</span>
+              <span>
+                Your brief appears instantly in the creator’s dashboard. They accept or decline it, then submit a draft for your review.
+                {selected ? ` Sending to @${selected.username || 'creator'}.` : ' Choose a creator to continue.'}
+              </span>
             </div>
           </div>
 

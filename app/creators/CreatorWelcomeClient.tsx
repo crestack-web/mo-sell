@@ -131,6 +131,16 @@ function Hero() {
       background: "radial-gradient(circle at 10% 18%,rgba(99,102,241,.14),transparent 34%),radial-gradient(circle at 90% 16%,rgba(236,72,153,.12),transparent 34%),linear-gradient(180deg,#F0F9FF 0%,#FFFFFF 100%)",
     }}>
       <div style={{ position: "absolute", width: 340, height: 340, borderRadius: "50%", background: "#FBCFE8", filter: "blur(90px)", opacity: .35, top: -100, right: "-5%", pointerEvents: "none" }} />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/floating/creator-float-sage.jpg" alt="" aria-hidden="true" className="cw-float cw-float--one" />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/floating/creator-float-dark.jpg" alt="" aria-hidden="true" className="cw-float cw-float--two" />
+      <style>{`
+        .cw-float{position:absolute;z-index:0;pointer-events:none;object-fit:cover;opacity:.82;border:1px solid rgba(255,255,255,.78);box-shadow:0 24px 60px -24px rgba(15,23,42,.32)}
+        .cw-float--one{width:158px;height:158px;left:1.5%;bottom:76px;border-radius:44% 30% 40% 26%;transform:rotate(-8deg)}
+        .cw-float--two{width:146px;height:146px;right:1.5%;top:104px;border-radius:34px;transform:rotate(9deg)}
+        @media(max-width:1100px){.cw-float{display:none!important}}
+      `}</style>
       <Container style={{ position: "relative", zIndex: 1 }}>
         <div className="cw-hero-grid">
           <div>

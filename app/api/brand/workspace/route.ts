@@ -16,6 +16,7 @@ type Action =
   | 'create_brief'
   | 'review_video'
   | 'pay_balance'
+  | 'retry_deposit'
   | 'release_payout'
   | 'open_dispute'
   | 'update_profile';
@@ -291,6 +292,19 @@ export async function POST(request: NextRequest) {
       const result = await initializeBalance(orderId, brand.email ?? user.email ?? '', order.agreedPrice ?? 0);
       const { error } = await db.from('ugcOrders').update({
         paystackRefBalance: result.reference,
+        updatedAt: new Date().toISOString(),
+      }).eq('id', orderId);
+      if (error) throw error;
+      return NextResponse.json({ success: true, paystackUrl: result.authorization_url, reference: result.reference });
+    }
+
+    if (action === 'retry_deposit') {
+      if (order.paymentStatus !== 'PENDING_DEPOSIT') {
+        return fail('This brief has already been funded');
+      }
+      const result = await initializeDeposit(orderId, brand.email ?? user.email ?? '', order.agreedPrice ?? 0);
+      const { error } = await db.from('ugcOrders').update({
+        paystackRefDeposit: result.reference,
         updatedAt: new Date().toISOString(),
       }).eq('id', orderId);
       if (error) throw error;

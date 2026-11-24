@@ -51,6 +51,7 @@ interface WorkspaceValue {
   createBrief: (payload: Record<string, any>) => Promise<any>;
   reviewVideo: (orderId: string, stage: 'draft' | 'final', decision: 'approve' | 'reject', note?: string) => Promise<any>;
   payBalance: (orderId: string) => Promise<any>;
+  fundDeposit: (orderId: string) => Promise<any>;
   releasePayout: (orderId: string) => Promise<any>;
   openDispute: (orderId: string, reason: string, note?: string) => Promise<any>;
   updateProfile: (payload: Record<string, string>) => Promise<any>;
@@ -148,6 +149,12 @@ export function BrandWorkspaceProvider({ children }: { children: React.ReactNode
     return result;
   }, [request, refresh]);
 
+  const fundDeposit = useCallback(async (orderId: string) => {
+    const result = await request({ action: 'retry_deposit', orderId });
+    await refresh();
+    return result;
+  }, [request, refresh]);
+
   const releasePayout = useCallback(async (orderId: string) => {
     const result = await request({ action: 'release_payout', orderId });
     await refresh();
@@ -182,12 +189,13 @@ export function BrandWorkspaceProvider({ children }: { children: React.ReactNode
     createBrief,
     reviewVideo,
     payBalance,
+    fundDeposit,
     releasePayout,
     openDispute,
     updateProfile,
   }), [
     brand, user, orders, purchases, transactions, loading, refreshing,
-    briefModalOpen, briefPrefill, refresh, createBrief, reviewVideo, payBalance, releasePayout, openDispute, updateProfile,
+    briefModalOpen, briefPrefill, refresh, createBrief, reviewVideo, payBalance, fundDeposit, releasePayout, openDispute, updateProfile,
   ]);
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;

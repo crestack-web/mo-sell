@@ -119,6 +119,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       orderId,
       paystackUrl: paystackResult?.authorization_url ?? null,
+      reference: paystackResult?.reference ?? null,
       depositAmount: deposit / 100,
     });
   } catch (err) {
