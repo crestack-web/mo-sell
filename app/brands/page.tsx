@@ -137,7 +137,14 @@ function Hero() {
         .bf-float{position:absolute;z-index:0;pointer-events:none;object-fit:cover;opacity:.88;border:1px solid rgba(255,255,255,.8);box-shadow:0 24px 60px -24px rgba(15,23,42,.3)}
         .bf-float--one{width:172px;height:166px;left:1.5%;top:112px;border-radius:32px;transform:rotate(-9deg)}
         .bf-float--two{width:148px;height:148px;right:1.5%;bottom:74px;border-radius:46% 32% 42% 28%;transform:rotate(8deg)}
-        @media(max-width:1100px){.bf-float{display:none!important}}
+        @media(max-width:1100px){
+          .bf-float--one{width:112px;height:108px;left:8px;top:8px;border-radius:24px;opacity:.55}
+          .bf-float--two{width:96px;height:96px;right:8px;bottom:48px;opacity:.5}
+        }
+        @media(max-width:640px){
+          .bf-float--one{width:78px;height:76px;left:-12px;top:8px;border-radius:18px;opacity:.45;box-shadow:0 12px 26px -12px rgba(15,23,42,.24)}
+          .bf-float--two{width:70px;height:70px;right:-12px;bottom:24px;opacity:.4;box-shadow:0 12px 26px -12px rgba(15,23,42,.24)}
+        }
       `}</style>
       <Container style={{ position: "relative", zIndex: 1 }}>
         <div style={{ textAlign: "center", maxWidth: 920, margin: "0 auto" }}>

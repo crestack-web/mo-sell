@@ -139,7 +139,14 @@ function Hero() {
         .cw-float{position:absolute;z-index:0;pointer-events:none;object-fit:cover;opacity:.82;border:1px solid rgba(255,255,255,.78);box-shadow:0 24px 60px -24px rgba(15,23,42,.32)}
         .cw-float--one{width:158px;height:158px;left:1.5%;bottom:76px;border-radius:44% 30% 40% 26%;transform:rotate(-8deg)}
         .cw-float--two{width:146px;height:146px;right:1.5%;top:104px;border-radius:34px;transform:rotate(9deg)}
-        @media(max-width:1100px){.cw-float{display:none!important}}
+        @media(max-width:1100px){
+          .cw-float--one{width:108px;height:108px;left:8px;bottom:48px;border-radius:30px 22px 28px 20px;opacity:.55}
+          .cw-float--two{width:100px;height:100px;right:8px;top:8px;border-radius:24px;opacity:.5}
+        }
+        @media(max-width:640px){
+          .cw-float--one{width:74px;height:74px;left:-12px;bottom:18px;border-radius:22px 16px 20px 14px;opacity:.42;box-shadow:0 12px 26px -12px rgba(15,23,42,.24)}
+          .cw-float--two{width:70px;height:70px;right:-12px;top:8px;border-radius:18px;opacity:.4;box-shadow:0 12px 26px -12px rgba(15,23,42,.24)}
+        }
       `}</style>
       <Container style={{ position: "relative", zIndex: 1 }}>
         <div className="cw-hero-grid">
