@@ -327,3 +327,57 @@
 }
 
 @media (max-width: 480px) { .userName { display: none; } }
+
+/* ═════ Minimal header refresh ═════ */
+.storeLinkPill {
+  padding: 0;
+  background: var(--sell-surface);
+  border: 1px solid var(--sell-border);
+  box-shadow: none;
+  height: 34px;
+  overflow: hidden;
+}
+.storeLinkPill:hover { box-shadow: none; transform: none; border-color: var(--sell-text-3); }
+.storeLinkMain {
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  padding: 0 6px 0 12px;
+  color: var(--sell-text-2);
+}
+.storeLinkMain:hover { color: var(--sell-text-1); }
+.storeLinkDot { width: 6px; height: 6px; background: var(--sell-green, #22c55e); box-shadow: none; }
+.storeLinkName { font-weight: 500; font-size: 0.78rem; }
+.storeLinkCopy {
+  width: 32px;
+  background: transparent;
+  color: var(--sell-text-3);
+  border-left: 1px solid var(--sell-border);
+  border-radius: 0;
+}
+.storeLinkCopy:hover { background: var(--sell-bg); color: var(--sell-text-1); }
+.storeLinkCopy svg { width: 13px; height: 13px; }
+
+.iconBtn { width: 34px; height: 34px; border-radius: 999px; color: var(--sell-text-3); }
+.iconBtn svg { width: 17px; height: 17px; }
+.divider { display: none; }
+
+.userChip { padding: 2px; gap: 8px; border: none; border-radius: 999px; }
+.userChip:hover { background: var(--sell-bg); }
+.avatar {
+  width: 30px;
+  height: 30px;
+  background: var(--sell-primary, #0EA5E9);
+  box-shadow: 0 0 0 1px var(--sell-border);
+}
+.userName { font-weight: 500; color: var(--sell-text-2); padding-right: 8px; }
+
+@media (max-width: 640px) {
+  .topbar { padding: 0 12px; gap: 8px; max-width: 100vw; box-sizing: border-box; }
+  .actions { gap: 4px; min-width: 0; flex-shrink: 1; }
+  .storeLinkPill { max-width: 42vw; }
+}
+@media (max-width: 400px) {
+  .storeLinkName { display: none; }
+  .storeLinkMain { padding: 0 8px 0 12px; }
+}
