@@ -17,6 +17,7 @@ interface Msg {
   productCreated?: boolean;
 }
 
+const MO_AVATAR = 'https://res.cloudinary.com/dzjoqbg2u/image/upload/v1784793259/mo_sell_chat_ucbw3x.png';
 const SETUP_DONE_KEY = 'mo-sell-ai-setup-done';
 
 function uid() {
@@ -41,10 +42,23 @@ export function StoreSetupChat({
     { id: 'opener', role: 'assistant', text: OPENER },
   ]);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const threadRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const [previewKey, setPreviewKey] = useState(0);
+  const [showPreview, setShowPreview] = useState(false);
+  const storeSlug = storeConfig?.storeSlug as string | undefined;
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const el = threadRef.current;
+    if (el) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
   }, [messages, loading]);
+
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${Math.min(el.scrollHeight, 140)}px`;
+  }, [input]);
 
   const applyStoreUpdate = useCallback(
     async (update: Record<string, unknown>) => {
@@ -125,6 +139,7 @@ export function StoreSetupChat({
           const ok = await applyStoreUpdate(bot.storeUpdate);
           if (ok) {
             bot = { ...bot, applied: true };
+            setPreviewKey(k => k + 1);
             showToast('Store branding applied', 'success');
           }
         } catch {
@@ -142,6 +157,7 @@ export function StoreSetupChat({
             const ok = await applyProduct(bot.newProduct);
             if (ok) {
               bot = { ...bot, productCreated: true };
+              setPreviewKey(k => k + 1);
               showToast('Starter product added', 'success');
             }
           }
@@ -198,67 +214,132 @@ export function StoreSetupChat({
   if (!open) {
     return (
       <button type="button" className={styles.launchCard} onClick={() => setOpen(true)}>
-        <div className={styles.launchIcon}>✦</div>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={MO_AVATAR} alt="" className={styles.launchAvatar} />
         <div className={styles.launchBody}>
-          <strong>Build your store with MO</strong>
-          <span>Chat what you sell — MO picks the theme, branding, and a starter product for you.</span>
+          <strong>Let MO build your store</strong>
+          <span>Tell MO what you sell. It sets up your look and first product.</span>
         </div>
-        <span className={styles.launchCta}>Start chat →</span>
+        <span className={styles.launchCta} aria-hidden>→</span>
       </button>
     );
   }
 
+  const hasPreview = !!storeSlug;
+
   return (
-    <div className={styles.panel}>
-      <div className={styles.panelHeader}>
-        <div>
-          <h3 className={styles.panelTitle}>Store setup with MO</h3>
-          <p className={styles.panelSub}>Conversational — no template picker</p>
-        </div>
-        <button type="button" className={styles.collapseBtn} onClick={() => setOpen(false)} aria-label="Collapse">
-          −
-        </button>
-      </div>
-
-      <div className={styles.thread}>
-        {messages.map(m => (
-          <div
-            key={m.id}
-            className={[styles.bubble, m.role === 'user' ? styles.bubbleUser : styles.bubbleBot].join(' ')}
-          >
-            <p className={styles.bubbleText}>{m.text}</p>
-            {m.applied && <div className={styles.flag}>Store updated</div>}
-            {m.productCreated && <div className={styles.flag}>Product added</div>}
-            {m.storeUpdate && m.applied && (
-              <button type="button" className={styles.previewBtn} onClick={markDoneAndPreview}>
-                Preview store →
-              </button>
-            )}
+    <section className={[styles.panel, hasPreview ? styles.panelWithPreview : ''].join(' ')}>
+      <div className={styles.chatCol}>
+        <header className={styles.panelHeader}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={MO_AVATAR} alt="MO" className={styles.headerAvatar} />
+          <div className={styles.headerText}>
+            <h3 className={styles.panelTitle}>MO</h3>
+            <p className={styles.panelSub}>
+              <span className={styles.liveDot} aria-hidden />
+              {loading ? 'Building your store…' : 'Your store builder'}
+            </p>
           </div>
-        ))}
-        {loading && <div className={styles.typing}>MO is building…</div>}
-        <div ref={bottomRef} />
+          {hasPreview && (
+            <button
+              type="button"
+              className={styles.ghostBtn + ' ' + styles.previewToggle}
+              onClick={() => setShowPreview(v => !v)}
+            >
+              {showPreview ? 'Chat' : 'Preview'}
+            </button>
+          )}
+          <button type="button" className={styles.ghostBtn} onClick={() => setOpen(false)} aria-label="Minimise">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="6" y1="12" x2="18" y2="12" /></svg>
+          </button>
+        </header>
+
+        <div className={[styles.thread, showPreview ? styles.hideOnMobile : ''].join(' ')} ref={threadRef}>
+          {messages.map(m =>
+            m.role === 'assistant' ? (
+              <div key={m.id} className={styles.botRow}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={MO_AVATAR} alt="" className={styles.rowAvatar} />
+                <div className={styles.botBody}>
+                  <p className={styles.botText}>{m.text}</p>
+                  {(m.applied || m.productCreated) && (
+                    <div className={styles.chips}>
+                      {m.applied && <span className={styles.chip}>✓ Store updated</span>}
+                      {m.productCreated && <span className={styles.chip}>✓ Product added</span>}
+                      {m.applied && (
+                        <button type="button" className={styles.chipBtn} onClick={markDoneAndPreview}>
+                          Open store ↗
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div key={m.id} className={styles.userRow}>
+                <p className={styles.userBubble}>{m.text}</p>
+              </div>
+            ),
+          )}
+          {loading && (
+            <div className={styles.botRow}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={MO_AVATAR} alt="" className={styles.rowAvatar} />
+              <div className={styles.dots} aria-label="MO is typing"><span /><span /><span /></div>
+            </div>
+          )}
+          <div ref={bottomRef} />
+        </div>
+
+        {showPreview && hasPreview && (
+          <div className={styles.mobilePreview}>
+            <iframe key={previewKey} src={`/store/${storeSlug}`} title="Store preview" className={styles.previewFrame} />
+          </div>
+        )}
+
+        <div className={styles.composer}>
+          <textarea
+            ref={inputRef}
+            rows={1}
+            className={styles.input}
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            placeholder="Tell MO what you sell…"
+            onKeyDown={e => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                send();
+              }
+            }}
+            disabled={loading}
+          />
+          <div className={styles.composerBar}>
+            <span className={styles.hint}>e.g. handmade soaps in Lagos</span>
+            <button
+              type="button"
+              className={styles.sendBtn}
+              onClick={send}
+              disabled={loading || !input.trim()}
+              aria-label="Send"
+            >
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="19" x2="12" y2="5" /><polyline points="5 12 12 5 19 12" /></svg>
+            </button>
+          </div>
+        </div>
       </div>
 
-      <div className={styles.composer}>
-        <input
-          className={styles.input}
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          placeholder="e.g. I sell handmade soaps in Lagos"
-          onKeyDown={e => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault();
-              send();
-            }
-          }}
-          disabled={loading}
-        />
-        <button type="button" className={styles.sendBtn} onClick={send} disabled={loading || !input.trim()}>
-          Send
-        </button>
-      </div>
-    </div>
+      {hasPreview && (
+        <aside className={styles.previewCol} aria-label="Live store preview">
+          <div className={styles.previewLabel}>
+            <span className={styles.liveDot} aria-hidden /> Live preview
+          </div>
+          <div className={styles.phone}>
+            <iframe key={previewKey} src={`/store/${storeSlug}`} title="Store preview" className={styles.previewFrame} />
+            {loading && <div className={styles.previewShimmer} aria-hidden />}
+          </div>
+        </aside>
+      )}
+    </section>
   );
 }
 
