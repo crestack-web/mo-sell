@@ -632,32 +632,54 @@
 
 .inputWrapper {
   display: flex;
-  align-items: flex-end;
-  gap: 8px;
+  flex-direction: column;
+  gap: 4px;
   max-width: 680px;
   margin: 0 auto;
+  padding: 8px 8px 8px 8px;
+  border-radius: 18px;
+  border: 1px solid var(--sell-border, #e5e7eb);
+  background: var(--sell-bg-alt, #f9fafb);
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.inputWrapper:focus-within {
+  border-color: var(--sell-border-hover, #d1d5db);
+  background: var(--sell-bg, #ffffff);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
+
+.composerToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.composerRight {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .inputField {
-  flex: 1;
-  padding: 11px 14px;
-  border-radius: 10px;
-  border: 1px solid var(--sell-border, #e5e7eb);
-  background: var(--sell-bg-alt, #f9fafb);
+  width: 100%;
+  padding: 6px 8px;
+  border: none;
+  background: transparent;
   color: var(--sell-text, #1a1a1a);
   font-size: 13.5px;
   font-family: inherit;
   resize: none;
   outline: none;
-  min-height: 42px;
-  max-height: 120px;
+  min-height: 36px;
+  max-height: 160px;
   transition: all 0.15s ease;
   line-height: 1.4;
 }
 
 .inputField:focus {
-  border-color: var(--sell-border-hover, #d1d5db);
-  background: var(--sell-bg, #ffffff);
+  background: transparent;
 }
 
 .inputField::placeholder {
@@ -675,9 +697,9 @@
 }
 
 .sendBtn {
-  width: 42px;
-  height: 42px;
-  border-radius: 12px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
   border: none;
   background: var(--sell-accent, #6366f1);
   color: #ffffff;
@@ -700,18 +722,18 @@
 }
 
 .sendBtnIcon {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
 }
 
 /* ── Action Buttons (attach, record) ── */
 
 .actionBtn {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  border: 1px solid var(--sell-border, #e5e7eb);
-  background: var(--sell-bg-alt, #f9fafb);
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid transparent;
+  background: transparent;
   color: var(--sell-text-muted, #6b7280);
   cursor: pointer;
   display: flex;
