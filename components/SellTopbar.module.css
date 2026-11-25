@@ -378,6 +378,8 @@
   .storeLinkPill { max-width: 42vw; }
 }
 @media (max-width: 400px) {
-  .storeLinkName { display: none; }
-  .storeLinkMain { padding: 0 8px 0 12px; }
+  .storeLinkPill { max-width: 46vw; height: 30px; }
+  .storeLinkMain { padding: 0 6px 0 10px; gap: 5px; }
+  .storeLinkName { font-size: 0.68rem; max-width: 100%; }
+  .storeLinkCopy { width: 28px; }
 }
