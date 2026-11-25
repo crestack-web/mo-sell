@@ -537,3 +537,49 @@
   .setupCard { padding: 16px 18px; }
   .setupSteps { grid-template-columns: 1fr; }
 }
+
+/* ═════ Minimal refresh ═════ */
+.overview { gap: 32px; max-width: 1080px; margin: 0 auto; }
+.heading { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.025em; }
+.subheading { color: var(--sell-text-3); font-size: 0.9rem; }
+
+.quickAction { border-radius: 999px; padding: 9px 18px; }
+.quickPrimary { background: var(--sell-text-1); color: var(--sell-surface); box-shadow: none; }
+.quickPrimary:hover { opacity: 0.85; transform: none; }
+.quickSecondary { border-color: transparent; background: var(--sell-surface-2, var(--sell-bg)); }
+
+.setupCard, .statCard, .actionTile, .promptCard {
+  box-shadow: none;
+  border: 1px solid color-mix(in srgb, var(--sell-border) 70%, transparent);
+  border-radius: 18px;
+  background: var(--sell-surface);
+}
+
+.statsGrid { gap: 12px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+.statCard { flex-direction: column; gap: 12px; padding: 18px; }
+.statCard:hover { transform: none; box-shadow: none; border-color: var(--sell-border); background: var(--sell-surface-2, var(--sell-surface)); }
+.statIcon { width: 32px; height: 32px; border-radius: 10px; }
+.statIcon svg { width: 16px; height: 16px; }
+.statLabel { font-size: 0.75rem; }
+.statValue { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.02em; }
+
+.actionsLabel { letter-spacing: 0.04em; font-weight: 600; text-transform: none; font-size: 0.85rem; color: var(--sell-text-2); }
+.actionTile { padding: 14px; gap: 12px; }
+.actionTile::after { display: none; }
+.actionTile:hover { transform: none; box-shadow: none; border-color: var(--sell-border); background: var(--sell-surface-2, var(--sell-surface)); }
+.actionIcon { border-radius: 10px; width: 34px; height: 34px; }
+
+.promptCard { padding: 16px 18px; }
+.promptMoAvatar { box-shadow: none; border-radius: 50%; }
+.promptCta { border-radius: 999px; border-color: var(--sell-border); }
+
+@media (max-width: 640px) {
+  .overview { gap: 24px; padding: 0; }
+  .heading { font-size: 1.45rem; }
+  .statsGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .statCard { padding: 14px; }
+  .statValue { font-size: 1.3rem; }
+  .actionsGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .actionTile { min-width: 0; padding: 12px 8px; align-items: center; text-align: center; }
+  .actionLabel { font-size: 0.75rem; }
+}
