@@ -1195,3 +1195,69 @@
     display: flex;
   }
 }
+
+/* ═════ Minimal editor refresh ═════ */
+.header { border-bottom: none; }
+.title { letter-spacing: -0.02em; }
+.sub { color: var(--sell-text-3); }
+.viewLive { border-radius: 999px; color: var(--sell-text-1); border-color: var(--sell-border); background: var(--sell-surface); }
+.viewLive:hover { background: var(--sell-surface-2); }
+.previewCol {
+  background-color: var(--sell-bg);
+  background-image: radial-gradient(color-mix(in srgb, var(--sell-text-3) 35%, transparent) 1px, transparent 1px);
+  background-size: 18px 18px;
+  border-radius: 20px;
+}
+.phoneFrame { border-width: 8px; box-shadow: 0 20px 50px rgba(0,0,0,.12); transform: scale(.94); transform-origin: top center; }
+.editorCol { border: 1px solid var(--sell-border); border-radius: 20px; box-shadow: none; background: var(--sell-surface); }
+
+.editorTabs {
+  margin: 12px 12px 0; padding: 4px; gap: 2px; border-radius: 12px;
+  background: var(--sell-surface-2); border-bottom: none;
+}
+.editorTab {
+  border-radius: 9px; border-bottom: none !important; padding: 8px 6px;
+  color: var(--sell-text-3); font-weight: 500; font-size: .82rem;
+}
+.editorTab:hover { color: var(--sell-text-1); background: transparent; }
+.editorTabActive {
+  background: var(--sell-surface) !important; color: var(--sell-text-1) !important;
+  box-shadow: 0 1px 2px rgba(0,0,0,.06), 0 0 0 1px var(--sell-border);
+}
+
+.fLabel { font-size: .78rem; font-weight: 600; color: var(--sell-text-1); }
+.fInput, .fTextarea, .fSelect { border-radius: 12px; border-color: var(--sell-border); background: var(--sell-surface); }
+.fInput:focus, .fTextarea:focus, .fSelect:focus { border-color: var(--sell-text-2); box-shadow: 0 0 0 3px color-mix(in srgb, var(--sell-text-1) 6%, transparent); }
+.fileInput { font-size: .8rem; color: var(--sell-text-3); }
+.fileInput::file-selector-button {
+  margin-right: 10px; padding: 7px 14px; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--sell-border); background: var(--sell-surface); color: var(--sell-text-1);
+  font: inherit; font-weight: 600; font-size: .78rem;
+}
+.fileInput::file-selector-button:hover { background: var(--sell-surface-2); }
+.pAvatarPlaceholder { box-shadow: none; }
+.addBtn { border-radius: 12px; border-style: dashed; color: var(--sell-text-2); }
+.addBtn:hover { border-color: var(--sell-border-hover); color: var(--sell-text-1); background: var(--sell-surface-2); }
+.chip { border-radius: 999px; }
+.chipActive { background: var(--sell-text-1) !important; color: var(--sell-surface) !important; border-color: var(--sell-text-1) !important; }
+
+/* Theme picker */
+.themeGrid { grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 12px; }
+.themeCard { padding: 0; border: none; background: none; gap: 8px; border-radius: 14px; }
+.themeCard:hover { border: none; }
+.themeCard:hover .themeMock { transform: translateY(-1px); box-shadow: inset 0 0 0 1px rgba(0,0,0,.06), 0 6px 16px rgba(0,0,0,.08); }
+.themeMock { aspect-ratio: 4 / 5; border-radius: 14px; transition: transform .15s ease, box-shadow .15s ease; padding: 14px 12px; }
+.themeCardActive { border: none !important; box-shadow: none !important; }
+.themeCardActive .themeMock { box-shadow: 0 0 0 2px var(--sell-surface), 0 0 0 4px var(--sell-text-1); }
+.themeName { font-size: .78rem; font-weight: 600; color: var(--sell-text-1); text-align: left; padding: 0 2px; }
+.themeMockBadge { border-radius: 999px; padding: 2px 7px; }
+
+.saveRow { border-top: 1px solid var(--sell-border-subtle, var(--sell-border)); background: var(--sell-surface); }
+.saveBtn { background: var(--sell-text-1) !important; color: var(--sell-surface) !important; border-radius: 999px; box-shadow: none !important; }
+.saveBtn:disabled { opacity: .3; }
+.viewBtn { border-radius: 999px; }
+.mobileFab { background: var(--sell-text-1) !important; color: var(--sell-surface) !important; box-shadow: 0 8px 24px rgba(0,0,0,.18) !important; }
+@media (max-width: 768px) {
+  .mobileFab { bottom: calc(var(--sell-nav-space, 82px) + 12px) !important; }
+  .previewCol { background-image: none; border-radius: 0; }
+}

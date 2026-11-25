@@ -830,20 +830,24 @@ export function SellAskMoPage() {
     [showToast]
   );
 
-  // ── Twist a script response ──────────────────────────────────────────
-  // Asks MO to improve/rework the reply while preserving the core message,
-  // so users can iterate on a script without starting over.
-  const handleTwist = useCallback(
+  // ── Retry: re-ask the question that produced this reply ─────────────
+  const handleRetry = useCallback(
     (msg: ChatMessage) => {
-      const original = (msg.text || '').trim();
-      if (!original) return;
-      showToast('Tweaking script…', 'info');
-      sendMessage(
-        `Improve and rework the following script. Keep the exact same core message, tone, and purpose — do not change the meaning — but make it sharper, clearer, and more engaging. Add a fresher hook or a new angle while keeping it recognizable as the same script.\n\nOriginal script:\n"""${original}"""`,
-      );
+      const idx = messages.findIndex(m => m.id === msg.id);
+      const prevUser = [...messages.slice(0, idx)].reverse().find(m => m.role === 'user' && m.text.trim());
+      if (!prevUser) return;
+      sendMessage(prevUser.text);
     },
-    [sendMessage, showToast]
+    [messages, sendMessage]
   );
+
+  // ── Store-aware follow-up actions on a reply ─────────────────────────
+  const QUICK_ACTIONS: { label: string; prompt: (t: string) => string }[] = [
+    { label: 'Add as product', prompt: t => `Create a new product in my store based on this. Fill in name, description and a sensible price:\n"""${t}"""` },
+    { label: 'Use on my store', prompt: t => `Update my store tagline and description using this, keeping my brand voice:\n"""${t}"""` },
+    { label: 'Add to link in bio', prompt: t => `Update my link in bio (headline, bio text and links) using this:\n"""${t}"""` },
+    { label: 'Make it shorter', prompt: t => `Rewrite this shorter and punchier, same meaning:\n"""${t}"""` },
+  ];
 
   // ── Apply store update ─────────────────────────────────────────────────
 
@@ -1157,27 +1161,22 @@ export function SellAskMoPage() {
 
                       {msg.role === 'bot' && msg.text.trim() && (
                         <div className={styles.msgActions}>
-                          <button
-                            className={styles.twistBtn}
-                            onClick={() => handleCopy(msg)}
-                            title="Copy this message"
-                          >
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                            </svg>
-                            Copy
+                          <button className={styles.msgIconBtn} onClick={() => handleCopy(msg)} title="Copy" aria-label="Copy reply">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" /></svg>
                           </button>
-                          <button
-                            className={styles.twistBtn}
-                            onClick={() => handleTwist(msg)}
-                            title="Ask MO to improve this while keeping the core message"
-                          >
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M12 3l1.9 5.7L19.5 10l-5.6 1.3L12 17l-1.9-5.7L4.5 10l5.6-1.3z" />
-                            </svg>
-                            Twist
+                          <button className={styles.msgIconBtn} onClick={() => handleRetry(msg)} disabled={loading} title="Try again" aria-label="Try again">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 019-9 9.75 9.75 0 016.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 01-9 9 9.75 9.75 0 01-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
                           </button>
+                          {msg.id === messages[messages.length - 1]?.id && !loading
+                            && !msg.storeUpdate && !msg.bioUpdate && !msg.newProduct && !msg.editProduct && (
+                            <div className={styles.quickActions}>
+                              {QUICK_ACTIONS.map(q => (
+                                <button key={q.label} className={styles.quickActionChip} onClick={() => sendMessage(q.prompt(msg.text.trim()))}>
+                                  {q.label}
+                                </button>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       )}
 

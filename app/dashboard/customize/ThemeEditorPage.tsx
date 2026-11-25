@@ -964,7 +964,7 @@ export function ThemeEditorPage() {
                     <span className={styles.secIcon}>{SectionIcons[sec.type]}</span>
                     <span className={styles.secLabel}>{meta.label}</span>
                   </button>
-                  <div style={{ display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
+                  <div className={styles.moveBtns}>
                     <button type="button" className={styles.eyeBtn} onClick={() => moveSection(sec.id, -1)} title="Move up" aria-label="Move up">↑</button>
                     <button type="button" className={styles.eyeBtn} onClick={() => moveSection(sec.id, 1)} title="Move down" aria-label="Move down">↓</button>
                   </div>
@@ -1012,43 +1012,51 @@ export function ThemeEditorPage() {
             ) : (
               <>
                 <div className={styles.designGroup}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <div className={styles.themeHead}>
                     <p className={styles.designTitle} style={{ margin: 0 }}>Theme</p>
-                    <button className={styles.iconBtn} onClick={() => setShowThemePicker(!showThemePicker)} style={{ fontSize: '0.75rem', fontWeight: 600, gap: 4, width: 'auto', padding: '4px 10px' }} type="button">
-                      {showThemePicker ? 'Cancel' : 'Change'}
+                    <button className={styles.themeChangeBtn} onClick={() => setShowThemePicker(!showThemePicker)} type="button">
+                      {showThemePicker ? 'Done' : 'Browse themes'}
                     </button>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 0' }}>
-                    <div style={{ width: 20, height: 20, borderRadius: 6, background: primary, flexShrink: 0 }} />
-                    <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--sell-text)' }}>
-                      {THEMES.find(t => t.id === theme)?.name || theme}
-                    </span>
-                  </div>
+                  {!showThemePicker && (() => {
+                    const cur = THEMES.find(t => t.id === theme);
+                    return (
+                      <button type="button" className={styles.themeCurrent} onClick={() => setShowThemePicker(true)}>
+                        <span className={styles.themeThumb} style={{ background: cur?.previewBg || '#fff' }}>
+                          <span className={styles.themeThumbBar} style={{ background: cur?.previewAccent || primary }} />
+                          <span className={styles.themeThumbLine} style={{ background: cur?.previewAccent || primary }} />
+                        </span>
+                        <span className={styles.themeCurrentText}>
+                          <span className={styles.themeCardName}>{cur?.name || theme}</span>
+                          <span className={styles.themeCardDesc}>{cur?.description}</span>
+                        </span>
+                      </button>
+                    );
+                  })()}
                   {showThemePicker && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4, maxHeight: 300, overflowY: 'auto' }}>
+                    <div className={styles.themePickGrid}>
                       {THEMES.filter(t => t.type === 'e-commerce').map(t => {
                         const isActive = theme === t.id;
                         const isLoading = themeApplying === t.id;
                         return (
                           <button
                             key={t.id}
+                            type="button"
                             onClick={() => handleThemeSelect(t.id)}
                             disabled={isActive || !!themeApplying}
-                            style={{
-                              display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px',
-                              border: `1px solid ${isActive ? 'var(--sell-primary)' : 'var(--sell-border)'}`,
-                              borderRadius: 8, background: isActive ? 'var(--sell-primary-lt, #f0f9ff)' : 'transparent',
-                              cursor: isActive ? 'default' : 'pointer', textAlign: 'left', width: '100%',
-                              opacity: isLoading ? 0.6 : 1,
-                            }}
+                            className={[styles.themePickCard, isActive ? styles.themePickActive : ''].join(' ')}
+                            style={{ opacity: isLoading ? 0.6 : 1 }}
+                            title={t.description}
                           >
-                            <div style={{ width: 28, height: 28, borderRadius: 6, background: t.previewAccent || primary, flexShrink: 0 }} />
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--sell-text)' }}>{t.name}</div>
-                              <div style={{ fontSize: '0.7rem', color: 'var(--sell-text-2)' }}>{t.description}</div>
-                            </div>
-                            {isActive && <span style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--sell-primary)' }}>Active</span>}
-                            {isLoading && <span style={{ fontSize: '0.68rem' }}>...</span>}
+                            <span className={styles.themePickThumb} style={{ background: t.previewBg }}>
+                              <span className={styles.themeThumbBar} style={{ background: t.previewAccent }} />
+                              <span className={styles.themePickHero} style={{ color: t.previewAccent, fontFamily: t.previewFont }}>Aa</span>
+                              <span className={styles.themePickRow}>
+                                <span style={{ background: t.previewAccent }} /><span style={{ background: t.previewAccent }} />
+                              </span>
+                              {isActive && <span className={styles.themePickCheck}>✓</span>}
+                            </span>
+                            <span className={styles.themeCardName}>{isLoading ? 'Applying…' : t.name}</span>
                           </button>
                         );
                       })}
