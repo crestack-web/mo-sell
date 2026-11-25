@@ -11,16 +11,16 @@
 
 :root {
   /* ── MO Sell Brand ── */
-  --sell-primary:     #0EA5E9;   /* sky-500 — commerce blue */
-  --sell-primary-dk:  #0369A1;   /* sky-700 */
-  --sell-primary-lt:  #E0F2FE;   /* sky-100 */
-  --sell-primary-mid: #38BDF8;   /* sky-400 */
-  --sell-primary-glow: rgba(14, 165, 233, 0.15);
+  --sell-primary:     #0A84FF;   /* sky-500 — commerce blue */
+  --sell-primary-dk:  #0066CC;   /* sky-700 */
+  --sell-primary-lt:  #EEF5FF;   /* sky-100 */
+  --sell-primary-mid: #4DA3FF;   /* sky-400 */
+  --sell-primary-glow: rgba(10, 132, 255, 0.12);
 
-  --sell-accent:      #6366F1;   /* indigo-500 — MO intelligence */
-  --sell-accent-dk:   #4338CA;   /* indigo-700 */
-  --sell-accent-lt:   #EEF2FF;   /* indigo-50 */
-  --sell-accent-glow: rgba(99, 102, 241, 0.15);
+  --sell-accent:      #0A84FF;   /* indigo-500 — MO intelligence */
+  --sell-accent-dk:   #0066CC;   /* indigo-700 */
+  --sell-accent-lt:   #EEF5FF;   /* indigo-50 */
+  --sell-accent-glow: rgba(10, 132, 255, 0.12);
 
   /* Semantic status colors (shared with Busmo) */
   --sell-green:     #16A34A;
@@ -60,46 +60,46 @@
 
 /* ── Sell Light theme ── */
 [data-sell-theme='light'] {
-  --sell-bg:           #F0F9FF;   /* sky-50 tint — distinct from Busmo's grey */
+  --sell-bg:           #FAFAF9;   /* sky-50 tint — distinct from Busmo's grey */
   --sell-surface:      #FFFFFF;
-  --sell-surface-2:    #F8FBFF;
+  --sell-surface-2:    #F5F5F4;
   --sell-card:         #FFFFFF;
-  --sell-bg-alt:       #F4F8FC;
-  --sell-border:       #E0EFFA;
-  --sell-border-subtle:#EBF5FC;
-  --sell-border-hover: #B9CADD;
-  --sell-text-1:       #0C1A2E;
-  --sell-text:         #0C1A2E;   /* alias for --sell-text-1 */
-  --sell-text-2:       #3D5A7A;
-  --sell-text-3:       #8AAABF;
-  --sell-text-muted:   #64748B;
-  --sell-shadow-sm:    0 1px 3px rgba(14, 88, 140, 0.07);
-  --sell-shadow:       0 4px 16px rgba(14, 88, 140, 0.09);
-  --sell-shadow-lg:    0 16px 48px rgba(14, 165, 233, 0.18);
+  --sell-bg-alt:       #F5F5F4;
+  --sell-border:       #ECECEA;
+  --sell-border-subtle:#F2F2F0;
+  --sell-border-hover: #D6D6D3;
+  --sell-text-1:       #18181B;
+  --sell-text:         #18181B;   /* alias for --sell-text-1 */
+  --sell-text-2:       #52525B;
+  --sell-text-3:       #A1A1AA;
+  --sell-text-muted:   #71717A;
+  --sell-shadow-sm:    0 1px 2px rgba(0, 0, 0, 0.04);
+  --sell-shadow:       0 4px 14px rgba(0, 0, 0, 0.06);
+  --sell-shadow-lg:    0 16px 40px rgba(0, 0, 0, 0.10);
   --sell-overlay:      rgba(0, 0, 0, 0.4);
 }
 
 /* ── Sell Dark theme ── */
 [data-sell-theme='dark'] {
   --sell-bg:           #070E1A;
-  --sell-surface:      #0D1829;
-  --sell-surface-2:    #122033;
-  --sell-card:         #101E33;
-  --sell-bg-alt:       #0A1524;
-  --sell-border:       #1A2D45;
-  --sell-border-subtle:#152438;
-  --sell-border-hover: #2C4460;
-  --sell-text-1:       #EFF7FF;
-  --sell-text:         #EFF7FF;   /* alias for --sell-text-1 */
-  --sell-text-2:       #7AABCC;
-  --sell-text-3:       #3D6685;
-  --sell-text-muted:   #94A8BE;
+  --sell-surface:      #141415;
+  --sell-surface-2:    #1C1C1E;
+  --sell-card:         #161617;
+  --sell-bg-alt:       #101011;
+  --sell-border:       #262628;
+  --sell-border-subtle:#1E1E20;
+  --sell-border-hover: #3A3A3D;
+  --sell-text-1:       #F4F4F5;
+  --sell-text:         #F4F4F5;   /* alias for --sell-text-1 */
+  --sell-text-2:       #A1A1AA;
+  --sell-text-3:       #63636B;
+  --sell-text-muted:   #8E8E96;
   --sell-shadow-sm:    0 1px 3px rgba(0, 0, 0, 0.4);
   --sell-shadow:       0 4px 16px rgba(0, 0, 0, 0.45);
-  --sell-shadow-lg:    0 16px 48px rgba(14, 165, 233, 0.22);
+  --sell-shadow-lg:    0 16px 40px rgba(0, 0, 0, 0.5);
   --sell-overlay:      rgba(0, 0, 0, 0.65);
-  --sell-primary-lt:   rgba(14, 165, 233, 0.18);
-  --sell-accent-lt:    rgba(99, 102, 241, 0.18);
+  --sell-primary-lt:   rgba(10, 132, 255, 0.16);
+  --sell-accent-lt:    rgba(10, 132, 255, 0.16);
   --sell-green-bg:     rgba(22, 163, 74, 0.15);
   --sell-red-bg:       rgba(220, 38, 38, 0.15);
   --sell-amber-bg:     rgba(217, 119, 6, 0.15);
