@@ -51,6 +51,22 @@ interface Conversation {
   updatedAt: number;
 }
 
+function groupConversations(list: Conversation[]) {
+  const startOfDay = new Date(); startOfDay.setHours(0, 0, 0, 0);
+  const today = startOfDay.getTime();
+  const day = 86400000;
+  const buckets: { label: string; items: Conversation[] }[] = [
+    { label: 'Today', items: [] }, { label: 'Yesterday', items: [] },
+    { label: 'Previous 7 days', items: [] }, { label: 'Older', items: [] },
+  ];
+  for (const c of [...list].sort((a, b) => b.updatedAt - a.updatedAt)) {
+    const t = c.updatedAt;
+    const i = t >= today ? 0 : t >= today - day ? 1 : t >= today - 7 * day ? 2 : 3;
+    buckets[i]!.items.push(c);
+  }
+  return buckets.filter(b => b.items.length);
+}
+
 interface Suggestion {
   icon: string;
   label: string;
@@ -317,6 +333,7 @@ export function SellAskMoPage() {
     { role: 'user' | 'model'; parts: { text: string }[] }[]
   >([]);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyQuery, setHistoryQuery] = useState('');
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
@@ -1045,7 +1062,11 @@ export function SellAskMoPage() {
           <MOAvatar size={40} />
           <div className={styles.headerInfo}>
             <span className={styles.headerName}>MO</span>
-            <span className={styles.headerStatus}>AI Commerce Assistant</span>
+            <span className={styles.headerStatus}>
+              {tokenData
+                ? `${attachments.length > 0 ? tokenData.costs.chatWithMedia : tokenData.costs.chat} tokens per message`
+                : 'AI Commerce Assistant'}
+            </span>
           </div>
           {tokenData && (
             <button
@@ -1447,22 +1468,27 @@ export function SellAskMoPage() {
 
         {/* ── Input Area ── */}
         <div className={styles.inputArea}>
-          {attachments.length > 0 && (
-            <div className={styles.attachmentBar}>
-              {attachments.map(a => (
-                <div key={a.id} className={styles.attachmentChip}>
-                  {a.type === 'image' && <span className={styles.attachmentChipIcon}>🖼️</span>}
-                  {a.type === 'audio' && <span className={styles.attachmentChipIcon}>🎤</span>}
-                  {a.type === 'file' && <span className={styles.attachmentChipIcon}>📎</span>}
-                  <span className={styles.attachmentChipName}>{a.name}</span>
-                  <button className={styles.attachmentChipRemove} onClick={() => removeAttachment(a.id)} aria-label="Remove attachment">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
           <div className={styles.inputWrapper}>
+            {attachments.length > 0 && (
+              <div className={styles.composerAttachments}>
+                {attachments.map(a => (
+                  <div key={a.id} className={a.type === 'image' ? styles.thumb : styles.fileTile}>
+                    {a.type === 'image' ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={`data:${a.mimeType};base64,${a.data}`} alt={a.name} className={styles.thumbImg} />
+                    ) : (
+                      <>
+                        <span className={styles.fileTileIcon}>{a.type === 'audio' ? '🎤' : '📄'}</span>
+                        <span className={styles.fileTileName}>{a.name}</span>
+                      </>
+                    )}
+                    <button className={styles.thumbRemove} onClick={() => removeAttachment(a.id)} aria-label="Remove attachment">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
             <textarea
               ref={inputRef}
               className={styles.inputField}
@@ -1521,14 +1547,7 @@ export function SellAskMoPage() {
               </div>
             </div>
           </div>
-          <div className={styles.inputFooter}>
-            <p className={styles.inputHint}>MO can update your store and create products. Always review changes before publishing.</p>
-            {tokenData && (
-              <span className={styles.tokenCost} title={`Chat: ${tokenData.costs.chat} tokens, with media: ${tokenData.costs.chatWithMedia}, ebook: ${tokenData.costs.ebookCreate} | Balance: ${tokenData.balance}`}>
-                {attachments.length > 0 ? tokenData.costs.chatWithMedia : tokenData.costs.chat} tok
-              </span>
-            )}
-          </div>
+          <p className={styles.inputHintSmall}>MO can make mistakes. Review changes before publishing.</p>
         </div>
       </div>
 
@@ -1536,31 +1555,45 @@ export function SellAskMoPage() {
       {historyOpen && (
         <>
           <div className={styles.historyBackdrop} onClick={() => setHistoryOpen(false)} />
-          <div className={`${styles.historyPanel} ${styles.historyPanelOpen}`}>
+          <div className={`${styles.historyPanel} ${styles.historyPanelOpen}`} role="dialog" aria-label="Chat history">
             <div className={styles.historyHeader}>
-              <span className={styles.historyTitle}>Chat History</span>
+              <span className={styles.historyTitle}>Chats</span>
               <button className={styles.historyClose} onClick={() => setHistoryOpen(false)} aria-label="Close history">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               </button>
             </div>
+            <button className={styles.historyNew} onClick={() => { handleNewChat(); setHistoryOpen(false); }}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg>
+              New chat
+            </button>
+            <div className={styles.historySearch}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input value={historyQuery} onChange={e => setHistoryQuery(e.target.value)} placeholder="Search chats" />
+            </div>
             <div className={styles.historyList}>
-              {historyLoading && <p className={styles.historyEmpty}>Loading...</p>}
-              {!historyLoading && conversations.length === 0 && (
-                <p className={styles.historyEmpty}>No past conversations yet.</p>
+              {historyLoading && (
+                <div className={styles.historySkeletons}>{[0,1,2,3].map(i => <div key={i} className={styles.historySkeleton} />)}</div>
               )}
-              {conversations.map(c => (
-                <div key={c.id} className={styles.historyItem} onClick={() => loadConversation(c.id)}>
-                  <div className={styles.historyItemContent}>
-                    <p className={styles.historyItemPreview}>{c.preview}</p>
-                    <p className={styles.historyItemMeta}>{c.messageCount} messages · {timeAgo(c.updatedAt)}</p>
-                  </div>
-                  <button
-                    className={styles.historyItemDelete}
-                    onClick={(e) => { e.stopPropagation(); deleteConversation(c.id); }}
-                    aria-label="Delete conversation"
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
-                  </button>
+              {!historyLoading && conversations.length === 0 && (
+                <p className={styles.historyEmpty}>No chats yet. Start one and it will show up here.</p>
+              )}
+              {!historyLoading && groupConversations(conversations.filter(c => c.preview.toLowerCase().includes(historyQuery.toLowerCase()))).map(g => (
+                <div key={g.label} className={styles.historyGroup}>
+                  <p className={styles.historyGroupLabel}>{g.label}</p>
+                  {g.items.map(c => (
+                    <div key={c.id} className={styles.historyItem} onClick={() => loadConversation(c.id)} role="button" tabIndex={0}
+                      onKeyDown={e => { if (e.key === 'Enter') loadConversation(c.id); }}>
+                      <p className={styles.historyItemPreview}>{c.preview}</p>
+                      <span className={styles.historyItemMeta}>{timeAgo(c.updatedAt)}</span>
+                      <button
+                        className={styles.historyItemDelete}
+                        onClick={(e) => { e.stopPropagation(); deleteConversation(c.id); }}
+                        aria-label="Delete conversation"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+                      </button>
+                    </div>
+                  ))}
                 </div>
               ))}
             </div>
