@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSell } from '../context/SellContext';
+import { SellLoader } from './SellLoader';
 import { getDatabase } from '@/lib/database/adapter';
 
 interface Props { children: React.ReactNode; }
@@ -143,39 +144,7 @@ export function SellAuthGuard({ children }: Props) {
   }, [user, userLoading, subscriptionChecked, hasAccess, needsOnboarding, router]);
 
   if (userLoading || !subscriptionChecked) {
-    return (
-      <div style={{
-        minHeight: '100vh', display: 'flex', flexDirection: 'column',
-        alignItems: 'center', justifyContent: 'center',
-        background: '#F0F9FF', gap: 16,
-        fontFamily: 'Plus Jakarta Sans, sans-serif',
-      }}>
-        <div style={{
-          width: 56, height: 56, borderRadius: 16,
-          background: 'linear-gradient(135deg, #0EA5E9 0%, #6366F1 100%)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: '0 8px 24px rgba(14,165,233,0.30)',
-          animation: 'sellPulse 1.4s ease-in-out infinite',
-          overflow: 'hidden',
-        }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1785078071/mosell_gpzl2q.png"
-            alt="MO Sell"
-            style={{ width: 36, height: 36, objectFit: 'contain' }}
-          />
-        </div>
-        <p style={{ fontSize: '0.875rem', fontWeight: 500, color: '#3D5A7A' }}>
-          Loading MO Sell…
-        </p>
-        <style>{`
-          @keyframes sellPulse {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50%       { opacity: 0.75; transform: scale(0.96); }
-          }
-        `}</style>
-      </div>
-    );
+    return <SellLoader label="Loading your store" />;
   }
 
   if (!user) return null;
