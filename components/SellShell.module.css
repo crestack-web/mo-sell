@@ -64,7 +64,7 @@
 
 @media (max-width: 768px) {
   .page { padding: 14px 14px calc(var(--sell-nav-space) + 16px); }
-  .pageArea { scroll-padding-bottom: var(--sell-nav-space); }
+  .pageArea { overflow-x: hidden; scroll-padding-bottom: var(--sell-nav-space); }
   .pageAreaFullBleed { padding-bottom: var(--sell-nav-space); }
   .main, .pageAreaFullBleed, .pageFullBleed { min-width: 0; max-width: 100vw; }
   .toastWrap { bottom: calc(var(--sell-nav-space) + 8px); }
