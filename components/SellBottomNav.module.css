@@ -11,20 +11,21 @@
 @media (max-width: 768px) {
   .bottomNav {
     position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
+    left: 12px;
+    right: 12px;
+    bottom: calc(10px + env(safe-area-inset-bottom, 0px));
     z-index: 50;
     display: flex;
     align-items: stretch;
     justify-content: space-around;
-    height: 60px;
-    padding-bottom: env(safe-area-inset-bottom, 0);
-    background: var(--sell-surface, #fff);
-    border-top: 1px solid var(--sell-border, #e5e7eb);
-    box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.06);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    height: var(--sell-nav-h, 62px);
+    padding: 0 6px;
+    border-radius: 24px;
+    background: color-mix(in srgb, var(--sell-surface, #fff) 78%, transparent);
+    border: 0.5px solid color-mix(in srgb, var(--sell-border, #e5e7eb) 80%, transparent);
+    box-shadow: 0 8px 30px rgba(15, 23, 42, 0.12), 0 1px 2px rgba(15, 23, 42, 0.06);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
   }
 
   .navItem {
@@ -34,23 +35,23 @@
     align-items: center;
     justify-content: center;
     gap: 3px;
+    margin: 6px 2px;
     border: none;
+    border-radius: 18px;
     background: none;
     cursor: pointer;
-    padding: 6px 0 4px;
     color: var(--sell-text-3, #9ca3af);
-    font-family: var(--sell-font-body, system-ui);
+    font-family: -apple-system, BlinkMacSystemFont, var(--sell-font-body, system-ui), sans-serif;
     -webkit-tap-highlight-color: transparent;
-    transition: color 0.15s;
+    transition: color 0.2s ease, background 0.2s ease, transform 0.15s ease;
     position: relative;
   }
 
-  .navItem:active {
-    transform: scale(0.92);
-  }
+  .navItem:active { transform: scale(0.94); }
 
   .navItemActive {
     color: var(--sell-primary, #0ea5e9);
+    background: color-mix(in srgb, var(--sell-primary, #0ea5e9) 12%, transparent);
   }
 
   .navIcon {
@@ -62,20 +63,13 @@
     justify-content: center;
   }
 
-  .navIcon svg {
-    width: 22px;
-    height: 22px;
-    stroke-width: 1.8;
-  }
-
-  .navItemActive .navIcon svg {
-    stroke-width: 2.2;
-  }
+  .navIcon svg { width: 22px; height: 22px; stroke-width: 1.7; }
+  .navItemActive .navIcon svg { stroke-width: 2.1; }
 
   .navLabel {
-    font-size: 0.62rem;
+    font-size: 10px;
     font-weight: 600;
-    letter-spacing: 0.02em;
+    letter-spacing: 0.01em;
     line-height: 1;
     white-space: nowrap;
   }
@@ -83,30 +77,19 @@
   .badge {
     position: absolute;
     top: -4px;
-    right: -8px;
+    right: -9px;
     min-width: 16px;
     height: 16px;
     padding: 0 4px;
     border-radius: 99px;
-    background: #ef4444;
+    background: #ff3b30;
     color: #fff;
-    font-size: 0.55rem;
+    font-size: 9px;
     font-weight: 700;
     display: flex;
     align-items: center;
     justify-content: center;
     line-height: 1;
-    box-shadow: 0 1px 3px rgba(239, 68, 68, 0.4);
-  }
-
-  /* Active indicator dot */
-  .navItemActive::after {
-    content: '';
-    position: absolute;
-    top: 2px;
-    width: 4px;
-    height: 4px;
-    border-radius: 50%;
-    background: var(--sell-primary, #0ea5e9);
+    border: 1.5px solid var(--sell-surface, #fff);
   }
 }
