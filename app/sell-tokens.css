@@ -81,7 +81,7 @@
 
 /* ── Sell Dark theme ── */
 [data-sell-theme='dark'] {
-  --sell-bg:           #070E1A;
+  --sell-bg:           #0B0B0C;
   --sell-surface:      #141415;
   --sell-surface-2:    #1C1C1E;
   --sell-card:         #161617;
