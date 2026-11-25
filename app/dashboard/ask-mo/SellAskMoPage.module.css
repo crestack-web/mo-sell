@@ -1249,3 +1249,21 @@
   font-weight: 700;
   color: var(--sell-text, #1a1a1a);
 }
+
+/* ── Mobile overflow guard ── */
+@media (max-width: 768px) {
+  .page, .chatContainer { width: 100%; max-width: 100%; min-width: 0; overflow-x: hidden; }
+  .messagesArea { overflow-x: hidden; min-width: 0; }
+  .messagesArea * { max-width: 100%; overflow-wrap: anywhere; }
+  .messagesArea pre { overflow-x: auto; white-space: pre-wrap; }
+  .messagesArea table { display: block; overflow-x: auto; }
+  .messagesArea img, .messagesArea video { height: auto; }
+  .inputArea { padding: 8px 12px 10px; box-sizing: border-box; width: 100%; }
+  .inputFooter { max-width: 100%; flex-wrap: wrap; gap: 6px; }
+  .chatHeader { min-width: 0; }
+  .headerInfo { flex: 1; }
+  .headerName, .headerStatus { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tokenBadge { margin-right: 4px; flex-shrink: 0; }
+  .suggestions { padding: 0 4px; }
+  .suggestionChip { white-space: normal; flex-shrink: 1; max-width: 100%; }
+}
