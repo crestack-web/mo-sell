@@ -46,12 +46,17 @@ const NAV_ITEMS: NavItem[] = [
     ),
   },
   {
-    id: 'content-hub',
-    label: 'Content',
+    id: 'ask-mo',
+    label: 'Ask Mo',
     icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 2l2.4 7.2L22 9.6l-5.6 4.8 1.6 7.6L12 17.6 6 22l1.6-7.6L2 9.6l7.6-.4L12 2z"/>
-      </svg>
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1784793259/mo_sell_chat_ucbw3x.png"
+        alt=""
+        width={24}
+        height={24}
+        style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover' }}
+      />
     ),
   },
   {
@@ -67,7 +72,7 @@ const NAV_ITEMS: NavItem[] = [
   },
 ];
 
-const PRIMARY_IDS = new Set<SellPageId>(['overview', 'products', 'orders', 'content-hub']);
+const PRIMARY_IDS = new Set<SellPageId>(['overview', 'products', 'orders', 'ask-mo']);
 
 export function SellBottomNav() {
   const { activePage, navigateTo, quickStats } = useSell();
