@@ -126,3 +126,12 @@ body {
   .sf-product-page-gallery { order: -1 !important; }
   .sf-product-page-info { order: 0 !important; }
 }
+
+/* Prevent iOS auto-zoom when focusing text fields (needs >=16px) */
+@media (max-width: 768px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
