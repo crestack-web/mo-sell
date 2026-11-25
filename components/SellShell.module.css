@@ -1,6 +1,9 @@
 .shell {
+  --sell-nav-h: 62px;
+  --sell-nav-space: calc(var(--sell-nav-h) + 20px + env(safe-area-inset-bottom, 0px));
   display: flex;
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
   background: var(--sell-bg);
   font-family: var(--sell-font-body);
@@ -60,7 +63,11 @@
 }
 
 @media (max-width: 768px) {
-  .page { padding: 14px 14px 72px; }
+  .page { padding: 14px 14px calc(var(--sell-nav-space) + 16px); }
+  .pageArea { scroll-padding-bottom: var(--sell-nav-space); }
+  .pageAreaFullBleed { padding-bottom: var(--sell-nav-space); }
+  .main, .pageAreaFullBleed, .pageFullBleed { min-width: 0; max-width: 100vw; }
+  .toastWrap { bottom: calc(var(--sell-nav-space) + 8px); }
 }
 
 /* ── Toast ── */
