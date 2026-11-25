@@ -583,3 +583,16 @@
   .actionTile { min-width: 0; padding: 12px 8px; align-items: center; text-align: center; }
   .actionLabel { font-size: 0.75rem; }
 }
+
+/* ── Mobile overflow guard ── */
+@media (max-width: 640px) {
+  .overview { max-width: 100%; min-width: 0; overflow-x: hidden; box-sizing: border-box; }
+  .overview > * { min-width: 0; max-width: 100%; }
+  .header, .setupCardHeader { flex-direction: column; align-items: stretch; }
+  .subheading { max-width: 100%; }
+  .statCard, .actionTile, .setupStep, .promptCard { min-width: 0; box-sizing: border-box; }
+  .statValue { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .quickAction { white-space: normal; justify-content: center; }
+  .setupCard .quickAction { flex: 1 1 auto; }
+  .overview img { max-width: 100%; height: auto; }
+}
