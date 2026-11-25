@@ -1463,38 +1463,6 @@ export function SellAskMoPage() {
             </div>
           )}
           <div className={styles.inputWrapper}>
-            <button
-              className={styles.actionBtn}
-              onClick={() => fileInputRef.current?.click()}
-              disabled={loading}
-              aria-label="Attach file or image"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/>
-              </svg>
-            </button>
-            <input ref={fileInputRef} type="file" accept="image/*,audio/*,.pdf,.doc,.docx,.txt,.csv" className={styles.hiddenInput} onChange={handleFileSelect} />
-            <button
-              className={`${styles.actionBtn} ${recording ? styles.actionBtnActive : ''}`}
-              onClick={recording ? stopRecording : startRecording}
-              disabled={loading}
-              aria-label={recording ? 'Stop recording' : 'Record voice'}
-            >
-              {recording ? (
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
-              ) : (
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/>
-                  <path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/>
-                </svg>
-              )}
-            </button>
-            {recording && (
-              <span className={styles.recordingBadge}>
-                <span className={styles.recordingDot} />
-                {Math.floor(recordingTime / 60)}:{(recordingTime % 60).toString().padStart(2, '0')}
-              </span>
-            )}
             <textarea
               ref={inputRef}
               className={styles.inputField}
@@ -1505,17 +1473,53 @@ export function SellAskMoPage() {
               rows={1}
               disabled={loading}
             />
-            <button
-              className={styles.sendBtn}
-              onClick={() => sendMessage(input)}
-              disabled={(!input.trim() && attachments.length === 0) || loading}
-              aria-label="Send message"
-            >
-              <svg className={styles.sendBtnIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="22" y1="2" x2="11" y2="13"/>
-                <polygon points="22 2 15 22 11 13 2 9 22 2"/>
-              </svg>
-            </button>
+            <input ref={fileInputRef} type="file" accept="image/*,audio/*,.pdf,.doc,.docx,.txt,.csv" className={styles.hiddenInput} onChange={handleFileSelect} />
+            <div className={styles.composerToolbar}>
+              <button
+                className={styles.actionBtn}
+                onClick={() => fileInputRef.current?.click()}
+                disabled={loading}
+                aria-label="Attach file or image"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/>
+                </svg>
+              </button>
+              <div className={styles.composerRight}>
+                {recording && (
+                  <span className={styles.recordingBadge}>
+                    <span className={styles.recordingDot} />
+                    {Math.floor(recordingTime / 60)}:{(recordingTime % 60).toString().padStart(2, '0')}
+                  </span>
+                )}
+                <button
+                  className={`${styles.actionBtn} ${recording ? styles.actionBtnActive : ''}`}
+                  onClick={recording ? stopRecording : startRecording}
+                  disabled={loading}
+                  aria-label={recording ? 'Stop recording' : 'Record voice'}
+                >
+                  {recording ? (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
+                  ) : (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/>
+                      <path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/>
+                    </svg>
+                  )}
+                </button>
+                <button
+                  className={styles.sendBtn}
+                  onClick={() => sendMessage(input)}
+                  disabled={(!input.trim() && attachments.length === 0) || loading}
+                  aria-label="Send message"
+                >
+                  <svg className={styles.sendBtnIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="22" y1="2" x2="11" y2="13"/>
+                    <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
           </div>
           <div className={styles.inputFooter}>
             <p className={styles.inputHint}>MO can update your store and create products. Always review changes before publishing.</p>
