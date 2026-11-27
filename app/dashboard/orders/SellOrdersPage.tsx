@@ -2,13 +2,14 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { getDatabase } from '@/lib/database/adapter';
+import { supabaseClient } from '@/lib/supabase-client';
 import { useSell } from '@/context/SellContext';
 import styles from './SellOrdersPage.module.css';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type OrderStatus = 'pending_payment' | 'paid' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded';
-type PaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded';
+type OrderStatus = 'pending_payment' | 'paid' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded' | 'demo';
+type PaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded' | 'demo';
 
 interface OrderLineItem {
   productId?: string;
@@ -48,11 +49,14 @@ interface StoreOrder {
   downloads?: { productId?: string; productName?: string; downloadedAt?: string; email?: string }[];
   createdAt?: string | null;
   updatedAt?: string | null;
+  campaignTag?: string;
+  isDemo?: boolean;
 }
 
 // ─── Constants & helpers ──────────────────────────────────────────────────────
 
 const PIPELINE: OrderStatus[] = ['processing', 'shipped', 'delivered'];
+const CAMPAIGN_PREVIEW_KEY = 'moSellOrdersCampaignPreview:follower-to-founder-video';
 
 const STATUS_LABELS: Record<string, string> = {
   pending_payment: 'Pending payment',
@@ -62,6 +66,7 @@ const STATUS_LABELS: Record<string, string> = {
   delivered: 'Delivered',
   cancelled: 'Cancelled',
   refunded: 'Refunded',
+  demo: 'Campaign demo',
 };
 
 const STATUS_COLOR: Record<string, string> = {
@@ -72,6 +77,7 @@ const STATUS_COLOR: Record<string, string> = {
   delivered: 'statusDelivered',
   cancelled: 'statusCancelled',
   refunded: 'statusRefunded',
+  demo: 'statusPending',
 };
 
 const PAY_COLOR: Record<string, string> = {
@@ -143,11 +149,12 @@ interface OrderSlideOverProps {
   order: StoreOrder;
   currency: string;
   userId: string;
+  readOnly?: boolean;
   onClose: () => void;
   onUpdated: () => void;
 }
 
-function OrderSlideOver({ order, currency, userId, onClose, onUpdated }: OrderSlideOverProps) {
+function OrderSlideOver({ order, currency, userId, readOnly, onClose, onUpdated }: OrderSlideOverProps) {
   const { showToast } = useSell();
   const [busy, setBusy] = useState(false);
   const [trackingNum, setTrackingNum] = useState(order.trackingNumber ?? '');
@@ -225,8 +232,8 @@ function OrderSlideOver({ order, currency, userId, onClose, onUpdated }: OrderSl
   }, [writeStatus, showToast, onUpdated]);
 
   const nextStatus = PIPELINE[pipelineIndex + 1];
-  const canAdvance = !!nextStatus && order.status !== 'cancelled' && order.status !== 'refunded';
-  const canCancel = (order.status === 'paid' || order.status === 'processing');
+  const canAdvance = !readOnly && !!nextStatus && order.status !== 'cancelled' && order.status !== 'refunded';
+  const canCancel = !readOnly && (order.status === 'paid' || order.status === 'processing');
 
   return (
     <>
@@ -247,6 +254,12 @@ function OrderSlideOver({ order, currency, userId, onClose, onUpdated }: OrderSl
           {/* ── Fulfillment ── */}
           <div>
             <p className={styles.sectionLabel}>Fulfillment</p>
+
+            {readOnly && (
+              <p className={styles.fulfillDoneSub} style={{ marginBottom: 12 }}>
+                Demo record — fulfillment actions are disabled. Campaign records are read-only.
+              </p>
+            )}
 
             {allDigital ? (
               <div className={styles.fulfillDone}>
@@ -480,6 +493,14 @@ export function SellOrdersPage() {
   const [payFilter, setPayFilter] = useState<'all' | PaymentStatus>('all');
   const [selected, setSelected] = useState<StoreOrder | null>(null);
 
+  const [previewEnabled, setPreviewEnabled] = useState(() =>
+    typeof window !== 'undefined' && window.localStorage.getItem(CAMPAIGN_PREVIEW_KEY) === 'true'
+  );
+  const [campaignOrders, setCampaignOrders] = useState<StoreOrder[]>([]);
+  const [campaignMetrics, setCampaignMetrics] = useState<{ orderCount: number; simulatedVolume: number } | null>(null);
+  const [campaignLoading, setCampaignLoading] = useState(false);
+  const [campaignError, setCampaignError] = useState('');
+
   const load = useCallback(async () => {
     if (!user?.businessId) return [];
     try {
@@ -501,7 +522,37 @@ export function SellOrdersPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  const filtered = useMemo(() => orders.filter(o => {
+  const loadCampaign = useCallback(async () => {
+    if (!user?.businessId) return;
+    setCampaignLoading(true);
+    setCampaignError('');
+    try {
+      const { data } = await supabaseClient.auth.getSession();
+      const token = data.session?.access_token;
+      if (!token) throw new Error('Please sign in again to view the campaign preview.');
+      const response = await fetch('/api/dashboard/campaign-preview', {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: 'no-store',
+      });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error || 'Campaign preview could not be loaded.');
+      setCampaignOrders((body.orders ?? []) as StoreOrder[]);
+      setCampaignMetrics(body.metrics ?? null);
+    } catch (err) {
+      setCampaignError(err instanceof Error ? err.message : 'Campaign preview could not be loaded.');
+    } finally {
+      setCampaignLoading(false);
+    }
+  }, [user?.businessId]);
+
+  useEffect(() => {
+    window.localStorage.setItem(CAMPAIGN_PREVIEW_KEY, previewEnabled ? 'true' : 'false');
+    if (previewEnabled) loadCampaign();
+  }, [previewEnabled, loadCampaign]);
+
+  const displayOrders = previewEnabled ? campaignOrders : orders;
+
+  const filtered = useMemo(() => displayOrders.filter(o => {
     const q = search.toLowerCase();
     const matchSearch = !q
       || (o.orderNumber ?? '').toLowerCase().includes(q)
@@ -510,14 +561,16 @@ export function SellOrdersPage() {
     const matchStatus = statusFilter === 'all' || effectiveStatus(o) === statusFilter;
     const matchPay = payFilter === 'all' || o.paymentStatus === payFilter;
     return matchSearch && matchStatus && matchPay;
-  }), [orders, search, statusFilter, payFilter]);
+  }), [displayOrders, search, statusFilter, payFilter]);
 
-  const pending = orders.filter(o => {
+  const pending = displayOrders.filter(o => {
     const eff = effectiveStatus(o);
     return eff === 'paid' || eff === 'processing' || eff === 'shipped';
   }).length;
-  const delivered = orders.filter(o => effectiveStatus(o) === 'delivered').length;
-  const revenue = orders.filter(o => o.paymentStatus === 'paid').reduce((s, o) => s + (o.total ?? 0), 0);
+  const delivered = displayOrders.filter(o => effectiveStatus(o) === 'delivered').length;
+  const revenue = displayOrders.filter(o => o.paymentStatus === 'paid').reduce((s, o) => s + (o.total ?? 0), 0);
+  const simulatedVolume = campaignMetrics?.simulatedVolume
+    ?? campaignOrders.reduce((s, o) => s + (o.total ?? 0), 0);
 
   const onUpdated = useCallback(async () => {
     const items = await load();
@@ -534,13 +587,33 @@ export function SellOrdersPage() {
             <h2 className={styles.heading}>Orders</h2>
             <p className={styles.sub}>Manage and fulfill orders from your store.</p>
           </div>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.875rem', fontWeight: 700 }}>
+            <input
+              type="checkbox"
+              role="switch"
+              aria-label="Show campaign preview"
+              checked={previewEnabled}
+              onChange={e => setPreviewEnabled(e.target.checked)}
+            />
+            Show campaign preview
+          </label>
         </div>
+
+        {previewEnabled && (
+          <div role="note" style={{ padding: 14, borderRadius: 10, border: '2px solid #b45309', background: '#fffbeb', color: '#78350f' }}>
+            <strong>CAMPAIGN PREVIEW — NOT REAL SALES</strong>
+            <div style={{ marginTop: 4 }}>
+              {campaignMetrics?.orderCount ?? campaignOrders.length} demo orders · {fmt(simulatedVolume, 'NGN')} simulated sales volume. No payments were verified; these figures are not revenue, earnings or settlement data.
+            </div>
+            {campaignError && <div role="alert" style={{ marginTop: 6 }}>{campaignError}</div>}
+          </div>
+        )}
 
         {/* Stat strip */}
         <div className={styles.statStrip}>
           {pending > 0 && <div className={styles.statCard}><p className={styles.statLabel}>To fulfill</p><p className={styles.statValue}>{pending}</p><p className={styles.statSub}>Need action</p></div>}
-          <div className={styles.statCard}><p className={styles.statLabel}>Total orders</p><p className={styles.statValue}>{orders.length}</p><p className={styles.statSub}>All time</p></div>
-          <div className={styles.statCard}><p className={styles.statLabel}>Revenue</p><p className={styles.statValue}>{fmt(revenue, currency)}</p><p className={styles.statSub}>Paid orders</p></div>
+          <div className={styles.statCard}><p className={styles.statLabel}>Total orders</p><p className={styles.statValue}>{displayOrders.length}</p><p className={styles.statSub}>All time</p></div>
+          <div className={styles.statCard}><p className={styles.statLabel}>{previewEnabled ? 'Simulated volume' : 'Revenue'}</p><p className={styles.statValue}>{fmt(previewEnabled ? simulatedVolume : revenue, currency)}</p><p className={styles.statSub}>{previewEnabled ? 'Demo — not revenue' : 'Paid orders'}</p></div>
           <div className={styles.statCard}><p className={styles.statLabel}>Delivered</p><p className={styles.statValue}>{delivered}</p><p className={styles.statSub}>Completed</p></div>
         </div>
 
@@ -552,7 +625,7 @@ export function SellOrdersPage() {
           </div>
           <select className={styles.filterSelect} value={statusFilter} onChange={e => setStatus(e.target.value as typeof statusFilter)}>
             <option value="all">All statuses</option>
-            {(['paid', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded'] as OrderStatus[]).map(s => (
+            {(['paid', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded', ...(previewEnabled ? ['demo' as OrderStatus] : [])] as OrderStatus[]).map(s => (
               <option key={s} value={s}>{STATUS_LABELS[s]}</option>
             ))}
           </select>
@@ -562,27 +635,30 @@ export function SellOrdersPage() {
             <option value="pending">Pending</option>
             <option value="failed">Failed</option>
             <option value="refunded">Refunded</option>
+            {previewEnabled && <option value="demo">Demo</option>}
           </select>
           <span className={styles.countPill}>{filtered.length} order{filtered.length !== 1 ? 's' : ''}</span>
         </div>
 
         {/* Table */}
         <div className={styles.tableWrap}>
-          {loading ? (
+          {loading || (previewEnabled && campaignLoading) ? (
             <div className={styles.empty}>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', color: 'var(--sell-text-3)', fontSize: '0.875rem' }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ animation: 'spin 0.7s linear infinite' }}><path d="M21 12a9 9 0 11-6.219-8.56" /></svg>
-                Loading orders…
+                {previewEnabled ? 'Loading campaign preview…' : 'Loading orders…'}
               </div>
             </div>
           ) : filtered.length === 0 ? (
             <div className={styles.empty}>
               <img className={styles.emptyImg} src="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1786280719/Untitled_-_August_08_2026_at_11.22.19_yjkgz1.png" alt="No orders yet" />
-              <p className={styles.emptyTitle}>{orders.length === 0 ? 'No orders yet' : 'No results'}</p>
+              <p className={styles.emptyTitle}>{previewEnabled ? 'No campaign orders' : displayOrders.length === 0 ? 'No orders yet' : 'No results'}</p>
               <p className={styles.emptySub}>
-                {orders.length === 0
-                  ? 'Orders will appear here when customers complete a purchase.'
-                  : 'Try clearing your search or filters.'}
+                {previewEnabled
+                  ? campaignError || 'Campaign records will appear here when the preview is enabled.'
+                  : displayOrders.length === 0
+                    ? 'Orders will appear here when customers complete a purchase.'
+                    : 'Try clearing your search or filters.'}
               </p>
             </div>
           ) : (
@@ -647,6 +723,7 @@ export function SellOrdersPage() {
           order={selected}
           currency={currency}
           userId={user?.id ?? ''}
+          readOnly={previewEnabled || !!selected?.isDemo}
           onClose={() => setSelected(null)}
           onUpdated={onUpdated}
         />
