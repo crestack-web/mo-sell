@@ -66,7 +66,7 @@ const STATUS_LABELS: Record<string, string> = {
   delivered: 'Delivered',
   cancelled: 'Cancelled',
   refunded: 'Refunded',
-  demo: 'Campaign demo',
+  demo: 'Preview',
 };
 
 const STATUS_COLOR: Record<string, string> = {
@@ -85,6 +85,14 @@ const PAY_COLOR: Record<string, string> = {
   pending: 'payPending',
   failed: 'payFailed',
   refunded: 'payRefunded',
+};
+
+const PAY_LABELS: Record<string, string> = {
+  paid: 'Paid',
+  pending: 'Pending',
+  failed: 'Failed',
+  refunded: 'Refunded',
+  demo: 'Preview',
 };
 
 function statusClass(s: string): string {
@@ -257,7 +265,7 @@ function OrderSlideOver({ order, currency, userId, readOnly, onClose, onUpdated 
 
             {readOnly && (
               <p className={styles.fulfillDoneSub} style={{ marginBottom: 12 }}>
-                Demo record — fulfillment actions are disabled. Campaign records are read-only.
+                Sample order — fulfillment actions are disabled. Sample records are read-only.
               </p>
             )}
 
@@ -529,17 +537,17 @@ export function SellOrdersPage() {
     try {
       const { data } = await supabaseClient.auth.getSession();
       const token = data.session?.access_token;
-      if (!token) throw new Error('Please sign in again to view the campaign preview.');
+      if (!token) throw new Error('Please sign in again to view sample orders.');
       const response = await fetch('/api/dashboard/campaign-preview', {
         headers: { Authorization: `Bearer ${token}` },
         cache: 'no-store',
       });
       const body = await response.json();
-      if (!response.ok) throw new Error(body.error || 'Campaign preview could not be loaded.');
+      if (!response.ok) throw new Error(body.error || 'Sample orders could not be loaded.');
       setCampaignOrders((body.orders ?? []) as StoreOrder[]);
       setCampaignMetrics(body.metrics ?? null);
     } catch (err) {
-      setCampaignError(err instanceof Error ? err.message : 'Campaign preview could not be loaded.');
+      setCampaignError(err instanceof Error ? err.message : 'Sample orders could not be loaded.');
     } finally {
       setCampaignLoading(false);
     }
@@ -571,6 +579,10 @@ export function SellOrdersPage() {
   const revenue = displayOrders.filter(o => o.paymentStatus === 'paid').reduce((s, o) => s + (o.total ?? 0), 0);
   const simulatedVolume = campaignMetrics?.simulatedVolume
     ?? campaignOrders.reduce((s, o) => s + (o.total ?? 0), 0);
+  // Sample figures only. Majnun's live commission rate is 0, so sample net
+  // earnings equal sample revenue; no settlement or payout is created here.
+  const sampleRevenue = simulatedVolume;
+  const sampleEarnings = simulatedVolume;
 
   const onUpdated = useCallback(async () => {
     const items = await load();
@@ -591,30 +603,39 @@ export function SellOrdersPage() {
             <input
               type="checkbox"
               role="switch"
-              aria-label="Show campaign preview"
+              aria-label="Show sample orders"
               checked={previewEnabled}
               onChange={e => setPreviewEnabled(e.target.checked)}
             />
-            Show campaign preview
+            Show sample orders
           </label>
         </div>
 
         {previewEnabled && (
-          <div role="note" style={{ padding: 14, borderRadius: 10, border: '2px solid #b45309', background: '#fffbeb', color: '#78350f' }}>
-            <strong>CAMPAIGN PREVIEW — NOT REAL SALES</strong>
-            <div style={{ marginTop: 4 }}>
-              {campaignMetrics?.orderCount ?? campaignOrders.length} demo orders · {fmt(simulatedVolume, 'NGN')} simulated sales volume. No payments were verified; these figures are not revenue, earnings or settlement data.
-            </div>
-            {campaignError && <div role="alert" style={{ marginTop: 6 }}>{campaignError}</div>}
+          <div role="note" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, margin: '-4px 0 14px', padding: '5px 10px', borderRadius: 999, border: '1px solid #d6b06a', background: '#fffbeb', color: '#78350f', fontSize: '0.75rem', fontWeight: 700 }}>
+            <span aria-hidden="true">◉</span> Sample data — fictional orders, not real sales
           </div>
+        )}
+        {previewEnabled && campaignError && (
+          <div role="alert" style={{ marginBottom: 12, color: '#b91c1c', fontSize: '0.875rem' }}>{campaignError}</div>
         )}
 
         {/* Stat strip */}
         <div className={styles.statStrip}>
-          {pending > 0 && <div className={styles.statCard}><p className={styles.statLabel}>To fulfill</p><p className={styles.statValue}>{pending}</p><p className={styles.statSub}>Need action</p></div>}
-          <div className={styles.statCard}><p className={styles.statLabel}>Total orders</p><p className={styles.statValue}>{displayOrders.length}</p><p className={styles.statSub}>All time</p></div>
-          <div className={styles.statCard}><p className={styles.statLabel}>{previewEnabled ? 'Simulated volume' : 'Revenue'}</p><p className={styles.statValue}>{fmt(previewEnabled ? simulatedVolume : revenue, currency)}</p><p className={styles.statSub}>{previewEnabled ? 'Demo — not revenue' : 'Paid orders'}</p></div>
-          <div className={styles.statCard}><p className={styles.statLabel}>Delivered</p><p className={styles.statValue}>{delivered}</p><p className={styles.statSub}>Completed</p></div>
+          {previewEnabled ? (
+            <>
+              <div className={styles.statCard}><p className={styles.statLabel}>Total orders</p><p className={styles.statValue}>{displayOrders.length}</p><p className={styles.statSub}>Sample orders</p></div>
+              <div className={styles.statCard}><p className={styles.statLabel}>Revenue</p><p className={styles.statValue}>{fmt(sampleRevenue, 'NGN')}</p><p className={styles.statSub}>Sample data</p></div>
+              <div className={styles.statCard}><p className={styles.statLabel}>Earnings</p><p className={styles.statValue}>{fmt(sampleEarnings, 'NGN')}</p><p className={styles.statSub}>Sample data</p></div>
+            </>
+          ) : (
+            <>
+              {pending > 0 && <div className={styles.statCard}><p className={styles.statLabel}>To fulfill</p><p className={styles.statValue}>{pending}</p><p className={styles.statSub}>Need action</p></div>}
+              <div className={styles.statCard}><p className={styles.statLabel}>Total orders</p><p className={styles.statValue}>{displayOrders.length}</p><p className={styles.statSub}>All time</p></div>
+              <div className={styles.statCard}><p className={styles.statLabel}>Revenue</p><p className={styles.statValue}>{fmt(revenue, currency)}</p><p className={styles.statSub}>Paid orders</p></div>
+              <div className={styles.statCard}><p className={styles.statLabel}>Delivered</p><p className={styles.statValue}>{delivered}</p><p className={styles.statSub}>Completed</p></div>
+            </>
+          )}
         </div>
 
         {/* Toolbar */}
@@ -635,7 +656,7 @@ export function SellOrdersPage() {
             <option value="pending">Pending</option>
             <option value="failed">Failed</option>
             <option value="refunded">Refunded</option>
-            {previewEnabled && <option value="demo">Demo</option>}
+            {previewEnabled && <option value="demo">Preview</option>}
           </select>
           <span className={styles.countPill}>{filtered.length} order{filtered.length !== 1 ? 's' : ''}</span>
         </div>
@@ -646,16 +667,16 @@ export function SellOrdersPage() {
             <div className={styles.empty}>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', color: 'var(--sell-text-3)', fontSize: '0.875rem' }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ animation: 'spin 0.7s linear infinite' }}><path d="M21 12a9 9 0 11-6.219-8.56" /></svg>
-                {previewEnabled ? 'Loading campaign preview…' : 'Loading orders…'}
+                {previewEnabled ? 'Loading sample orders…' : 'Loading orders…'}
               </div>
             </div>
           ) : filtered.length === 0 ? (
             <div className={styles.empty}>
               <img className={styles.emptyImg} src="https://res.cloudinary.com/dzjoqbg2u/image/upload/v1786280719/Untitled_-_August_08_2026_at_11.22.19_yjkgz1.png" alt="No orders yet" />
-              <p className={styles.emptyTitle}>{previewEnabled ? 'No campaign orders' : displayOrders.length === 0 ? 'No orders yet' : 'No results'}</p>
+              <p className={styles.emptyTitle}>{previewEnabled ? 'No sample orders' : displayOrders.length === 0 ? 'No orders yet' : 'No results'}</p>
               <p className={styles.emptySub}>
                 {previewEnabled
-                  ? campaignError || 'Campaign records will appear here when the preview is enabled.'
+                  ? campaignError || 'Sample orders will appear here when the switch is enabled.'
                   : displayOrders.length === 0
                     ? 'Orders will appear here when customers complete a purchase.'
                     : 'Try clearing your search or filters.'}
@@ -701,7 +722,7 @@ export function SellOrdersPage() {
                           {isDigitalOrder(o) && eff === 'delivered' && <span className={styles.autoTag}>auto</span>}
                         </span>
                       </td>
-                      <td><span className={`${styles.badge} ${payClass(o.paymentStatus)}`}>{o.paymentStatus}</span></td>
+                      <td><span className={`${styles.badge} ${payClass(o.paymentStatus)}`}>{PAY_LABELS[o.paymentStatus] ?? o.paymentStatus}</span></td>
                       <td onClick={e => e.stopPropagation()}>
                         <div className={styles.rowActions}>
                           <button className={styles.iconBtn} onClick={() => setSelected(o)} title="View order">
